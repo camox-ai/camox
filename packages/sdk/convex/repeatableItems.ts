@@ -9,6 +9,10 @@ import { internal } from "./_generated/api";
 import { generateKeyBetween } from "fractional-indexing";
 import { generateObjectSummary } from "../src/lib/ai";
 import { sortByPosition, assembleItemContent } from "./lib/contentAssembly";
+import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
+
+const SUMMARIZATION_DEBOUNCE_DELAY_MS = 5000;
+const BLOCK_CASCADE_DELAY_MS = 2000;
 
 export const createRepeatableItem = mutation({
   args: {
@@ -58,12 +62,14 @@ export const createRepeatableItem = mutation({
       updatedAt: now,
     });
 
-    // Schedule summary generation to run in the background
-    await ctx.scheduler.runAfter(
-      0,
-      internal.repeatableItems.generateRepeatableItemSummary,
-      { itemId },
-    );
+    await scheduleAiJob(ctx, {
+      entityTable: "repeatableItems",
+      entityId: itemId,
+      type: "summary",
+      delayMs: 0,
+      fn: internal.repeatableItems.generateRepeatableItemSummary,
+      fnArgs: { itemId },
+    });
 
     return itemId;
   },
@@ -83,6 +89,15 @@ export const updateRepeatableItemContent = mutation({
     await ctx.db.patch(args.itemId, {
       content: { ...item.content, ...args.content },
       updatedAt: Date.now(),
+    });
+
+    await scheduleAiJob(ctx, {
+      entityTable: "repeatableItems",
+      entityId: args.itemId,
+      type: "summary",
+      delayMs: SUMMARIZATION_DEBOUNCE_DELAY_MS,
+      fn: internal.repeatableItems.generateRepeatableItemSummary,
+      fnArgs: { itemId: args.itemId },
     });
   },
 });
@@ -151,12 +166,14 @@ export const duplicateRepeatableItem = mutation({
       updatedAt: now,
     });
 
-    // Schedule summary generation
-    await ctx.scheduler.runAfter(
-      0,
-      internal.repeatableItems.generateRepeatableItemSummary,
-      { itemId: newItemId },
-    );
+    await scheduleAiJob(ctx, {
+      entityTable: "repeatableItems",
+      entityId: newItemId,
+      type: "summary",
+      delayMs: 0,
+      fn: internal.repeatableItems.generateRepeatableItemSummary,
+      fnArgs: { itemId: newItemId },
+    });
 
     return newItemId;
   },
@@ -181,7 +198,17 @@ export const getAssembledItemContent = internalQuery({
     itemId: v.id("repeatableItems"),
   },
   handler: async (ctx, args) => {
-    return assembleItemContent(ctx, args.itemId);
+    const item = await ctx.db.get(args.itemId);
+    if (!item) return null;
+
+    const assembled = await assembleItemContent(ctx, args.itemId);
+    if (!assembled) return null;
+
+    return {
+      ...assembled,
+      previousSummary: item.summary,
+      blockId: item.blockId,
+    };
   },
 });
 
@@ -199,6 +226,7 @@ export const generateRepeatableItemSummary = internalAction({
     const summary = await generateObjectSummary({
       type: assembled.type,
       content: assembled.content,
+      previousSummary: assembled.previousSummary,
     });
 
     await ctx.runMutation(
@@ -208,6 +236,14 @@ export const generateRepeatableItemSummary = internalAction({
         summary,
       },
     );
+
+    // Cascade: if summary changed, schedule parent block re-summarization
+    if (summary !== assembled.previousSummary && assembled.blockId) {
+      await ctx.runMutation(
+        internal.repeatableItems.cascadeToBlock,
+        { blockId: assembled.blockId },
+      );
+    }
   },
 });
 
@@ -220,6 +256,28 @@ export const updateRepeatableItemSummary = internalMutation({
     await ctx.db.patch(args.itemId, {
       summary: args.summary,
       updatedAt: Date.now(),
+    });
+
+    await clearAiJob(ctx, {
+      entityTable: "repeatableItems",
+      entityId: args.itemId,
+      type: "summary",
+    });
+  },
+});
+
+export const cascadeToBlock = internalMutation({
+  args: {
+    blockId: v.id("blocks"),
+  },
+  handler: async (ctx, args) => {
+    await scheduleAiJob(ctx, {
+      entityTable: "blocks",
+      entityId: args.blockId,
+      type: "summary",
+      delayMs: BLOCK_CASCADE_DELAY_MS,
+      fn: internal.blocks.generateBlockSummary,
+      fnArgs: { blockId: args.blockId },
     });
   },
 });

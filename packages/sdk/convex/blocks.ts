@@ -14,8 +14,10 @@ import {
   splitContent,
   assembleBlockContent,
 } from "./lib/contentAssembly";
+import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 
 const SUMMARIZATION_DEBOUNCE_DELAY_MS = 5000;
+const PAGE_SEO_DELAY_MS = 15000;
 
 export const createBlock = mutation({
   args: {
@@ -94,9 +96,13 @@ export const createBlock = mutation({
 
     await Promise.all(insertPromises);
 
-    // Schedule summary generation to run in the background
-    await ctx.scheduler.runAfter(0, internal.blocks.generateBlockSummary, {
-      blockId,
+    await scheduleAiJob(ctx, {
+      entityTable: "blocks",
+      entityId: blockId,
+      type: "summary",
+      delayMs: 0,
+      fn: internal.blocks.generateBlockSummary,
+      fnArgs: { blockId },
     });
 
     return blockId;
@@ -114,34 +120,19 @@ export const updateBlockContent = mutation({
       throw new Error("Block not found");
     }
 
-    // Cancel any existing summarization job
-    if (block.scheduledSummarizationJobId) {
-      console.log(
-        "cancelling existing summarization job for block",
-        args.blockId
-      );
-      await ctx.scheduler.cancel(block.scheduledSummarizationJobId);
-    }
-
-    // Merge new content with existing content
-    const updates: any = {
+    await ctx.db.patch(args.blockId, {
       content: { ...block.content, ...args.content },
       updatedAt: Date.now(),
-    };
+    });
 
-    // Schedule summary generation to run in the background
-    const scheduledJobId = await ctx.scheduler.runAfter(
-      SUMMARIZATION_DEBOUNCE_DELAY_MS,
-      internal.blocks.generateBlockSummary,
-      {
-        blockId: args.blockId,
-      }
-    );
-
-    // Store the scheduled job ID in the block
-    updates.scheduledSummarizationJobId = scheduledJobId;
-
-    await ctx.db.patch(args.blockId, updates);
+    await scheduleAiJob(ctx, {
+      entityTable: "blocks",
+      entityId: args.blockId,
+      type: "summary",
+      delayMs: SUMMARIZATION_DEBOUNCE_DELAY_MS,
+      fn: internal.blocks.generateBlockSummary,
+      fnArgs: { blockId: args.blockId },
+    });
   },
 });
 
@@ -305,7 +296,17 @@ export const getAssembledBlockContent = internalQuery({
     blockId: v.id("blocks"),
   },
   handler: async (ctx, args) => {
-    return assembleBlockContent(ctx, args.blockId);
+    const block = await ctx.db.get(args.blockId);
+    if (!block) return null;
+
+    const assembled = await assembleBlockContent(ctx, args.blockId);
+    if (!assembled) return null;
+
+    return {
+      ...assembled,
+      previousSummary: block.summary,
+      pageId: block.pageId,
+    };
   },
 });
 
@@ -325,6 +326,7 @@ export const generateBlockSummary = internalAction({
       summary = await generateObjectSummary({
         type: assembled.type,
         content: assembled.content,
+        previousSummary: assembled.previousSummary,
       });
     } catch (error: any) {
       console.error("generateBlockSummary failed:", {
@@ -341,6 +343,13 @@ export const generateBlockSummary = internalAction({
       blockId: args.blockId,
       summary,
     });
+
+    // Cascade: if summary changed, schedule page SEO regeneration
+    if (summary !== assembled.previousSummary) {
+      await ctx.runMutation(internal.blocks.cascadeToPage, {
+        pageId: assembled.pageId,
+      });
+    }
   },
 });
 
@@ -352,8 +361,54 @@ export const updateBlockSummary = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.blockId, {
       summary: args.summary,
-      scheduledSummarizationJobId: undefined,
       updatedAt: Date.now(),
+    });
+
+    await clearAiJob(ctx, {
+      entityTable: "blocks",
+      entityId: args.blockId,
+      type: "summary",
+    });
+  },
+});
+
+export const cascadeToPage = internalMutation({
+  args: {
+    pageId: v.id("pages"),
+  },
+  handler: async (ctx, args) => {
+    await scheduleAiJob(ctx, {
+      entityTable: "pages",
+      entityId: args.pageId,
+      type: "seo",
+      delayMs: PAGE_SEO_DELAY_MS,
+      fn: internal.blocks.generatePageSeo,
+      fnArgs: { pageId: args.pageId },
+    });
+  },
+});
+
+/** No-op placeholder — will contain actual SEO generation logic later. */
+export const generatePageSeo = internalAction({
+  args: {
+    pageId: v.id("pages"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.runMutation(internal.blocks.clearPageSeoJob, {
+      pageId: args.pageId,
+    });
+  },
+});
+
+export const clearPageSeoJob = internalMutation({
+  args: {
+    pageId: v.id("pages"),
+  },
+  handler: async (ctx, args) => {
+    await clearAiJob(ctx, {
+      entityTable: "pages",
+      entityId: args.pageId,
+      type: "seo",
     });
   },
 });

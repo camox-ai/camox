@@ -32,7 +32,6 @@ export default defineSchema({
     settings: v.optional(v.any()),
     summary: v.string(),
     position: v.string(),
-    scheduledSummarizationJobId: v.optional(v.id("_scheduled_functions")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -59,10 +58,26 @@ export default defineSchema({
     blobId: v.string(),
     path: v.string(),
     aiMetadataEnabled: v.optional(v.boolean()),
-    scheduledMetadataJobId: v.optional(v.id("_scheduled_functions")),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_blobId", ["blobId"]),
+
+  aiJobs: defineTable({
+    entityTable: v.union(
+      v.literal("repeatableItems"),
+      v.literal("blocks"),
+      v.literal("files"),
+      v.literal("pages"),
+    ),
+    entityId: v.string(),
+    type: v.union(
+      v.literal("summary"),
+      v.literal("fileMetadata"),
+      v.literal("seo"),
+    ),
+    scheduledFunctionId: v.id("_scheduled_functions"),
+    createdAt: v.number(),
+  }).index("by_entity", ["entityTable", "entityId", "type"]),
 
   blockDefinitions: defineTable({
     projectId: v.id("projects"),

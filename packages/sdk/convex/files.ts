@@ -9,6 +9,7 @@ import { v } from "convex/values";
 import { buildDownloadUrl } from "convex-fs";
 import { fs } from "./fs";
 import { generateImageMetadata } from "../src/lib/ai";
+import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 
 const FS_PREFIX = "/fs";
 
@@ -38,12 +39,14 @@ export const commitFile = mutation({
       updatedAt: now,
     });
 
-    const scheduledMetadataJobId = await ctx.scheduler.runAfter(
-      0,
-      internal.files.generateFileMetadata,
-      { fileId, imageUrl: url, currentFilename: args.filename },
-    );
-    await ctx.db.patch(fileId, { scheduledMetadataJobId });
+    await scheduleAiJob(ctx, {
+      entityTable: "files",
+      entityId: fileId,
+      type: "fileMetadata",
+      delayMs: 0,
+      fn: internal.files.generateFileMetadata,
+      fnArgs: { fileId, imageUrl: url, currentFilename: args.filename },
+    });
 
     return { fileId, url, filename: args.filename, mimeType: args.contentType };
   },
@@ -176,8 +179,13 @@ export const applyFileMetadata = internalMutation({
     await ctx.db.patch(args.fileId, {
       filename: args.filename,
       alt: args.alt,
-      scheduledMetadataJobId: undefined,
       updatedAt: Date.now(),
+    });
+
+    await clearAiJob(ctx, {
+      entityTable: "files",
+      entityId: args.fileId,
+      type: "fileMetadata",
     });
   },
 });
@@ -191,29 +199,32 @@ export const setAiMetadata = mutation({
     const file = await ctx.db.get(args.fileId);
     if (!file) throw new Error("File not found");
 
-    if (file.scheduledMetadataJobId) {
-      await ctx.scheduler.cancel(file.scheduledMetadataJobId);
-    }
-
     if (args.enabled) {
-      const scheduledMetadataJobId = await ctx.scheduler.runAfter(
-        0,
-        internal.files.generateFileMetadata,
-        {
+      await scheduleAiJob(ctx, {
+        entityTable: "files",
+        entityId: args.fileId,
+        type: "fileMetadata",
+        delayMs: 0,
+        fn: internal.files.generateFileMetadata,
+        fnArgs: {
           fileId: args.fileId,
           imageUrl: file.url,
           currentFilename: file.filename,
         },
-      );
+      });
       await ctx.db.patch(args.fileId, {
         aiMetadataEnabled: true,
-        scheduledMetadataJobId,
         updatedAt: Date.now(),
       });
     } else {
+      // Cancel any pending metadata job
+      await clearAiJob(ctx, {
+        entityTable: "files",
+        entityId: args.fileId,
+        type: "fileMetadata",
+      });
       await ctx.db.patch(args.fileId, {
         aiMetadataEnabled: false,
-        scheduledMetadataJobId: undefined,
         updatedAt: Date.now(),
       });
     }

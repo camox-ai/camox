@@ -14,6 +14,7 @@ import type * as files from "../files.js";
 import type * as fs from "../fs.js";
 import type * as functions from "../functions.js";
 import type * as http from "../http.js";
+import type * as lib_aiJobs from "../lib/aiJobs.js";
 import type * as lib_contentAssembly from "../lib/contentAssembly.js";
 import type * as pageActions from "../pageActions.js";
 import type * as pages from "../pages.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   fs: typeof fs;
   functions: typeof functions;
   http: typeof http;
+  "lib/aiJobs": typeof lib_aiJobs;
   "lib/contentAssembly": typeof lib_contentAssembly;
   pageActions: typeof pageActions;
   pages: typeof pages;

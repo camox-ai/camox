@@ -114,10 +114,23 @@ export async function generateImageMetadata(
 type GenerateObjectSummaryOptions = {
   type: string;
   content: Record<string, unknown>;
+  previousSummary?: string;
 };
 export async function generateObjectSummary(
   options: GenerateObjectSummaryOptions,
 ) {
+  const stabilityBlock = options.previousSummary
+    ? outdent`
+
+      <previous_summary>${options.previousSummary}</previous_summary>
+      <stability_instruction>
+        A summary was previously generated for this content.
+        Return the SAME summary unless it is no longer accurate.
+        Only change it if the content has meaningfully changed.
+      </stability_instruction>
+    `
+    : "";
+
   const { text: summary } = await generateText({
     model: openRouter.chat("openai/gpt-oss-safeguard-20b:nitro"),
     messages: [
@@ -141,6 +154,7 @@ export async function generateObjectSummary(
               <type>${options.type}</type>
               <content>${JSON.stringify(options.content)}</content>
             </context>
+            ${stabilityBlock}
 
             <examples>
               <example>
