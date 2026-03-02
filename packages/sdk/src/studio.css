@@ -64,8 +64,6 @@ code {
   --sidebar-border: theme(--color-zinc-200);
   --sidebar-ring: theme(--color-zinc-400);
   /* Custom */
-  --color-draft-accent: theme(--color-indigo-400);
-  --color-published-accent: theme(--color-green-400);
   --preview-background: oklch(0.98 0.005 264.531);
   --color-checker-bg: #f8f9fa;
   --color-checker: #e9ecef;
@@ -108,8 +106,6 @@ code {
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: theme(--color-zinc-500);
   /* Custom */
-  --color-draft-accent: theme(--color-indigo-500);
-  --color-published-accent: theme(--color-green-600);
   --preview-background: oklch(0.18 0.025 264.665);
   --color-checker-bg: #212529;
   --color-checker: #1a1e22;
@@ -153,8 +149,6 @@ code {
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   /* Custom */
-  --color-draft-accent: var(--color-draft-accent);
-  --color-published-accent: var(--color-published-accent);
   --color-checker-bg: var(--color-checker-bg);
   --color-checker: var(--color-checker);
   --color-invalid: var(--invalid);

@@ -151,11 +151,6 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
   );
   const isAnySideSheetOpen =
     isPageContentSheetOpen || isAddBlockSheetOpen || isAgentChatSheetOpen;
-  const publicationState = useSelector(
-    previewStore,
-    (state) => state.context.publicationState,
-  );
-
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const [panelWidth, setPanelWidth] = React.useState(0);
   const [panelLeft, setPanelLeft] = React.useState(0);
@@ -207,27 +202,6 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
         icon: "TabletSmartphone",
       },
       {
-        id: "switch-to-draft",
-        label: "Switch to draft content",
-        groupLabel: "Preview",
-        checkIfAvailable: () => publicationState === "published",
-        execute: () =>
-          previewStore.send({ type: "setPublicationState", value: "draft" }),
-        icon: "Edit3",
-      },
-      {
-        id: "switch-to-published",
-        label: "Switch to published content",
-        groupLabel: "Preview",
-        checkIfAvailable: () => publicationState === "draft",
-        execute: () =>
-          previewStore.send({
-            type: "setPublicationState",
-            value: "published",
-          }),
-        icon: "CheckCircle2",
-      },
-      {
         id: "open-agent-chat",
         label: "Ask for changes",
         groupLabel: "Preview",
@@ -246,7 +220,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
         ids: actions.map((a) => a.id),
       });
     };
-  }, [publicationState, isAgentChatSheetOpen]);
+  }, [isAgentChatSheetOpen]);
 
   return (
     <>

@@ -12,7 +12,9 @@ import { api } from "camox/_generated/api";
 import { useQuery } from "convex/react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { formatPathSegment } from "@/lib/utils";
-import { Sidebar } from "./components/Sidebar";
+import { PageTree } from "./components/PageTree";
+import { PanelContent, PanelHeader } from "@/components/ui/panel";
+import { PagePicker } from "./components/PagePicker";
 import { PageContentSheet } from "./components/PageContentSheet";
 import { AddBlockSheet } from "./components/AddBlockSheet";
 import { AgentChatSheet } from "./components/AgentChatSheet";
@@ -227,7 +229,12 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
           <div className="h-full flex flex-row items-stretch">
             {isSidebarOpen && (
               <div className="w-[300px] flex flex-col border-r-2">
-                <Sidebar />
+                <PanelHeader className="px-2 py-2 flex flew-row gap-2">
+                  <PagePicker />
+                </PanelHeader>
+                <PanelContent className="grow basis-0 flex flex-col gap-2 p-2 overflow-auto">
+                  <PageTree />
+                </PanelContent>
               </div>
             )}
             <PreviewPanel>

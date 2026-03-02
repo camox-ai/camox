@@ -28,7 +28,6 @@ import type { OverlayMessage } from "../overlayMessages";
 import { api } from "camox/_generated/api";
 import { Doc, Id } from "camox/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { PanelContent } from "@/components/ui/panel";
 import { usePreviewedPage } from "../CamoxPreview";
 import { useLocation } from "@tanstack/react-router";
 import { BlockActionsPopover } from "./BlockActionsPopover";
@@ -507,7 +506,7 @@ const PageTree = () => {
   }
 
   return (
-    <PanelContent className="grow basis-0 flex flex-col gap-2 p-2 overflow-auto">
+    <>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -540,7 +539,7 @@ const PageTree = () => {
         <Plus />
         Add block
       </Button>
-    </PanelContent>
+    </>
   );
 };
 

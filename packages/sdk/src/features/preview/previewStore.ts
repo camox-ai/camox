@@ -4,8 +4,6 @@ import { Block } from "@/core/createBlock";
 import { Id } from "camox/_generated/dataModel";
 import type { FieldType } from "@/core/lib/fieldTypes";
 
-export type PublicationState = "draft" | "published";
-
 export type SelectionBreadcrumb = {
   type: FieldType | "Block";
   id: string;
@@ -20,7 +18,6 @@ interface PreviewContext {
   isAgentChatSheetOpen: boolean;
   isContentLocked: boolean;
   isMobileMode: boolean;
-  publicationState: PublicationState;
   peekedBlock: Block | null;
   peekedBlockPosition: string | null;
   peekedPagePathname: string | null;
@@ -38,7 +35,6 @@ export const previewStore = createStore({
     isAgentChatSheetOpen: false,
     isContentLocked: false,
     isMobileMode: false,
-    publicationState: "draft",
     peekedBlock: null,
     peekedBlockPosition: null,
     peekedPagePathname: null,
@@ -94,15 +90,6 @@ export const previewStore = createStore({
         toast(context.isContentLocked ? "Enabling edits" : "Preventing edits");
       });
 
-      if (context.publicationState === "published" && context.isContentLocked) {
-        enqueue.effect(() => {
-          toast(
-            "Can't enable edits while in published mode. Switch to draft mode first.",
-          );
-        });
-        return context;
-      }
-
       return {
         ...context,
         isContentLocked: !context.isContentLocked,
@@ -119,37 +106,6 @@ export const previewStore = createStore({
         ...context,
         isMobileMode: !context.isMobileMode,
       };
-    },
-    setPublicationState: (
-      context,
-      event: { value: PublicationState },
-      enqueue,
-    ) => {
-      if (event.value === "draft" && context.publicationState !== "draft") {
-        enqueue.effect(() => {
-          toast("Switching to draft content");
-        });
-        return {
-          ...context,
-          publicationState: event.value,
-          isContentLocked: false,
-        };
-      }
-
-      if (
-        event.value === "published" &&
-        context.publicationState !== "published"
-      ) {
-        enqueue.effect(() => {
-          toast("Switching to publicly available content");
-        });
-        return {
-          ...context,
-          publicationState: event.value,
-          isContentLocked: true,
-        };
-      }
-      return context;
     },
     setPeekedBlock: (
       context,

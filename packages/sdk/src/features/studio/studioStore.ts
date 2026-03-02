@@ -1,7 +1,5 @@
 import { createStore } from "@xstate/store";
 
-export type PublicationState = "draft" | "published";
-
 interface StudioContext {
   isCommandPaletteOpen: boolean;
   commandPalettePages: string[];
