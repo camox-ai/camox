@@ -100,6 +100,13 @@ const AddBlockSheet = () => {
     }
   }, [isOpen]);
 
+  const displayCount = (blockId: Block["id"]) => {
+    const total = totalCounts[blockId] ?? 0;
+    if (total === 0) return "Never used";
+    const page = pageCounts[blockId] ?? "none";
+    return `${total} use${total > 1 ? "s" : ""} (${page} here)`;
+  };
+
   return (
     <PreviewSideSheet
       open={isOpen}
@@ -142,18 +149,16 @@ const AddBlockSheet = () => {
                     onSelect={() => {
                       handleAddBlock(block);
                     }}
-                    className="flex items-center justify-between gap-2"
+                    className="flex items-center justify-between gap-2 group"
                   >
                     <div>
                       <span>{block.title}</span>
                       <span className="text-muted-foreground block">
-                        {totalCounts[block.id] ?? 0} use
-                        {totalCounts[block.id] > 1 ? "s" : ""} (
-                        {pageCounts[block.id] ?? "none"} here)
+                        {displayCount(block.id)}
                       </span>
                     </div>
                     <Tooltip>
-                      <TooltipTrigger>
+                      <TooltipTrigger className="hidden group-hover:flex group-focus-within:flex">
                         <InfoIcon />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-[300px]" side="right">
