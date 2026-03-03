@@ -2,33 +2,20 @@
  * CreatePageSheet
  * -----------------------------------------------------------------------------------------------*/
 
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import * as Sheet from "@/components/ui/sheet";
-import * as ControlGroup from "@/components/ui/control-group";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "camox/_generated/api";
 import { useAction, useQuery } from "convex/react";
 import { toast } from "sonner";
-import { InputBase, InputBaseAdornment } from "@/components/ui/input-base";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { formatPathSegment } from "@/lib/utils";
 import { Id } from "camox/_generated/dataModel";
 import { useSelector } from "@xstate/store/react";
 import { previewStore } from "../previewStore";
-
-const NO_PARENT_VALUE = "__no_parent__";
+import { PageLocationFieldset } from "./PageLocationFieldset";
 
 const CreatePageSheet = () => {
   const open = useSelector(
@@ -80,13 +67,6 @@ const CreatePageSheet = () => {
     },
   });
 
-  const getParentPath = (parentPageId: string | undefined) => {
-    if (!pages) return "/";
-    if (!parentPageId) return "/";
-    const page = pages.find((p) => p._id === parentPageId);
-    return page ? page.fullPath + "/" : "/";
-  };
-
   return (
     <Sheet.Sheet
       open={open}
@@ -111,69 +91,18 @@ const CreatePageSheet = () => {
           className="space-y-4 py-4 px-4"
         >
           <form.Field name="parentPageId">
-            {(field) => (
-              <div className="space-y-2">
-                <Label>
-                  Parent page{" "}
-                  <span className="text-muted-foreground">(optional)</span>
-                </Label>
-                <Select
-                  value={field.state.value ?? ""}
-                  onValueChange={(value) =>
-                    field.handleChange(
-                      ["", NO_PARENT_VALUE].includes(value)
-                        ? (undefined as any)
-                        : value,
-                    )
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="No parent" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_PARENT_VALUE}>No parent</SelectItem>
-                    <SelectSeparator />
-                    {pages?.map((page) => (
-                      <SelectItem key={page._id} value={page._id}>
-                        {page.metaTitle ??
-                          formatPathSegment(page.pathSegment)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-muted-foreground text-xs">
-                  Select a parent page to nest this page under it.
-                </p>
-              </div>
-            )}
-          </form.Field>
-          <form.Field name="pathSegment">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="pathSegment">Page path</Label>
-                <ControlGroup.ControlGroup>
-                  <ControlGroup.ControlGroupItem className="shrink-0">
-                    <InputBase>
-                      <InputBaseAdornment>
-                        <form.Subscribe selector={(s) => s.values.parentPageId}>
-                          {(parentPageId) => getParentPath(parentPageId)}
-                        </form.Subscribe>
-                      </InputBaseAdornment>
-                    </InputBase>
-                  </ControlGroup.ControlGroupItem>
-                  <ControlGroup.ControlGroupItem>
-                    <Input
-                      id="pathSegment"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      placeholder="e.g. home, about-us"
-                    />
-                  </ControlGroup.ControlGroupItem>
-                </ControlGroup.ControlGroup>
-                <p className="text-muted-foreground text-xs">
-                  Used to generate the page URL, along with the parent page.
-                </p>
-              </div>
+            {(parentField) => (
+              <form.Field name="pathSegment">
+                {(pathField) => (
+                  <PageLocationFieldset
+                    parentPageId={parentField.state.value}
+                    onParentPageIdChange={parentField.handleChange}
+                    pathSegment={pathField.state.value}
+                    onPathSegmentChange={pathField.handleChange}
+                    pages={pages}
+                  />
+                )}
+              </form.Field>
             )}
           </form.Field>
           <form.Field name="contentDescription">

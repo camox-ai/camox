@@ -74,23 +74,20 @@ const PagePicker = () => {
     }
   };
 
+  const skeleton = (
+    <div className="w-full flex items-center gap-2 h-9 px-2 border border-input rounded-md">
+      <Skeleton className="h-3 flex-1" />
+      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+    </div>
+  );
+
   if (!pages) {
-    return (
-      <div className="flex items-center gap-2 min-w-[150px] h-9 px-4 border border-input rounded-md">
-        <Skeleton className="h-4 flex-1" />
-        <Skeleton className="h-4 w-4" />
-      </div>
-    );
+    return skeleton;
   }
 
   const currentPage = pages.find((page) => page.fullPath === pathname);
   if (!currentPage) {
-    return (
-      <div className="flex items-center gap-2 min-w-[150px] h-9 px-4 border border-input rounded-md">
-        <Skeleton className="h-4 flex-1" />
-        <Skeleton className="h-4 w-4" />
-      </div>
-    );
+    return skeleton;
   }
 
   const peekedFullPath = peekedPagePathname ?? currentPage.fullPath;
@@ -169,7 +166,10 @@ const PagePicker = () => {
                         size="icon-sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          previewStore.send({ type: "openEditPageSheet", page });
+                          previewStore.send({
+                            type: "openEditPageSheet",
+                            page,
+                          });
                           setOpen(false);
                         }}
                         onKeyDown={(e) => {
@@ -177,7 +177,10 @@ const PagePicker = () => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
                             e.stopPropagation();
-                            previewStore.send({ type: "openEditPageSheet", page });
+                            previewStore.send({
+                              type: "openEditPageSheet",
+                              page,
+                            });
                             setOpen(false);
                           }
                         }}

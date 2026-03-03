@@ -76,7 +76,7 @@ export const ProjectMenu = () => {
     return (
       <div className="flex items-center gap-2 min-w-[150px] h-9 px-4">
         <Skeleton className="h-4 w-4 rounded-full" />
-        <Skeleton className="h-4 flex-1" />
+        <Skeleton className="h-3 flex-1" />
       </div>
     );
   }

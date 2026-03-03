@@ -2,18 +2,7 @@
  * EditPageSheet
  * -----------------------------------------------------------------------------------------------*/
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import * as Sheet from "@/components/ui/sheet";
-import * as ControlGroup from "@/components/ui/control-group";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "camox/_generated/api";
@@ -21,14 +10,12 @@ import { Doc } from "camox/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import * as React from "react";
 import { toast } from "sonner";
-import { InputBase, InputBaseAdornment } from "@/components/ui/input-base";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { formatPathSegment } from "@/lib/utils";
 import { useSelector } from "@xstate/store/react";
 import { previewStore } from "../previewStore";
-
-const NO_PARENT_VALUE = "__no_parent__";
+import { PageLocationFieldset } from "./PageLocationFieldset";
 
 const EditPageSheet = () => {
   const editingPage = useSelector(
@@ -84,13 +71,6 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
     });
   }, [pageToEdit, form]);
 
-  const getParentPath = (parentPageId: string | undefined) => {
-    if (!pages) return "/";
-    if (!parentPageId) return "/";
-    const page = pages.find((p) => p._id === parentPageId);
-    return page ? page.fullPath + "/" : "/";
-  };
-
   return (
     <Sheet.Sheet
       open
@@ -102,7 +82,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
         <Sheet.SheetHeader className="border-b border-border">
           <Sheet.SheetTitle>Edit page</Sheet.SheetTitle>
           <Sheet.SheetDescription>
-            Update the page details. Changes will be reflected immediately.
+            Update the page details.
           </Sheet.SheetDescription>
         </Sheet.SheetHeader>
         <form
@@ -114,70 +94,20 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
           className="space-y-4 py-4 px-4"
         >
           <form.Field name="parentPageId">
-            {(field) => (
-              <div className="space-y-2">
-                <Label>
-                  Parent page{" "}
-                  <span className="text-muted-foreground">(optional)</span>
-                </Label>
-                <Select
-                  value={field.state.value ?? ""}
-                  disabled={isRootPage}
-                  onValueChange={(value) =>
-                    field.handleChange(
-                      ["", NO_PARENT_VALUE].includes(value)
-                        ? (undefined as any)
-                        : value,
-                    )
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="No parent" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_PARENT_VALUE}>No parent</SelectItem>
-                    <SelectSeparator />
-                    {pages?.map((page) => (
-                      <SelectItem key={page._id} value={page._id}>
-                        {page.metaTitle ?? formatPathSegment(page.pathSegment)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-muted-foreground text-xs">
-                  Select a parent page to nest this page under it.
-                </p>
-              </div>
-            )}
-          </form.Field>
-          <form.Field name="pathSegment">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="pathSegment">Page path</Label>
-                <ControlGroup.ControlGroup>
-                  <ControlGroup.ControlGroupItem className="shrink-0">
-                    <InputBase>
-                      <InputBaseAdornment>
-                        <form.Subscribe selector={(s) => s.values.parentPageId}>
-                          {(parentPageId) => getParentPath(parentPageId)}
-                        </form.Subscribe>
-                      </InputBaseAdornment>
-                    </InputBase>
-                  </ControlGroup.ControlGroupItem>
-                  <ControlGroup.ControlGroupItem>
-                    <Input
-                      id="pathSegment"
-                      value={field.state.value}
-                      disabled={isRootPage}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      placeholder="e.g. home, about-us"
-                    />
-                  </ControlGroup.ControlGroupItem>
-                </ControlGroup.ControlGroup>
-                <p className="text-muted-foreground text-xs">
-                  Used to generate the page URL, along with the parent page.
-                </p>
-              </div>
+            {(parentField) => (
+              <form.Field name="pathSegment">
+                {(pathField) => (
+                  <PageLocationFieldset
+                    parentPageId={parentField.state.value}
+                    onParentPageIdChange={parentField.handleChange}
+                    pathSegment={pathField.state.value}
+                    onPathSegmentChange={pathField.handleChange}
+                    disabled={isRootPage}
+                    pages={pages}
+                    excludePageId={pageToEdit._id}
+                  />
+                )}
+              </form.Field>
             )}
           </form.Field>
           <Button
