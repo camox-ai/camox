@@ -135,16 +135,18 @@ function NavbarComponent() {
 
       {/* Floating navbar */}
       {floating && (
-        <nav
-          className={cn(
-            "fixed top-4 left-4 right-4 z-50 rounded-xl border border-border bg-background/80 backdrop-blur-lg shadow-lg transition-all duration-300",
-            isFloating
-              ? "translate-y-0 opacity-100"
-              : "-translate-y-full opacity-0 pointer-events-none",
-          )}
-        >
-          <NavbarContent />
-        </nav>
+        <navbar.Detached>
+          <nav
+            className={cn(
+              "fixed top-4 left-4 right-4 z-50 rounded-xl border border-border bg-background/80 backdrop-blur-lg shadow-lg transition-all duration-300",
+              isFloating
+                ? "translate-y-0 opacity-100"
+                : "-translate-y-full opacity-0 pointer-events-none",
+            )}
+          >
+            <NavbarContent />
+          </nav>
+        </navbar.Detached>
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { Slot } from "@radix-ui/react-slot";
 import { useSelector } from "@xstate/store/react";
 import { useMutation, useQuery } from "convex/react";
@@ -223,6 +224,8 @@ export function createBlock<
     blockId: Id<"blocks">;
     content: TContent;
     settings: TSettings;
+    isHovered: boolean;
+    setIsHovered: React.Dispatch<React.SetStateAction<boolean>>;
   } & Pick<BlockComponentProps<TContent>, "mode">;
 
   interface RepeaterItemContextValue {
@@ -1560,6 +1563,8 @@ export function createBlock<
               ...blockData.settings,
             } as TSettings,
             mode,
+            isHovered,
+            setIsHovered,
           }}
         >
           <options.component content={normalizedContent} />
@@ -1638,6 +1643,124 @@ export function createBlock<
     return ctx.settings[name];
   };
 
+  /**
+   * Wraps block content that renders outside the block's visual bounds (fixed navbars, modals, portals, etc.).
+   * Provides the same hover, selection, and sheet overlays as the main BlockComponent.
+   */
+  const Detached = ({ children }: { children: React.ReactNode }): React.JSX.Element => {
+    const ctx = React.use(Context);
+    if (!ctx) {
+      throw new Error("Detached must be used within a Block Component");
+    }
+    const { blockId, mode, isHovered, setIsHovered } = ctx;
+
+    const isContentEditable = useIsEditable(mode);
+    const { window: iframeWindow } = useFrame();
+
+    const selectionBreadcrumbs = useSelector(
+      previewStore,
+      (state) => state.context.selectionBreadcrumbs,
+    );
+    const isAddBlockSheetOpen = useSelector(
+      previewStore,
+      (state) => state.context.isAddBlockSheetOpen,
+    );
+    const isPageContentSheetOpen = useSelector(
+      previewStore,
+      (state) => state.context.isPageContentSheetOpen,
+    );
+    const focusedBlockId = selectionBreadcrumbs[0]?.id ?? null;
+    const isBlockSelected = focusedBlockId === blockId;
+
+    const isHoveredFromSidebar = useOverlayMessage(
+      iframeWindow,
+      isContentEditable,
+      "CAMOX_HOVER_BLOCK",
+      "CAMOX_HOVER_BLOCK_END",
+      { blockId },
+    );
+
+    React.useEffect(() => {
+      setIsHovered(isHoveredFromSidebar);
+    }, [isHoveredFromSidebar, setIsHovered]);
+
+    const shouldShowOverlay =
+      isContentEditable &&
+      (isHovered || isBlockSelected) &&
+      !isAddBlockSheetOpen;
+
+    const shouldShowSheetOverlay =
+      (isAddBlockSheetOpen && mode !== "peek") ||
+      (isPageContentSheetOpen && !isBlockSelected);
+
+    const handleClick = (e: React.MouseEvent) => {
+      if (!isContentEditable) return;
+      e.stopPropagation();
+      previewStore.send({ type: "setFocusedBlock", blockId });
+    };
+
+    const handleMouseEnter = () => {
+      if (isContentEditable) {
+        setIsHovered(true);
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (isContentEditable) {
+        setIsHovered(false);
+      }
+    };
+
+    const [container, setContainer] = React.useState<HTMLElement | null>(null);
+
+    return (
+      <>
+        <Slot
+          ref={setContainer}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {children}
+        </Slot>
+        {container && createPortal(
+          <>
+            {/* Sheet overlay */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "#000",
+                opacity: shouldShowSheetOverlay ? 0.6 : 0,
+                transition: "opacity 0.3s ease-in-out",
+                pointerEvents: "none",
+                zIndex: 20,
+              }}
+            />
+            {/* Border overlay */}
+            {shouldShowOverlay && (() => {
+              const colors = mode === "template" ? TEMPLATE_OVERLAY_COLORS : OVERLAY_COLORS;
+              return (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: isBlockSelected
+                      ? OVERLAY_OFFSETS.blockSelected
+                      : OVERLAY_OFFSETS.blockHover,
+                    border: `${isBlockSelected ? OVERLAY_WIDTHS.selected : OVERLAY_WIDTHS.hover} solid ${isBlockSelected ? colors.selected : colors.hover}`,
+                    pointerEvents: "none",
+                    zIndex: 10,
+                  }}
+                />
+              );
+            })()}
+          </>,
+          container,
+        )}
+      </>
+    );
+  };
+
   return {
     /**
      * The react component to be used at the page level when mapping on blocks content.
@@ -1645,6 +1768,7 @@ export function createBlock<
      * capabilities (e.g. delete and reorder blocks).
      */
     Component: BlockComponent,
+    Detached,
     Field,
     Embed,
     Link,
