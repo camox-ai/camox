@@ -19,7 +19,7 @@ export const createPage = action({
     projectId: v.id("projects"),
     pathSegment: v.string(),
     parentPageId: v.optional(v.id("pages")),
-    templateId: v.id("templates"),
+    layoutId: v.id("layouts"),
     contentDescription: v.optional(v.string()),
   },
   handler: async (
@@ -42,7 +42,7 @@ export const createPage = action({
           { projectId: args.projectId },
         );
         const blockDefinitions = allBlockDefinitions.filter(
-          (d) => !d.templateOnly,
+          (d) => !d.layoutOnly,
         );
 
         if (blockDefinitions.length > 0) {
@@ -63,7 +63,7 @@ export const createPage = action({
       projectId: args.projectId,
       pathSegment: args.pathSegment,
       parentPageId: args.parentPageId,
-      templateId: args.templateId,
+      layoutId: args.layoutId,
       blocks,
     });
   },

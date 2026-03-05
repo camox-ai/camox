@@ -18,7 +18,7 @@ export const createPageInternal = internalMutation({
     projectId: v.id("projects"),
     pathSegment: v.string(),
     parentPageId: v.optional(v.id("pages")),
-    templateId: v.id("templates"),
+    layoutId: v.id("layouts"),
     blocks: v.array(
       v.object({
         type: v.string(),
@@ -57,7 +57,7 @@ export const createPageInternal = internalMutation({
       projectId: args.projectId,
       pathSegment: args.pathSegment,
       parentPageId: args.parentPageId,
-      templateId: args.templateId,
+      layoutId: args.layoutId,
       fullPath,
       createdAt: now,
       updatedAt: now,
@@ -206,23 +206,23 @@ export const getPage = query({
     }
     const projectName = project.name;
 
-    // Fetch template data if page has a template
-    if (page.templateId) {
-      const template = await ctx.db.get(page.templateId);
-      if (template) {
-        const templateBlocks = await ctx.db
+    // Fetch layout data if page has a layout
+    if (page.layoutId) {
+      const layout = await ctx.db.get(page.layoutId);
+      if (layout) {
+        const layoutBlocks = await ctx.db
           .query("blocks")
-          .withIndex("by_template", (q) =>
-            q.eq("templateId", template._id),
+          .withIndex("by_layout", (q) =>
+            q.eq("layoutId", layout._id),
           )
           .collect();
 
-        const sortedTemplateBlocks = sortByPosition(templateBlocks);
+        const sortedLayoutBlocks = sortByPosition(layoutBlocks);
 
-        // Assemble template blocks (repeatable items + file resolution)
-        const templateBlockIds = sortedTemplateBlocks.map((b) => b._id);
-        const templateRepeatableItems = await Promise.all(
-          templateBlockIds.map((blockId) =>
+        // Assemble layout blocks (repeatable items + file resolution)
+        const layoutBlockIds = sortedLayoutBlocks.map((b) => b._id);
+        const layoutRepeatableItems = await Promise.all(
+          layoutBlockIds.map((blockId) =>
             ctx.db
               .query("repeatableItems")
               .withIndex("by_block", (q) => q.eq("blockId", blockId))
@@ -230,41 +230,41 @@ export const getPage = query({
           ),
         );
 
-        const sortedTemplateItems = sortByPosition(
-          templateRepeatableItems.flat(),
+        const sortedLayoutItems = sortByPosition(
+          layoutRepeatableItems.flat(),
         );
-        const templateItemsByBlockAndField =
-          groupItemsByBlockAndField(sortedTemplateItems);
+        const layoutItemsByBlockAndField =
+          groupItemsByBlockAndField(sortedLayoutItems);
 
-        const templateBlocksWithItems = sortedTemplateBlocks.map((block) => ({
+        const layoutBlocksWithItems = sortedLayoutBlocks.map((block) => ({
           ...block,
           content: reconstructBlockContent(
             block.content,
-            templateItemsByBlockAndField,
+            layoutItemsByBlockAndField,
             block._id,
-            sortedTemplateItems,
+            sortedLayoutItems,
           ),
         }));
 
-        // Resolve file refs in template blocks
-        const templateFileIds = new Set<string>();
-        for (const block of templateBlocksWithItems) {
-          collectFileIds(block.content, templateFileIds);
+        // Resolve file refs in layout blocks
+        const layoutFileIds = new Set<string>();
+        for (const block of layoutBlocksWithItems) {
+          collectFileIds(block.content, layoutFileIds);
         }
 
-        let resolvedTemplateBlocks = templateBlocksWithItems;
-        if (templateFileIds.size > 0) {
-          const templateFileMap = await buildFileMap(ctx, templateFileIds);
-          resolvedTemplateBlocks = templateBlocksWithItems.map((block) => ({
+        let resolvedLayoutBlocks = layoutBlocksWithItems;
+        if (layoutFileIds.size > 0) {
+          const layoutFileMap = await buildFileMap(ctx, layoutFileIds);
+          resolvedLayoutBlocks = layoutBlocksWithItems.map((block) => ({
             ...block,
-            content: resolveFileRefs(block.content, templateFileMap),
+            content: resolveFileRefs(block.content, layoutFileMap),
           }));
         }
 
-        const beforeBlocks = resolvedTemplateBlocks.filter(
+        const beforeBlocks = resolvedLayoutBlocks.filter(
           (b) => b.placement === "before",
         );
-        const afterBlocks = resolvedTemplateBlocks.filter(
+        const afterBlocks = resolvedLayoutBlocks.filter(
           (b) => b.placement === "after",
         );
 
@@ -272,10 +272,10 @@ export const getPage = query({
           page,
           projectName,
           blocks: resolvedPageBlocks,
-          template: {
-            _id: template._id,
-            templateId: template.templateId,
-            blocks: resolvedTemplateBlocks,
+          layout: {
+            _id: layout._id,
+            layoutId: layout.layoutId,
+            blocks: resolvedLayoutBlocks,
             beforeBlocks,
             afterBlocks,
           },
@@ -436,17 +436,17 @@ export const updatePageMetaTitle = mutation({
   },
 });
 
-export const setPageTemplate = mutation({
+export const setPageLayout = mutation({
   args: {
     pageId: v.id("pages"),
-    templateId: v.id("templates"),
+    layoutId: v.id("layouts"),
   },
   handler: async (ctx, args) => {
     const page = await ctx.db.get(args.pageId);
     if (!page) throw new Error("Page not found");
 
     await ctx.db.patch(args.pageId, {
-      templateId: args.templateId,
+      layoutId: args.layoutId,
       updatedAt: Date.now(),
     });
   },

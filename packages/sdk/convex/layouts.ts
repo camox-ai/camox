@@ -3,24 +3,24 @@ import { mutation, query } from "./_generated/server";
 import { generateKeyBetween } from "fractional-indexing";
 import { splitContent } from "./lib/contentAssembly";
 
-export const listTemplates = query({
+export const listLayouts = query({
   args: {
     projectId: v.id("projects"),
   },
   handler: async (ctx, args) => {
     return ctx.db
-      .query("templates")
+      .query("layouts")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .collect();
   },
 });
 
-export const syncTemplates = mutation({
+export const syncLayouts = mutation({
   args: {
     projectId: v.id("projects"),
-    templates: v.array(
+    layouts: v.array(
       v.object({
-        templateId: v.string(),
+        layoutId: v.string(),
         blocks: v.array(
           v.object({
             type: v.string(),
@@ -37,11 +37,11 @@ export const syncTemplates = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
 
-    for (const tmpl of args.templates) {
+    for (const tmpl of args.layouts) {
       const existing = await ctx.db
-        .query("templates")
-        .withIndex("by_project_templateId", (q) =>
-          q.eq("projectId", args.projectId).eq("templateId", tmpl.templateId),
+        .query("layouts")
+        .withIndex("by_project_layoutId", (q) =>
+          q.eq("projectId", args.projectId).eq("layoutId", tmpl.layoutId),
         )
         .first();
 
@@ -50,15 +50,15 @@ export const syncTemplates = mutation({
         continue;
       }
 
-      // Create template record
-      const templateDocId = await ctx.db.insert("templates", {
+      // Create layout record
+      const layoutDocId = await ctx.db.insert("layouts", {
         projectId: args.projectId,
-        templateId: tmpl.templateId,
+        layoutId: tmpl.layoutId,
         createdAt: now,
         updatedAt: now,
       });
 
-      // Create default blocks for new template
+      // Create default blocks for new layout
       let prevPosition: string | null = null;
       for (const block of tmpl.blocks) {
         const position = generateKeyBetween(prevPosition, null);
@@ -67,7 +67,7 @@ export const syncTemplates = mutation({
         );
 
         await ctx.db.insert("blocks", {
-          templateId: templateDocId,
+          layoutId: layoutDocId,
           type: block.type,
           content: scalarContent,
           settings: block.settings,
@@ -82,6 +82,6 @@ export const syncTemplates = mutation({
       }
     }
 
-    return { synced: args.templates.length };
+    return { synced: args.layouts.length };
   },
 });

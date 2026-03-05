@@ -543,17 +543,17 @@ export const getBlockInternal = internalQuery({
     const block = await ctx.db.get(args.blockId);
     if (!block) return null;
 
-    // Get the projectId from the page or template
+    // Get the projectId from the page or layout
     if (block.pageId) {
       const page = await ctx.db.get(block.pageId);
       if (!page) return null;
       return { ...block, projectId: page.projectId };
     }
 
-    if (block.templateId) {
-      const template = await ctx.db.get(block.templateId);
-      if (!template) return null;
-      return { ...block, projectId: template.projectId };
+    if (block.layoutId) {
+      const layout = await ctx.db.get(block.layoutId);
+      if (!layout) return null;
+      return { ...block, projectId: layout.projectId };
     }
 
     return null;

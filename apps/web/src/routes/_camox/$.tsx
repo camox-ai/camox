@@ -26,11 +26,11 @@ export const Route = createFileRoute('/_camox/$')({
 
     const meta: Array<Record<string, string>> = [];
 
-    if (page.template) {
-      const template = camoxApp.getTemplateById(page.template.templateId);
-      if (template) {
+    if (page.layout) {
+      const layout = camoxApp.getLayoutById(page.layout.layoutId);
+      if (layout) {
         meta.push({
-          title: template.buildMetaTitle({
+          title: layout.buildMetaTitle({
             pageMetaTitle,
             projectName: page.projectName,
             pageFullPath: page.page.fullPath,

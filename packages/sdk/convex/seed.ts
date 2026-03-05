@@ -34,8 +34,8 @@ export const seedWebsite = mutation({
       await ctx.db.delete(project._id);
     }
 
-    const existingTemplates = await ctx.db.query("templates").collect();
-    for (const tmpl of existingTemplates) {
+    const existingLayouts = await ctx.db.query("layouts").collect();
+    for (const tmpl of existingLayouts) {
       await ctx.db.delete(tmpl._id);
     }
 
@@ -60,10 +60,10 @@ export const seedWebsite = mutation({
     // Generate fractional index positions for two blocks
     const [pos0, pos1] = generateNKeysBetween(null, null, 2);
 
-    // Create landing-page template
-    const templateId = await ctx.db.insert("templates", {
+    // Create landing-page layout
+    const layoutId = await ctx.db.insert("layouts", {
       projectId,
-      templateId: "landing-page",
+      layoutId: "landing-page",
       createdAt: now,
       updatedAt: now,
     });
@@ -72,7 +72,7 @@ export const seedWebsite = mutation({
 
     // Navbar block (before)
     await ctx.db.insert("blocks", {
-      templateId,
+      layoutId,
       type: "navbar",
       content: {
         title: { type: "external", text: "Acme", href: "/", newTab: false },
@@ -88,7 +88,7 @@ export const seedWebsite = mutation({
 
     // Footer block (after)
     await ctx.db.insert("blocks", {
-      templateId,
+      layoutId,
       type: "footer",
       content: {
         title: "Acme",
@@ -105,7 +105,7 @@ export const seedWebsite = mutation({
       projectId,
       pathSegment: "",
       fullPath: "/",
-      templateId,
+      layoutId,
       metaTitle: "The website framework for agents",
       metaDescription:
         "Meet Camox, the web toolkit designed for developers, LLMs and content editors.",

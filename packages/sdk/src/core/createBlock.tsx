@@ -15,7 +15,7 @@ import {
   OVERLAY_WIDTHS,
   OVERLAY_OFFSETS,
   OVERLAY_COLORS,
-  TEMPLATE_OVERLAY_COLORS,
+  LAYOUT_OVERLAY_COLORS,
 } from "../features/preview/overlayConstants";
 import { useFrame } from "../components/ui/frame";
 import {
@@ -110,10 +110,10 @@ interface CreateBlockOptions<
    */
   settings?: TSettingsShape;
   /**
-   * When true, this block can only be used inside templates and won't appear in the AddBlockSheet
+   * When true, this block can only be used inside layouts and won't appear in the AddBlockSheet
    * or be available for AI page generation.
    */
-  templateOnly?: boolean;
+  layoutOnly?: boolean;
   /**
    * React component that renders the block.
    * Must be defined as a separate function (not inline, not an arrow function).
@@ -134,7 +134,7 @@ interface BlockData<TContent> {
 
 export interface BlockComponentProps<TContent> {
   blockData: BlockData<TContent>;
-  mode: "site" | "peek" | "template";
+  mode: "site" | "peek" | "layout";
   isFirstBlock?: boolean;
   showAddBlockTop?: boolean;
   showAddBlockBottom?: boolean;
@@ -383,7 +383,7 @@ export function createBlock<
 
     const { blockId, content, mode } = blockContext;
     const isContentEditable = useIsEditable(mode);
-    const colors = mode === "template" ? TEMPLATE_OVERLAY_COLORS : OVERLAY_COLORS;
+    const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const elementRef = React.useRef<HTMLElement>(null);
     const { window: iframeWindow } = useFrame();
 
@@ -554,7 +554,7 @@ export function createBlock<
 
     const { blockId, content, mode } = blockContext;
     const isContentEditable = useIsEditable(mode);
-    const colors = mode === "template" ? TEMPLATE_OVERLAY_COLORS : OVERLAY_COLORS;
+    const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const { window: iframeWindow } = useFrame();
     const repeaterContext = React.use(RepeaterItemContext);
     const fieldValue = repeaterContext
@@ -754,7 +754,7 @@ export function createBlock<
 
     const { blockId, content, mode } = blockContext;
     const isContentEditable = useIsEditable(mode);
-    const colors = mode === "template" ? TEMPLATE_OVERLAY_COLORS : OVERLAY_COLORS;
+    const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const elementRef = React.useRef<HTMLElement>(null);
     const { window: iframeWindow } = useFrame();
     const repeaterContext = React.use(RepeaterItemContext);
@@ -964,7 +964,7 @@ export function createBlock<
 
     const { blockId, content, mode } = blockContext;
     const isContentEditable = useIsEditable(mode);
-    const colors = mode === "template" ? TEMPLATE_OVERLAY_COLORS : OVERLAY_COLORS;
+    const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const { window: iframeWindow } = useFrame();
     const repeaterContext = React.use(RepeaterItemContext);
     const fieldValue = repeaterContext
@@ -1105,11 +1105,11 @@ export function createBlock<
   }: {
     itemId: string | undefined;
     blockId: Id<"blocks">;
-    mode: "site" | "peek" | "template";
+    mode: "site" | "peek" | "layout";
     children: React.ReactNode;
   }) => {
     const isContentEditable = useIsEditable(mode);
-    const colors = mode === "template" ? TEMPLATE_OVERLAY_COLORS : OVERLAY_COLORS;
+    const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const { window: iframeWindow } = useFrame();
 
     // Check if the parent repeater container is being hovered from sidebar
@@ -1587,7 +1587,7 @@ export function createBlock<
         />
         {/* Overlay UI */}
         {shouldShowOverlay && (() => {
-          const colors = mode === "template" ? TEMPLATE_OVERLAY_COLORS : OVERLAY_COLORS;
+          const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
           return (
             <>
               {/* Border overlay */}
@@ -1605,8 +1605,8 @@ export function createBlock<
 
               {(() => {
                 // Use explicit show flags if provided, otherwise fall back to legacy behavior
-                const displayTop = showAddBlockTop ?? (mode !== "template" && !isFirstBlock);
-                const displayBottom = showAddBlockBottom ?? (mode !== "template");
+                const displayTop = showAddBlockTop ?? (mode !== "layout" && !isFirstBlock);
+                const displayBottom = showAddBlockBottom ?? (mode !== "layout");
                 return (
                   <>
                     {displayTop && (
@@ -1739,7 +1739,7 @@ export function createBlock<
             />
             {/* Border overlay */}
             {shouldShowOverlay && (() => {
-              const colors = mode === "template" ? TEMPLATE_OVERLAY_COLORS : OVERLAY_COLORS;
+              const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
               return (
                 <div
                   style={{
@@ -1787,7 +1787,7 @@ export function createBlock<
     getInitialSettings: () => {
       return { ...settingsDefaults };
     },
-    templateOnly: options.templateOnly ?? false,
+    layoutOnly: options.layoutOnly ?? false,
   };
 }
 

@@ -1,21 +1,21 @@
 import type { Block } from "./createBlock";
-import type { Template } from "./createTemplate";
+import type { Layout } from "./createLayout";
 
 interface CreateAppOptions {
   blocks: Block[];
-  templates?: Template[];
+  layouts?: Layout[];
 }
 
-export function createApp({ blocks, templates = [] }: CreateAppOptions) {
+export function createApp({ blocks, layouts = [] }: CreateAppOptions) {
   const blocksMap = new Map<string, Block>();
-  const templatesMap = new Map<string, Template>();
+  const layoutsMap = new Map<string, Layout>();
 
   for (const block of blocks) {
     blocksMap.set(block.id, block);
   }
 
-  for (const template of templates) {
-    templatesMap.set(template.id, template);
+  for (const layout of layouts) {
+    layoutsMap.set(layout.id, layout);
   }
 
   return {
@@ -25,11 +25,11 @@ export function createApp({ blocks, templates = [] }: CreateAppOptions) {
     getBlockById(id: string) {
       return blocksMap.get(id);
     },
-    getTemplates() {
-      return Array.from(templatesMap.values());
+    getLayouts() {
+      return Array.from(layoutsMap.values());
     },
-    getTemplateById(id: string) {
-      return templatesMap.get(id);
+    getLayoutById(id: string) {
+      return layoutsMap.get(id);
     },
     getSerializableDefinitions() {
       return Array.from(blocksMap.values()).map((block) => ({
@@ -38,13 +38,13 @@ export function createApp({ blocks, templates = [] }: CreateAppOptions) {
         description: block.description,
         contentSchema: block.contentSchema,
         settingsSchema: block.settingsSchema,
-        templateOnly: block.templateOnly || undefined,
+        layoutOnly: block.layoutOnly || undefined,
       }));
     },
-    getSerializableTemplateDefinitions() {
-      return Array.from(templatesMap.values()).map((template) => ({
-        templateId: template.id,
-        blocks: template.blockDefinitions,
+    getSerializableLayoutDefinitions() {
+      return Array.from(layoutsMap.values()).map((layout) => ({
+        layoutId: layout.id,
+        blocks: layout.blockDefinitions,
       }));
     },
   };

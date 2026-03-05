@@ -43,8 +43,8 @@ interface BlockActionsPopoverProps {
   align?: "start" | "center" | "end";
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isTemplateBlock?: boolean;
-  templatePlacement?: "before" | "after";
+  isLayoutBlock?: boolean;
+  layoutPlacement?: "before" | "after";
 }
 
 const BlockActionsPopover = ({
@@ -53,8 +53,8 @@ const BlockActionsPopover = ({
   open,
   onOpenChange,
   align = "start",
-  isTemplateBlock,
-  templatePlacement,
+  isLayoutBlock,
+  layoutPlacement,
 }: BlockActionsPopoverProps) => {
   const [blockToDelete, setBlockToDelete] =
     React.useState<Doc<"blocks"> | null>(null);
@@ -175,7 +175,7 @@ const BlockActionsPopover = ({
                     </div>
                     {formatShortcut({ key: "j", withMeta: true })}
                   </CommandItem>
-                  {!isTemplateBlock &&
+                  {!isLayoutBlock &&
                     (() => {
                       const blockDef = camoxApp.getBlockById(block.type);
                       const hasSettings =
@@ -202,7 +202,7 @@ const BlockActionsPopover = ({
                       );
                     })()}
                 </CommandGroup>
-                {isTemplateBlock && templatePlacement === "before" && (
+                {isLayoutBlock && layoutPlacement === "before" && (
                   <>
                     <CommandSeparator />
                     <CommandGroup>
@@ -223,7 +223,7 @@ const BlockActionsPopover = ({
                     </CommandGroup>
                   </>
                 )}
-                {isTemplateBlock && templatePlacement === "after" && (
+                {isLayoutBlock && layoutPlacement === "after" && (
                   <>
                     <CommandSeparator />
                     <CommandGroup>
@@ -246,7 +246,7 @@ const BlockActionsPopover = ({
                     </CommandGroup>
                   </>
                 )}
-                {!isTemplateBlock && (
+                {!isLayoutBlock && (
                   <>
                     <CommandSeparator />
                     <CommandGroup>
@@ -378,16 +378,16 @@ function findClosestActionable(breadcrumbs: SelectionBreadcrumb[]) {
   return null;
 }
 
-function isTemplateBlockId(
+function isLayoutBlockId(
   page: ReturnType<typeof usePreviewedPage>,
   blockId: string,
 ): boolean {
-  if (!page?.template) return false;
-  const allTemplateBlocks = [
-    ...(page.template.beforeBlocks ?? []),
-    ...(page.template.afterBlocks ?? []),
+  if (!page?.layout) return false;
+  const allLayoutBlocks = [
+    ...(page.layout.beforeBlocks ?? []),
+    ...(page.layout.afterBlocks ?? []),
   ];
-  return allTemplateBlocks.some((b) => b._id === blockId);
+  return allLayoutBlocks.some((b) => b._id === blockId);
 }
 
 function useBlockActionsShortcuts() {
@@ -423,7 +423,7 @@ function useBlockActionsShortcuts() {
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
           const breadcrumbs = ctx.selectionBreadcrumbs;
           const blockCrumb = breadcrumbs.find((b) => b.type === "Block");
-          if (blockCrumb && isTemplateBlockId(page, blockCrumb.id))
+          if (blockCrumb && isLayoutBlockId(page, blockCrumb.id))
             return false;
           const target = findClosestActionable(breadcrumbs);
           if (!target) return false;
@@ -483,7 +483,7 @@ function useBlockActionsShortcuts() {
           const blockCrumb = ctx.selectionBreadcrumbs.find(
             (b) => b.type === "Block",
           );
-          if (blockCrumb && isTemplateBlockId(page, blockCrumb.id))
+          if (blockCrumb && isLayoutBlockId(page, blockCrumb.id))
             return false;
           return findClosestActionable(ctx.selectionBreadcrumbs) !== null;
         },
@@ -523,7 +523,7 @@ function useBlockActionsShortcuts() {
             (b) => b.type === "Block",
           );
           if (!blockCrumb || !page) return false;
-          if (isTemplateBlockId(page, blockCrumb.id)) return false;
+          if (isLayoutBlockId(page, blockCrumb.id)) return false;
           const index = page.blocks.findIndex((b) => b._id === blockCrumb.id);
           return index > 0;
         },
@@ -563,7 +563,7 @@ function useBlockActionsShortcuts() {
             (b) => b.type === "Block",
           );
           if (!blockCrumb || !page) return false;
-          if (isTemplateBlockId(page, blockCrumb.id)) return false;
+          if (isLayoutBlockId(page, blockCrumb.id)) return false;
           const index = page.blocks.findIndex((b) => b._id === blockCrumb.id);
           return index !== -1 && index < page.blocks.length - 1;
         },

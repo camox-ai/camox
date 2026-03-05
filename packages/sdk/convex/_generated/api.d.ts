@@ -14,6 +14,7 @@ import type * as files from "../files.js";
 import type * as fs from "../fs.js";
 import type * as functions from "../functions.js";
 import type * as http from "../http.js";
+import type * as layouts from "../layouts.js";
 import type * as lib_aiJobs from "../lib/aiJobs.js";
 import type * as lib_contentAssembly from "../lib/contentAssembly.js";
 import type * as pageActions from "../pageActions.js";
@@ -21,7 +22,6 @@ import type * as pages from "../pages.js";
 import type * as projects from "../projects.js";
 import type * as repeatableItems from "../repeatableItems.js";
 import type * as seed from "../seed.js";
-import type * as templates from "../templates.js";
 
 import type {
   ApiFromModules,
@@ -36,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   fs: typeof fs;
   functions: typeof functions;
   http: typeof http;
+  layouts: typeof layouts;
   "lib/aiJobs": typeof lib_aiJobs;
   "lib/contentAssembly": typeof lib_contentAssembly;
   pageActions: typeof pageActions;
@@ -43,7 +44,6 @@ declare const fullApi: ApiFromModules<{
   projects: typeof projects;
   repeatableItems: typeof repeatableItems;
   seed: typeof seed;
-  templates: typeof templates;
 }>;
 
 /**

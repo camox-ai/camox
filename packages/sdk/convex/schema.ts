@@ -15,7 +15,7 @@ export default defineSchema({
     pathSegment: v.string(),
     fullPath: v.string(),
     parentPageId: v.optional(v.id("pages")),
-    templateId: v.id("templates"),
+    layoutId: v.id("layouts"),
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
     aiSeoEnabled: v.optional(v.boolean()),
@@ -26,18 +26,18 @@ export default defineSchema({
     .index("by_parent", ["parentPageId"])
     .index("by_project", ["projectId"]),
 
-  templates: defineTable({
+  layouts: defineTable({
     projectId: v.id("projects"),
-    templateId: v.string(),
+    layoutId: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_project", ["projectId"])
-    .index("by_project_templateId", ["projectId", "templateId"]),
+    .index("by_project_layoutId", ["projectId", "layoutId"]),
 
   blocks: defineTable({
     pageId: v.optional(v.id("pages")),
-    templateId: v.optional(v.id("templates")),
+    layoutId: v.optional(v.id("layouts")),
     type: v.string(),
     content: v.any(),
     settings: v.optional(v.any()),
@@ -48,7 +48,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_page", ["pageId"])
-    .index("by_template", ["templateId"])
+    .index("by_layout", ["layoutId"])
     .index("by_type", ["type"]),
 
   repeatableItems: defineTable({
@@ -99,7 +99,7 @@ export default defineSchema({
     description: v.string(),
     contentSchema: v.any(),
     settingsSchema: v.optional(v.any()),
-    templateOnly: v.optional(v.boolean()),
+    layoutOnly: v.optional(v.boolean()),
     code: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

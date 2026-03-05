@@ -397,20 +397,20 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
 };
 
 /* -------------------------------------------------------------------------------------------------
- * TemplateBlockItem
+ * LayoutBlockItem
  * -----------------------------------------------------------------------------------------------*/
 
-interface TemplateBlockItemProps {
+interface LayoutBlockItemProps {
   block: Doc<"blocks">;
   isSelected: boolean;
-  templateName: string;
+  layoutName: string;
 }
 
-const TemplateBlockItem = ({
+const LayoutBlockItem = ({
   block,
   isSelected,
-  templateName,
-}: TemplateBlockItemProps) => {
+  layoutName,
+}: LayoutBlockItemProps) => {
   const [ellipsisPopoverOpen, setEllipsisPopoverOpen] = React.useState(false);
   const camoxApp = useCamoxApp();
   const blockDef = camoxApp.getBlockById(block.type);
@@ -473,8 +473,8 @@ const TemplateBlockItem = ({
                   <LayoutTemplate className="h-4 w-4" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  From <span className="font-semibold">{templateName}</span>{" "}
-                  template.
+                  From <span className="font-semibold">{layoutName}</span>{" "}
+                  layout.
                   <br />
                   Changing the content may affect other pages
                 </TooltipContent>
@@ -507,8 +507,8 @@ const TemplateBlockItem = ({
               block={block}
               open={ellipsisPopoverOpen}
               onOpenChange={setEllipsisPopoverOpen}
-              isTemplateBlock
-              templatePlacement={block.placement as "before" | "after"}
+              isLayoutBlock
+              layoutPlacement={block.placement as "before" | "after"}
             >
               <Button
                 variant="ghost"
@@ -654,21 +654,21 @@ const PageTree = () => {
     return null;
   }
 
-  const template = page.template
-    ? camoxApp.getTemplateById(page.template.templateId)
+  const layout = page.layout
+    ? camoxApp.getLayoutById(page.layout.layoutId)
     : undefined;
-  const beforeBlocks = page.template?.beforeBlocks ?? [];
-  const afterBlocks = page.template?.afterBlocks ?? [];
+  const beforeBlocks = page.layout?.beforeBlocks ?? [];
+  const afterBlocks = page.layout?.afterBlocks ?? [];
 
   return (
     <>
       <div className="flex flex-col gap-0.5">
         {beforeBlocks.map((block) => (
-          <TemplateBlockItem
+          <LayoutBlockItem
             key={block._id}
             block={block}
             isSelected={focusedBlockId === block._id}
-            templateName={template?.title ?? "Unknown"}
+            layoutName={layout?.title ?? "Unknown"}
           />
         ))}
         <DndContext
@@ -691,11 +691,11 @@ const PageTree = () => {
           </SortableContext>
         </DndContext>
         {afterBlocks.map((block) => (
-          <TemplateBlockItem
+          <LayoutBlockItem
             key={block._id}
             block={block}
             isSelected={focusedBlockId === block._id}
-            templateName={template?.title ?? "Unknown"}
+            layoutName={layout?.title ?? "Unknown"}
           />
         ))}
       </div>

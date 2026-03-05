@@ -2,7 +2,7 @@ import { useSelector } from "@xstate/store/react";
 import { useClerk } from "@clerk/clerk-react";
 import { previewStore } from "@/features/preview/previewStore";
 
-export function useIsEditable(mode: "site" | "peek" | "template") {
+export function useIsEditable(mode: "site" | "peek" | "layout") {
   const { isSignedIn } = useClerk();
   const isPresentationMode = useSelector(
     previewStore,
@@ -14,7 +14,7 @@ export function useIsEditable(mode: "site" | "peek" | "template") {
   );
   return (
     isSignedIn &&
-    (mode === "site" || mode === "template") &&
+    (mode === "site" || mode === "layout") &&
     !isPresentationMode &&
     !isContentLocked
   );

@@ -25,7 +25,7 @@ export const syncBlockDefinitions = mutation({
         description: v.string(),
         contentSchema: v.any(),
         settingsSchema: v.optional(v.any()),
-        templateOnly: v.optional(v.boolean()),
+        layoutOnly: v.optional(v.boolean()),
         code: v.optional(v.string()),
       })
     ),
@@ -54,7 +54,7 @@ export const syncBlockDefinitions = mutation({
           description: def.description,
           contentSchema: def.contentSchema,
           settingsSchema: def.settingsSchema,
-          templateOnly: def.templateOnly,
+          layoutOnly: def.layoutOnly,
           code: def.code,
           updatedAt: now,
         });
@@ -66,7 +66,7 @@ export const syncBlockDefinitions = mutation({
           description: def.description,
           contentSchema: def.contentSchema,
           settingsSchema: def.settingsSchema,
-          templateOnly: def.templateOnly,
+          layoutOnly: def.layoutOnly,
           code: def.code,
           createdAt: now,
           updatedAt: now,
@@ -93,7 +93,7 @@ export const upsertBlockDefinition = mutation({
     description: v.string(),
     contentSchema: v.any(),
     settingsSchema: v.optional(v.any()),
-    templateOnly: v.optional(v.boolean()),
+    layoutOnly: v.optional(v.boolean()),
     code: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -111,7 +111,7 @@ export const upsertBlockDefinition = mutation({
         description: args.description,
         contentSchema: args.contentSchema,
         settingsSchema: args.settingsSchema,
-        templateOnly: args.templateOnly,
+        layoutOnly: args.layoutOnly,
         code: args.code,
         updatedAt: now,
       });
@@ -125,7 +125,7 @@ export const upsertBlockDefinition = mutation({
       description: args.description,
       contentSchema: args.contentSchema,
       settingsSchema: args.settingsSchema,
-      templateOnly: args.templateOnly,
+      layoutOnly: args.layoutOnly,
       code: args.code,
       createdAt: now,
       updatedAt: now,

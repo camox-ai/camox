@@ -26,9 +26,9 @@ const config = defineConfig({
       entry: {
         "core/createApp": resolve(__dirname, "src/core/createApp.ts"),
         "core/createBlock": resolve(__dirname, "src/core/createBlock.tsx"),
-        "core/createTemplate": resolve(
+        "core/createLayout": resolve(
           __dirname,
-          "src/core/createTemplate.tsx",
+          "src/core/createLayout.tsx",
         ),
         "features/preview/CamoxPreview": resolve(
           __dirname,

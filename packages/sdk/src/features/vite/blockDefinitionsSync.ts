@@ -93,7 +93,7 @@ export async function syncBlockDefinitions(
         description: block.description,
         contentSchema: block.contentSchema,
         settingsSchema: block.settingsSchema,
-        templateOnly: block.templateOnly || undefined,
+        layoutOnly: block.layoutOnly || undefined,
         code,
       };
     });
@@ -108,16 +108,16 @@ export async function syncBlockDefinitions(
       { timestamp: true },
     );
 
-    // Sync templates
-    const templateDefinitions =
-      camoxModule.camoxApp.getSerializableTemplateDefinitions();
-    if (templateDefinitions.length > 0) {
-      await client.mutation(api.templates.syncTemplates, {
+    // Sync layouts
+    const layoutDefinitions =
+      camoxModule.camoxApp.getSerializableLayoutDefinitions();
+    if (layoutDefinitions.length > 0) {
+      await client.mutation(api.layouts.syncLayouts, {
         projectId,
-        templates: templateDefinitions,
+        layouts: layoutDefinitions,
       });
       server.config.logger.info(
-        `[camox] Synced ${templateDefinitions.length} template${templateDefinitions.length === 1 ? "" : "s"}`,
+        `[camox] Synced ${layoutDefinitions.length} layout${layoutDefinitions.length === 1 ? "" : "s"}`,
         { timestamp: true },
       );
     }
@@ -160,7 +160,7 @@ export async function syncBlockDefinitions(
         description: block.description,
         contentSchema: block.contentSchema,
         settingsSchema: block.settingsSchema,
-        templateOnly: block.templateOnly || undefined,
+        layoutOnly: block.layoutOnly || undefined,
         code,
       },
     );
@@ -295,14 +295,14 @@ export async function syncBlockDefinitions(
   // Watch for changes in block files
   const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  const templatesDir = path.resolve(server.config.root, "src/templates");
+  const layoutsDir = path.resolve(server.config.root, "src/layouts");
 
   function isBlockFile(filePath: string): boolean {
     return filePath.startsWith(blocksDir) && /\.tsx?$/.test(filePath);
   }
 
-  function isTemplateFile(filePath: string): boolean {
-    return filePath.startsWith(templatesDir) && /\.tsx?$/.test(filePath);
+  function isLayoutFile(filePath: string): boolean {
+    return filePath.startsWith(layoutsDir) && /\.tsx?$/.test(filePath);
   }
 
   const handleBlockFileUpsert = (filePath: string) => {
@@ -356,18 +356,18 @@ export async function syncBlockDefinitions(
     }, SYNC_DEBOUNCE_DELAY_MS);
   };
 
-  let templateSyncTimer: ReturnType<typeof setTimeout> | null = null;
-  const handleTemplateFileChange = (filePath: string) => {
-    if (!isTemplateFile(filePath)) return;
+  let layoutSyncTimer: ReturnType<typeof setTimeout> | null = null;
+  const handleLayoutFileChange = (filePath: string) => {
+    if (!isLayoutFile(filePath)) return;
 
-    if (templateSyncTimer) clearTimeout(templateSyncTimer);
-    templateSyncTimer = setTimeout(async () => {
-      templateSyncTimer = null;
+    if (layoutSyncTimer) clearTimeout(layoutSyncTimer);
+    layoutSyncTimer = setTimeout(async () => {
+      layoutSyncTimer = null;
       try {
         await performInitialSync();
       } catch (error) {
         server.config.logger.error(
-          `[camox] Failed to sync templates: ${error}`,
+          `[camox] Failed to sync layouts: ${error}`,
           { timestamp: true },
         );
       }
@@ -375,9 +375,9 @@ export async function syncBlockDefinitions(
   };
 
   server.watcher.on("change", handleBlockFileUpsert);
-  server.watcher.on("change", handleTemplateFileChange);
+  server.watcher.on("change", handleLayoutFileChange);
   server.watcher.on("add", handleBlockFileUpsert);
-  server.watcher.on("add", handleTemplateFileChange);
+  server.watcher.on("add", handleLayoutFileChange);
   server.watcher.on("unlink", handleBlockFileDelete);
 
   // Clean up on server close

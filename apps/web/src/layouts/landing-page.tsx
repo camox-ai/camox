@@ -1,25 +1,26 @@
-import { createTemplate } from "camox/createTemplate";
+import { createLayout } from "camox/createLayout";
 import { block as navbarBlock } from "../blocks/navbar";
 import { block as footerBlock } from "../blocks/footer";
 
-const landingPageTemplate = createTemplate({
+const landingPageLayout = createLayout({
   id: "landing-page",
   title: "Landing page",
   description:
     "Use for the home page, or other pages that are designed to be the first introduction of your site to visitors",
   blocks: { before: [navbarBlock], after: [footerBlock] },
-  component: LandingPageTemplate,
-  buildMetaTitle: ({ pageMetaTitle, projectName }) => `${projectName} | ${pageMetaTitle}`
+  component: LandingPageLayout,
+  buildMetaTitle: ({ pageMetaTitle, projectName }) =>
+    `${projectName} | ${pageMetaTitle}`,
 });
 
-function LandingPageTemplate({ children }: { children: React.ReactNode }) {
+function LandingPageLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen flex-col">
-      <landingPageTemplate.blocks.Navbar />
+      <landingPageLayout.blocks.Navbar />
       <div className="flex-1">{children}</div>
-      <landingPageTemplate.blocks.Footer />
+      <landingPageLayout.blocks.Footer />
     </main>
   );
 }
 
-export { landingPageTemplate as template };
+export { landingPageLayout as layout };

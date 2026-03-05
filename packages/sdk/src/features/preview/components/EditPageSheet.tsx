@@ -49,13 +49,13 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
   const isRootPage = page.fullPath === "/";
   const pages = useQuery(api.pages.listPages);
   const project = useQuery(api.projects.getFirstProject);
-  const templates = useQuery(
-    api.templates.listTemplates,
+  const layouts = useQuery(
+    api.layouts.listLayouts,
     project ? { projectId: project._id } : "skip",
   );
   const camoxApp = useCamoxApp();
   const updatePage = useMutation(api.pages.updatePage);
-  const setPageTemplate = useMutation(api.pages.setPageTemplate);
+  const setPageLayout = useMutation(api.pages.setPageLayout);
   const setAiSeo = useMutation(api.pages.setAiSeo);
   const updatePageMetaTitle = useMutation(api.pages.updatePageMetaTitle);
   const updatePageMetaDescription = useMutation(
@@ -67,7 +67,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
     defaultValues: {
       pathSegment: pageToEdit.pathSegment,
       parentPageId: pageToEdit.parentPageId,
-      templateId: pageToEdit.templateId ?? ("" as Id<"templates">),
+      layoutId: pageToEdit.layoutId ?? ("" as Id<"layouts">),
     },
     onSubmit: async (values) => {
       try {
@@ -77,10 +77,10 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
           parentPageId: values.value.parentPageId,
         });
 
-        if (values.value.templateId) {
-          await setPageTemplate({
+        if (values.value.layoutId) {
+          await setPageLayout({
             pageId: pageToEdit._id,
-            templateId: values.value.templateId,
+            layoutId: values.value.layoutId,
           });
         }
 
@@ -106,7 +106,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
     form.reset({
       pathSegment: pageToEdit.pathSegment,
       parentPageId: pageToEdit.parentPageId,
-      templateId: pageToEdit.templateId ?? ("" as Id<"templates">),
+      layoutId: pageToEdit.layoutId ?? ("" as Id<"layouts">),
     });
   }, [pageToEdit, form]);
 
@@ -129,7 +129,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
             <div>
               <p className="text-sm font-medium">Page structure</p>
               <p className="text-xs text-muted-foreground mt-1">
-                URL path and template used to render the page.
+                URL path and layout used to render the page.
               </p>
             </div>
             <div className="space-y-4">
@@ -158,25 +158,25 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
                     </form.Field>
                   )}
                 </form.Field>
-                {templates && templates.length > 0 && (
-                  <form.Field name="templateId">
+                {layouts && layouts.length > 0 && (
+                  <form.Field name="layoutId">
                     {(field) => (
                       <div className="space-y-2">
-                        <Label>Template</Label>
+                        <Label>Layout</Label>
                         <Select
                           value={field.state.value}
                           onValueChange={(value) =>
-                            field.handleChange(value as Id<"templates">)
+                            field.handleChange(value as Id<"layouts">)
                           }
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a template" />
+                            <SelectValue placeholder="Select a layout" />
                           </SelectTrigger>
                           <SelectContent>
-                            {templates.map((t) => (
+                            {layouts.map((t) => (
                               <SelectItem key={t._id} value={t._id}>
-                                {camoxApp.getTemplateById(t.templateId)
-                                  ?.title ?? t.templateId}
+                                {camoxApp.getLayoutById(t.layoutId)
+                                  ?.title ?? t.layoutId}
                               </SelectItem>
                             ))}
                           </SelectContent>

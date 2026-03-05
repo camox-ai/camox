@@ -14,10 +14,10 @@
       "types": "./dist/core/createBlock.d.ts",
       "import": "./dist/core/createBlock.js"
     },
-    "./createTemplate": {
-      "source": "./src/core/createTemplate.tsx",
-      "types": "./dist/core/createTemplate.d.ts",
-      "import": "./dist/core/createTemplate.js"
+    "./createLayout": {
+      "source": "./src/core/createLayout.tsx",
+      "types": "./dist/core/createLayout.d.ts",
+      "import": "./dist/core/createLayout.js"
     },
     "./CamoxPreview": {
       "source": "./src/features/preview/CamoxPreview.tsx",

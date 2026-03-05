@@ -1,10 +1,10 @@
 import * as React from "react";
 
 /* -------------------------------------------------------------------------------------------------
- * createTemplate
+ * createLayout
  * -----------------------------------------------------------------------------------------------*/
 
-export interface TemplateBlockData {
+export interface LayoutBlockData {
   _id: string;
   type: string;
   content: Record<string, unknown>;
@@ -13,11 +13,11 @@ export interface TemplateBlockData {
 }
 
 /** Minimal block interface — avoids importing the full generic Block type. */
-interface TemplateBlock {
+interface LayoutBlock {
   id: string;
   Component: React.ComponentType<{
     blockData: any;
-    mode: "site" | "peek" | "template";
+    mode: "site" | "peek" | "layout";
     isFirstBlock?: boolean;
     showAddBlockTop?: boolean;
     showAddBlockBottom?: boolean;
@@ -27,11 +27,11 @@ interface TemplateBlock {
   getInitialSettings: () => Record<string, unknown>;
 }
 
-interface CreateTemplateOptions {
+interface CreateLayoutOptions {
   id: string;
   title: string;
   description: string;
-  blocks: { before: TemplateBlock[]; after: TemplateBlock[] };
+  blocks: { before: LayoutBlock[]; after: LayoutBlock[] };
   component: React.ComponentType<{ children: React.ReactNode }>;
   buildMetaTitle: (params: {
     pageMetaTitle: string;
@@ -47,10 +47,10 @@ function toPascalCase(str: string): string {
     .join("");
 }
 
-export function createTemplate(options: CreateTemplateOptions) {
-  // Each template gets its own context — avoids cross-module identity issues
-  const TemplateContext = React.createContext<{
-    templateBlocks: Record<string, TemplateBlockData>;
+export function createLayout(options: CreateLayoutOptions) {
+  // Each layout gets its own context — avoids cross-module identity issues
+  const LayoutContext = React.createContext<{
+    layoutBlocks: Record<string, LayoutBlockData>;
   } | null>(null);
 
   const allBlocks = [...options.blocks.before, ...options.blocks.after];
@@ -66,20 +66,20 @@ export function createTemplate(options: CreateTemplateOptions) {
     const isFirstAfter = block === firstAfterBlock;
 
     const SlotComponent = () => {
-      const ctx = React.use(TemplateContext);
+      const ctx = React.use(LayoutContext);
       if (!ctx) {
         throw new Error(
-          `Template slot "${block.id}" must be rendered inside a TemplateContextProvider`,
+          `Layout slot "${block.id}" must be rendered inside a LayoutContextProvider`,
         );
       }
 
-      const blockData = ctx.templateBlocks[block.id];
+      const blockData = ctx.layoutBlocks[block.id];
       if (!blockData) return null;
 
       return (
         <block.Component
           blockData={blockData}
-          mode="template"
+          mode="layout"
           showAddBlockTop={isFirstAfter || undefined}
           showAddBlockBottom={isLastBefore || undefined}
           addBlockAfterPosition={(() => {
@@ -90,26 +90,26 @@ export function createTemplate(options: CreateTemplateOptions) {
         />
       );
     };
-    SlotComponent.displayName = `TemplateSlot(${toPascalCase(block.id)})`;
+    SlotComponent.displayName = `LayoutSlot(${toPascalCase(block.id)})`;
     slotComponents[toPascalCase(block.id)] = SlotComponent;
   }
 
-  // Provider component that wraps the template — shares context with slots
+  // Provider component that wraps the layout — shares context with slots
   const Provider = ({
-    templateBlocks,
+    layoutBlocks,
     children,
   }: {
-    templateBlocks: Record<string, TemplateBlockData>;
+    layoutBlocks: Record<string, LayoutBlockData>;
     children: React.ReactNode;
   }) => {
     const value = React.useMemo(
-      () => ({ templateBlocks }),
-      [templateBlocks],
+      () => ({ layoutBlocks }),
+      [layoutBlocks],
     );
     return (
-      <TemplateContext.Provider value={value}>
+      <LayoutContext.Provider value={value}>
         {children}
-      </TemplateContext.Provider>
+      </LayoutContext.Provider>
     );
   };
 
@@ -141,4 +141,4 @@ export function createTemplate(options: CreateTemplateOptions) {
   };
 }
 
-export type Template = ReturnType<typeof createTemplate>;
+export type Layout = ReturnType<typeof createLayout>;

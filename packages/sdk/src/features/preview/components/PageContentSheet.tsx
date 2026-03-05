@@ -214,8 +214,8 @@ const PageContentSheet = () => {
   const page = usePreviewedPage();
   const block = blockId
     ? (page?.blocks.find((b) => b._id === blockId) ??
-      page?.template?.beforeBlocks?.find((b) => b._id === blockId) ??
-      page?.template?.afterBlocks?.find((b) => b._id === blockId) ??
+      page?.layout?.beforeBlocks?.find((b) => b._id === blockId) ??
+      page?.layout?.afterBlocks?.find((b) => b._id === blockId) ??
       null)
     : null;
 

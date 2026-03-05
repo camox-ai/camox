@@ -33,8 +33,8 @@ const CreatePageSheet = () => {
   );
   const pages = useQuery(api.pages.listPages);
   const project = useQuery(api.projects.getFirstProject);
-  const templates = useQuery(
-    api.templates.listTemplates,
+  const layouts = useQuery(
+    api.layouts.listLayouts,
     project ? { projectId: project._id } : "skip",
   );
   const camoxApp = useCamoxApp();
@@ -45,7 +45,7 @@ const CreatePageSheet = () => {
     defaultValues: {
       parentPageId: undefined as Id<"pages"> | undefined,
       pathSegment: "",
-      templateId: "" as string,
+      layoutId: "" as string,
       contentDescription: "",
     },
     onSubmit: async (values) => {
@@ -59,7 +59,7 @@ const CreatePageSheet = () => {
           projectId: project._id,
           pathSegment: values.value.pathSegment,
           parentPageId: values.value.parentPageId,
-          templateId: values.value.templateId as Id<"templates">,
+          layoutId: values.value.layoutId as Id<"layouts">,
           contentDescription: values.value.contentDescription || undefined,
         });
 
@@ -84,10 +84,10 @@ const CreatePageSheet = () => {
   });
 
   useEffect(() => {
-    if (templates && templates.length > 0 && !form.getFieldValue("templateId")) {
-      form.setFieldValue("templateId", templates[0]._id);
+    if (layouts && layouts.length > 0 && !form.getFieldValue("layoutId")) {
+      form.setFieldValue("layoutId", layouts[0]._id);
     }
-  }, [templates]);
+  }, [layouts]);
 
   return (
     <Sheet.Sheet
@@ -127,23 +127,23 @@ const CreatePageSheet = () => {
               </form.Field>
             )}
           </form.Field>
-          <form.Field name="templateId">
+          <form.Field name="layoutId">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor="templateId">Template</Label>
+                <Label htmlFor="layoutId">Layout</Label>
                 <Select
                   value={field.state.value}
                   onValueChange={field.handleChange}
-                  disabled={templates != null && templates.length <= 1}
+                  disabled={layouts != null && layouts.length <= 1}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a template" />
+                    <SelectValue placeholder="Select a layout" />
                   </SelectTrigger>
                   <SelectContent>
-                    {templates?.map((t) => (
+                    {layouts?.map((t) => (
                       <SelectItem key={t._id} value={t._id}>
-                        {camoxApp.getTemplateById(t.templateId)?.title ??
-                          t.templateId}
+                        {camoxApp.getLayoutById(t.layoutId)?.title ??
+                          t.layoutId}
                       </SelectItem>
                     ))}
                   </SelectContent>

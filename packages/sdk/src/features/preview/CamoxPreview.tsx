@@ -128,14 +128,14 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
     return afterBlockIndex + 1;
   }, [pageData.blocks, effectivePosition]);
 
-  // Look up template
-  const template = pageData.template
-    ? camoxApp.getTemplateById(pageData.template.templateId)
+  // Look up layout
+  const layout = pageData.layout
+    ? camoxApp.getLayoutById(pageData.layout.layoutId)
     : undefined;
 
-  // Build template block data map by type
-  const templateBlocks = React.useMemo(() => {
-    if (!pageData.template) return null;
+  // Build layout block data map by type
+  const layoutBlocks = React.useMemo(() => {
+    if (!pageData.layout) return null;
     const blocks: Record<
       string,
       {
@@ -146,7 +146,7 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
         position: string;
       }
     > = {};
-    for (const block of pageData.template.blocks) {
+    for (const block of pageData.layout.blocks) {
       blocks[block.type] = {
         _id: block._id,
         type: block.type,
@@ -156,7 +156,7 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
       };
     }
     return blocks;
-  }, [pageData.template]);
+  }, [pageData.layout]);
 
   const pageBlocksContent = (
     <>
@@ -184,7 +184,7 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
               mode="site"
               showAddBlockTop={
                 index === 0
-                  ? (template?.blockDefinitions.some((b) => b.placement === "before") ?? false)
+                  ? (layout?.blockDefinitions.some((b) => b.placement === "before") ?? false)
                   : true
               }
               showAddBlockBottom={true}
@@ -203,12 +203,12 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
     </>
   );
 
-  if (template && templateBlocks) {
-    const TemplateComponent = template.component;
+  if (layout && layoutBlocks) {
+    const LayoutComponent = layout.component;
     return (
-      <template.Provider templateBlocks={templateBlocks}>
-        <TemplateComponent>{pageBlocksContent}</TemplateComponent>
-      </template.Provider>
+      <layout.Provider layoutBlocks={layoutBlocks}>
+        <LayoutComponent>{pageBlocksContent}</LayoutComponent>
+      </layout.Provider>
     );
   }
 

@@ -1,6 +1,6 @@
 import { createApp } from 'camox/createApp';
 import type { Block } from 'camox/createBlock';
-import type { Template } from 'camox/createTemplate';
+import type { Layout } from 'camox/createLayout';
 
 // Auto-import all blocks from the blocks directory
 const blockModules = import.meta.glob<{ block: Block }>('./blocks/*.{ts,tsx}', {
@@ -8,14 +8,14 @@ const blockModules = import.meta.glob<{ block: Block }>('./blocks/*.{ts,tsx}', {
 });
 const blocks = Object.values(blockModules).map((mod) => mod.block);
 
-// Auto-import all templates from the templates directory
-const templateModules = import.meta.glob<{ template: Template }>(
-  './templates/*.{ts,tsx}',
+// Auto-import all layouts from the layouts directory
+const layoutModules = import.meta.glob<{ layout: Layout }>(
+  './layouts/*.{ts,tsx}',
   { eager: true },
 );
-const templates = Object.values(templateModules).map((mod) => mod.template);
+const layouts = Object.values(layoutModules).map((mod) => mod.layout);
 
 export const camoxApp = createApp({
   blocks,
-  templates,
+  layouts,
 });
