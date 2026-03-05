@@ -33,6 +33,11 @@ interface CreateTemplateOptions {
   description: string;
   blocks: { before: TemplateBlock[]; after: TemplateBlock[] };
   component: React.ComponentType<{ children: React.ReactNode }>;
+  buildMetaTitle: (params: {
+    pageMetaTitle: string;
+    projectName: string;
+    pageFullPath: string;
+  }) => string;
 }
 
 function toPascalCase(str: string): string {
@@ -128,6 +133,7 @@ export function createTemplate(options: CreateTemplateOptions) {
     id: options.id,
     title: options.title,
     description: options.description,
+    buildMetaTitle: options.buildMetaTitle,
     blockDefinitions,
     component: options.component,
     Provider,

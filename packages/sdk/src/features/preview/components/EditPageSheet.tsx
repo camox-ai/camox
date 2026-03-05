@@ -97,13 +97,14 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
   });
 
   // Reset form when opening with a different page
+  const prevPageId = React.useRef(pageToEdit._id);
   React.useEffect(() => {
-    form.update({
-      defaultValues: {
-        pathSegment: pageToEdit.pathSegment,
-        parentPageId: pageToEdit.parentPageId,
-        templateId: pageToEdit.templateId ?? ("" as Id<"templates">),
-      },
+    if (prevPageId.current === pageToEdit._id) return;
+    prevPageId.current = pageToEdit._id;
+    form.reset({
+      pathSegment: pageToEdit.pathSegment,
+      parentPageId: pageToEdit.parentPageId,
+      templateId: pageToEdit.templateId ?? ("" as Id<"templates">),
     });
   }, [pageToEdit, form]);
 
@@ -181,14 +182,18 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
                   )}
                 </form.Field>
               )}
-              <Button
-                type="submit"
-                disabled={form.state.isSubmitting || form.state.isPristine}
-              >
-                {form.state.isSubmitting && <Spinner />}
-                Save changes
-                {form.state.isSubmitting && "..."}
-              </Button>
+              <form.Subscribe selector={(s) => ({ isSubmitting: s.isSubmitting, isPristine: s.isPristine })}>
+                {({ isSubmitting, isPristine }) => (
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || isPristine}
+                  >
+                    {isSubmitting && <Spinner />}
+                    Save changes
+                    {isSubmitting && "..."}
+                  </Button>
+                )}
+              </form.Subscribe>
             </form>
           </div>
         </div>

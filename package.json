@@ -7,7 +7,7 @@
     "dev": "nx run-many -t dev --all --parallel",
     "lint": "nx run-many -t lint --all",
     "test": "nx run-many -t test --all",
-    "check": "nx run-many -t check --all",
+    "check": "nx run-many -t check --all --no-tui",
     "prepare": "husky"
   },
   "author": "",

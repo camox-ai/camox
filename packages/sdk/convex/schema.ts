@@ -15,7 +15,7 @@ export default defineSchema({
     pathSegment: v.string(),
     fullPath: v.string(),
     parentPageId: v.optional(v.id("pages")),
-    templateId: v.optional(v.id("templates")),
+    templateId: v.id("templates"),
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
     aiSeoEnabled: v.optional(v.boolean()),

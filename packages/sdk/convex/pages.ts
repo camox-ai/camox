@@ -18,7 +18,7 @@ export const createPageInternal = internalMutation({
     projectId: v.id("projects"),
     pathSegment: v.string(),
     parentPageId: v.optional(v.id("pages")),
-    templateId: v.optional(v.id("templates")),
+    templateId: v.id("templates"),
     blocks: v.array(
       v.object({
         type: v.string(),
@@ -200,6 +200,12 @@ export const getPage = query({
       }));
     }
 
+    const project = await ctx.db.get(page.projectId);
+    if (!project) {
+      throw new Error("Project not found");
+    }
+    const projectName = project.name;
+
     // Fetch template data if page has a template
     if (page.templateId) {
       const template = await ctx.db.get(page.templateId);
@@ -264,6 +270,7 @@ export const getPage = query({
 
         return {
           page,
+          projectName,
           blocks: resolvedPageBlocks,
           template: {
             _id: template._id,
@@ -278,6 +285,7 @@ export const getPage = query({
 
     return {
       page,
+      projectName,
       blocks: resolvedPageBlocks,
     };
   },

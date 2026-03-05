@@ -19,7 +19,7 @@ export const createPage = action({
     projectId: v.id("projects"),
     pathSegment: v.string(),
     parentPageId: v.optional(v.id("pages")),
-    templateId: v.optional(v.id("templates")),
+    templateId: v.id("templates"),
     contentDescription: v.optional(v.string()),
   },
   handler: async (

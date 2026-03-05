@@ -9,6 +9,7 @@ const landingPageTemplate = createTemplate({
     "Use for the home page, or other pages that are designed to be the first introduction of your site to visitors",
   blocks: { before: [navbarBlock], after: [footerBlock] },
   component: LandingPageTemplate,
+  buildMetaTitle: ({ pageMetaTitle, projectName }) => `${projectName} | ${pageMetaTitle}`
 });
 
 function LandingPageTemplate({ children }: { children: React.ReactNode }) {
