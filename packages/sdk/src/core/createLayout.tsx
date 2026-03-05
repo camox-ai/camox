@@ -4,6 +4,12 @@ import * as React from "react";
  * createLayout
  * -----------------------------------------------------------------------------------------------*/
 
+export interface OgImageParams {
+  title: string;
+  description: string;
+  projectName: string;
+}
+
 export interface LayoutBlockData {
   _id: string;
   type: string;
@@ -38,6 +44,7 @@ interface CreateLayoutOptions {
     projectName: string;
     pageFullPath: string;
   }) => string;
+  buildOgImage?: (params: OgImageParams) => React.ReactElement;
 }
 
 function toPascalCase(str: string): string {
@@ -129,11 +136,20 @@ export function createLayout(options: CreateLayoutOptions) {
     })),
   ];
 
+  const buildOgImage = options.buildOgImage
+    ? async (params: OgImageParams): Promise<Response> => {
+        const { ImageResponse } = await import("@takumi-rs/image-response");
+        const jsx = options.buildOgImage!(params);
+        return new ImageResponse(jsx, { width: 1200, height: 630 });
+      }
+    : undefined;
+
   return {
     id: options.id,
     title: options.title,
     description: options.description,
     buildMetaTitle: options.buildMetaTitle,
+    buildOgImage,
     blockDefinitions,
     component: options.component,
     Provider,

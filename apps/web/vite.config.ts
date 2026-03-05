@@ -52,6 +52,13 @@ const config = defineConfig({
           "../../packages/sdk/src/features/studio/CamoxStudio.tsx",
         ),
       },
+      {
+        find: "camox/og",
+        replacement: resolve(
+          __dirname,
+          "../../packages/sdk/src/og/og.ts",
+        ),
+      },
     ],
   },
   plugins: [

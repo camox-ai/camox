@@ -263,7 +263,11 @@ const SOCIAL_PROVIDERS: { value: SocialPreviewProvider; label: string }[] = [
 ];
 
 function useHeadMeta() {
-  const [meta, setMeta] = React.useState({ title: "", description: "" });
+  const [meta, setMeta] = React.useState({
+    title: "",
+    description: "",
+    image: "",
+  });
 
   React.useEffect(() => {
     const read = () =>
@@ -272,6 +276,10 @@ function useHeadMeta() {
         description:
           document
             .querySelector('meta[name="description"]')
+            ?.getAttribute("content") ?? "",
+        image:
+          document
+            .querySelector('meta[property="og:image"]')
             ?.getAttribute("content") ?? "",
       });
 
@@ -326,6 +334,7 @@ const SocialPreviewSection = ({
         url={url}
         title={headMeta.title || null}
         description={headMeta.description || null}
+        image={headMeta.image || null}
         disableLink
       />
     </div>
