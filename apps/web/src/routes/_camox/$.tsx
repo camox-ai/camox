@@ -14,7 +14,8 @@ export const Route = createFileRoute('/_camox/$')({
       throw notFound();
     }
 
-    return { page };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return { page } as any;
   },
   head: ({ loaderData }) => {
     if (!loaderData) {

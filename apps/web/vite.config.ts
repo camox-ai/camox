@@ -62,9 +62,7 @@ const config = defineConfig({
     camox({
       convexDeployKey: process.env.CONVEX_DEPLOY_KEY!,
     }),
-    tanstackStart({
-      customViteReactPlugin: true,
-    }),
+    tanstackStart(),
     viteReact({
       babel: {
         plugins: ["babel-plugin-react-compiler"],

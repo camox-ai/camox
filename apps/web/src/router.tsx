@@ -8,7 +8,7 @@ import { ConvexHttpClient } from 'convex/browser';
 const convexHttpClient = new ConvexHttpClient(env.VITE_CONVEX_URL);
 
 // Create a new router instance
-export const createRouter = () => {
+export function getRouter() {
   const router = createTanstackRouter({
     routeTree,
     context: {
@@ -23,6 +23,6 @@ export const createRouter = () => {
 // Register the router instance for type safety
 declare module '@tanstack/react-router' {
   interface Register {
-    router: ReturnType<typeof createRouter>;
+    router: ReturnType<typeof getRouter>;
   }
 }

@@ -53,6 +53,7 @@ const CamoxCmxStudioSplatRoute = CamoxCmxStudioSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof CamoxRouteWithChildren
   '/custom': typeof CustomRoute
   '/$': typeof CamoxSplatRoute
   '/cmx': typeof CamoxCmxRoute
@@ -61,6 +62,7 @@ export interface FileRoutesByFullPath {
   '/cmx-studio/blocks': typeof CamoxCmxStudioBlocksRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof CamoxRouteWithChildren
   '/custom': typeof CustomRoute
   '/$': typeof CamoxSplatRoute
   '/cmx': typeof CamoxCmxRoute
@@ -81,6 +83,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/custom'
     | '/$'
     | '/cmx'
@@ -89,6 +92,7 @@ export interface FileRouteTypes {
     | '/cmx-studio/blocks'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/custom'
     | '/$'
     | '/cmx'
@@ -123,7 +127,7 @@ declare module '@tanstack/react-router' {
     '/_camox': {
       id: '/_camox'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof CamoxRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -200,3 +204,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
