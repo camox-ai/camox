@@ -190,6 +190,87 @@ export const applyFileMetadata = internalMutation({
   },
 });
 
+/**
+ * Recursively replace all `{ _fileId: oldFileId }` references with the new file's data.
+ */
+function replaceFileRefs(
+  content: Record<string, unknown>,
+  oldFileId: string,
+  newData: { url: string; alt: string; filename: string; mimeType: string; _fileId: string },
+): { result: Record<string, unknown>; changed: boolean } {
+  let changed = false;
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(content)) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const obj = value as Record<string, unknown>;
+      if ("_fileId" in obj && obj._fileId === oldFileId) {
+        result[key] = { ...newData };
+        changed = true;
+      } else {
+        const nested = replaceFileRefs(obj, oldFileId, newData);
+        result[key] = nested.result;
+        if (nested.changed) changed = true;
+      }
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return { result, changed };
+}
+
+export const replaceFile = mutation({
+  args: {
+    oldFileId: v.id("files"),
+    newFileId: v.id("files"),
+  },
+  handler: async (ctx, args) => {
+    const oldFile = await ctx.db.get(args.oldFileId);
+    if (!oldFile) throw new Error("Old file not found");
+    const newFile = await ctx.db.get(args.newFileId);
+    if (!newFile) throw new Error("New file not found");
+
+    const oldFileIdStr = args.oldFileId as string;
+    const newData = {
+      url: newFile.url,
+      alt: newFile.alt,
+      filename: newFile.filename,
+      mimeType: newFile.mimeType,
+      _fileId: args.newFileId as string,
+    };
+
+    // Replace references in blocks
+    const allBlocks = await ctx.db.query("blocks").collect();
+    for (const block of allBlocks) {
+      if (!block.content) continue;
+      const { result, changed } = replaceFileRefs(block.content, oldFileIdStr, newData);
+      if (changed) {
+        await ctx.db.patch(block._id, {
+          content: result,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // Replace references in repeatable items
+    const allItems = await ctx.db.query("repeatableItems").collect();
+    for (const item of allItems) {
+      if (!item.content) continue;
+      const { result, changed } = replaceFileRefs(item.content, oldFileIdStr, newData);
+      if (changed) {
+        await ctx.db.patch(item._id, {
+          content: result,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // Delete the old file record
+    await ctx.db.delete(args.oldFileId);
+  },
+});
+
 export const setAiMetadata = mutation({
   args: {
     fileId: v.id("files"),

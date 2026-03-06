@@ -35,11 +35,20 @@ interface FileUploadProps {
   multiple?: boolean;
   hidePreview?: boolean;
   accept?: string;
+  label?: string;
   onUploadComplete: (ref: FileRef) => void;
   onClear?: () => void;
 }
 
-export function FileUpload({ initialValue, multiple, hidePreview, accept = "image/*", onUploadComplete, onClear }: FileUploadProps) {
+export function FileUpload({
+  initialValue,
+  multiple,
+  hidePreview,
+  accept = "image/*",
+  label,
+  onUploadComplete,
+  onClear,
+}: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -143,7 +152,7 @@ export function FileUpload({ initialValue, multiple, hidePreview, accept = "imag
   if (multiple) {
     uploadLabel = isImageOnly ? "Upload images" : "Upload files";
   } else if (hasImage) {
-    uploadLabel = isImageOnly ? "Replace image" : "Replace file";
+    uploadLabel = isImageOnly ? "Use another image" : "Use another file";
   } else {
     uploadLabel = isImageOnly ? "Upload an image" : "Upload a file";
   }
@@ -187,20 +196,7 @@ export function FileUpload({ initialValue, multiple, hidePreview, accept = "imag
         <div className="mb-2 bg-muted rounded-full p-3">
           <Upload className="h-5 w-5 text-muted-foreground" />
         </div>
-        <p className="text-pretty text-sm font-medium text-foreground">
-          {uploadLabel}
-        </p>
-        <p className="text-pretty text-sm text-muted-foreground mt-1">
-          or,{" "}
-          <label
-            htmlFor="fileUpload"
-            className="text-primary hover:text-primary/90 font-medium cursor-pointer"
-            onClick={(e) => e.stopPropagation()}
-          >
-            click to browse
-          </label>{" "}
-          (4MB max)
-        </p>
+        <p className="text-pretty text-sm text-foreground">{label ?? uploadLabel}</p>
         <input
           type="file"
           id="fileUpload"
@@ -228,9 +224,7 @@ export function FileUpload({ initialValue, multiple, hidePreview, accept = "imag
         )}
       </div>
 
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

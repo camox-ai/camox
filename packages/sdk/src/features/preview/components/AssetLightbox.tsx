@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { FileUpload } from "@/components/file-upload";
 import { cn } from "@/lib/utils";
 import { api } from "camox/_generated/api";
 import type { Id } from "camox/_generated/dataModel";
@@ -32,6 +34,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
   const updateFileFilename = useMutation(api.files.updateFileFilename);
   const updateFileAlt = useMutation(api.files.updateFileAlt);
   const deleteFile = useMutation(api.files.deleteFile);
+  const replaceFile = useMutation(api.files.replaceFile);
   const setAiMetadata = useMutation(api.files.setAiMetadata);
 
   const handleCopyUrl = async () => {
@@ -130,75 +133,92 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
               <FileIcon className="h-16 w-16 text-muted-foreground" />
             </div>
           )}
-          <div className="w-80 shrink-0 border-l border-border bg-background p-4 space-y-4 overflow-y-auto">
-            <ButtonGroup>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={handleCopyUrl}
-                  >
-                    <Link />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Copy URL</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={handleDownload}
-                  >
-                    <Download />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Download</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={handleDelete}
-                  >
-                    <Trash2 />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Delete</TooltipContent>
-              </Tooltip>
-            </ButtonGroup>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="ai-metadata"
-                checked={file.aiMetadataEnabled !== false}
-                onCheckedChange={(checked) =>
-                  setAiMetadata({ fileId, enabled: checked })
+          <div className="w-80 shrink-0 border-l border-border bg-background flex flex-col">
+            <div className="p-4 space-y-4 overflow-y-auto flex-1">
+              <ButtonGroup>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleCopyUrl}
+                    >
+                      <Link />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Copy URL</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleDownload}
+                    >
+                      <Download />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Download</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleDelete}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete</TooltipContent>
+                </Tooltip>
+              </ButtonGroup>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="ai-metadata"
+                  checked={file.aiMetadataEnabled !== false}
+                  onCheckedChange={(checked) =>
+                    setAiMetadata({ fileId, enabled: checked })
+                  }
+                />
+                <Label htmlFor="ai-metadata">AI metadata</Label>
+              </div>
+              <DebouncedFieldEditor
+                label="File name"
+                placeholder="File name..."
+                initialValue={file.filename}
+                disabled={file.aiMetadataEnabled !== false}
+                onSave={(value) =>
+                  updateFileFilename({ fileId, filename: value })
                 }
               />
-              <Label htmlFor="ai-metadata">AI metadata</Label>
+              <DebouncedFieldEditor
+                label="Alt text"
+                placeholder="Describe this file..."
+                initialValue={file.alt}
+                disabled={file.aiMetadataEnabled !== false}
+                rows={2}
+                onSave={(value) => updateFileAlt({ fileId, alt: value })}
+              />
             </div>
-            <DebouncedFieldEditor
-              label="File name"
-              placeholder="File name..."
-              initialValue={file.filename}
-              disabled={file.aiMetadataEnabled !== false}
-              onSave={(value) =>
-                updateFileFilename({ fileId, filename: value })
-              }
-            />
-            <DebouncedFieldEditor
-              label="Alt text"
-              placeholder="Describe this file..."
-              initialValue={file.alt}
-              disabled={file.aiMetadataEnabled !== false}
-              rows={2}
-              onSave={(value) => updateFileAlt({ fileId, alt: value })}
-            />
+            <Separator />
+            <div className="p-4">
+              <FileUpload
+                label={isImage ? "Replace image" : "Replace file"}
+                hidePreview
+                accept={isImage ? "image/*" : "*/*"}
+                onUploadComplete={(ref) => {
+                  replaceFile({
+                    oldFileId: fileId,
+                    newFileId: ref._fileId as Id<"files">,
+                  });
+                  onOpenChange(false);
+                }}
+              />
+            </div>
           </div>
         </div>
       </DialogContent>
