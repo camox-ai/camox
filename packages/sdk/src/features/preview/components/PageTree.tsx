@@ -218,9 +218,10 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
 
   return (
     <ul className="pl-7 pr-1 my-1 space-y-1">
-      {Object.entries(block.content).map(([fieldName, value]) => {
+      {Object.keys(schemaProperties ?? {}).map((fieldName) => {
+        const value = block.content[fieldName];
         const fieldSchema = schemaProperties?.[fieldName];
-        if (!fieldSchema) return null;
+        if (!fieldSchema || value === undefined) return null;
         const fieldType = fieldSchema.fieldType;
         const isRepeatable = fieldType === "RepeatableObject";
         return (

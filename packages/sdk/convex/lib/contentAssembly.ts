@@ -139,12 +139,32 @@ export function groupItemsByBlockAndField<
   );
 }
 
+/** Reorder an object's keys to match the given order. Keys not in `fieldOrder` are appended. */
+export function reorderByFieldOrder(
+  obj: Record<string, unknown>,
+  fieldOrder: string[],
+): Record<string, unknown> {
+  const ordered: Record<string, unknown> = {};
+  for (const key of fieldOrder) {
+    if (key in obj) {
+      ordered[key] = obj[key];
+    }
+  }
+  for (const key of Object.keys(obj)) {
+    if (!(key in ordered)) {
+      ordered[key] = obj[key];
+    }
+  }
+  return ordered;
+}
+
 /** Merge scalar block content with its grouped repeatable items. */
 export function reconstructBlockContent(
   blockContent: Record<string, unknown>,
   itemsByBlockAndField: Record<string, unknown[]>,
   blockId: Id<"blocks">,
   allItems: { blockId: Id<"blocks">; fieldName: string }[],
+  fieldOrder?: string[],
 ): Record<string, unknown> {
   const reconstructed = { ...blockContent };
 
@@ -157,6 +177,10 @@ export function reconstructBlockContent(
   for (const fieldName of fieldNames) {
     const key = `${blockId}:${fieldName}`;
     reconstructed[fieldName] = itemsByBlockAndField[key] || [];
+  }
+
+  if (fieldOrder) {
+    return reorderByFieldOrder(reconstructed, fieldOrder);
   }
 
   return reconstructed;
@@ -194,6 +218,7 @@ export async function buildFileMap(
 export async function assembleBlockContent(
   ctx: QueryCtx,
   blockId: Id<"blocks">,
+  fieldOrder?: string[],
 ): Promise<{ type: string; content: Record<string, unknown> } | null> {
   const block = await ctx.db.get(blockId);
   if (!block) return null;
@@ -213,6 +238,7 @@ export async function assembleBlockContent(
     itemsByBlockAndField,
     blockId,
     sortedItems,
+    fieldOrder,
   );
 
   // Resolve file references

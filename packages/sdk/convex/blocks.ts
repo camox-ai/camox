@@ -7,6 +7,8 @@ import {
   internalMutation,
   internalQuery,
 } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import { api, internal } from "./_generated/api";
 import {
   generateObjectSummary,
@@ -18,6 +20,38 @@ import {
   assembleBlockContent,
 } from "./lib/contentAssembly";
 import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
+
+async function getProjectIdForBlock(
+  ctx: QueryCtx,
+  block: Doc<"blocks">,
+): Promise<Id<"projects"> | null> {
+  if (block.pageId) {
+    const page = await ctx.db.get(block.pageId);
+    return page?.projectId ?? null;
+  }
+  if (block.layoutId) {
+    const layout = await ctx.db.get(block.layoutId);
+    return layout?.projectId ?? null;
+  }
+  return null;
+}
+
+async function getFieldOrderForType(
+  ctx: QueryCtx,
+  projectId: Id<"projects">,
+  blockType: string,
+): Promise<string[] | undefined> {
+  const def = await ctx.db
+    .query("blockDefinitions")
+    .withIndex("by_project_blockId", (q) =>
+      q.eq("projectId", projectId).eq("blockId", blockType),
+    )
+    .first();
+  if (def?.contentSchema?.properties) {
+    return Object.keys(def.contentSchema.properties);
+  }
+  return undefined;
+}
 
 const SUMMARIZATION_DEBOUNCE_DELAY_MS = 5000;
 const PAGE_SEO_DELAY_MS = 15000;
@@ -302,7 +336,13 @@ export const getAssembledBlockContent = internalQuery({
     const block = await ctx.db.get(args.blockId);
     if (!block) return null;
 
-    const assembled = await assembleBlockContent(ctx, args.blockId);
+    // Look up field order from block definition
+    const projectId = await getProjectIdForBlock(ctx, block);
+    const fieldOrder = projectId
+      ? await getFieldOrderForType(ctx, projectId, block.type)
+      : undefined;
+
+    const assembled = await assembleBlockContent(ctx, args.blockId, fieldOrder);
     if (!assembled) return null;
 
     return {
@@ -441,9 +481,28 @@ export const getAssembledPageContent = internalQuery({
 
     const sortedBlocks = sortByPosition(blocks);
 
+    // Fetch block definitions to get field order
+    const blockDefs = await ctx.db
+      .query("blockDefinitions")
+      .withIndex("by_project", (q) => q.eq("projectId", page.projectId))
+      .collect();
+    const fieldOrderByType = new Map<string, string[]>();
+    for (const def of blockDefs) {
+      if (def.contentSchema?.properties) {
+        fieldOrderByType.set(
+          def.blockId,
+          Object.keys(def.contentSchema.properties),
+        );
+      }
+    }
+
     const assembledBlocks = await Promise.all(
       sortedBlocks.map(async (block) => {
-        const assembled = await assembleBlockContent(ctx, block._id);
+        const assembled = await assembleBlockContent(
+          ctx,
+          block._id,
+          fieldOrderByType.get(block.type),
+        );
         if (!assembled) return null;
         return {
           type: assembled.type,

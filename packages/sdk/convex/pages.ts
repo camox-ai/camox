@@ -160,6 +160,21 @@ export const getPage = query({
 
     const sortedBlocks = sortByPosition(blocks);
 
+    // Fetch block definitions to get field order for each block type
+    const blockDefs = await ctx.db
+      .query("blockDefinitions")
+      .withIndex("by_project", (q) => q.eq("projectId", page.projectId))
+      .collect();
+    const fieldOrderByType = new Map<string, string[]>();
+    for (const def of blockDefs) {
+      if (def.contentSchema?.properties) {
+        fieldOrderByType.set(
+          def.blockId,
+          Object.keys(def.contentSchema.properties),
+        );
+      }
+    }
+
     // Fetch all repeatableItems for all blocks
     const blockIds = sortedBlocks.map((block) => block._id);
     const allRepeatableItems = await Promise.all(
@@ -182,6 +197,7 @@ export const getPage = query({
         itemsByBlockAndField,
         block._id,
         sortedItems,
+        fieldOrderByType.get(block.type),
       ),
     }));
 
@@ -243,6 +259,7 @@ export const getPage = query({
             layoutItemsByBlockAndField,
             block._id,
             sortedLayoutItems,
+            fieldOrderByType.get(block.type),
           ),
         }));
 
