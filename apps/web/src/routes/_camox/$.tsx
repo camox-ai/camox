@@ -1,28 +1,39 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { api } from "camox/_generated/api";
 import { CamoxPreview, PageContent } from "camox/CamoxPreview";
 import { camoxApp } from "@/camox";
 
+const getOrigin = createServerFn({ method: "GET" }).handler(async () => {
+  const request = getRequest();
+  const url = new URL(request.url);
+  return url.origin;
+});
+
 export const Route = createFileRoute("/_camox/$")({
   component: App,
   loader: async ({ context, location }) => {
-    const page = await context.convexHttpClient.query(api.pages.getPage, {
-      fullPath: location.pathname,
-    });
+    const [page, origin] = await Promise.all([
+      context.convexHttpClient.query(api.pages.getPage, {
+        fullPath: location.pathname,
+      }),
+      getOrigin(),
+    ]);
 
     if (!page) {
       throw notFound();
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return { page } as any;
+    return { page, origin } as any;
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
       return {};
     }
 
-    const { page } = loaderData;
+    const { page, origin } = loaderData;
     const pageMetaTitle = page.page.metaTitle ?? page.page.pathSegment;
 
     const meta: Array<Record<string, string>> = [];
@@ -52,7 +63,7 @@ export const Route = createFileRoute("/_camox/$")({
       }),
       ...(page.projectName && { projectName: page.projectName }),
     });
-    const ogImageUrl = `/og?${ogImageParams.toString()}`;
+    const ogImageUrl = `${origin}/og?${ogImageParams.toString()}`;
 
     meta.push(
       { property: "og:title", content: title },

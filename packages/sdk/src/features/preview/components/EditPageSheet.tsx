@@ -271,6 +271,8 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
                 domain={project?.domain}
                 metaTitle={metaTitle}
                 metaDescription={page.metaDescription ?? ""}
+                layoutId={pageLayoutRecord?.layoutId}
+                projectName={project?.name}
               />
             </div>
           </div>
@@ -294,32 +296,6 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
     </Sheet.Sheet>
   );
 };
-
-function useOgImage() {
-  const [image, setImage] = React.useState("");
-
-  React.useEffect(() => {
-    const read = () =>
-      setImage(
-        document
-          .querySelector('meta[property="og:image"]')
-          ?.getAttribute("content") ?? "",
-      );
-
-    read();
-
-    const observer = new MutationObserver(read);
-    observer.observe(document.head, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      characterData: true,
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return image;
-}
 
 function truncateText(text: string, maxLen: number) {
   if (text.length <= maxLen) return text;
@@ -371,13 +347,24 @@ const SocialPreviewSection = ({
   domain,
   metaTitle,
   metaDescription,
+  layoutId,
+  projectName,
 }: {
   page: Doc<"pages">;
   domain?: string;
   metaTitle: string;
   metaDescription: string;
+  layoutId?: string;
+  projectName?: string;
 }) => {
-  const ogImage = useOgImage();
+  const pageMetaTitle = page.metaTitle ?? page.pathSegment;
+  const ogImageParams = new URLSearchParams({
+    ...(layoutId && { layoutId }),
+    title: pageMetaTitle,
+    ...(page.metaDescription && { description: page.metaDescription }),
+    ...(projectName && { projectName }),
+  });
+  const ogImage = `/og?${ogImageParams.toString()}`;
   const url = domain ? `${domain}${page.fullPath}` : page.fullPath;
 
   return (
