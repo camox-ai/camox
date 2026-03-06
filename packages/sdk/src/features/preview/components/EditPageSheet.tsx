@@ -28,6 +28,7 @@ import { previewStore } from "../previewStore";
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
 import { PageLocationFieldset } from "./PageLocationFieldset";
+import { ShikiMarkdown } from "./ShikiMarkdown";
 import {
   Tooltip,
   TooltipContent,
@@ -443,11 +444,7 @@ const PageMarkdownPreview = ({
 
   const fullMarkdown = frontmatterLines.join("\n") + "\n\n" + (markdown ?? "");
 
-  return (
-    <div className="w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm font-mono text-muted-foreground whitespace-pre-wrap break-all">
-      {fullMarkdown}
-    </div>
-  );
+  return <ShikiMarkdown code={fullMarkdown} />;
 };
 
 export { EditPageSheet };
