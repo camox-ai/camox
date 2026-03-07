@@ -1,0 +1,25 @@
+#!/bin/sh
+
+prev_ref=$1
+branch_flag=$3
+
+# Only run on worktree creation (null previous ref + branch checkout)
+if [ "$branch_flag" != "1" ] || [ "$prev_ref" != "0000000000000000000000000000000000000000" ]; then
+  exit 0
+fi
+
+# Resolve the main worktree root
+main_worktree=$(git worktree list --porcelain | head -1 | sed 's/^worktree //')
+current_dir=$(pwd)
+
+# Copy all .env.local files from main worktree, preserving relative paths
+(cd "$main_worktree" && find . -name ".env.local" -type f) | while read -r env_file; do
+  src="$main_worktree/$env_file"
+  dest="$current_dir/$env_file"
+  mkdir -p "$(dirname "$dest")"
+  cp "$src" "$dest"
+  echo "Copied $env_file"
+done
+
+pnpm install
+pnpm build
