@@ -1,4 +1,4 @@
-import { FileIcon } from "lucide-react";
+import { CheckIcon, FileIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { Doc } from "camox/_generated/dataModel";
@@ -22,11 +22,10 @@ export const AssetCard = ({
   return (
     <button
       type="button"
+      data-asset-id={file._id}
       className={cn(
-        "group flex flex-col gap-1.5 rounded-lg p-2 text-left transition-colors",
-        selected
-          ? "bg-accent"
-          : "hover:bg-accent/50",
+        "group flex flex-col gap-1.5 rounded-lg p-2 text-left",
+        selected ? "bg-accent" : "hover:bg-accent/50",
       )}
       onClick={(e) => {
         e.stopPropagation();
@@ -37,12 +36,18 @@ export const AssetCard = ({
         onOpen();
       }}
     >
-      <div className="aspect-4/3 w-full overflow-hidden rounded-md bg-muted/30 flex items-center justify-center">
+      <div className="relative aspect-4/3 w-full overflow-hidden rounded-md bg-muted/30 flex items-center justify-center">
+        {selected && (
+          <div className="absolute top-1.5 left-1.5 z-10 flex h-5 w-5 items-center justify-center rounded bg-primary text-primary-foreground shadow-sm">
+            <CheckIcon className="h-3.5 w-3.5" />
+          </div>
+        )}
         {isImage ? (
           <img
             src={file.url}
             alt={file.alt || file.filename}
-            className="h-full w-full object-cover"
+            draggable={false}
+            className="pointer-events-none h-full w-full object-cover"
           />
         ) : (
           <div className="flex flex-col items-center gap-1 text-muted-foreground">
