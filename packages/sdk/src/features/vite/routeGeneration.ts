@@ -153,18 +153,18 @@ function RouteComponent() {
   );
 }
 
-function generateCmxStudioBlocks(): string {
+function generateCmxStudioContent(): string {
   return (
     HEADER +
     `import { createFileRoute } from "@tanstack/react-router";
-import { CamoxPlayground } from "camox/CamoxPlayground";
+import { CamoxContent } from "camox/CamoxContent";
 
-export const Route = createFileRoute("/_camox/cmx-studio/blocks")({
+export const Route = createFileRoute("/_camox/cmx-studio/content")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  return <CamoxPlayground />;
+  return <CamoxContent />;
 }
 `
   );
@@ -179,7 +179,7 @@ function getRouteFileEntries(routesDir: string, convexUrl: string) {
     { path: resolve(camoxDir, "cmx.tsx"), content: generateCmxRedirect() },
     { path: resolve(camoxDir, "cmx-studio.tsx"), content: generateCmxStudio() },
     { path: resolve(camoxDir, "cmx-studio.$.tsx"), content: generateCmxStudioCatchAll() },
-    { path: resolve(camoxDir, "cmx-studio.blocks.tsx"), content: generateCmxStudioBlocks() },
+    { path: resolve(camoxDir, "cmx-studio.content.tsx"), content: generateCmxStudioContent() },
   ];
 }
 
