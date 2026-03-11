@@ -1,6 +1,7 @@
+import type { ClassValue } from "clsx";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { ClassValue } from "clsx";
+
 import { Kbd, KbdGroup } from "../components/ui/kbd";
 import type { Action } from "../features/provider/actionsStore";
 
@@ -12,8 +13,7 @@ export function checkIfInputFocused(document: Document = window.document) {
   return (
     document.activeElement?.tagName === "INPUT" ||
     document.activeElement?.tagName === "TEXTAREA" ||
-    (document.activeElement?.getAttribute("contenteditable") ?? "false") ===
-      "true"
+    (document.activeElement?.getAttribute("contenteditable") ?? "false") === "true"
   );
 }
 
@@ -91,7 +91,5 @@ export function getActionShortcut(actions: Action[], actionId: string) {
  * @example formatPathSegment("studio_ui") // "Studio Ui"
  */
 export function formatPathSegment(segment: string): string {
-  return segment
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return segment.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }

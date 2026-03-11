@@ -1,7 +1,8 @@
-import * as React from "react";
 import { ClerkProvider, useClerk } from "@clerk/clerk-react";
-import { actionsStore } from "../actionsStore";
 import { shadcn } from "@clerk/themes";
+import * as React from "react";
+
+import { actionsStore } from "../actionsStore";
 
 interface AuthProviderProps {
   children: React.ReactNode;

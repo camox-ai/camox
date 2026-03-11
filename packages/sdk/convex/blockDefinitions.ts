@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+
 import { internalQuery, mutation, query } from "./_generated/server";
 
 export const getBlockDefinitionByTypeInternal = internalQuery({
@@ -26,7 +27,7 @@ export const syncBlockDefinitions = mutation({
         contentSchema: v.any(),
         settingsSchema: v.optional(v.any()),
         layoutOnly: v.optional(v.boolean()),
-      })
+      }),
     ),
   },
   handler: async (ctx, args) => {
@@ -39,9 +40,7 @@ export const syncBlockDefinitions = mutation({
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .collect();
 
-    const existingByBlockId = new Map(
-      existingDefs.map((d) => [d.blockId, d])
-    );
+    const existingByBlockId = new Map(existingDefs.map((d) => [d.blockId, d]));
 
     // Upsert each incoming definition
     for (const def of args.definitions) {

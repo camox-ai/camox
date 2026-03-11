@@ -1,6 +1,7 @@
 import { Type, createBlock } from "camox/createBlock";
-import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 
 const downloadWhitebook = createBlock({
   id: "download-whitebook",
@@ -37,31 +38,29 @@ const downloadWhitebook = createBlock({
 
 function DownloadWhitebookComponent() {
   return (
-    <section className="py-24 bg-background">
+    <section className="bg-background py-24">
       <div className="container mx-auto px-4">
-        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row lg:items-center lg:gap-16">
+        <div className="mx-auto flex max-w-5xl flex-col lg:flex-row lg:items-center lg:gap-16">
           <downloadWhitebook.Image name="cover">
             {(img) => (
               <img
                 src={img.url}
                 alt={img.alt}
-                className="w-full max-w-xs lg:max-w-sm rounded-lg shadow-lg mb-10 lg:mb-0"
+                className="mb-10 w-full max-w-xs rounded-lg shadow-lg lg:mb-0 lg:max-w-sm"
               />
             )}
           </downloadWhitebook.Image>
           <div className="flex-1">
             <downloadWhitebook.Field name="title">
               {(content) => (
-                <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+                <h2 className="text-foreground mb-4 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
                   {content}
                 </h2>
               )}
             </downloadWhitebook.Field>
             <downloadWhitebook.Field name="description">
               {(content) => (
-                <p className="mb-8 text-lg text-muted-foreground leading-relaxed">
-                  {content}
-                </p>
+                <p className="text-muted-foreground mb-8 text-lg leading-relaxed">{content}</p>
               )}
             </downloadWhitebook.Field>
             <downloadWhitebook.File name="file">

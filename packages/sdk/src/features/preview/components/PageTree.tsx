@@ -1,14 +1,3 @@
-import * as React from "react";
-import { useMutation } from "convex/react";
-import * as Accordion from "@radix-ui/react-accordion";
-import {
-  Ellipsis,
-  GripVertical,
-  LayoutTemplate,
-  Plus,
-  Type,
-} from "lucide-react";
-import { useSelector } from "@xstate/store/react";
 import {
   DndContext,
   closestCenter,
@@ -18,6 +7,7 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -25,25 +15,26 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { generateKeyBetween } from "fractional-indexing";
-
-import { Button } from "@/components/ui/button";
-import { previewStore } from "../previewStore";
-import type { OverlayMessage } from "../overlayMessages";
+import * as Accordion from "@radix-ui/react-accordion";
+import { useLocation } from "@tanstack/react-router";
+import { useSelector } from "@xstate/store/react";
 import { api } from "camox/_generated/api";
 import { Doc, Id } from "camox/_generated/dataModel";
-import { cn } from "@/lib/utils";
-import { usePreviewedPage } from "../CamoxPreview";
-import { useLocation } from "@tanstack/react-router";
-import { BlockActionsPopover } from "./BlockActionsPopover";
-import { useCamoxApp } from "../../provider/components/CamoxAppContext";
+import { useMutation } from "convex/react";
+import { generateKeyBetween } from "fractional-indexing";
+import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react";
+import * as React from "react";
+
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+
+import { useCamoxApp } from "../../provider/components/CamoxAppContext";
+import { usePreviewedPage } from "../CamoxPreview";
+import type { OverlayMessage } from "../overlayMessages";
+import { previewStore } from "../previewStore";
+import { BlockActionsPopover } from "./BlockActionsPopover";
 
 /* -------------------------------------------------------------------------------------------------
  * useEmbedTitle
@@ -102,9 +93,7 @@ const FieldItem = ({
   const fetchedEmbedTitle = useEmbedTitle(embedUrl);
 
   const fieldDef =
-    fieldType != null
-      ? fieldTypesDictionary[fieldType as keyof typeof fieldTypesDictionary]
-      : null;
+    fieldType != null ? fieldTypesDictionary[fieldType as keyof typeof fieldTypesDictionary] : null;
   const displayValue = fieldDef
     ? fieldDef.getLabel(value, {
         schemaTitle,
@@ -127,9 +116,7 @@ const FieldItem = ({
       onMouseLeave={onMouseLeave}
     >
       <FieldIcon className="size-4 shrink-0" />
-      <span className="text-accent-foreground select-none truncate">
-        {displayValue}
-      </span>
+      <span className="text-accent-foreground truncate select-none">{displayValue}</span>
     </li>
   );
 };
@@ -151,15 +138,11 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
     previewStore,
     (state) => state.context.selectionBreadcrumbs,
   );
-  const iframeElement = useSelector(
-    previewStore,
-    (state) => state.context.iframeElement,
-  );
+  const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
 
   // Check if a field is selected (breadcrumbs has block + field)
   const selectedFieldName =
-    selectionBreadcrumbs.length === 2 &&
-    selectionBreadcrumbs[0]?.id === block._id
+    selectionBreadcrumbs.length === 2 && selectionBreadcrumbs[0]?.id === block._id
       ? selectionBreadcrumbs[1]?.id
       : null;
 
@@ -173,8 +156,7 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
   };
 
   const handleFieldDoubleClick = (fieldName: string, fieldType: string) => {
-    const fieldDef =
-      fieldTypesDictionary[fieldType as keyof typeof fieldTypesDictionary];
+    const fieldDef = fieldTypesDictionary[fieldType as keyof typeof fieldTypesDictionary];
     fieldDef.onTreeDoubleClick({ blockId: block._id, fieldName });
   };
 
@@ -217,7 +199,7 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
   };
 
   return (
-    <ul className="pl-7 pr-1 my-1 space-y-1">
+    <ul className="my-1 space-y-1 pr-1 pl-7">
       {Object.keys(schemaProperties ?? {}).map((fieldName) => {
         const value = block.content[fieldName];
         const fieldSchema = schemaProperties?.[fieldName];
@@ -234,9 +216,7 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
             arrayItemType={fieldSchema?.arrayItemType}
             isSelected={selectedFieldName === fieldName}
             onFieldClick={() => handleFieldClick(fieldName, fieldType!)}
-            onFieldDoubleClick={() =>
-              handleFieldDoubleClick(fieldName, fieldType!)
-            }
+            onFieldDoubleClick={() => handleFieldDoubleClick(fieldName, fieldType!)}
             onMouseEnter={() => handleFieldMouseEnter(fieldName, isRepeatable)}
             onMouseLeave={() => handleFieldMouseLeave(fieldName, isRepeatable)}
           />
@@ -259,14 +239,9 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
   const [gripPopoverOpen, setGripPopoverOpen] = React.useState(false);
   const [ellipsisPopoverOpen, setEllipsisPopoverOpen] = React.useState(false);
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: block._id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: block._id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -278,10 +253,7 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
     previewStore,
     (state) => state.context.selectionBreadcrumbs,
   );
-  const iframeElement = useSelector(
-    previewStore,
-    (state) => state.context.iframeElement,
-  );
+  const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
   const isParentOfSelection = selectionBreadcrumbs.at(-2)?.id === block._id;
   const shouldShowHover = !isDragging && !isSelected;
   const shouldShowActive = isDragging || (isSelected && !isParentOfSelection);
@@ -305,11 +277,7 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
   };
 
   return (
-    <Accordion.Root
-      type="single"
-      collapsible
-      value={isSelected ? block._id : ""}
-    >
+    <Accordion.Root type="single" collapsible value={isSelected ? block._id : ""}>
       <Accordion.Item
         value={block._id}
         ref={setNodeRef}
@@ -336,17 +304,15 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground flex"
+                className="text-muted-foreground hover:text-foreground flex cursor-grab active:cursor-grabbing"
                 {...attributes}
                 {...listeners}
               >
-                <span className="sr-only">
-                  Click and use arrow keys to reorder
-                </span>
+                <span className="sr-only">Click and use arrow keys to reorder</span>
                 <GripVertical className="h-4 w-4" />
               </Button>
             </BlockActionsPopover>
-            <div className="flex items-center gap-1 flex-1 overflow-x-hidden">
+            <div className="flex flex-1 items-center gap-1 overflow-x-hidden">
               <Accordion.Trigger asChild>
                 <button
                   className={cn(
@@ -379,9 +345,7 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
                 size="icon-sm"
                 className={cn(
                   "text-muted-foreground hover:text-foreground",
-                  ellipsisPopoverOpen
-                    ? "flex"
-                    : "hidden group-hover:flex group-focus-within:flex",
+                  ellipsisPopoverOpen ? "flex" : "hidden group-hover:flex group-focus-within:flex",
                 )}
               >
                 <Ellipsis className="size-4" />
@@ -389,7 +353,7 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
             </BlockActionsPopover>
           </div>
         </Accordion.Header>
-        <Accordion.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm text-muted-foreground rounded-b-lg data-[state=open]:bg-accent/25">
+        <Accordion.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down text-muted-foreground data-[state=open]:bg-accent/25 overflow-hidden rounded-b-lg text-sm">
           <BlockFields block={block} />
         </Accordion.Content>
       </Accordion.Item>
@@ -407,11 +371,7 @@ interface LayoutBlockItemProps {
   layoutName: string;
 }
 
-const LayoutBlockItem = ({
-  block,
-  isSelected,
-  layoutName,
-}: LayoutBlockItemProps) => {
+const LayoutBlockItem = ({ block, isSelected, layoutName }: LayoutBlockItemProps) => {
   const [ellipsisPopoverOpen, setEllipsisPopoverOpen] = React.useState(false);
   const camoxApp = useCamoxApp();
   const blockDef = camoxApp.getBlockById(block.type);
@@ -420,10 +380,7 @@ const LayoutBlockItem = ({
     previewStore,
     (state) => state.context.selectionBreadcrumbs,
   );
-  const iframeElement = useSelector(
-    previewStore,
-    (state) => state.context.iframeElement,
-  );
+  const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
   const isParentOfSelection = selectionBreadcrumbs.at(-2)?.id === block._id;
 
   const handleBlockMouseEnter = () => {
@@ -445,11 +402,7 @@ const LayoutBlockItem = ({
   };
 
   return (
-    <Accordion.Root
-      type="single"
-      collapsible
-      value={isSelected ? block._id : ""}
-    >
+    <Accordion.Root type="single" collapsible value={isSelected ? block._id : ""}>
       <Accordion.Item
         value={block._id}
         className="group"
@@ -461,27 +414,24 @@ const LayoutBlockItem = ({
             className={cn(
               "flex flex-row justify-between items-center gap-1 px-1 max-w-full rounded-lg text-foreground transition-all hover:transition-none",
               !isSelected && "hover:bg-accent/50",
-              isSelected &&
-                !isParentOfSelection &&
-                "bg-accent text-accent-foreground",
+              isSelected && !isParentOfSelection && "bg-accent text-accent-foreground",
               isParentOfSelection && "bg-accent/25",
               "data-[state=open]:rounded-b-none",
             )}
           >
-            <div className="flex items-center justify-center size-7 shrink-0 text-muted-foreground">
+            <div className="text-muted-foreground flex size-7 shrink-0 items-center justify-center">
               <Tooltip delayDuration={500}>
                 <TooltipTrigger>
                   <LayoutTemplate className="h-4 w-4" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  From <span className="font-semibold">{layoutName}</span>{" "}
-                  layout.
+                  From <span className="font-semibold">{layoutName}</span> layout.
                   <br />
                   Changing the content may affect other pages
                 </TooltipContent>
               </Tooltip>
             </div>
-            <div className="flex items-center gap-1 flex-1 overflow-x-hidden">
+            <div className="flex flex-1 items-center gap-1 overflow-x-hidden">
               <Accordion.Trigger asChild>
                 <button
                   className={cn(
@@ -516,9 +466,7 @@ const LayoutBlockItem = ({
                 size="icon-sm"
                 className={cn(
                   "text-muted-foreground hover:text-foreground",
-                  ellipsisPopoverOpen
-                    ? "flex"
-                    : "hidden group-hover:flex group-focus-within:flex",
+                  ellipsisPopoverOpen ? "flex" : "hidden group-hover:flex group-focus-within:flex",
                 )}
               >
                 <Ellipsis className="size-4" />
@@ -526,7 +474,7 @@ const LayoutBlockItem = ({
             </BlockActionsPopover>
           </div>
         </Accordion.Header>
-        <Accordion.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm text-muted-foreground rounded-b-lg data-[state=open]:bg-accent/25">
+        <Accordion.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down text-muted-foreground data-[state=open]:bg-accent/25 overflow-hidden rounded-b-lg text-sm">
           <BlockFields block={block} />
         </Accordion.Content>
       </Accordion.Item>
@@ -549,52 +497,50 @@ const PageTree = () => {
   const page = usePreviewedPage();
   const camoxApp = useCamoxApp();
 
-  const updatePositionMutation = useMutation(
-    api.blocks.updateBlockPosition,
-  ).withOptimisticUpdate((localStore, args) => {
-    // Get the current page data
-    const currentPage = localStore.getQuery(api.pages.getPage, {
-      fullPath: pathname,
-    });
+  const updatePositionMutation = useMutation(api.blocks.updateBlockPosition).withOptimisticUpdate(
+    (localStore, args) => {
+      // Get the current page data
+      const currentPage = localStore.getQuery(api.pages.getPage, {
+        fullPath: pathname,
+      });
 
-    if (!currentPage) return;
+      if (!currentPage) return;
 
-    // Find the block being moved
-    const blockIndex = currentPage.blocks.findIndex(
-      (block) => block._id === args.blockId,
-    );
+      // Find the block being moved
+      const blockIndex = currentPage.blocks.findIndex((block) => block._id === args.blockId);
 
-    if (blockIndex === -1) return;
+      if (blockIndex === -1) return;
 
-    const block = currentPage.blocks[blockIndex];
+      const block = currentPage.blocks[blockIndex];
 
-    // Calculate the new position
-    const newPosition = generateKeyBetween(
-      args.afterPosition ?? null,
-      args.beforePosition ?? null,
-    );
+      // Calculate the new position
+      const newPosition = generateKeyBetween(
+        args.afterPosition ?? null,
+        args.beforePosition ?? null,
+      );
 
-    // Update the block's position
-    const updatedBlock = { ...block, position: newPosition };
+      // Update the block's position
+      const updatedBlock = { ...block, position: newPosition };
 
-    // Create new array with updated block
-    const newBlocks = [...currentPage.blocks];
-    newBlocks[blockIndex] = updatedBlock;
+      // Create new array with updated block
+      const newBlocks = [...currentPage.blocks];
+      newBlocks[blockIndex] = updatedBlock;
 
-    // Re-sort the blocks by position
-    newBlocks.sort((a, b) => {
-      if (a.position < b.position) return -1;
-      if (a.position > b.position) return 1;
-      return 0;
-    });
+      // Re-sort the blocks by position
+      newBlocks.sort((a, b) => {
+        if (a.position < b.position) return -1;
+        if (a.position > b.position) return 1;
+        return 0;
+      });
 
-    // Update the page in the local store
-    localStore.setQuery(
-      api.pages.getPage,
-      { fullPath: pathname },
-      { ...currentPage, blocks: newBlocks },
-    );
-  });
+      // Update the page in the local store
+      localStore.setQuery(
+        api.pages.getPage,
+        { fullPath: pathname },
+        { ...currentPage, blocks: newBlocks },
+      );
+    },
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -634,13 +580,10 @@ const PageTree = () => {
       // Dragging down: insert after the target position
       afterPosition = page.blocks[newIndex].position;
       beforePosition =
-        newIndex < page.blocks.length - 1
-          ? page.blocks[newIndex + 1].position
-          : undefined;
+        newIndex < page.blocks.length - 1 ? page.blocks[newIndex + 1].position : undefined;
     } else {
       // Dragging up: insert before the target position
-      afterPosition =
-        newIndex > 0 ? page.blocks[newIndex - 1].position : undefined;
+      afterPosition = newIndex > 0 ? page.blocks[newIndex - 1].position : undefined;
       beforePosition = page.blocks[newIndex].position;
     }
 
@@ -655,9 +598,7 @@ const PageTree = () => {
     return null;
   }
 
-  const layout = page.layout
-    ? camoxApp.getLayoutById(page.layout.layoutId)
-    : undefined;
+  const layout = page.layout ? camoxApp.getLayoutById(page.layout.layoutId) : undefined;
   const beforeBlocks = page.layout?.beforeBlocks ?? [];
   const afterBlocks = page.layout?.afterBlocks ?? [];
 

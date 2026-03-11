@@ -1,7 +1,8 @@
+import { Link } from "@tanstack/react-router";
 import { Type, createBlock } from "camox/createBlock";
+
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Link } from "@tanstack/react-router";
 
 const hero = createBlock({
   id: "hero",
@@ -15,8 +16,7 @@ const hero = createBlock({
       title: "Title",
     }),
     description: Type.String({
-      default:
-        "Meet Camox, the web toolkit designed for developers, LLMs and content editors.",
+      default: "Meet Camox, the web toolkit designed for developers, LLMs and content editors.",
       maxLength: 280,
       title: "Description",
     }),
@@ -91,7 +91,7 @@ function HeroComponent() {
                   </p>
                 )}
               </hero.Field>
-              <div className="flex flex-col sm:flex-row gap-4 items-start">
+              <div className="flex flex-col items-start gap-4 sm:flex-row">
                 <hero.Link name="cta">
                   {({ text, href, newTab }) => (
                     <Button size={compact ? "default" : "lg"} asChild>
@@ -112,7 +112,7 @@ function HeroComponent() {
                 <img
                   src={img.url}
                   alt={img.alt}
-                  className="mt-10 lg:mt-0 w-full max-w-xs lg:max-w-sm rounded-lg"
+                  className="mt-10 w-full max-w-xs rounded-lg lg:mt-0 lg:max-w-sm"
                 />
               )}
             </hero.Image>

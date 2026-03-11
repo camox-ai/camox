@@ -1,5 +1,6 @@
 import { useClerk, useUser } from "@clerk/clerk-react";
 import { LogOut, Monitor, Moon, Settings, Sun, User } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,6 +13,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
 import { useTheme } from "../useTheme";
 
 export const UserButton = () => {
@@ -37,14 +39,12 @@ export const UserButton = () => {
       <DropdownMenuContent className="w-72" align="end">
         <DropdownMenuLabel className="font-normal">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-              <User className="h-5 w-5 text-muted-foreground" />
+            <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-full">
+              <User className="text-muted-foreground h-5 w-5" />
             </div>
             <div className="flex-1 space-y-0.5">
-              <p className="text-sm font-medium leading-none">
-                {user.fullName || "User"}
-              </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm leading-none font-medium">{user.fullName || "User"}</p>
+              <p className="text-muted-foreground text-sm">
                 {user.primaryEmailAddress?.emailAddress}
               </p>
             </div>
@@ -57,8 +57,8 @@ export const UserButton = () => {
         </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="gap-2">
-            <Sun className="h-4 w-4 dark:hidden text-muted-foreground" />
-            <Moon className="h-4 w-4 hidden dark:block text-muted-foreground" />
+            <Sun className="text-muted-foreground h-4 w-4 dark:hidden" />
+            <Moon className="text-muted-foreground hidden h-4 w-4 dark:block" />
             <span>Theme</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>

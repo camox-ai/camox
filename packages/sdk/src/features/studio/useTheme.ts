@@ -1,6 +1,7 @@
 import * as React from "react";
-import { actionsStore } from "../provider/actionsStore";
+
 import type { Action } from "../provider/actionsStore";
+import { actionsStore } from "../provider/actionsStore";
 
 type Theme = "dark" | "light" | "system";
 

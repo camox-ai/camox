@@ -1,3 +1,4 @@
+import type { Id } from "camox/_generated/dataModel";
 import {
   Type as TypeIcon,
   List as ListIcon,
@@ -10,8 +11,9 @@ import {
   FileIcon,
   Images as ImagesIcon,
 } from "lucide-react";
-import type { Id } from "camox/_generated/dataModel";
+
 import { previewStore } from "@/features/preview/previewStore";
+
 import { isLexicalState, lexicalStateToPlainText } from "./lexicalState";
 
 type FieldLabelMeta = {
@@ -88,10 +90,7 @@ const fieldTypesDictionary = {
     isScalar: true,
     isContentEditable: false,
     getIcon: () => (props: LucideProps) => <FrameIcon {...props} />,
-    getLabel: (
-      value: unknown,
-      { schemaTitle, fieldName, fetchedTitle }: FieldLabelMeta,
-    ) => {
+    getLabel: (value: unknown, { schemaTitle, fieldName, fetchedTitle }: FieldLabelMeta) => {
       let domain: string | null = null;
       try {
         domain = new URL(value as string).hostname.replace(/^www\./, "");
@@ -121,9 +120,7 @@ const fieldTypesDictionary = {
     isContentEditable: false,
     getIcon: () => (props: LucideProps) => <ImageIcon {...props} />,
     getLabel: (value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) =>
-      (value as { filename?: string } | null)?.filename ??
-      schemaTitle ??
-      fieldName,
+      (value as { filename?: string } | null)?.filename ?? schemaTitle ?? fieldName,
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
       previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "Image" });
       previewStore.send({ type: "openBlockContentSheet", blockId });
@@ -136,9 +133,7 @@ const fieldTypesDictionary = {
     isContentEditable: false,
     getIcon: () => (props: LucideProps) => <FileIcon {...props} />,
     getLabel: (value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) =>
-      (value as { filename?: string } | null)?.filename ??
-      schemaTitle ??
-      fieldName,
+      (value as { filename?: string } | null)?.filename ?? schemaTitle ?? fieldName,
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
       previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "File" });
       previewStore.send({ type: "openBlockContentSheet", blockId });

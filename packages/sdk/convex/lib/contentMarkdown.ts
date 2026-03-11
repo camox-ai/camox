@@ -87,19 +87,22 @@ function resolveField(schema: any, value: unknown): string | undefined {
     const itemParts: string[] = [];
     for (const item of value) {
       const itemContent =
-        item && typeof item === "object" && "content" in item
-          ? (item as any).content
-          : item;
+        item && typeof item === "object" && "content" in item ? (item as any).content : item;
       if (!itemContent || typeof itemContent !== "object") continue;
 
       let md: string;
       if (itemToMarkdown) {
-        md = contentToMarkdown(itemToMarkdown, itemSchema, itemContent as Record<string, unknown>, { insideList: true });
+        md = contentToMarkdown(itemToMarkdown, itemSchema, itemContent as Record<string, unknown>, {
+          insideList: true,
+        });
       } else {
         // Fallback: render each field as a line
         const fieldParts: string[] = [];
         for (const key of Object.keys(itemSchema)) {
-          const resolved = resolveField(itemSchema[key], (itemContent as Record<string, unknown>)[key]);
+          const resolved = resolveField(
+            itemSchema[key],
+            (itemContent as Record<string, unknown>)[key],
+          );
           if (resolved) fieldParts.push(resolved);
         }
         md = fieldParts.join(" — ");

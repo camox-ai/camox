@@ -109,15 +109,8 @@ export function createLayout(options: CreateLayoutOptions) {
     layoutBlocks: Record<string, LayoutBlockData>;
     children: React.ReactNode;
   }) => {
-    const value = React.useMemo(
-      () => ({ layoutBlocks }),
-      [layoutBlocks],
-    );
-    return (
-      <LayoutContext.Provider value={value}>
-        {children}
-      </LayoutContext.Provider>
-    );
+    const value = React.useMemo(() => ({ layoutBlocks }), [layoutBlocks]);
+    return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;
   };
 
   // Build block definitions array for sync

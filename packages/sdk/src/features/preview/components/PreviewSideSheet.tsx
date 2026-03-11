@@ -1,7 +1,9 @@
-import * as React from "react";
-import * as Sheet from "@/components/ui/sheet";
-import { SHEET_WIDTH } from "../previewConstants";
 import { useSelector } from "@xstate/store/react";
+import * as React from "react";
+
+import * as Sheet from "@/components/ui/sheet";
+
+import { SHEET_WIDTH } from "../previewConstants";
 import { previewStore } from "../previewStore";
 
 interface PreviewSideSheetProps {
@@ -39,10 +41,7 @@ export function useIsPreviewSheetOpen() {
     previewStore,
     (state) => state.context.isPageContentSheetOpen,
   );
-  const isPeekingBlock = useSelector(
-    previewStore,
-    (state) => state.context.peekedBlock != null,
-  );
+  const isPeekingBlock = useSelector(previewStore, (state) => state.context.peekedBlock != null);
   const isAgentChatSheetOpen = useSelector(
     previewStore,
     (state) => state.context.isAgentChatSheetOpen,

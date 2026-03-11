@@ -1,7 +1,7 @@
-import * as React from "react";
 import { useSelector } from "@xstate/store/react";
-import { actionsStore, type ActionGroupLabel } from "../actionsStore";
-import { studioStore } from "../../studio/studioStore";
+import * as icons from "lucide-react";
+import * as React from "react";
+
 import {
   CommandDialog,
   CommandEmpty,
@@ -11,20 +11,16 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn, formatShortcut } from "@/lib/utils";
-import * as icons from "lucide-react";
+
+import { studioStore } from "../../studio/studioStore";
+import { actionsStore, type ActionGroupLabel } from "../actionsStore";
 
 export function CommandPalette() {
-  const isOpen = useSelector(
-    studioStore,
-    (state) => state.context.isCommandPaletteOpen,
-  );
+  const isOpen = useSelector(studioStore, (state) => state.context.isCommandPaletteOpen);
   const [search, setSearch] = React.useState("");
   const [value, setValue] = React.useState("");
   const actions = useSelector(actionsStore, (state) => state.context.actions);
-  const pages = useSelector(
-    studioStore,
-    (state) => state.context.commandPalettePages,
-  );
+  const pages = useSelector(studioStore, (state) => state.context.commandPalettePages);
   const page = pages.at(-1);
 
   // Group actions by their groupLabel, filtering out "Invisible" actions
@@ -66,9 +62,7 @@ export function CommandPalette() {
   // When navigating to a parent page, set the command value to the first child
   React.useEffect(() => {
     if (page) {
-      const firstChild = actions.find(
-        (a) => a.parentActionId === page && a.checkIfAvailable(),
-      );
+      const firstChild = actions.find((a) => a.parentActionId === page && a.checkIfAvailable());
       if (firstChild) {
         setValue(firstChild.id);
       }
@@ -122,32 +116,26 @@ export function CommandPalette() {
       />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
-        {Array.from(groupedActions.entries()).map(
-          ([groupLabel, groupActions]) => (
-            <CommandGroup key={groupLabel} heading={groupLabel}>
-              {groupActions.map((action) => {
-                const Icon = action.icon
-                  ? (icons[action.icon] as React.ElementType)
-                  : null;
-                return (
-                  <CommandItem
-                    key={action.id}
-                    onSelect={() => handleSelect(action.id)}
-                    className="justify-between"
-                  >
-                    <div className="flex gap-2 items-center">
-                      {Icon && <Icon className="size-4" />}
-                      <span className={cn(!Icon && "ml-7")}>
-                        {action.label}
-                      </span>
-                    </div>
-                    {action.shortcut && formatShortcut(action.shortcut)}
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          ),
-        )}
+        {Array.from(groupedActions.entries()).map(([groupLabel, groupActions]) => (
+          <CommandGroup key={groupLabel} heading={groupLabel}>
+            {groupActions.map((action) => {
+              const Icon = action.icon ? (icons[action.icon] as React.ElementType) : null;
+              return (
+                <CommandItem
+                  key={action.id}
+                  onSelect={() => handleSelect(action.id)}
+                  className="justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    {Icon && <Icon className="size-4" />}
+                    <span className={cn(!Icon && "ml-7")}>{action.label}</span>
+                  </div>
+                  {action.shortcut && formatShortcut(action.shortcut)}
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        ))}
       </CommandList>
     </CommandDialog>
   );

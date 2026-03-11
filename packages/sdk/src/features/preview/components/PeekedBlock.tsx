@@ -1,27 +1,23 @@
-import * as React from "react";
 import { useSelector } from "@xstate/store/react";
 import type { Id } from "camox/_generated/dataModel";
-import { previewStore } from "../previewStore";
+import * as React from "react";
+
 import type { Block } from "../../../core/createBlock";
+import { previewStore } from "../previewStore";
 
 interface PeekedBlockProps {
   onExitComplete?: () => void;
 }
 
 export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
-  const peekedBlock = useSelector(
-    previewStore,
-    (state) => state.context.peekedBlock,
-  );
+  const peekedBlock = useSelector(previewStore, (state) => state.context.peekedBlock);
   const skipExitAnimation = useSelector(
     previewStore,
     (state) => state.context.skipPeekedBlockExitAnimation,
   );
 
   const peekedBlockRef = React.useRef<HTMLDivElement>(null);
-  const [displayedBlock, setDisplayedBlock] = React.useState<Block | null>(
-    null,
-  );
+  const [displayedBlock, setDisplayedBlock] = React.useState<Block | null>(null);
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   // When peekedBlock changes to non-null → latch it; when null → start collapse (or skip)
@@ -61,10 +57,7 @@ export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
 
   const handleTransitionEnd = React.useCallback(
     (e: React.TransitionEvent<HTMLDivElement>) => {
-      if (
-        e.propertyName !== "grid-template-rows" ||
-        e.target !== e.currentTarget
-      ) {
+      if (e.propertyName !== "grid-template-rows" || e.target !== e.currentTarget) {
         return;
       }
       if (isExpanded) {
@@ -94,12 +87,7 @@ export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
       const value = result[key];
       if (Array.isArray(value) && value.length > 0) {
         const firstItem = value[0];
-        if (
-          firstItem &&
-          typeof firstItem === "object" &&
-          !firstItem.content &&
-          !firstItem._id
-        ) {
+        if (firstItem && typeof firstItem === "object" && !firstItem.content && !firstItem._id) {
           result[key] = value.map((item: any) => ({
             content: item,
             _id: undefined,

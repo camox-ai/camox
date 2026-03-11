@@ -1,23 +1,22 @@
-import { useCallback, useRef, useState } from "react";
-import { useQuery } from "convex/react";
-
 import { api } from "camox/_generated/api";
 import type { Id } from "camox/_generated/dataModel";
+import { useQuery } from "convex/react";
+import { useCallback, useRef, useState } from "react";
+
 import { PanelContent } from "@/components/ui/panel";
+import { AssetLightbox } from "@/features/preview/components/AssetLightbox";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
-import { AssetLightbox } from "@/features/preview/components/AssetLightbox";
-import { ContentSidebar } from "./components/ContentSidebar";
+
 import { AssetCard } from "./components/AssetCard";
+import { ContentSidebar } from "./components/ContentSidebar";
 import { UploadDropZone } from "./components/UploadDropZone";
 import { UploadProgressDrawer } from "./components/UploadProgressDrawer";
 
 export const CamoxContent = () => {
   const files = useQuery(api.files.listFiles);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [lightboxFileId, setLightboxFileId] = useState<Id<"files"> | null>(
-    null,
-  );
+  const [lightboxFileId, setLightboxFileId] = useState<Id<"files"> | null>(null);
   const { uploads, uploadFiles, clearAll } = useFileUpload();
   const containerRef = useRef<HTMLElement | null>(null);
   const { selectionRect, didDragRef, handlers } = useMarqueeSelection(
@@ -26,10 +25,10 @@ export const CamoxContent = () => {
   );
 
   return (
-    <div className="flex-1 flex flex-row">
+    <div className="flex flex-1 flex-row">
       <ContentSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <UploadDropZone onDrop={uploadFiles} className="flex-1 flex flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <UploadDropZone onDrop={uploadFiles} className="flex flex-1 flex-col">
           <PanelContent
             ref={containerRef}
             className="relative p-4 select-none"
@@ -45,7 +44,7 @@ export const CamoxContent = () => {
             onPointerUp={handlers.onPointerUp}
           >
             {files === undefined ? null : files.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center h-full">
+              <div className="flex h-full flex-1 items-center justify-center">
                 <p className="text-muted-foreground">No assets yet</p>
               </div>
             ) : (

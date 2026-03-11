@@ -1,15 +1,11 @@
 import { v } from "convex/values";
-import {
-  mutation,
-  internalAction,
-  internalMutation,
-  internalQuery,
-} from "./_generated/server";
-import { internal } from "./_generated/api";
 import { generateKeyBetween } from "fractional-indexing";
+
 import { generateObjectSummary } from "../src/lib/ai";
-import { sortByPosition, assembleItemContent } from "./lib/contentAssembly";
+import { internal } from "./_generated/api";
+import { mutation, internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
+import { sortByPosition, assembleItemContent } from "./lib/contentAssembly";
 
 const SUMMARIZATION_DEBOUNCE_DELAY_MS = 5000;
 const BLOCK_CASCADE_DELAY_MS = 2000;
@@ -28,7 +24,7 @@ export const createRepeatableItem = mutation({
     const items = await ctx.db
       .query("repeatableItems")
       .withIndex("by_block_field", (q) =>
-        q.eq("blockId", args.blockId).eq("fieldName", args.fieldName)
+        q.eq("blockId", args.blockId).eq("fieldName", args.fieldName),
       )
       .collect();
 
@@ -42,14 +38,9 @@ export const createRepeatableItem = mutation({
       newPosition = generateKeyBetween(lastItem?.position ?? null, null);
     } else {
       // Insert after the specified position
-      const afterIndex = sortedItems.findIndex(
-        (item) => item.position === args.afterPosition
-      );
+      const afterIndex = sortedItems.findIndex((item) => item.position === args.afterPosition);
       const nextItem = sortedItems[afterIndex + 1];
-      newPosition = generateKeyBetween(
-        args.afterPosition,
-        nextItem?.position ?? null
-      );
+      newPosition = generateKeyBetween(args.afterPosition, nextItem?.position ?? null);
     }
 
     const itemId = await ctx.db.insert("repeatableItems", {
@@ -115,10 +106,7 @@ export const updateRepeatableItemPosition = mutation({
     }
 
     // Calculate new position between afterPosition and beforePosition
-    const newPosition = generateKeyBetween(
-      args.afterPosition ?? null,
-      args.beforePosition ?? null
-    );
+    const newPosition = generateKeyBetween(args.afterPosition ?? null, args.beforePosition ?? null);
 
     await ctx.db.patch(args.itemId, {
       position: newPosition,
@@ -143,7 +131,7 @@ export const duplicateRepeatableItem = mutation({
     const items = await ctx.db
       .query("repeatableItems")
       .withIndex("by_block_field", (q) =>
-        q.eq("blockId", item.blockId).eq("fieldName", item.fieldName)
+        q.eq("blockId", item.blockId).eq("fieldName", item.fieldName),
       )
       .collect();
 
@@ -151,10 +139,7 @@ export const duplicateRepeatableItem = mutation({
 
     const originalIndex = sortedItems.findIndex((i) => i._id === args.itemId);
     const nextItem = sortedItems[originalIndex + 1];
-    const newPosition = generateKeyBetween(
-      item.position,
-      nextItem?.position ?? null
-    );
+    const newPosition = generateKeyBetween(item.position, nextItem?.position ?? null);
 
     const newItemId = await ctx.db.insert("repeatableItems", {
       blockId: item.blockId,
@@ -217,10 +202,9 @@ export const generateRepeatableItemSummary = internalAction({
     itemId: v.id("repeatableItems"),
   },
   handler: async (ctx, args) => {
-    const assembled = await ctx.runQuery(
-      internal.repeatableItems.getAssembledItemContent,
-      { itemId: args.itemId },
-    );
+    const assembled = await ctx.runQuery(internal.repeatableItems.getAssembledItemContent, {
+      itemId: args.itemId,
+    });
     if (!assembled) return;
 
     const summary = await generateObjectSummary({
@@ -229,20 +213,16 @@ export const generateRepeatableItemSummary = internalAction({
       previousSummary: assembled.previousSummary,
     });
 
-    await ctx.runMutation(
-      internal.repeatableItems.updateRepeatableItemSummary,
-      {
-        itemId: args.itemId,
-        summary,
-      },
-    );
+    await ctx.runMutation(internal.repeatableItems.updateRepeatableItemSummary, {
+      itemId: args.itemId,
+      summary,
+    });
 
     // Cascade: if summary changed, schedule parent block re-summarization
     if (summary !== assembled.previousSummary && assembled.blockId) {
-      await ctx.runMutation(
-        internal.repeatableItems.cascadeToBlock,
-        { blockId: assembled.blockId },
-      );
+      await ctx.runMutation(internal.repeatableItems.cascadeToBlock, {
+        blockId: assembled.blockId,
+      });
     }
   },
 });

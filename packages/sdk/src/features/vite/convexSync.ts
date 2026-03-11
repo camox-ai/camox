@@ -1,7 +1,8 @@
-import type { ViteDevServer } from "vite";
 import { spawn, type ChildProcess } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import type { ViteDevServer } from "vite";
 
 let convexProcess: ChildProcess | null = null;
 
@@ -50,10 +51,9 @@ export function startConvexDev({ server, deployKey }: ConvexDevOptions): void {
 
   convexProcess.on("close", (code) => {
     if (code !== 0 && code !== null) {
-      server.config.logger.error(
-        `[camox] convex dev exited with code ${code}`,
-        { timestamp: true },
-      );
+      server.config.logger.error(`[camox] convex dev exited with code ${code}`, {
+        timestamp: true,
+      });
     }
   });
 

@@ -2,16 +2,17 @@
  * CreatePageSheet
  * -----------------------------------------------------------------------------------------------*/
 
-import { Label } from "@/components/ui/label";
-import * as Sheet from "@/components/ui/sheet";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { useSelector } from "@xstate/store/react";
 import { api } from "camox/_generated/api";
+import { Id } from "camox/_generated/dataModel";
 import { useAction, useQuery } from "convex/react";
+import { useEffect } from "react";
 import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -19,24 +20,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Id } from "camox/_generated/dataModel";
-import { useSelector } from "@xstate/store/react";
-import { useEffect } from "react";
-import { previewStore } from "../previewStore";
+import * as Sheet from "@/components/ui/sheet";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
+import { previewStore } from "../previewStore";
 import { PageLocationFieldset } from "./PageLocationFieldset";
 
 const CreatePageSheet = () => {
-  const open = useSelector(
-    previewStore,
-    (state) => state.context.isCreatePageSheetOpen,
-  );
+  const open = useSelector(previewStore, (state) => state.context.isCreatePageSheetOpen);
   const pages = useQuery(api.pages.listPages);
   const project = useQuery(api.projects.getFirstProject);
-  const layouts = useQuery(
-    api.layouts.listLayouts,
-    project ? { projectId: project._id } : "skip",
-  );
+  const layouts = useQuery(api.layouts.listLayouts, project ? { projectId: project._id } : "skip");
   const camoxApp = useCamoxApp();
   const createPage = useAction(api.pageActions.createPage);
   const navigate = useNavigate();
@@ -97,11 +93,10 @@ const CreatePageSheet = () => {
       }}
     >
       <Sheet.SheetContent className="min-w-[500px]">
-        <Sheet.SheetHeader className="border-b border-border">
+        <Sheet.SheetHeader className="border-border border-b">
           <Sheet.SheetTitle>Create page</Sheet.SheetTitle>
           <Sheet.SheetDescription>
-            Fill in the details to create a new page. It will be created as a
-            draft.
+            Fill in the details to create a new page. It will be created as a draft.
           </Sheet.SheetDescription>
         </Sheet.SheetHeader>
         <form
@@ -110,7 +105,7 @@ const CreatePageSheet = () => {
             e.stopPropagation();
             form.handleSubmit();
           }}
-          className="space-y-4 py-4 px-4"
+          className="space-y-4 px-4 py-4"
         >
           <form.Field name="parentPageId">
             {(parentField) => (
@@ -142,8 +137,7 @@ const CreatePageSheet = () => {
                   <SelectContent>
                     {layouts?.map((t) => (
                       <SelectItem key={t._id} value={t._id}>
-                        {camoxApp.getLayoutById(t.layoutId)?.title ??
-                          t.layoutId}
+                        {camoxApp.getLayoutById(t.layoutId)?.title ?? t.layoutId}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -154,9 +148,7 @@ const CreatePageSheet = () => {
           <form.Field name="contentDescription">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor="contentDescription">
-                  Content description
-                </Label>
+                <Label htmlFor="contentDescription">Content description</Label>
                 <Textarea
                   id="contentDescription"
                   value={field.state.value}

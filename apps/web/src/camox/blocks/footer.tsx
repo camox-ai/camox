@@ -1,5 +1,5 @@
-import { Type, createBlock } from "camox/createBlock";
 import { Link } from "@tanstack/react-router";
+import { Type, createBlock } from "camox/createBlock";
 
 const footer = createBlock({
   id: "footer",
@@ -46,32 +46,26 @@ function FooterComponent() {
   return (
     <footer className="dark bg-background py-16">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row gap-12 md:gap-16">
+        <div className="flex flex-col gap-12 md:flex-row md:gap-16">
           {/* Left side: Logo + copyright */}
-          <div className="md:w-1/4 shrink-0">
+          <div className="shrink-0 md:w-1/4">
             <footer.Field name="title">
               {(content) => (
-                <div className="text-2xl font-bold text-foreground mb-2">
-                  {content}
-                </div>
+                <div className="text-foreground mb-2 text-2xl font-bold">{content}</div>
               )}
             </footer.Field>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               &copy; {new Date().getFullYear()} All rights reserved.
             </p>
           </div>
 
           {/* Right side: Link columns */}
-          <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-8">
+          <div className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-3">
             <footer.Repeater name="columns">
               {(column) => (
                 <div>
                   <column.Field name="title">
-                    {(content) => (
-                      <h3 className="font-semibold text-foreground mb-4">
-                        {content}
-                      </h3>
-                    )}
+                    {(content) => <h3 className="text-foreground mb-4 font-semibold">{content}</h3>}
                   </column.Field>
                   <ul className="space-y-2">
                     <column.Repeater name="links">
@@ -83,7 +77,7 @@ function FooterComponent() {
                                 to={href}
                                 target={newTab ? "_blank" : undefined}
                                 rel={newTab ? "noreferrer" : undefined}
-                                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                className="text-muted-foreground hover:text-foreground text-sm transition-colors"
                               >
                                 {text}
                               </Link>

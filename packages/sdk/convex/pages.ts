@@ -1,8 +1,9 @@
 import { v } from "convex/values";
-import { internalMutation, mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 import { generateKeyBetween } from "fractional-indexing";
+
+import { internal } from "./_generated/api";
+import { internalMutation, mutation, query } from "./_generated/server";
+import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 import {
   sortByPosition,
   splitContent,
@@ -102,11 +103,9 @@ export const createPageInternal = internalMutation({
           });
 
           // Schedule repeatableItem summary generation
-          await ctx.scheduler.runAfter(
-            0,
-            internal.repeatableItems.generateRepeatableItemSummary,
-            { itemId },
-          );
+          await ctx.scheduler.runAfter(0, internal.repeatableItems.generateRepeatableItemSummary, {
+            itemId,
+          });
 
           itemPrevPosition = itemPosition;
         }
@@ -168,10 +167,7 @@ export const getPage = query({
     const fieldOrderByType = new Map<string, string[]>();
     for (const def of blockDefs) {
       if (def.contentSchema?.properties) {
-        fieldOrderByType.set(
-          def.blockId,
-          Object.keys(def.contentSchema.properties),
-        );
+        fieldOrderByType.set(def.blockId, Object.keys(def.contentSchema.properties));
       }
     }
 
@@ -182,8 +178,8 @@ export const getPage = query({
         ctx.db
           .query("repeatableItems")
           .withIndex("by_block", (q) => q.eq("blockId", blockId))
-          .collect()
-      )
+          .collect(),
+      ),
     );
 
     const sortedItems = sortByPosition(allRepeatableItems.flat());
@@ -228,9 +224,7 @@ export const getPage = query({
       if (layout) {
         const layoutBlocks = await ctx.db
           .query("blocks")
-          .withIndex("by_layout", (q) =>
-            q.eq("layoutId", layout._id),
-          )
+          .withIndex("by_layout", (q) => q.eq("layoutId", layout._id))
           .collect();
 
         const sortedLayoutBlocks = sortByPosition(layoutBlocks);
@@ -246,11 +240,8 @@ export const getPage = query({
           ),
         );
 
-        const sortedLayoutItems = sortByPosition(
-          layoutRepeatableItems.flat(),
-        );
-        const layoutItemsByBlockAndField =
-          groupItemsByBlockAndField(sortedLayoutItems);
+        const sortedLayoutItems = sortByPosition(layoutRepeatableItems.flat());
+        const layoutItemsByBlockAndField = groupItemsByBlockAndField(sortedLayoutItems);
 
         const layoutBlocksWithItems = sortedLayoutBlocks.map((block) => ({
           ...block,
@@ -278,12 +269,8 @@ export const getPage = query({
           }));
         }
 
-        const beforeBlocks = resolvedLayoutBlocks.filter(
-          (b) => b.placement === "before",
-        );
-        const afterBlocks = resolvedLayoutBlocks.filter(
-          (b) => b.placement === "after",
-        );
+        const beforeBlocks = resolvedLayoutBlocks.filter((b) => b.placement === "before");
+        const afterBlocks = resolvedLayoutBlocks.filter((b) => b.placement === "after");
 
         return {
           page,

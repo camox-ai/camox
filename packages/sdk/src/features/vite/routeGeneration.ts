@@ -1,6 +1,8 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, relative } from "node:path";
+
 import type { ViteDevServer } from "vite";
+
 import { writeIfChanged } from "./utils";
 
 const HEADER = `/* ============================================================================
@@ -185,11 +187,7 @@ export function generateRouteFiles(routesDir: string, convexUrl: string) {
   }
 }
 
-export function watchRouteFiles(
-  server: ViteDevServer,
-  routesDir: string,
-  convexUrl: string,
-) {
+export function watchRouteFiles(server: ViteDevServer, routesDir: string, convexUrl: string) {
   const entries = getRouteFileEntries(routesDir, convexUrl);
   const expectedByPath = new Map(entries.map((e) => [e.path, e.content]));
 
@@ -213,10 +211,9 @@ export function watchRouteFiles(
     if (!expected) return;
 
     const rel = relative(server.config.root, deletedPath);
-    server.config.logger.warn(
-      `Camox route file "${rel}" was deleted — recreating.`,
-      { timestamp: true },
-    );
+    server.config.logger.warn(`Camox route file "${rel}" was deleted — recreating.`, {
+      timestamp: true,
+    });
     writeFileSync(deletedPath, expected, "utf-8");
   });
 }

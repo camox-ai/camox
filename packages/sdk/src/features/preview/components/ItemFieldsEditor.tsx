@@ -1,18 +1,13 @@
-import * as React from "react";
 import { useForm } from "@tanstack/react-form";
-
-import {
-  Link2 as Link2Icon,
-  Images as ImagesIcon,
-  ImageIcon,
-  FileIcon,
-} from "lucide-react";
+import { Doc, Id } from "camox/_generated/dataModel";
+import { Link2 as Link2Icon, Images as ImagesIcon, ImageIcon, FileIcon } from "lucide-react";
+import * as React from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SidebarLexicalEditor } from "@/core/components/lexical/SidebarLexicalEditor";
 import { isLexicalState, plainTextToLexicalState } from "@/core/lib/lexicalState";
-import { Doc, Id } from "camox/_generated/dataModel";
+
 import type { OverlayMessage } from "../overlayMessages";
 import { previewStore } from "../previewStore";
 import { RepeatableItemsList } from "./RepeatableItemsList";
@@ -150,11 +145,7 @@ const ItemFieldsEditor = ({
     };
   }, [postToIframe]);
 
-  const handleScalarChange = (
-    fieldName: string,
-    value: string,
-    fieldApi: any,
-  ) => {
+  const handleScalarChange = (fieldName: string, value: string, fieldApi: any) => {
     fieldApi.handleChange(value);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
@@ -175,7 +166,7 @@ const ItemFieldsEditor = ({
   };
 
   return (
-    <form className="space-y-4 py-4 px-4">
+    <form className="space-y-4 px-4 py-4">
       {fields.map((field) => {
         const label = field.label ?? formatFieldName(field.name);
         const fieldId = getFieldId(field.name);
@@ -202,9 +193,7 @@ const ItemFieldsEditor = ({
                   <Label htmlFor={field.name}>{label}</Label>
                   <SidebarLexicalEditor
                     value={fieldApi.state.value}
-                    onChange={(value) =>
-                      handleScalarChange(field.name, value, fieldApi)
-                    }
+                    onChange={(value) => handleScalarChange(field.name, value, fieldApi)}
                     onFocus={() => handleFieldFocus(field.name)}
                     onBlur={() => handleFieldBlur(field.name)}
                   />
@@ -238,9 +227,7 @@ const ItemFieldsEditor = ({
                     id={field.name}
                     type="url"
                     value={fieldApi.state.value}
-                    onChange={(e) =>
-                      handleScalarChange(field.name, e.target.value, fieldApi)
-                    }
+                    onChange={(e) => handleScalarChange(field.name, e.target.value, fieldApi)}
                     onFocus={() => handleFieldFocus(field.name)}
                     onBlur={() => handleFieldBlur(field.name)}
                   />
@@ -277,7 +264,7 @@ const ItemFieldsEditor = ({
               <Label>{label}</Label>
               <button
                 type="button"
-                className="flex items-center gap-2 w-full rounded-lg px-2 py-2 text-sm text-left hover:bg-accent/75 transition-colors"
+                className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
                 onClick={() =>
                   previewStore.send({
                     type: "drillIntoLink",
@@ -285,17 +272,14 @@ const ItemFieldsEditor = ({
                   })
                 }
               >
-                <Link2Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Link2Icon className="text-muted-foreground h-4 w-4 shrink-0" />
                 <span className="truncate">{preview}</span>
               </button>
             </div>
           );
         }
 
-        if (
-          field.fieldType === "RepeatableObject" &&
-          field.arrayItemType === "Image"
-        ) {
+        if (field.fieldType === "RepeatableObject" && field.arrayItemType === "Image") {
           const items = (data[field.name] ?? []) as unknown[];
           const count = items.length;
           let preview: string;
@@ -329,7 +313,7 @@ const ItemFieldsEditor = ({
               <Label>{label}</Label>
               <button
                 type="button"
-                className="flex items-center gap-2 w-full rounded-lg px-2 py-2 text-sm text-left hover:bg-accent/75 transition-colors"
+                className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
                 onClick={() =>
                   previewStore.send({
                     type: "drillIntoImage",
@@ -337,17 +321,14 @@ const ItemFieldsEditor = ({
                   })
                 }
               >
-                <ImagesIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <ImagesIcon className="text-muted-foreground h-4 w-4 shrink-0" />
                 <span className="truncate">{preview}</span>
               </button>
             </div>
           );
         }
 
-        if (
-          field.fieldType === "RepeatableObject" &&
-          field.arrayItemType === "File"
-        ) {
+        if (field.fieldType === "RepeatableObject" && field.arrayItemType === "File") {
           const items = (data[field.name] ?? []) as unknown[];
           const count = items.length;
           let preview: string;
@@ -381,7 +362,7 @@ const ItemFieldsEditor = ({
               <Label>{label}</Label>
               <button
                 type="button"
-                className="flex items-center gap-2 w-full rounded-lg px-2 py-2 text-sm text-left hover:bg-accent/75 transition-colors"
+                className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
                 onClick={() =>
                   previewStore.send({
                     type: "drillIntoFile",
@@ -389,7 +370,7 @@ const ItemFieldsEditor = ({
                   })
                 }
               >
-                <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <FileIcon className="text-muted-foreground h-4 w-4 shrink-0" />
                 <span className="truncate">{preview}</span>
               </button>
             </div>
@@ -397,9 +378,7 @@ const ItemFieldsEditor = ({
         }
 
         if (field.fieldType === "Image") {
-          const imageValue = data[field.name] as
-            | { filename?: string }
-            | undefined;
+          const imageValue = data[field.name] as { filename?: string } | undefined;
           const preview = imageValue?.filename || "No image";
 
           return (
@@ -422,7 +401,7 @@ const ItemFieldsEditor = ({
               <Label>{label}</Label>
               <button
                 type="button"
-                className="flex items-center gap-2 w-full rounded-lg px-2 py-2 text-sm text-left hover:bg-accent/75 transition-colors"
+                className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
                 onClick={() =>
                   previewStore.send({
                     type: "drillIntoImage",
@@ -430,7 +409,7 @@ const ItemFieldsEditor = ({
                   })
                 }
               >
-                <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <ImageIcon className="text-muted-foreground h-4 w-4 shrink-0" />
                 <span className="truncate">{preview}</span>
               </button>
             </div>
@@ -438,9 +417,7 @@ const ItemFieldsEditor = ({
         }
 
         if (field.fieldType === "File") {
-          const fileValue = data[field.name] as
-            | { filename?: string }
-            | undefined;
+          const fileValue = data[field.name] as { filename?: string } | undefined;
           const preview = fileValue?.filename || "No file";
 
           return (
@@ -463,7 +440,7 @@ const ItemFieldsEditor = ({
               <Label>{label}</Label>
               <button
                 type="button"
-                className="flex items-center gap-2 w-full rounded-lg px-2 py-2 text-sm text-left hover:bg-accent/75 transition-colors"
+                className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
                 onClick={() =>
                   previewStore.send({
                     type: "drillIntoFile",
@@ -471,7 +448,7 @@ const ItemFieldsEditor = ({
                   })
                 }
               >
-                <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <FileIcon className="text-muted-foreground h-4 w-4 shrink-0" />
                 <span className="truncate">{preview}</span>
               </button>
             </div>

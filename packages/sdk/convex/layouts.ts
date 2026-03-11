@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
 import { generateKeyBetween } from "fractional-indexing";
+
+import { mutation, query } from "./_generated/server";
 import { splitContent } from "./lib/contentAssembly";
 
 export const listLayouts = query({
@@ -27,9 +28,7 @@ export const syncLayouts = mutation({
             type: v.string(),
             content: v.any(),
             settings: v.optional(v.any()),
-            placement: v.optional(
-              v.union(v.literal("before"), v.literal("after")),
-            ),
+            placement: v.optional(v.union(v.literal("before"), v.literal("after"))),
           }),
         ),
       }),
@@ -67,9 +66,7 @@ export const syncLayouts = mutation({
       let prevPosition: string | null = null;
       for (const block of tmpl.blocks) {
         const position = generateKeyBetween(prevPosition, null);
-        const { scalarContent, arrayFields: _arrayFields } = splitContent(
-          block.content,
-        );
+        const { scalarContent, arrayFields: _arrayFields } = splitContent(block.content);
 
         await ctx.db.insert("blocks", {
           layoutId: layoutDocId,

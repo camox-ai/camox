@@ -1,29 +1,11 @@
-import * as React from "react";
-import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { api } from "camox/_generated/api";
-import { useMutation, useQuery } from "convex/react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { previewStore } from "../previewStore";
-import { cn, formatPathSegment } from "@/lib/utils";
+import { api } from "camox/_generated/api";
 import { Doc } from "camox/_generated/dataModel";
-import { toast } from "@/components/ui/toaster";
+import { useMutation, useQuery } from "convex/react";
+import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
+import * as React from "react";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +16,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/toaster";
+import { cn, formatPathSegment } from "@/lib/utils";
+
+import { previewStore } from "../previewStore";
 
 /* -------------------------------------------------------------------------------------------------
  * PagePicker
@@ -44,13 +41,8 @@ const CREATE_PAGE_VALUE = "__create_page__";
 
 const PagePicker = () => {
   const [open, setOpen] = React.useState(false);
-  const [pageToDelete, setPageToDelete] = React.useState<Doc<"pages"> | null>(
-    null,
-  );
-  const peekedPagePathname = useSelector(
-    previewStore,
-    (state) => state.context.peekedPagePathname,
-  );
+  const [pageToDelete, setPageToDelete] = React.useState<Doc<"pages"> | null>(null);
+  const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
 
   const pages = useQuery(api.pages.listPages);
   const deletePage = useMutation(api.pages.deletePage);
@@ -75,7 +67,7 @@ const PagePicker = () => {
   };
 
   const skeleton = (
-    <div className="w-full flex items-center gap-2 h-9 px-2 border border-input rounded-md">
+    <div className="border-input flex h-9 w-full items-center gap-2 rounded-md border px-2">
       <Skeleton className="h-3 flex-1" />
       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
     </div>
@@ -102,19 +94,13 @@ const PagePicker = () => {
         }}
       >
         <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            className="w-full grow justify-between"
-          >
-            <span className="truncate">
-              {currentPage.metaTitle ?? currentPage.fullPath}
-            </span>
+          <Button variant="outline" role="combobox" className="w-full grow justify-between">
+            <span className="truncate">{currentPage.metaTitle ?? currentPage.fullPath}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[400px] h-[300px] p-0 flex flex-col"
+          className="flex h-[300px] w-[400px] flex-col p-0"
           align="start"
           side="bottom"
         >
@@ -127,7 +113,7 @@ const PagePicker = () => {
               }
               previewStore.send({ type: "setPeekedPage", pathname: value });
             }}
-            className="flex-1 flex flex-col overflow-hidden"
+            className="flex flex-1 flex-col overflow-hidden"
           >
             <CommandInput placeholder="Search page..." className="h-9" />
             <CommandList className="flex-1 overflow-y-auto">
@@ -137,30 +123,29 @@ const PagePicker = () => {
                   <CommandItem
                     key={page._id}
                     value={page.fullPath}
-                    className="justify-between group/item"
+                    className="group/item justify-between"
                     onSelect={() => {
                       navigate({ to: page.fullPath });
                       setOpen(false);
                     }}
                   >
-                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                    <div className="flex min-w-0 flex-1 items-start gap-2">
                       <Check
                         className={cn(
                           "size-4 mt-0.5 shrink-0",
                           currentPage.fullPath !== page.fullPath && "invisible",
                         )}
                       />
-                      <div className="flex flex-col min-w-0">
+                      <div className="flex min-w-0 flex-col">
                         <p className="truncate">
-                          {page.metaTitle ??
-                            formatPathSegment(page.pathSegment)}
+                          {page.metaTitle ?? formatPathSegment(page.pathSegment)}
                         </p>
-                        <p className="text-xs text-muted-foreground font-mono truncate">
+                        <p className="text-muted-foreground truncate font-mono text-xs">
                           {page.fullPath}
                         </p>
                       </div>
                     </div>
-                    <div className="hidden group-data-[selected=true]/item:flex gap-1">
+                    <div className="hidden gap-1 group-data-[selected=true]/item:flex">
                       <Button
                         variant="ghost"
                         size="icon-sm"
@@ -228,10 +213,7 @@ const PagePicker = () => {
           </Command>
         </PopoverContent>
       </Popover>
-      <AlertDialog
-        open={!!pageToDelete}
-        onOpenChange={(open) => !open && setPageToDelete(null)}
-      >
+      <AlertDialog open={!!pageToDelete} onOpenChange={(open) => !open && setPageToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete page</AlertDialogTitle>
@@ -239,8 +221,7 @@ const PagePicker = () => {
               Are you sure you want to delete{" "}
               <strong>
                 {pageToDelete
-                  ? (pageToDelete.metaTitle ??
-                    formatPathSegment(pageToDelete.pathSegment))
+                  ? (pageToDelete.metaTitle ?? formatPathSegment(pageToDelete.pathSegment))
                   : ""}
               </strong>
               ? This action cannot be undone.

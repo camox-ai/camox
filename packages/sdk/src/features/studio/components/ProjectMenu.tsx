@@ -1,16 +1,14 @@
-import * as React from "react";
 import { Link } from "@tanstack/react-router";
+import { api } from "camox/_generated/api";
+import { useQuery } from "convex/react";
 import { ChevronDown, Globe, Settings, Users } from "lucide-react";
+import * as React from "react";
+
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useQuery } from "convex/react";
-import { api } from "camox/_generated/api";
+
 import { ProjectSettingsModal } from "./ProjectSettingsModal";
 
 const Favicon = ({ size = 16 }: { size?: number }) => {
@@ -41,7 +39,7 @@ const Favicon = ({ size = 16 }: { size?: number }) => {
   if (!faviconUrl || hasError) {
     return (
       <div
-        className="flex items-center justify-center rounded-full bg-muted"
+        className="bg-muted flex items-center justify-center rounded-full"
         style={{ height: size, width: size }}
       >
         <Globe
@@ -54,13 +52,13 @@ const Favicon = ({ size = 16 }: { size?: number }) => {
 
   return (
     <div
-      className="flex items-center justify-center rounded-full bg-muted overflow-hidden"
+      className="bg-muted flex items-center justify-center overflow-hidden rounded-full"
       style={{ height: size, width: size }}
     >
       <img
         src={faviconUrl}
         alt="Favicon"
-        className="object-cover w-full h-full"
+        className="h-full w-full object-cover"
         onError={() => setHasError(true)}
       />
     </div>
@@ -74,7 +72,7 @@ export const ProjectMenu = () => {
 
   if (!project) {
     return (
-      <div className="flex items-center gap-2 min-w-[150px] h-9 px-4">
+      <div className="flex h-9 min-w-[150px] items-center gap-2 px-4">
         <Skeleton className="h-4 w-4 rounded-full" />
         <Skeleton className="h-3 flex-1" />
       </div>
@@ -85,10 +83,7 @@ export const ProjectMenu = () => {
     <>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            className="min-w-[150px] justify-between gap-2"
-          >
+          <Button variant="ghost" className="min-w-[150px] justify-between gap-2">
             <div className="flex items-center gap-2">
               <Favicon size={16} />
               <span>{project.name}</span>
@@ -99,12 +94,8 @@ export const ProjectMenu = () => {
         <PopoverContent className="w-72 p-0" align="start" side="bottom">
           <div className="flex flex-col">
             <div className="flex flex-col gap-2 p-4">
-              <h3 className="text-sm leading-none font-mono">
-                {project.domain}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {project.description}
-              </p>
+              <h3 className="font-mono text-sm leading-none">{project.domain}</h3>
+              <p className="text-muted-foreground text-sm">{project.description}</p>
             </div>
             <Separator />
             <div className="flex flex-col gap-1 p-2">
@@ -116,12 +107,12 @@ export const ProjectMenu = () => {
                   setOpen(false);
                 }}
               >
-                <Settings className="size-4 text-muted-foreground" />
+                <Settings className="text-muted-foreground size-4" />
                 Settings
               </Button>
               <Link to="/studio/team" onClick={() => setOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">
-                  <Users className="size-4 text-muted-foreground" />
+                  <Users className="text-muted-foreground size-4" />
                   Team
                 </Button>
               </Link>
@@ -129,10 +120,7 @@ export const ProjectMenu = () => {
           </div>
         </PopoverContent>
       </Popover>
-      <ProjectSettingsModal
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-      />
+      <ProjectSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </>
   );
 };

@@ -5,6 +5,7 @@ import {
   type TArray,
   type TObject,
 } from "@sinclair/typebox";
+
 import type { FieldType } from "./fieldTypes.tsx";
 
 /* -------------------------------------------------------------------------------------------------
@@ -12,12 +13,9 @@ import type { FieldType } from "./fieldTypes.tsx";
  * -----------------------------------------------------------------------------------------------*/
 
 export type ExtractPlaceholders<S extends string> =
-  S extends `${string}{{${infer Key}}}${infer Rest}`
-    ? Key | ExtractPlaceholders<Rest>
-    : never;
+  S extends `${string}{{${infer Key}}}${infer Rest}` ? Key | ExtractPlaceholders<Rest> : never;
 
-export type ExtractAllPlaceholders<T extends readonly string[]> =
-  ExtractPlaceholders<T[number]>;
+export type ExtractAllPlaceholders<T extends readonly string[]> = ExtractPlaceholders<T[number]>;
 
 /* -------------------------------------------------------------------------------------------------
  * EmbedURL branded type
@@ -31,10 +29,10 @@ export type EmbedURL = string & { readonly [EmbedURLBrand]: true };
  * -----------------------------------------------------------------------------------------------*/
 
 declare const LinkBrand: unique symbol;
-export type LinkValue = (
-  | { type: "external"; href: string }
-  | { type: "page"; pageId: string }
-) & { text: string; newTab: boolean } & {
+export type LinkValue = ({ type: "external"; href: string } | { type: "page"; pageId: string }) & {
+  text: string;
+  newTab: boolean;
+} & {
   readonly [LinkBrand]: true;
 };
 
@@ -75,10 +73,7 @@ function _imageType(options: {
   multiple: true;
   defaultItems: number;
 }): TArray<TObject<{ image: TUnsafe<ImageValue> }>>;
-function _imageType(options: {
-  title?: string;
-  multiple?: false;
-}): TUnsafe<ImageValue>;
+function _imageType(options: { title?: string; multiple?: false }): TUnsafe<ImageValue>;
 function _imageType(options: {
   title?: string;
   multiple?: boolean;
@@ -226,15 +221,15 @@ export const Type = {
     const TMarkdown extends readonly string[] = readonly string[],
   >(
     shape: T,
-    options: { minItems: number; maxItems: number; title?: string } & (
-      [ExtractAllPlaceholders<TMarkdown>] extends [Extract<keyof T, string>]
-        ? { toMarkdown?: TMarkdown }
-        : {
-            toMarkdown?: readonly [
-              `Invalid toMarkdown placeholder: "{{${Exclude<ExtractAllPlaceholders<TMarkdown>, Extract<keyof T, string>>}}}"`,
-            ];
-          }
-    ),
+    options: { minItems: number; maxItems: number; title?: string } & ([
+      ExtractAllPlaceholders<TMarkdown>,
+    ] extends [Extract<keyof T, string>]
+      ? { toMarkdown?: TMarkdown }
+      : {
+          toMarkdown?: readonly [
+            `Invalid toMarkdown placeholder: "{{${Exclude<ExtractAllPlaceholders<TMarkdown>, Extract<keyof T, string>>}}}"`,
+          ];
+        }),
   ) => {
     if (options.minItems < 1) {
       throw new Error("RepeatableObject requires minItems to be at least 1");
@@ -259,9 +254,7 @@ export const Type = {
       default: defaultArray,
       title: options.title,
       fieldType: "RepeatableObject" as const,
-      ...("toMarkdown" in options && options.toMarkdown
-        ? { toMarkdown: options.toMarkdown }
-        : {}),
+      ...("toMarkdown" in options && options.toMarkdown ? { toMarkdown: options.toMarkdown } : {}),
     });
   },
 
@@ -275,11 +268,7 @@ export const Type = {
    *   title: 'Alignment'
    * })
    */
-  Enum: (options: {
-    default: string;
-    options: Record<string, string>;
-    title?: string;
-  }) => {
+  Enum: (options: { default: string; options: Record<string, string>; title?: string }) => {
     const enumValues = Object.keys(options.options);
     return TypeBoxType.Unsafe<string>({
       type: "string",
@@ -337,10 +326,7 @@ export const Type = {
    * @example
    * Type.Link({ default: { text: 'Learn more', href: '/', newTab: false }, title: 'CTA' })
    */
-  Link: (options: {
-    default: { text: string; href: string; newTab: boolean };
-    title?: string;
-  }) => {
+  Link: (options: { default: { text: string; href: string; newTab: boolean }; title?: string }) => {
     return TypeBoxType.Unsafe<LinkValue>({
       type: "object",
       properties: {

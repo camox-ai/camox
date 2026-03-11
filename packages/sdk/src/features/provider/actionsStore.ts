@@ -2,11 +2,7 @@ import { createStore } from "@xstate/store";
 import type * as icons from "lucide-react";
 
 type IconKey = keyof typeof icons;
-export type ActionGroupLabel =
-  | "Preview"
-  | "Studio"
-  | "Navigation"
-  | "Invisible";
+export type ActionGroupLabel = "Preview" | "Studio" | "Navigation" | "Invisible";
 
 export interface Action {
   id: string;
@@ -37,17 +33,14 @@ export const actionsStore = createStore({
     },
     registerManyActions: (context, event: { actions: Action[] }) => {
       const newActions = event.actions.filter(
-        (newAction) =>
-          !context.actions.find((action) => action.id === newAction.id)
+        (newAction) => !context.actions.find((action) => action.id === newAction.id),
       );
       return { ...context, actions: [...context.actions, ...newActions] };
     },
     unregisterManyActions: (context, event: { ids: string[] }) => {
       return {
         ...context,
-        actions: context.actions.filter(
-          (action) => !event.ids.includes(action.id)
-        ),
+        actions: context.actions.filter((action) => !event.ids.includes(action.id)),
       };
     },
   },

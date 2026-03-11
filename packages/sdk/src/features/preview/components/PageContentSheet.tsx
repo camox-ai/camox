@@ -1,16 +1,9 @@
-import * as React from "react";
-import { useMutation } from "convex/react";
 import { useSelector } from "@xstate/store/react";
+import { api } from "camox/_generated/api";
+import { Doc, Id } from "camox/_generated/dataModel";
+import { useMutation } from "convex/react";
+import * as React from "react";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -26,19 +19,27 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
-import { api } from "camox/_generated/api";
-import { Doc, Id } from "camox/_generated/dataModel";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { actionsStore, type Action } from "@/features/provider/actionsStore";
+
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
-import { previewStore, type SelectionBreadcrumb } from "../previewStore";
 import { usePreviewedPage } from "../CamoxPreview";
 import type { OverlayMessage } from "../overlayMessages";
-import { actionsStore, type Action } from "@/features/provider/actionsStore";
+import { previewStore, type SelectionBreadcrumb } from "../previewStore";
+import { SingleAssetFieldEditor } from "./AssetFieldEditor";
 import { type SchemaField, formatFieldName } from "./ItemFieldsEditor";
 import { ItemFieldsEditor } from "./ItemFieldsEditor";
 import { LinkFieldEditor } from "./LinkFieldEditor";
-import { SingleAssetFieldEditor } from "./AssetFieldEditor";
 import { MultipleAssetFieldEditor } from "./MultipleAssetFieldEditor";
+import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
 
 /* -------------------------------------------------------------------------------------------------
  * Helper: Get settings fields from schema
@@ -69,10 +70,7 @@ const getSettingsFields = (schema: unknown): SchemaField[] => {
  * Walks the content schema down through RepeatableObject breadcrumbs
  * to get the sub-schema at the current depth.
  */
-const getSchemaAtDepth = (
-  contentSchema: unknown,
-  breadcrumbs: SelectionBreadcrumb[],
-): unknown => {
+const getSchemaAtDepth = (contentSchema: unknown, breadcrumbs: SelectionBreadcrumb[]): unknown => {
   let schema = contentSchema;
   for (const crumb of breadcrumbs) {
     if (crumb.type !== "RepeatableObject" || !crumb.fieldName) continue;
@@ -174,22 +172,14 @@ const PageContentSheet = () => {
   const camoxApp = useCamoxApp();
   const updateBlockContent = useMutation(api.blocks.updateBlockContent);
   const updateBlockSettings = useMutation(api.blocks.updateBlockSettings);
-  const updateRepeatableItemContent = useMutation(
-    api.repeatableItems.updateRepeatableItemContent,
-  );
+  const updateRepeatableItemContent = useMutation(api.repeatableItems.updateRepeatableItemContent);
   // Get state from store
-  const isOpen = useSelector(
-    previewStore,
-    (state) => state.context.isPageContentSheetOpen,
-  );
+  const isOpen = useSelector(previewStore, (state) => state.context.isPageContentSheetOpen);
   const selectionBreadcrumbs = useSelector(
     previewStore,
     (state) => state.context.selectionBreadcrumbs,
   );
-  const iframeElement = useSelector(
-    previewStore,
-    (state) => state.context.iframeElement,
-  );
+  const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
 
   const postToIframe = React.useCallback(
     (message: OverlayMessage) => {
@@ -205,9 +195,7 @@ const PageContentSheet = () => {
   const blockId = blockBreadcrumb?.id as Id<"blocks"> | undefined;
 
   // RepeatableObject breadcrumbs (everything after the block)
-  const repeatableBreadcrumbs = selectionBreadcrumbs.filter(
-    (b) => b.type === "RepeatableObject",
-  );
+  const repeatableBreadcrumbs = selectionBreadcrumbs.filter((b) => b.type === "RepeatableObject");
   const depth = repeatableBreadcrumbs.length;
 
   // Look up the actual block document from page data
@@ -240,22 +228,17 @@ const PageContentSheet = () => {
   const currentData: Record<string, unknown> =
     depth === 0 ? (block?.content ?? {}) : (currentDepthResult?.data ?? {});
 
-  const currentItemId = currentDepthResult?.itemId as
-    | Id<"repeatableItems">
-    | undefined;
+  const currentItemId = currentDepthResult?.itemId as Id<"repeatableItems"> | undefined;
 
   // Detect if the last breadcrumb is a Link drill-in
   const lastBreadcrumb = selectionBreadcrumbs[selectionBreadcrumbs.length - 1];
-  const isViewingLink =
-    lastBreadcrumb?.type === "Link" && !!lastBreadcrumb.fieldName;
+  const isViewingLink = lastBreadcrumb?.type === "Link" && !!lastBreadcrumb.fieldName;
   const linkFieldName = isViewingLink ? lastBreadcrumb.fieldName : null;
 
-  const isViewingImage =
-    lastBreadcrumb?.type === "Image" && !!lastBreadcrumb.fieldName;
+  const isViewingImage = lastBreadcrumb?.type === "Image" && !!lastBreadcrumb.fieldName;
   const imageFieldName = isViewingImage ? lastBreadcrumb.fieldName : null;
 
-  const isViewingFile =
-    lastBreadcrumb?.type === "File" && !!lastBreadcrumb.fieldName;
+  const isViewingFile = lastBreadcrumb?.type === "File" && !!lastBreadcrumb.fieldName;
   const fileFieldName = isViewingFile ? lastBreadcrumb.fieldName : null;
 
   const isViewingAsset = isViewingImage || isViewingFile;
@@ -264,10 +247,7 @@ const PageContentSheet = () => {
 
   const isMultipleAsset = React.useMemo(() => {
     if (!isViewingAsset || !assetFieldName || !blockDef) return false;
-    const schema = getSchemaAtDepth(
-      blockDef.contentSchema,
-      repeatableBreadcrumbs,
-    );
+    const schema = getSchemaAtDepth(blockDef.contentSchema, repeatableBreadcrumbs);
     const prop = (schema as any)?.properties?.[assetFieldName];
     return prop?.arrayItemType === "Image" || prop?.arrayItemType === "File";
   }, [isViewingAsset, assetFieldName, blockDef, repeatableBreadcrumbs]);
@@ -291,9 +271,7 @@ const PageContentSheet = () => {
         blockDef.contentSchema,
         repeatableBreadcrumbs.slice(0, -1),
       );
-      const fieldProp = (parentSchema as any)?.properties?.[
-        secondToLast.fieldName
-      ];
+      const fieldProp = (parentSchema as any)?.properties?.[secondToLast.fieldName];
       if (fieldProp?.arrayItemType === "Image" || fieldProp?.arrayItemType === "File") {
         const drillType = fieldProp.arrayItemType as "Image" | "File";
         previewStore.send({
@@ -348,9 +326,7 @@ const PageContentSheet = () => {
       e.preventDefault();
       if (!selectedFieldName) return;
       setTimeout(() => {
-        const element = document.getElementById(
-          selectedFieldName,
-        ) as HTMLTextAreaElement | null;
+        const element = document.getElementById(selectedFieldName) as HTMLTextAreaElement | null;
         if (!element) return;
         element.focus();
         element.select();
@@ -404,26 +380,18 @@ const PageContentSheet = () => {
 
   const handleNestedItemFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
-      if (
-        !block ||
-        !currentDepthResult?.parentItemId ||
-        !currentDepthResult?.parentFieldName
-      )
+      if (!block || !currentDepthResult?.parentItemId || !currentDepthResult?.parentFieldName)
         return;
 
       const idx = parseInt(currentDepthResult.itemId.slice(4), 10);
       if (isNaN(idx)) return;
 
       // Get parent level data to find the current inline array
-      const parentResult = getDataAtDepth(
-        block.content,
-        repeatableBreadcrumbs.slice(0, -1),
-      );
+      const parentResult = getDataAtDepth(block.content, repeatableBreadcrumbs.slice(0, -1));
       if (!parentResult) return;
 
       const parentArray = [
-        ...((parentResult.data[currentDepthResult.parentFieldName] as any[]) ??
-          []),
+        ...((parentResult.data[currentDepthResult.parentFieldName] as any[]) ?? []),
       ];
       parentArray[idx] = { ...parentArray[idx], [fieldName]: value };
 
@@ -432,12 +400,7 @@ const PageContentSheet = () => {
         content: { [currentDepthResult.parentFieldName]: parentArray },
       });
     },
-    [
-      block,
-      currentDepthResult,
-      repeatableBreadcrumbs,
-      updateRepeatableItemContent,
-    ],
+    [block, currentDepthResult, repeatableBreadcrumbs, updateRepeatableItemContent],
   );
 
   let activeFieldChangeHandler: typeof handleNestedItemFieldChange;
@@ -473,10 +436,7 @@ const PageContentSheet = () => {
   }
 
   // Build breadcrumb label for each RepeatableObject crumb
-  const getBreadcrumbLabel = (
-    crumb: SelectionBreadcrumb,
-    schema: unknown,
-  ): string => {
+  const getBreadcrumbLabel = (crumb: SelectionBreadcrumb, schema: unknown): string => {
     if (!crumb.fieldName) return crumb.id;
     const prop = (schema as any)?.properties?.[crumb.fieldName];
     const fieldLabel = prop?.title ?? formatFieldName(crumb.fieldName);
@@ -511,16 +471,14 @@ const PageContentSheet = () => {
       onOpenAutoFocus={handleOpenAutoFocus}
       className="flex flex-col gap-0"
     >
-      <SheetParts.SheetHeader className="border-b border-border">
+      <SheetParts.SheetHeader className="border-border border-b">
         <SheetParts.SheetTitle>{block.summary}</SheetParts.SheetTitle>
         <SheetParts.SheetDescription>
           <Breadcrumb>
             <BreadcrumbList className="flex-nowrap">
               <BreadcrumbItem className="min-w-0">
                 {depth === 0 && !isViewingLink && !isViewingAsset ? (
-                  <BreadcrumbPage className="truncate">
-                    {blockDef.title}
-                  </BreadcrumbPage>
+                  <BreadcrumbPage className="truncate">{blockDef.title}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink
                     className="cursor-pointer"
@@ -546,31 +504,26 @@ const PageContentSheet = () => {
                             <BreadcrumbEllipsis className="size-5" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start">
-                            {repeatableBreadcrumbs
-                              .slice(0, -1)
-                              .map((crumb, index) => {
-                                const parentSchema = getSchemaAtDepth(
-                                  blockDef.contentSchema,
-                                  repeatableBreadcrumbs.slice(0, index),
-                                );
-                                const label = getBreadcrumbLabel(
-                                  crumb,
-                                  parentSchema,
-                                );
-                                return (
-                                  <DropdownMenuItem
-                                    key={crumb.id}
-                                    onClick={() =>
-                                      previewStore.send({
-                                        type: "navigateBreadcrumb",
-                                        depth: index + 1,
-                                      })
-                                    }
-                                  >
-                                    {label}
-                                  </DropdownMenuItem>
-                                );
-                              })}
+                            {repeatableBreadcrumbs.slice(0, -1).map((crumb, index) => {
+                              const parentSchema = getSchemaAtDepth(
+                                blockDef.contentSchema,
+                                repeatableBreadcrumbs.slice(0, index),
+                              );
+                              const label = getBreadcrumbLabel(crumb, parentSchema);
+                              return (
+                                <DropdownMenuItem
+                                  key={crumb.id}
+                                  onClick={() =>
+                                    previewStore.send({
+                                      type: "navigateBreadcrumb",
+                                      depth: index + 1,
+                                    })
+                                  }
+                                >
+                                  {label}
+                                </DropdownMenuItem>
+                              );
+                            })}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </BreadcrumbItem>
@@ -578,16 +531,12 @@ const PageContentSheet = () => {
                   )}
                   <BreadcrumbSeparator />
                   {(() => {
-                    const lastCrumb =
-                      repeatableBreadcrumbs[repeatableBreadcrumbs.length - 1];
+                    const lastCrumb = repeatableBreadcrumbs[repeatableBreadcrumbs.length - 1];
                     const parentSchema = getSchemaAtDepth(
                       blockDef.contentSchema,
                       repeatableBreadcrumbs.slice(0, -1),
                     );
-                    const crumbLabel = getBreadcrumbLabel(
-                      lastCrumb,
-                      parentSchema,
-                    );
+                    const crumbLabel = getBreadcrumbLabel(lastCrumb, parentSchema);
 
                     if (isViewingLink || isViewingAsset) {
                       return (
@@ -608,9 +557,7 @@ const PageContentSheet = () => {
 
                     return (
                       <BreadcrumbItem className="min-w-0">
-                        <BreadcrumbPage className="truncate">
-                          {crumbLabel}
-                        </BreadcrumbPage>
+                        <BreadcrumbPage className="truncate">{crumbLabel}</BreadcrumbPage>
                       </BreadcrumbItem>
                     );
                   })()}
@@ -626,9 +573,7 @@ const PageContentSheet = () => {
                           blockDef.contentSchema,
                           repeatableBreadcrumbs,
                         );
-                        const prop = (parentSchema as any)?.properties?.[
-                          linkFieldName!
-                        ];
+                        const prop = (parentSchema as any)?.properties?.[linkFieldName!];
                         return prop?.title ?? formatFieldName(linkFieldName!);
                       })()}
                     </BreadcrumbPage>
@@ -645,9 +590,7 @@ const PageContentSheet = () => {
                           blockDef.contentSchema,
                           repeatableBreadcrumbs,
                         );
-                        const prop = (parentSchema as any)?.properties?.[
-                          assetFieldName
-                        ];
+                        const prop = (parentSchema as any)?.properties?.[assetFieldName];
                         return prop?.title ?? formatFieldName(assetFieldName);
                       })()}
                     </BreadcrumbPage>
@@ -676,7 +619,7 @@ const PageContentSheet = () => {
           />
         )}
         {!isViewingAsset && isViewingLink && linkFieldName && (
-          <div className="py-4 px-4">
+          <div className="px-4 py-4">
             <LinkFieldEditor
               fieldName={linkFieldName}
               linkValue={
@@ -706,84 +649,73 @@ const PageContentSheet = () => {
             postToIframe={postToIframe}
           />
         )}
-        {depth === 0 &&
-          !isViewingLink &&
-          !isViewingAsset &&
-          settingsFields.length > 0 && (
-            <div className="space-y-4 py-4 px-4 border-t border-border">
-              <Label className="text-muted-foreground">Settings</Label>
-              {settingsFields.map((field) => {
-                const label = field.label ?? formatFieldName(field.name);
-                const settingsValues = (block.settings ?? {}) as Record<
-                  string,
-                  unknown
-                >;
+        {depth === 0 && !isViewingLink && !isViewingAsset && settingsFields.length > 0 && (
+          <div className="border-border space-y-4 border-t px-4 py-4">
+            <Label className="text-muted-foreground">Settings</Label>
+            {settingsFields.map((field) => {
+              const label = field.label ?? formatFieldName(field.name);
+              const settingsValues = (block.settings ?? {}) as Record<string, unknown>;
 
-                if (field.fieldType === "Enum") {
-                  const value =
-                    (settingsValues[field.name] as string | undefined) ??
-                    (blockDef.settingsSchema?.properties?.[field.name] as any)
-                      ?.default ??
-                    "";
+              if (field.fieldType === "Enum") {
+                const value =
+                  (settingsValues[field.name] as string | undefined) ??
+                  (blockDef.settingsSchema?.properties?.[field.name] as any)?.default ??
+                  "";
 
-                  return (
-                    <div key={field.name} className="space-y-2">
-                      <Label htmlFor={`setting-${field.name}`}>{label}</Label>
-                      <Select
-                        value={value}
-                        onValueChange={(newValue) => {
-                          updateBlockSettings({
-                            blockId: block._id,
-                            settings: { [field.name]: newValue },
-                          });
-                        }}
-                      >
-                        <SelectTrigger id={`setting-${field.name}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {field.enumValues?.map((enumValue) => (
-                            <SelectItem key={enumValue} value={enumValue}>
-                              {field.enumLabels?.[enumValue] ?? enumValue}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  );
-                }
-
-                if (field.fieldType === "Boolean") {
-                  const checked =
-                    (settingsValues[field.name] as boolean | undefined) ??
-                    (blockDef.settingsSchema?.properties?.[field.name] as any)
-                      ?.default ??
-                    false;
-
-                  return (
-                    <div
-                      key={field.name}
-                      className="flex items-center justify-between"
+                return (
+                  <div key={field.name} className="space-y-2">
+                    <Label htmlFor={`setting-${field.name}`}>{label}</Label>
+                    <Select
+                      value={value}
+                      onValueChange={(newValue) => {
+                        updateBlockSettings({
+                          blockId: block._id,
+                          settings: { [field.name]: newValue },
+                        });
+                      }}
                     >
-                      <Label htmlFor={`setting-${field.name}`}>{label}</Label>
-                      <Switch
-                        id={`setting-${field.name}`}
-                        checked={checked}
-                        onCheckedChange={(newValue) => {
-                          updateBlockSettings({
-                            blockId: block._id,
-                            settings: { [field.name]: newValue },
-                          });
-                        }}
-                      />
-                    </div>
-                  );
-                }
+                      <SelectTrigger id={`setting-${field.name}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.enumValues?.map((enumValue) => (
+                          <SelectItem key={enumValue} value={enumValue}>
+                            {field.enumLabels?.[enumValue] ?? enumValue}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              }
 
-                return null;
-              })}
-            </div>
-          )}
+              if (field.fieldType === "Boolean") {
+                const checked =
+                  (settingsValues[field.name] as boolean | undefined) ??
+                  (blockDef.settingsSchema?.properties?.[field.name] as any)?.default ??
+                  false;
+
+                return (
+                  <div key={field.name} className="flex items-center justify-between">
+                    <Label htmlFor={`setting-${field.name}`}>{label}</Label>
+                    <Switch
+                      id={`setting-${field.name}`}
+                      checked={checked}
+                      onCheckedChange={(newValue) => {
+                        updateBlockSettings({
+                          blockId: block._id,
+                          settings: { [field.name]: newValue },
+                        });
+                      }}
+                    />
+                  </div>
+                );
+              }
+
+              return null;
+            })}
+          </div>
+        )}
       </div>
     </PreviewSideSheet>
   );

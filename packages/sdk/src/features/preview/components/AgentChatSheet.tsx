@@ -1,12 +1,10 @@
 import { useSelector } from "@xstate/store/react";
+
 import { previewStore } from "../previewStore";
 import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
 
 const AgentChatSheet = () => {
-  const isOpen = useSelector(
-    previewStore,
-    (state) => state.context.isAgentChatSheetOpen,
-  );
+  const isOpen = useSelector(previewStore, (state) => state.context.isAgentChatSheetOpen);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
@@ -23,9 +21,7 @@ const AgentChatSheet = () => {
         </SheetParts.SheetDescription>
       </SheetParts.SheetHeader>
       <div className="flex flex-1 items-center justify-center p-6">
-        <p className="text-muted-foreground text-sm text-center">
-          Coming soon
-        </p>
+        <p className="text-muted-foreground text-center text-sm">Coming soon</p>
       </div>
     </PreviewSideSheet>
   );

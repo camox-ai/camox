@@ -1,6 +1,3 @@
-import { useMutation } from "convex/react";
-import { useSelector } from "@xstate/store/react";
-import { useLocation } from "@tanstack/react-router";
 import {
   DndContext,
   closestCenter,
@@ -10,6 +7,7 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -17,21 +15,20 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { useLocation } from "@tanstack/react-router";
+import { useSelector } from "@xstate/store/react";
+import { api } from "camox/_generated/api";
+import { Doc, Id } from "camox/_generated/dataModel";
+import { useMutation } from "convex/react";
 import { generateKeyBetween } from "fractional-indexing";
 import { CircleMinus, CirclePlus, GripVertical } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { api } from "camox/_generated/api";
-import { Doc, Id } from "camox/_generated/dataModel";
-import { previewStore } from "../previewStore";
+
 import type { OverlayMessage } from "../overlayMessages";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { previewStore } from "../previewStore";
 
 /* -------------------------------------------------------------------------------------------------
  * SortableRepeatableItem
@@ -52,14 +49,9 @@ const SortableRepeatableItem = ({
   canRemove,
   onRemove,
 }: SortableRepeatableItemProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item._id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item._id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -72,10 +64,7 @@ const SortableRepeatableItem = ({
     previewStore,
     (state) => state.context.selectionBreadcrumbs,
   );
-  const iframeElement = useSelector(
-    previewStore,
-    (state) => state.context.iframeElement,
-  );
+  const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
   const isSelected = selectionBreadcrumbs.some(
     (b) => b.type === "RepeatableObject" && b.id === item._id,
   );
@@ -119,16 +108,16 @@ const SortableRepeatableItem = ({
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground flex"
+          className="text-muted-foreground hover:text-foreground flex cursor-grab active:cursor-grabbing"
           {...attributes}
           {...listeners}
         >
           <GripVertical className="h-4 w-4" />
         </Button>
 
-        <div className="flex items-center gap-1 flex-1 overflow-x-hidden">
+        <div className="flex flex-1 items-center gap-1 overflow-x-hidden">
           <p
-            className="cursor-default flex-1 truncate py-1 text-sm"
+            className="flex-1 cursor-default truncate py-1 text-sm"
             title={item.summary}
             onClick={() => {
               // Clear hover overlay before unmounting — mouseLeave won't fire
@@ -151,7 +140,7 @@ const SortableRepeatableItem = ({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                className="hidden group-hover:flex group-focus-within:flex text-muted-foreground hover:text-foreground shrink-0"
+                className="text-muted-foreground hover:text-foreground hidden shrink-0 group-focus-within:flex group-hover:flex"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemove(item._id);
@@ -176,10 +165,7 @@ const SortableRepeatableItem = ({
  * Inline item helpers
  * -----------------------------------------------------------------------------------------------*/
 
-const getInlineItemLabel = (
-  item: Record<string, unknown>,
-  index: number,
-): string => {
+const getInlineItemLabel = (item: Record<string, unknown>, index: number): string => {
   for (const value of Object.values(item)) {
     if (typeof value === "string" && value.trim()) return value;
     if (value && typeof value === "object" && "text" in value) {
@@ -217,19 +203,11 @@ const SortableInlineRepeatableItem = ({
   const label = getInlineItemLabel(item, index);
   const nestedItemId = `nested:${parentItemId}:${fieldName}:${index}`;
 
-  const iframeElement = useSelector(
-    previewStore,
-    (state) => state.context.iframeElement,
-  );
+  const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: sortableId });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: sortableId,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -273,16 +251,16 @@ const SortableInlineRepeatableItem = ({
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground flex"
+          className="text-muted-foreground hover:text-foreground flex cursor-grab active:cursor-grabbing"
           {...attributes}
           {...listeners}
         >
           <GripVertical className="h-4 w-4" />
         </Button>
 
-        <div className="flex items-center gap-1 flex-1 overflow-x-hidden">
+        <div className="flex flex-1 items-center gap-1 overflow-x-hidden">
           <p
-            className="cursor-default flex-1 truncate py-1 text-sm"
+            className="flex-1 cursor-default truncate py-1 text-sm"
             title={label}
             onClick={() => {
               handleMouseLeave();
@@ -304,7 +282,7 @@ const SortableInlineRepeatableItem = ({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                className="hidden group-hover:flex group-focus-within:flex text-muted-foreground hover:text-foreground shrink-0"
+                className="text-muted-foreground hover:text-foreground hidden shrink-0 group-focus-within:flex group-hover:flex"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemove(index);
@@ -347,9 +325,7 @@ const RepeatableItemsList = ({
 }: RepeatableItemsListProps) => {
   const isInline = !!parentItemId;
   const { pathname } = useLocation();
-  const updateRepeatableItemContent = useMutation(
-    api.repeatableItems.updateRepeatableItemContent,
-  );
+  const updateRepeatableItemContent = useMutation(api.repeatableItems.updateRepeatableItemContent);
   const updatePositionMutation = useMutation(
     api.repeatableItems.updateRepeatableItemPosition,
   ).withOptimisticUpdate((localStore, args) => {
@@ -363,14 +339,12 @@ const RepeatableItemsList = ({
     // Find the block containing this item
     const updatedBlocks = currentPage.blocks.map((block) => {
       // Check if this block contains the item being moved
-      const hasItemInAnyField = Object.entries(block.content).some(
-        ([_, value]) => {
-          if (Array.isArray(value)) {
-            return value.some((item) => item._id === args.itemId);
-          }
-          return false;
-        },
-      );
+      const hasItemInAnyField = Object.entries(block.content).some(([_, value]) => {
+        if (Array.isArray(value)) {
+          return value.some((item) => item._id === args.itemId);
+        }
+        return false;
+      });
 
       if (!hasItemInAnyField) return block;
 
@@ -425,12 +399,8 @@ const RepeatableItemsList = ({
     );
   });
 
-  const createItemMutation = useMutation(
-    api.repeatableItems.createRepeatableItem,
-  );
-  const deleteItemMutation = useMutation(
-    api.repeatableItems.deleteRepeatableItem,
-  );
+  const createItemMutation = useMutation(api.repeatableItems.createRepeatableItem);
+  const deleteItemMutation = useMutation(api.repeatableItems.deleteRepeatableItem);
 
   const canAdd = maxItems === undefined || items.length < maxItems;
   const canRemove = minItems === undefined || items.length > minItems;
@@ -534,14 +504,10 @@ const RepeatableItemsList = ({
     if (oldIndex < newIndex) {
       // Dragging down: insert after the target position
       afterPosition = dbItems[newIndex].position;
-      beforePosition =
-        newIndex < dbItems.length - 1
-          ? dbItems[newIndex + 1].position
-          : undefined;
+      beforePosition = newIndex < dbItems.length - 1 ? dbItems[newIndex + 1].position : undefined;
     } else {
       // Dragging up: insert before the target position
-      afterPosition =
-        newIndex > 0 ? dbItems[newIndex - 1].position : undefined;
+      afterPosition = newIndex > 0 ? dbItems[newIndex - 1].position : undefined;
       beforePosition = dbItems[newIndex].position;
     }
 
@@ -554,67 +520,61 @@ const RepeatableItemsList = ({
 
   return (
     <div className="flex flex-col gap-1">
-      {isInline ? (
-        items.length > 0 && (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleInlineDragEnd}
-            modifiers={[restrictToVerticalAxis]}
-          >
-            <SortableContext
-              items={(items as Record<string, unknown>[]).map(
-                (_, i) => `idx:${i}`,
-              )}
-              strategy={verticalListSortingStrategy}
+      {isInline
+        ? items.length > 0 && (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleInlineDragEnd}
+              modifiers={[restrictToVerticalAxis]}
             >
-              <ul className="flex flex-col gap-1">
-                {(items as Record<string, unknown>[]).map((item, index) => (
-                  <SortableInlineRepeatableItem
-                    key={index}
-                    item={item}
-                    index={index}
-                    blockId={blockId}
-                    parentItemId={parentItemId!}
-                    fieldName={fieldName}
-                    canRemove={canRemove}
-                    onRemove={handleRemoveInlineItem}
-                  />
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
-        )
-      ) : (
-        items.length > 0 && (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-            modifiers={[restrictToVerticalAxis]}
-          >
-            <SortableContext
-              items={(items as Doc<"repeatableItems">[]).map(
-                (item) => item._id,
-              )}
-              strategy={verticalListSortingStrategy}
+              <SortableContext
+                items={(items as Record<string, unknown>[]).map((_, i) => `idx:${i}`)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="flex flex-col gap-1">
+                  {(items as Record<string, unknown>[]).map((item, index) => (
+                    <SortableInlineRepeatableItem
+                      key={index}
+                      item={item}
+                      index={index}
+                      blockId={blockId}
+                      parentItemId={parentItemId!}
+                      fieldName={fieldName}
+                      canRemove={canRemove}
+                      onRemove={handleRemoveInlineItem}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          )
+        : items.length > 0 && (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              modifiers={[restrictToVerticalAxis]}
             >
-              <ul className="flex flex-col gap-1">
-                {(items as Doc<"repeatableItems">[]).map((item) => (
-                  <SortableRepeatableItem
-                    key={item._id}
-                    item={item}
-                    blockId={blockId}
-                    fieldName={fieldName}
-                    canRemove={canRemove}
-                    onRemove={handleRemoveItem}
-                  />
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
-        )
-      )}
+              <SortableContext
+                items={(items as Doc<"repeatableItems">[]).map((item) => item._id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="flex flex-col gap-1">
+                  {(items as Doc<"repeatableItems">[]).map((item) => (
+                    <SortableRepeatableItem
+                      key={item._id}
+                      item={item}
+                      blockId={blockId}
+                      fieldName={fieldName}
+                      canRemove={canRemove}
+                      onRemove={handleRemoveItem}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          )}
 
       {canAdd && (
         <Button

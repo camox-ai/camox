@@ -46,36 +46,34 @@ const statistics = createBlock({
 
 function StatisticsComponent() {
   return (
-    <section className="dark py-24 bg-background">
+    <section className="dark bg-background py-24">
       <div className="container mx-auto px-4">
-        <div className="max-w-6xl mx-auto">
+        <div className="mx-auto max-w-6xl">
           {/* Header section */}
           <div className="mb-16">
             <statistics.Field name="title">
               {(content) => (
-                <div className="mb-4 text-sm font-semibold text-primary uppercase tracking-wider">
+                <div className="text-primary mb-4 text-sm font-semibold tracking-wider uppercase">
                   {content}
                 </div>
               )}
             </statistics.Field>
             <statistics.Field name="subtitle">
               {(content) => (
-                <h2 className="mb-6 text-4xl font-bold text-foreground sm:text-5xl lg:text-6xl">
+                <h2 className="text-foreground mb-6 text-4xl font-bold sm:text-5xl lg:text-6xl">
                   {content}
                 </h2>
               )}
             </statistics.Field>
             <statistics.Field name="description">
               {(content) => (
-                <p className="max-w-3xl text-lg text-muted-foreground leading-relaxed">
-                  {content}
-                </p>
+                <p className="text-muted-foreground max-w-3xl text-lg leading-relaxed">{content}</p>
               )}
             </statistics.Field>
           </div>
 
           {/* Statistics grid layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
             <statistics.Repeater name="statistics">
               {(stat) => (
                 <div className="flex gap-3">
@@ -83,16 +81,12 @@ function StatisticsComponent() {
                   <div className="flex flex-col">
                     <stat.Field name="number">
                       {(content) => (
-                        <div className="text-4xl font-bold text-foreground mb-2">
-                          {content}
-                        </div>
+                        <div className="text-foreground mb-2 text-4xl font-bold">{content}</div>
                       )}
                     </stat.Field>
                     <stat.Field name="label">
                       {(content) => (
-                        <p className="text-muted-foreground text-sm leading-relaxed">
-                          {content}
-                        </p>
+                        <p className="text-muted-foreground text-sm leading-relaxed">{content}</p>
                       )}
                     </stat.Field>
                   </div>

@@ -25,7 +25,7 @@
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*", "../../packages/sdk/src/*"],
-    },
-  },
+      "@/*": ["./src/*", "../../packages/sdk/src/*"]
+    }
+  }
 }

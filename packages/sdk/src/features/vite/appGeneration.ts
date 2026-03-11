@@ -1,6 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, relative } from "node:path";
+
 import type { ViteDevServer } from "vite";
+
 import { writeIfChanged } from "./utils";
 
 const HEADER = `/* ============================================================================
@@ -41,9 +43,7 @@ export const camoxApp = createApp({
 }
 
 function getAppFileEntries(appRoot: string) {
-  return [
-    { path: resolve(appRoot, "src/camox/app.ts"), content: generateCamoxApp() },
-  ];
+  return [{ path: resolve(appRoot, "src/camox/app.ts"), content: generateCamoxApp() }];
 }
 
 export function generateAppFile(appRoot: string) {
@@ -76,10 +76,9 @@ export function watchAppFile(server: ViteDevServer, appRoot: string) {
     if (!expected) return;
 
     const rel = relative(server.config.root, deletedPath);
-    server.config.logger.warn(
-      `Camox app file "${rel}" was deleted — recreating.`,
-      { timestamp: true },
-    );
+    server.config.logger.warn(`Camox app file "${rel}" was deleted — recreating.`, {
+      timestamp: true,
+    });
     writeFileSync(deletedPath, expected, "utf-8");
   });
 }

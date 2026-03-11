@@ -1,6 +1,7 @@
 import { Type, createBlock } from "camox/createBlock";
 import { Check, Copy } from "lucide-react";
 import * as React from "react";
+
 import { Button } from "@/components/ui/button";
 
 const terminalCommand = createBlock({
@@ -34,42 +35,37 @@ function CopyTerminalCommandComponent() {
   };
 
   return (
-    <section className="dark py-16 bg-background">
+    <section className="dark bg-background py-16">
       <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="mx-auto max-w-4xl">
           <terminalCommand.Field name="label">
-            {(content) => (
-              <div className="mb-4 text-sm text-muted-foreground">
-                {content}
-              </div>
-            )}
+            {(content) => <div className="text-muted-foreground mb-4 text-sm">{content}</div>}
           </terminalCommand.Field>
 
           <terminalCommand.Field name="command">
             {(content) => (
-              <div className="relative group">
+              <div className="group relative">
                 <div
                   onClick={handleCopy}
-                  className="bg-gray-950 border border-gray-800 rounded-lg p-6 cursor-pointer hover:border-gray-700 transition-colors"
+                  className="cursor-pointer rounded-lg border border-gray-800 bg-gray-950 p-6 transition-colors hover:border-gray-700"
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <code ref={commandRef} className="text-2xl md:text-3xl font-mono text-gray-100 flex-1">
+                    <code
+                      ref={commandRef}
+                      className="flex-1 font-mono text-2xl text-gray-100 md:text-3xl"
+                    >
                       {content}
                     </code>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="shrink-0 h-10 w-10 text-gray-400 hover:text-gray-100 hover:bg-gray-800"
+                      className="h-10 w-10 shrink-0 text-gray-400 hover:bg-gray-800 hover:text-gray-100"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleCopy();
                       }}
                     >
-                      {copied ? (
-                        <Check className="h-5 w-5" />
-                      ) : (
-                        <Copy className="h-5 w-5" />
-                      )}
+                      {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
                     </Button>
                   </div>
                 </div>

@@ -1,8 +1,9 @@
-import { Type, createBlock } from "camox/createBlock";
 import { Link } from "@tanstack/react-router";
+import { Type, createBlock } from "camox/createBlock";
+import { useEffect, useRef, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef, useState } from "react";
 
 const navbar = createBlock({
   id: "navbar",
@@ -55,10 +56,10 @@ const navbar = createBlock({
 function NavbarContent() {
   return (
     <div className="container mx-auto px-4">
-      <div className="flex items-center justify-between h-16">
+      <div className="flex h-16 items-center justify-between">
         <navbar.Link name="title">
           {(link) => (
-            <Link className="text-xl font-bold text-foreground" to={link.href}>
+            <Link className="text-foreground text-xl font-bold" to={link.href}>
               {link.text}
             </Link>
           )}
@@ -73,7 +74,7 @@ function NavbarContent() {
                     to={href}
                     target={newTab ? "_blank" : undefined}
                     rel={newTab ? "noreferrer" : undefined}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-muted-foreground hover:text-foreground text-sm transition-colors"
                   >
                     {text}
                   </Link>
@@ -126,12 +127,9 @@ function NavbarComponent() {
   return (
     <div className="dark relative">
       {/* Sentinel element — when this scrolls out, the navbar floats */}
-      <div
-        ref={sentinelRef}
-        className="h-0 p-2 w-full absolute top-[calc(100%+50px)]"
-      />
+      <div ref={sentinelRef} className="absolute top-[calc(100%+50px)] h-0 w-full p-2" />
       {/* Static navbar */}
-      <nav className="bg-background border-b border-border">
+      <nav className="bg-background border-border border-b">
         <NavbarContent />
       </nav>
 

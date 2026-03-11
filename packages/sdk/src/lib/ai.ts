@@ -78,10 +78,7 @@ export async function generatePageDraft(options: {
   return JSON.parse(text) as GeneratedBlock[];
 }
 
-export async function generateImageMetadata(
-  imageUrl: string,
-  currentFilename: string,
-) {
+export async function generateImageMetadata(imageUrl: string, currentFilename: string) {
   const { output } = await generateText({
     model: openRouter.chat("google/gemini-2.5-flash-lite"),
     output: Output.object({
@@ -119,9 +116,7 @@ type GenerateObjectSummaryOptions = {
   markdown: string;
   previousSummary?: string;
 };
-export async function generateObjectSummary(
-  options: GenerateObjectSummaryOptions,
-) {
+export async function generateObjectSummary(options: GenerateObjectSummaryOptions) {
   const stabilityBlock = options.previousSummary
     ? outdent`
 

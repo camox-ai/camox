@@ -46,10 +46,7 @@ export function splitContent(content: Record<string, unknown>): {
 }
 
 /** Recursively collect all _fileId values from a content object. */
-export function collectFileIds(
-  content: Record<string, unknown>,
-  fileIds: Set<string>,
-) {
+export function collectFileIds(content: Record<string, unknown>, fileIds: Set<string>) {
   for (const value of Object.values(content)) {
     if (value && typeof value === "object" && !Array.isArray(value)) {
       const obj = value as Record<string, unknown>;
@@ -61,10 +58,7 @@ export function collectFileIds(
     } else if (Array.isArray(value)) {
       for (const item of value) {
         if (item && typeof item === "object" && "content" in item) {
-          collectFileIds(
-            (item as { content: Record<string, unknown> }).content,
-            fileIds,
-          );
+          collectFileIds((item as { content: Record<string, unknown> }).content, fileIds);
         } else if (item && typeof item === "object" && !Array.isArray(item)) {
           collectFileIds(item as Record<string, unknown>, fileIds);
         }
@@ -127,9 +121,9 @@ export function resolveFileRefs(
 }
 
 /** Group repeatable items by `blockId:fieldName`. Items must already be sorted by position. */
-export function groupItemsByBlockAndField<
-  T extends { blockId: Id<"blocks">; fieldName: string },
->(items: T[]): Record<string, T[]> {
+export function groupItemsByBlockAndField<T extends { blockId: Id<"blocks">; fieldName: string }>(
+  items: T[],
+): Record<string, T[]> {
   return items.reduce(
     (acc, item) => {
       const key = `${item.blockId}:${item.fieldName}`;
@@ -173,9 +167,7 @@ export function reconstructBlockContent(
   const reconstructed: Record<string, unknown> = { ...blockContent };
 
   const fieldNames = new Set(
-    allItems
-      .filter((item) => item.blockId === blockId)
-      .map((item) => item.fieldName),
+    allItems.filter((item) => item.blockId === blockId).map((item) => item.fieldName),
   );
 
   for (const fieldName of fieldNames) {

@@ -1,13 +1,6 @@
-import {
-  AlertCircle,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  File,
-  Loader2,
-  X,
-} from "lucide-react";
+import { AlertCircle, Check, ChevronDown, ChevronUp, File, Loader2, X } from "lucide-react";
 import { useState } from "react";
+
 import type { UploadItem } from "@/hooks/use-file-upload";
 
 interface UploadProgressDrawerProps {
@@ -15,17 +8,12 @@ interface UploadProgressDrawerProps {
   onClose: () => void;
 }
 
-export function UploadProgressDrawer({
-  uploads,
-  onClose,
-}: UploadProgressDrawerProps) {
+export function UploadProgressDrawer({ uploads, onClose }: UploadProgressDrawerProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   if (uploads.length === 0) return null;
 
-  const completedCount = uploads.filter(
-    (u) => u.status === "complete",
-  ).length;
+  const completedCount = uploads.filter((u) => u.status === "complete").length;
   const allComplete = completedCount === uploads.length;
 
   const headerText = allComplete
@@ -33,21 +21,14 @@ export function UploadProgressDrawer({
     : `Uploading ${uploads.length} file${uploads.length !== 1 ? "s" : ""}`;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-80 rounded-lg border border-border bg-background shadow-lg">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+    <div className="border-border bg-background fixed right-4 bottom-4 z-50 w-80 rounded-lg border shadow-lg">
+      <div className="border-border flex items-center justify-between border-b px-3 py-2">
         <span className="text-sm font-medium">{headerText}</span>
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setCollapsed((c) => !c)}
-            className="rounded p-1 hover:bg-muted"
-          >
-            {collapsed ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+          <button onClick={() => setCollapsed((c) => !c)} className="hover:bg-muted rounded p-1">
+            {collapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
-          <button onClick={onClose} className="rounded p-1 hover:bg-muted">
+          <button onClick={onClose} className="hover:bg-muted rounded p-1">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -67,34 +48,26 @@ export function UploadProgressDrawer({
 function UploadItemRow({ item }: { item: UploadItem }) {
   return (
     <div className="flex items-center gap-2 px-3 py-2">
-      <File className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm truncate">{item.filename}</p>
+      <File className="text-muted-foreground h-4 w-4 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm">{item.filename}</p>
         {(item.status === "uploading" || item.status === "committing") && (
-          <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
+          <div className="bg-muted mt-1 h-1.5 overflow-hidden rounded-full">
             <div
-              className="h-full bg-primary transition-all duration-200"
+              className="bg-primary h-full transition-all duration-200"
               style={{ width: `${item.progress}%` }}
             />
           </div>
         )}
-        {item.status === "error" && (
-          <p className="text-xs text-destructive mt-0.5">{item.error}</p>
-        )}
+        {item.status === "error" && <p className="text-destructive mt-0.5 text-xs">{item.error}</p>}
       </div>
       <div className="shrink-0">
         {item.status === "uploading" && (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
         )}
-        {item.status === "committing" && (
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-        )}
-        {item.status === "complete" && (
-          <Check className="h-4 w-4 text-green-500" />
-        )}
-        {item.status === "error" && (
-          <AlertCircle className="h-4 w-4 text-destructive" />
-        )}
+        {item.status === "committing" && <Loader2 className="text-primary h-4 w-4 animate-spin" />}
+        {item.status === "complete" && <Check className="h-4 w-4 text-green-500" />}
+        {item.status === "error" && <AlertCircle className="text-destructive h-4 w-4" />}
       </div>
     </div>
   );

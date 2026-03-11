@@ -32,7 +32,7 @@ export const ShikiMarkdown = ({ code }: { code: string }) => {
     <>
       <style>{css}</style>
       <div
-        className="min-w-0 w-full overflow-hidden rounded-md border border-input text-sm [&_pre]:whitespace-pre-wrap [&_pre]:break-all [&_pre]:px-3 [&_pre]:py-2 [&_pre]:rounded-md [&_code]:font-mono"
+        className="border-input w-full min-w-0 overflow-hidden rounded-md border text-sm [&_code]:font-mono [&_pre]:rounded-md [&_pre]:px-3 [&_pre]:py-2 [&_pre]:break-all [&_pre]:whitespace-pre-wrap"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </>

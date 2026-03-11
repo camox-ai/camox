@@ -1,5 +1,3 @@
-import * as React from "react";
-import { createPortal } from "react-dom";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $getSelection,
@@ -8,6 +6,9 @@ import {
   SELECTION_CHANGE_COMMAND,
   COMMAND_PRIORITY_LOW,
 } from "lexical";
+import * as React from "react";
+import { createPortal } from "react-dom";
+
 import { TEXT_MODIFIERS } from "../../lib/modifiers";
 
 interface FloatingToolbarProps {
@@ -15,10 +16,7 @@ interface FloatingToolbarProps {
   targetWindow: Window;
 }
 
-export function FloatingToolbar({
-  portalContainer,
-  targetWindow,
-}: FloatingToolbarProps) {
+export function FloatingToolbar({ portalContainer, targetWindow }: FloatingToolbarProps) {
   const [editor] = useLexicalComposerContext();
   const toolbarRef = React.useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = React.useState(false);
@@ -132,9 +130,7 @@ export function FloatingToolbar({
               fontWeight: key === "bold" ? 700 : 400,
               fontStyle: key === "italic" ? "italic" : "normal",
               color: isActive ? "white" : "rgba(255,255,255,0.65)",
-              background: isActive
-                ? "rgba(255,255,255,0.2)"
-                : "transparent",
+              background: isActive ? "rgba(255,255,255,0.2)" : "transparent",
             }}
           >
             {modifier.icon}

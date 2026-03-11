@@ -1,6 +1,9 @@
-import * as React from "react";
 import { useSelector } from "@xstate/store/react";
+import { api } from "camox/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import { InfoIcon } from "lucide-react";
+import * as React from "react";
+
 import {
   Command,
   CommandEmpty,
@@ -9,23 +12,20 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { previewStore } from "../previewStore";
-import { usePreviewedPage } from "../CamoxPreview";
-import { useCamoxApp } from "../../provider/components/CamoxAppContext";
-import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
-import { api } from "camox/_generated/api";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Block } from "@/core/createBlock";
-import { InfoIcon } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+
+import { useCamoxApp } from "../../provider/components/CamoxAppContext";
+import { usePreviewedPage } from "../CamoxPreview";
+import { previewStore } from "../previewStore";
+import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
 
 const AddBlockSheet = () => {
   const [highlightedValue, setHighlightedValue] = React.useState<string>("");
   const createBlockMutation = useMutation(api.blocks.createBlock);
-  const availableBlocks = useCamoxApp().getBlocks().filter((b) => !b.layoutOnly);
+  const availableBlocks = useCamoxApp()
+    .getBlocks()
+    .filter((b) => !b.layoutOnly);
   const page = usePreviewedPage();
   const totalCounts = useQuery(api.blocks.getBlockUsageCounts) ?? {};
 
@@ -38,10 +38,7 @@ const AddBlockSheet = () => {
     return counts;
   }, [page]);
 
-  const isOpen = useSelector(
-    previewStore,
-    (state) => state.context.isAddBlockSheetOpen,
-  );
+  const isOpen = useSelector(previewStore, (state) => state.context.isAddBlockSheetOpen);
   const peekedBlockPosition = useSelector(
     previewStore,
     (state) => state.context.peekedBlockPosition,
@@ -53,8 +50,7 @@ const AddBlockSheet = () => {
     const afterPosition =
       peekedBlockPosition === ""
         ? ""
-        : (peekedBlockPosition ??
-          page.blocks[page.blocks.length - 1]?.position);
+        : (peekedBlockPosition ?? page.blocks[page.blocks.length - 1]?.position);
 
     const blockId = await createBlockMutation({
       pageId: page.page._id,
@@ -71,8 +67,7 @@ const AddBlockSheet = () => {
     const afterPosition =
       peekedBlockPosition === ""
         ? ""
-        : (peekedBlockPosition ??
-          page?.blocks[page.blocks.length - 1]?.position);
+        : (peekedBlockPosition ?? page?.blocks[page.blocks.length - 1]?.position);
 
     previewStore.send({ type: "setPeekedBlock", block, afterPosition });
   };
@@ -108,12 +103,8 @@ const AddBlockSheet = () => {
   };
 
   return (
-    <PreviewSideSheet
-      open={isOpen}
-      onOpenChange={handleOpenChange}
-      className="flex flex-col gap-0"
-    >
-      <SheetParts.SheetHeader className="border-b border-border">
+    <PreviewSideSheet open={isOpen} onOpenChange={handleOpenChange} className="flex flex-col gap-0">
+      <SheetParts.SheetHeader className="border-border border-b">
         <SheetParts.SheetTitle>Add new block</SheetParts.SheetTitle>
         <SheetParts.SheetDescription>
           Search and select a block to add to the page.
@@ -135,13 +126,11 @@ const AddBlockSheet = () => {
             autoFocus
             wrapperClassName="border border-input rounded-md shadow-xs focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]"
           />
-          <CommandList className="max-h-full mt-1">
+          <CommandList className="mt-1 max-h-full">
             <CommandEmpty>No blocks found.</CommandEmpty>
             <CommandGroup>
               {availableBlocks
-                .sort(
-                  (a, b) => (totalCounts[b.id] ?? 0) - (totalCounts[a.id] ?? 0),
-                )
+                .sort((a, b) => (totalCounts[b.id] ?? 0) - (totalCounts[a.id] ?? 0))
                 .map((block: Block) => (
                   <CommandItem
                     key={block.id}
@@ -149,16 +138,14 @@ const AddBlockSheet = () => {
                     onSelect={() => {
                       handleAddBlock(block);
                     }}
-                    className="flex items-center justify-between gap-2 group"
+                    className="group flex items-center justify-between gap-2"
                   >
                     <div>
                       <span>{block.title}</span>
-                      <span className="text-muted-foreground block">
-                        {displayCount(block.id)}
-                      </span>
+                      <span className="text-muted-foreground block">{displayCount(block.id)}</span>
                     </div>
                     <Tooltip>
-                      <TooltipTrigger className="hidden group-hover:flex group-focus-within:flex">
+                      <TooltipTrigger className="hidden group-focus-within:flex group-hover:flex">
                         <InfoIcon />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-[300px]" side="right">

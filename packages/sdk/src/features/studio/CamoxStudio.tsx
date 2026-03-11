@@ -1,7 +1,8 @@
-import * as React from "react";
-import { Navbar } from "./components/Navbar";
 import { useClerk, RedirectToSignIn } from "@clerk/clerk-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
+import * as React from "react";
+
+import { Navbar } from "./components/Navbar";
 
 interface CamoxStudioProps {
   children: React.ReactNode;
@@ -22,7 +23,7 @@ const CamoxStudio = ({ children }: CamoxStudioProps) => {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-background flex flex-col">
+    <div className="bg-background flex h-screen flex-col overflow-hidden">
       <Navbar />
       {children}
     </div>

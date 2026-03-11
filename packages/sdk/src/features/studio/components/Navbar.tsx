@@ -1,23 +1,21 @@
-import * as React from "react";
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import {
-  Globe,
-  SearchIcon,
-  Database,
-} from "lucide-react";
 import type { LinkProps } from "@tanstack/react-router";
-import type { Action } from "../../provider/actionsStore";
-import { UserButton } from "./UserButton";
-import { ProjectMenu } from "./ProjectMenu";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { api } from "camox/_generated/api";
+import { useQuery } from "convex/react";
+import { Globe, SearchIcon, Database } from "lucide-react";
+import * as icons from "lucide-react";
+import * as React from "react";
+
+import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
+import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet";
 import { cn } from "@/lib/utils";
+
+import type { Action } from "../../provider/actionsStore";
 import { actionsStore } from "../../provider/actionsStore";
 import { studioStore } from "../studioStore";
-import { Kbd } from "@/components/ui/kbd";
-import { Button } from "@/components/ui/button";
-import { useQuery } from "convex/react";
-import { api } from "camox/_generated/api";
-import * as icons from "lucide-react";
-import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet";
+import { ProjectMenu } from "./ProjectMenu";
+import { UserButton } from "./UserButton";
 
 const links = [
   {
@@ -52,10 +50,7 @@ const links = [
 const Navbar = () => {
   const pages = useQuery(api.pages.listPages);
 
-  const isMac = React.useMemo(
-    () => navigator.userAgent.toUpperCase().indexOf("MAC") >= 0,
-    [],
-  );
+  const isMac = React.useMemo(() => navigator.userAgent.toUpperCase().indexOf("MAC") >= 0, []);
 
   const { pathname } = useLocation();
   const isPreviewPage = pages?.some((page) => page.fullPath === pathname);
@@ -63,7 +58,7 @@ const Navbar = () => {
   const isPreviewSheetOpen = useIsPreviewSheetOpen();
 
   return (
-    <nav className="bg-transparent py-2 px-2 flex items-center justify-between gap-4 border-b-2 relative">
+    <nav className="relative flex items-center justify-between gap-4 border-b-2 bg-transparent px-2 py-2">
       {/* Preview sheet overlay */}
       <div
         className={cn(
@@ -86,9 +81,7 @@ const Navbar = () => {
                   // interaction styles
                   "hover:bg-accent hover:text-accent-foreground outline-none transition-[color,box-shadow] focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-1",
                   // active style
-                  isPreviewPage &&
-                    index === 0 &&
-                    "bg-accent text-accent-foreground",
+                  isPreviewPage && index === 0 && "bg-accent text-accent-foreground",
                 )}
                 activeProps={{
                   className: "bg-accent text-accent-foreground!",
@@ -101,11 +94,8 @@ const Navbar = () => {
         </ul>
       </div>
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          onClick={() => studioStore.send({ type: "openCommandPalette" })}
-        >
-          <SearchIcon className="size-4 text-muted-foreground" />
+        <Button variant="outline" onClick={() => studioStore.send({ type: "openCommandPalette" })}>
+          <SearchIcon className="text-muted-foreground size-4" />
           <span className="text-muted-foreground">Quick find</span>
           <Kbd className="ml-4">{isMac ? "⌘" : "Ctrl"} K</Kbd>
         </Button>

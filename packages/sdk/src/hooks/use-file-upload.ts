@@ -1,8 +1,9 @@
 "use client";
 
+import { api } from "camox/_generated/api";
 import { useMutation } from "convex/react";
 import { useCallback, useRef, useState } from "react";
-import { api } from "camox/_generated/api";
+
 import { FS_PREFIX, getSiteUrl } from "@/lib/convex-site";
 
 export interface UploadItem {
@@ -28,9 +29,7 @@ export function useFileUpload() {
         xhr.upload.addEventListener("progress", (event) => {
           if (!event.lengthComputable) return;
           const progress = Math.round((event.loaded / event.total) * 100);
-          setUploads((prev) =>
-            prev.map((u) => (u.id === itemId ? { ...u, progress } : u)),
-          );
+          setUploads((prev) => prev.map((u) => (u.id === itemId ? { ...u, progress } : u)));
         });
 
         xhr.addEventListener("load", () => {
@@ -57,9 +56,7 @@ export function useFileUpload() {
 
       // Commit file record
       setUploads((prev) =>
-        prev.map((u) =>
-          u.id === itemId ? { ...u, status: "committing" as const } : u,
-        ),
+        prev.map((u) => (u.id === itemId ? { ...u, status: "committing" as const } : u)),
       );
 
       await commitFile({
@@ -71,9 +68,7 @@ export function useFileUpload() {
 
       setUploads((prev) =>
         prev.map((u) =>
-          u.id === itemId
-            ? { ...u, status: "complete" as const, progress: 100 }
-            : u,
+          u.id === itemId ? { ...u, status: "complete" as const, progress: 100 } : u,
         ),
       );
 
@@ -100,13 +95,10 @@ export function useFileUpload() {
       Promise.all(
         Array.from(files).map((file, i) =>
           uploadSingleFile(file, newItems[i].id).catch((err) => {
-            const message =
-              err instanceof Error ? err.message : "Upload failed";
+            const message = err instanceof Error ? err.message : "Upload failed";
             setUploads((prev) =>
               prev.map((u) =>
-                u.id === newItems[i].id
-                  ? { ...u, status: "error" as const, error: message }
-                  : u,
+                u.id === newItems[i].id ? { ...u, status: "error" as const, error: message } : u,
               ),
             );
           }),

@@ -15,21 +15,23 @@ A block file lives in the app's `src/camox/blocks/` folder, is a `.tsx` file, an
 import { Type, createBlock } from "camox/createBlock";
 
 const myBlock = createBlock({
-  id: "my-block",           // Must match filename (kebab-case)
-  title: "My Block",        // Human-readable name
-  description: "...",       // Tells the AI when/how to use this block
-  toMarkdown: ["# {{title}}", "{{description}}"],  // Markdown template
-  content: { /* ... */ },   // Editable content schema
-  settings: { /* ... */ },  // Optional config toggles
+  id: "my-block", // Must match filename (kebab-case)
+  title: "My Block", // Human-readable name
+  description: "...", // Tells the AI when/how to use this block
+  toMarkdown: ["# {{title}}", "{{description}}"], // Markdown template
+  content: {
+    /* ... */
+  }, // Editable content schema
+  settings: {
+    /* ... */
+  }, // Optional config toggles
   component: MyBlockComponent,
 });
 
 function MyBlockComponent() {
   return (
     <section>
-      <myBlock.Field name="title">
-        {(content) => <h1>{content}</h1>}
-      </myBlock.Field>
+      <myBlock.Field name="title">{(content) => <h1>{content}</h1>}</myBlock.Field>
     </section>
   );
 }
@@ -39,22 +41,23 @@ export { myBlock as block };
 
 ## The `createBlock` options
 
-| Option | Required | Description |
-|---|---|---|
-| `id` | yes | Unique kebab-case identifier. Must match the filename without extension. |
-| `title` | yes | Display name shown in the CMS UI. |
-| `description` | yes | Tells the AI assistant when to use this block and what content it expects. Write it like guidance for an LLM — be specific about placement, tone, and content guidelines. |
-| `toMarkdown` | yes | A `string[]` template for rendering block content as markdown. Each line is joined with `\n\n`. Use `{{fieldName}}` placeholders for field values. Lines where all placeholders resolve to empty are omitted. |
-| `content` | yes | An object where each key is a field name and each value is a `Type.*` call. These fields are inline-editable in the CMS. |
-| `settings` | no | Same shape as `content`, but for configuration that lives in a settings panel (not inline). Only `Type.Enum` and `Type.Boolean` should be used here. |
-| `layoutOnly` | no | If `true`, the block won't appear in the "add block" sheet — it can only be placed inside layouts (e.g. navbar, footer). |
-| `component` | yes | A named React function component that renders the block. |
+| Option        | Required | Description                                                                                                                                                                                                   |
+| ------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | yes      | Unique kebab-case identifier. Must match the filename without extension.                                                                                                                                      |
+| `title`       | yes      | Display name shown in the CMS UI.                                                                                                                                                                             |
+| `description` | yes      | Tells the AI assistant when to use this block and what content it expects. Write it like guidance for an LLM — be specific about placement, tone, and content guidelines.                                     |
+| `toMarkdown`  | yes      | A `string[]` template for rendering block content as markdown. Each line is joined with `\n\n`. Use `{{fieldName}}` placeholders for field values. Lines where all placeholders resolve to empty are omitted. |
+| `content`     | yes      | An object where each key is a field name and each value is a `Type.*` call. These fields are inline-editable in the CMS.                                                                                      |
+| `settings`    | no       | Same shape as `content`, but for configuration that lives in a settings panel (not inline). Only `Type.Enum` and `Type.Boolean` should be used here.                                                          |
+| `layoutOnly`  | no       | If `true`, the block won't appear in the "add block" sheet — it can only be placed inside layouts (e.g. navbar, footer).                                                                                      |
+| `component`   | yes      | A named React function component that renders the block.                                                                                                                                                      |
 
 ## Markdown Template (`toMarkdown`)
 
 The `toMarkdown` array controls how block content is rendered as markdown for AI features (summaries, SEO). Each string in the array becomes a paragraph (joined with `\n\n`). Use `{{fieldName}}` placeholders that reference keys in `content`.
 
 **Field resolution rules:**
+
 - **String**: raw text value
 - **Link**: `[text](href)`
 - **Image**: `![alt](filename)`
@@ -109,12 +112,12 @@ Inline-editable text. The workhorse field type.
 
 ```tsx
 Type.String({
-  default: "Hello world",   // Required
-  title: "Heading",         // Optional label
-  maxLength: 280,           // Optional
-  minLength: 1,             // Optional
-  pattern: "^[A-Z]",        // Optional regex
-})
+  default: "Hello world", // Required
+  title: "Heading", // Optional label
+  maxLength: 280, // Optional
+  minLength: 1, // Optional
+  pattern: "^[A-Z]", // Optional regex
+});
 ```
 
 ### Type.Boolean
@@ -122,7 +125,7 @@ Type.String({
 A toggle. Use in `settings` for config, or in `content` for user-controlled flags.
 
 ```tsx
-Type.Boolean({ default: false, title: "Show background" })
+Type.Boolean({ default: false, title: "Show background" });
 ```
 
 ### Type.Enum
@@ -134,7 +137,7 @@ Type.Enum({
   default: "left",
   options: { left: "Left", center: "Center", right: "Right" },
   title: "Alignment",
-})
+});
 ```
 
 The `default` must be one of the keys in `options`.
@@ -147,7 +150,7 @@ A link with text, URL (or internal page reference), and new-tab toggle.
 Type.Link({
   default: { text: "Learn more", href: "/", newTab: false },
   title: "CTA",
-})
+});
 ```
 
 ### Type.Image
@@ -156,10 +159,10 @@ A single image, or a repeatable array of images.
 
 ```tsx
 // Single image
-Type.Image({ title: "Cover photo" })
+Type.Image({ title: "Cover photo" });
 
 // Multiple images (creates a repeatable list)
-Type.Image({ multiple: true, defaultItems: 6, title: "Gallery images" })
+Type.Image({ multiple: true, defaultItems: 6, title: "Gallery images" });
 ```
 
 ### Type.File
@@ -170,7 +173,7 @@ A file upload, with MIME type filtering.
 Type.File({
   accept: ["application/pdf"],
   title: "PDF Document",
-})
+});
 
 // Multiple files
 Type.File({
@@ -178,7 +181,7 @@ Type.File({
   multiple: true,
   defaultItems: 0,
   title: "Documents",
-})
+});
 ```
 
 ### Type.Embed
@@ -190,7 +193,7 @@ Type.Embed({
   pattern: "https:\\/\\/(www\\.)?(youtube\\.com|youtu\\.be)\\/.+",
   default: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   title: "YouTube URL",
-})
+});
 ```
 
 The `default` must match the `pattern` — an error is thrown at definition time otherwise.
@@ -206,12 +209,12 @@ Type.RepeatableObject(
     description: Type.String({ default: "Description" }),
   },
   {
-    minItems: 1,    // Must be >= 1
+    minItems: 1, // Must be >= 1
     maxItems: 10,
     title: "Features",
-    toMarkdown: ["### {{name}}", "{{description}}"],  // Optional markdown template for each item
-  }
-)
+    toMarkdown: ["### {{name}}", "{{description}}"], // Optional markdown template for each item
+  },
+);
 ```
 
 The `toMarkdown` option on RepeatableObject defines how each item is rendered as markdown when the parent block's `toMarkdown` references this field. If omitted, fields are joined with " — " as a fallback.
@@ -226,11 +229,11 @@ columns: Type.RepeatableObject(
       {
         link: Type.Link({ default: { text: "Link", href: "#", newTab: false } }),
       },
-      { minItems: 1, maxItems: 999, toMarkdown: ["{{link}}"] }
+      { minItems: 1, maxItems: 999, toMarkdown: ["{{link}}"] },
     ),
   },
-  { minItems: 2, maxItems: 4, title: "Columns", toMarkdown: ["### {{title}}", "{{links}}"] }
-)
+  { minItems: 2, maxItems: 4, title: "Columns", toMarkdown: ["### {{title}}", "{{links}}"] },
+);
 ```
 
 ## Rendering in the Component
@@ -240,9 +243,7 @@ The component is a regular React function. It uses methods on the block constant
 ### Rendering String fields — `block.Field`
 
 ```tsx
-<myBlock.Field name="title">
-  {(content) => <h1>{content}</h1>}
-</myBlock.Field>
+<myBlock.Field name="title">{(content) => <h1>{content}</h1>}</myBlock.Field>
 ```
 
 The `name` must match a key in `content` that is a `Type.String`. The `content` argument is a string. This is what makes the field inline-editable in the CMS.
@@ -256,39 +257,35 @@ import { Link } from "@tanstack/react-router";
 
 <myBlock.Link name="cta">
   {({ text, href, newTab }) => (
-    <Link
-      to={href}
-      target={newTab ? "_blank" : undefined}
-      rel={newTab ? "noreferrer" : undefined}
-    >
+    <Link to={href} target={newTab ? "_blank" : undefined} rel={newTab ? "noreferrer" : undefined}>
       {text}
     </Link>
   )}
-</myBlock.Link>
+</myBlock.Link>;
 ```
 
 ### Rendering Image fields — `block.Image`
 
 ```tsx
-<myBlock.Image name="cover">
-  {(img) => <img src={img.url} alt={img.alt} />}
-</myBlock.Image>
+<myBlock.Image name="cover">{(img) => <img src={img.url} alt={img.alt} />}</myBlock.Image>
 ```
 
 ### Rendering File fields — `block.File`
 
 ```tsx
 <myBlock.File name="document">
-  {(file) => <a href={file.url} download={file.filename}>Download</a>}
+  {(file) => (
+    <a href={file.url} download={file.filename}>
+      Download
+    </a>
+  )}
 </myBlock.File>
 ```
 
 ### Rendering Embed fields — `block.Embed`
 
 ```tsx
-<myBlock.Embed name="videoUrl">
-  {(url) => <iframe src={url} />}
-</myBlock.Embed>
+<myBlock.Embed name="videoUrl">{(url) => <iframe src={url} />}</myBlock.Embed>
 ```
 
 ### Rendering RepeatableObject fields — `block.Repeater`
@@ -297,12 +294,8 @@ import { Link } from "@tanstack/react-router";
 <myBlock.Repeater name="features">
   {(item) => (
     <div>
-      <item.Field name="name">
-        {(content) => <h3>{content}</h3>}
-      </item.Field>
-      <item.Field name="description">
-        {(content) => <p>{content}</p>}
-      </item.Field>
+      <item.Field name="name">{(content) => <h3>{content}</h3>}</item.Field>
+      <item.Field name="description">{(content) => <p>{content}</p>}</item.Field>
     </div>
   )}
 </myBlock.Repeater>
@@ -315,9 +308,7 @@ Inside a Repeater, the `item` callback argument exposes the same `.Field`, `.Lin
   {(column) => (
     <column.Repeater name="links">
       {(linkItem) => (
-        <linkItem.Link name="link">
-          {({ text, href }) => <a href={href}>{text}</a>}
-        </linkItem.Link>
+        <linkItem.Link name="link">{({ text, href }) => <a href={href}>{text}</a>}</linkItem.Link>
       )}
     </column.Repeater>
   )}
@@ -328,11 +319,7 @@ For `Type.Image({ multiple: true })`, the repeater item has a single `image` key
 
 ```tsx
 <gallery.Repeater name="images">
-  {(item) => (
-    <item.Image name="image">
-      {(img) => <img src={img.url} alt={img.alt} />}
-    </item.Image>
-  )}
+  {(item) => <item.Image name="image">{(img) => <img src={img.url} alt={img.alt} />}</item.Image>}
 </gallery.Repeater>
 ```
 
@@ -352,9 +339,7 @@ Renders content outside the block's DOM container. Useful for fixed/floating ele
 
 ```tsx
 <myBlock.Detached>
-  <div className="fixed top-0 left-0 right-0 z-50">
-    {/* floating content */}
-  </div>
+  <div className="fixed top-0 left-0 right-0 z-50">{/* floating content */}</div>
 </myBlock.Detached>
 ```
 

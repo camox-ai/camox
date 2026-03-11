@@ -69,17 +69,15 @@ export function watchNewBlockFiles(server: ViteDevServer) {
           const filename = basename(filePath);
           const boilerplate = getBlockBoilerplate(filename);
           writeFileSync(filePath, boilerplate);
-          server.config.logger.info(
-            `[camox] Auto-filled block boilerplate: ${filename}`,
-            { timestamp: true },
-          );
+          server.config.logger.info(`[camox] Auto-filled block boilerplate: ${filename}`, {
+            timestamp: true,
+          });
         }
       } catch {
         // File might be locked or inaccessible, ignore
-        server.config.logger.error(
-          `[camox] Could not auto-fill boilerplate at path ${filePath}`,
-          { timestamp: true },
-        );
+        server.config.logger.error(`[camox] Could not auto-fill boilerplate at path ${filePath}`, {
+          timestamp: true,
+        });
       }
     }
   });

@@ -1,11 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { FS_PREFIX, getSiteUrl } from "@/lib/convex-site";
+import { api } from "camox/_generated/api";
 import { useMutation } from "convex/react";
 import { ImageIcon, Trash2, Upload } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import { api } from "camox/_generated/api";
+
+import { Button } from "@/components/ui/button";
+import { FS_PREFIX, getSiteUrl } from "@/lib/convex-site";
 
 export interface FileRef {
   _fileId: string;
@@ -150,17 +151,17 @@ export function FileUpload({
     <div className="space-y-4">
       {hasImage && !hidePreview && (
         <div className="space-y-2">
-          <div className="relative rounded-md overflow-hidden border border-border">
+          <div className="border-border relative overflow-hidden rounded-md border">
             <img
               src={initialValue.url}
               alt={initialValue.alt || initialValue.filename}
-              className="w-full h-auto object-cover max-h-48"
+              className="h-auto max-h-48 w-full object-cover"
             />
           </div>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground truncate">
+            <div className="flex min-w-0 items-center gap-2">
+              <ImageIcon className="text-muted-foreground h-4 w-4 shrink-0" />
+              <span className="text-muted-foreground truncate text-sm">
                 {initialValue.filename}
               </span>
             </div>
@@ -177,15 +178,15 @@ export function FileUpload({
       )}
 
       <div
-        className="border-2 border-dashed border-border rounded-md p-8 flex flex-col items-center justify-center text-center cursor-pointer"
+        className="border-border flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed p-8 text-center"
         onClick={handleBoxClick}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        <div className="mb-2 bg-muted rounded-full p-3">
-          <Upload className="h-5 w-5 text-muted-foreground" />
+        <div className="bg-muted mb-2 rounded-full p-3">
+          <Upload className="text-muted-foreground h-5 w-5" />
         </div>
-        <p className="text-pretty text-sm text-foreground">{label ?? uploadLabel}</p>
+        <p className="text-foreground text-sm text-pretty">{label ?? uploadLabel}</p>
         <input
           type="file"
           id="fileUpload"
@@ -201,19 +202,16 @@ export function FileUpload({
         />
 
         {uploading && (
-          <div className="w-full mt-4 space-y-1">
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all"
-                style={{ width: `${progress}%` }}
-              />
+          <div className="mt-4 w-full space-y-1">
+            <div className="bg-muted h-2 overflow-hidden rounded-full">
+              <div className="bg-primary h-full transition-all" style={{ width: `${progress}%` }} />
             </div>
-            <p className="text-xs text-muted-foreground">{progress}%</p>
+            <p className="text-muted-foreground text-xs">{progress}%</p>
           </div>
         )}
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="text-destructive text-sm">{error}</p>}
     </div>
   );
 }

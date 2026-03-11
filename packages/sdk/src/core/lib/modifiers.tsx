@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { FORMAT_FLAGS } from "./modifierFormats";
 
 export { lexicalTextToMarkdown } from "./modifierFormats";
@@ -28,10 +29,7 @@ export const TEXT_MODIFIERS: Record<string, TextModifier> = {
   },
 };
 
-export function applyModifierRendering(
-  text: string,
-  format: number,
-): React.ReactNode {
+export function applyModifierRendering(text: string, format: number): React.ReactNode {
   let node: React.ReactNode = text;
   for (const modifier of Object.values(TEXT_MODIFIERS)) {
     if (format & modifier.formatFlag) {

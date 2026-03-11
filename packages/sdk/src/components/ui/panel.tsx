@@ -1,5 +1,6 @@
-import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
+import * as React from "react";
+
 import { cn } from "@/lib/utils";
 
 export const Panel = ({
@@ -16,7 +17,7 @@ export const Panel = ({
     <Comp
       className={cn(
         "flex flex-col bg-background border-2 border-border shadow-xl rounded-lg overflow-hidden",
-        className
+        className,
       )}
       {...props}
     >
@@ -53,10 +54,7 @@ export const PanelTitle = ({
   const Comp = asChild ? Slot : "h3";
 
   return (
-    <Comp
-      className={cn("text-lg leading-none font-semibold", className)}
-      {...props}
-    >
+    <Comp className={cn("text-lg leading-none font-semibold", className)} {...props}>
       {children}
     </Comp>
   );

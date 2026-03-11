@@ -1,7 +1,8 @@
 import { createStore } from "@xstate/store";
+import { Doc, Id } from "camox/_generated/dataModel";
+
 import { toast } from "@/components/ui/toaster";
 import { Block } from "@/core/createBlock";
-import { Doc, Id } from "camox/_generated/dataModel";
 import type { FieldType } from "@/core/lib/fieldTypes";
 
 export type SelectionBreadcrumb = {
@@ -53,10 +54,9 @@ export const previewStore = createStore({
       }
 
       enqueue.effect(() => {
-        toast(
-          "Entering presentation mode. Press ⌘ + Escape to restore admin interface",
-          { duration: 4000 },
-        );
+        toast("Entering presentation mode. Press ⌘ + Escape to restore admin interface", {
+          duration: 4000,
+        });
       });
 
       return {
@@ -101,9 +101,7 @@ export const previewStore = createStore({
     },
     toggleMobileMode: (context, _, enqueue) => {
       enqueue.effect(() => {
-        toast(
-          context.isMobileMode ? "Leaving mobile mode" : "Entering mobile mode",
-        );
+        toast(context.isMobileMode ? "Leaving mobile mode" : "Entering mobile mode");
       });
 
       return {
@@ -111,10 +109,7 @@ export const previewStore = createStore({
         isMobileMode: !context.isMobileMode,
       };
     },
-    setPeekedBlock: (
-      context,
-      event: { block: Block; afterPosition?: string | null },
-    ) => {
+    setPeekedBlock: (context, event: { block: Block; afterPosition?: string | null }) => {
       if (!event.block) {
         return context;
       }
@@ -175,10 +170,7 @@ export const previewStore = createStore({
         ],
       };
     },
-    drillIntoRepeatableItem: (
-      context,
-      event: { itemId: string; fieldName: string },
-    ) => {
+    drillIntoRepeatableItem: (context, event: { itemId: string; fieldName: string }) => {
       return {
         ...context,
         selectionBreadcrumbs: [
@@ -233,10 +225,7 @@ export const previewStore = createStore({
     navigateBreadcrumb: (context, event: { depth: number }) => {
       return {
         ...context,
-        selectionBreadcrumbs: context.selectionBreadcrumbs.slice(
-          0,
-          event.depth + 1,
-        ),
+        selectionBreadcrumbs: context.selectionBreadcrumbs.slice(0, event.depth + 1),
       };
     },
     setSelectedField: (
@@ -326,8 +315,7 @@ export const previewStore = createStore({
       };
     },
     openBlockContentSheet: (context, event: { blockId: Id<"blocks"> }) => {
-      const currentBlockMatches =
-        context.selectionBreadcrumbs[0]?.id === event.blockId;
+      const currentBlockMatches = context.selectionBreadcrumbs[0]?.id === event.blockId;
       return {
         ...context,
         isPageContentSheetOpen: true,
@@ -336,10 +324,7 @@ export const previewStore = createStore({
           : [{ type: "Block" as const, id: event.blockId }],
       };
     },
-    setSelectionBreadcrumbs: (
-      context,
-      event: { breadcrumbs: SelectionBreadcrumb[] },
-    ) => {
+    setSelectionBreadcrumbs: (context, event: { breadcrumbs: SelectionBreadcrumb[] }) => {
       return {
         ...context,
         selectionBreadcrumbs: event.breadcrumbs,
@@ -387,10 +372,7 @@ export const previewStore = createStore({
         editingPage: null,
       };
     },
-    setIframeElement: (
-      context,
-      event: { element: HTMLIFrameElement | null },
-    ) => {
+    setIframeElement: (context, event: { element: HTMLIFrameElement | null }) => {
       return {
         ...context,
         iframeElement: event.element,

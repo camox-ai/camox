@@ -1,25 +1,26 @@
-import { type Action, actionsStore } from "../provider/actionsStore";
-import { previewStore } from "./previewStore";
-import { useSelector } from "@xstate/store/react";
-import * as React from "react";
-import { PeekedBlock } from "./components/PeekedBlock";
-
-import { PreviewFrame, PreviewPanel } from "./components/PreviewPanel";
-import { Navbar } from "../studio/components/Navbar";
 import { SignedIn, SignedOut, useAuth, useClerk } from "@clerk/clerk-react";
-import { useCamoxApp } from "../provider/components/CamoxAppContext";
+import { useLocation, useNavigate } from "@tanstack/react-router";
+import { useSelector } from "@xstate/store/react";
 import { api } from "camox/_generated/api";
 import { useQuery } from "convex/react";
-import { useLocation, useNavigate } from "@tanstack/react-router";
-import { formatPathSegment } from "@/lib/utils";
-import { PageTree } from "./components/PageTree";
+import * as React from "react";
+
 import { PanelContent, PanelHeader } from "@/components/ui/panel";
-import { PagePicker } from "./components/PagePicker";
-import { PageContentSheet } from "./components/PageContentSheet";
+import { formatPathSegment } from "@/lib/utils";
+
+import { type Action, actionsStore } from "../provider/actionsStore";
+import { useCamoxApp } from "../provider/components/CamoxAppContext";
+import { Navbar } from "../studio/components/Navbar";
 import { AddBlockSheet } from "./components/AddBlockSheet";
 import { AgentChatSheet } from "./components/AgentChatSheet";
 import { CreatePageSheet } from "./components/CreatePageSheet";
 import { EditPageSheet } from "./components/EditPageSheet";
+import { PageContentSheet } from "./components/PageContentSheet";
+import { PagePicker } from "./components/PagePicker";
+import { PageTree } from "./components/PageTree";
+import { PeekedBlock } from "./components/PeekedBlock";
+import { PreviewFrame, PreviewPanel } from "./components/PreviewPanel";
+import { previewStore } from "./previewStore";
 
 /* -------------------------------------------------------------------------------------------------
  * PageContent
@@ -31,10 +32,7 @@ import { EditPageSheet } from "./components/EditPageSheet";
  */
 export function usePreviewedPage() {
   const { pathname } = useLocation();
-  const peekedPagePathname = useSelector(
-    previewStore,
-    (state) => state.context.peekedPagePathname,
-  );
+  const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
   const pagePathnameToFetch = peekedPagePathname ?? pathname;
 
   // When the actual route changes, clear any stale peeked page so it doesn't
@@ -129,9 +127,7 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
   }, [pageData.blocks, effectivePosition]);
 
   // Look up layout
-  const layout = pageData.layout
-    ? camoxApp.getLayoutById(pageData.layout.layoutId)
-    : undefined;
+  const layout = pageData.layout ? camoxApp.getLayoutById(pageData.layout.layoutId) : undefined;
 
   // Build layout block data map by type
   const layoutBlocks = React.useMemo(() => {
@@ -190,16 +186,12 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
               showAddBlockBottom={true}
             />
             {/* Render peeked block after this block if this is the insertion point */}
-            {index === peekedBlockIndex - 1 && (
-              <PeekedBlock onExitComplete={onExitComplete} />
-            )}
+            {index === peekedBlockIndex - 1 && <PeekedBlock onExitComplete={onExitComplete} />}
           </React.Fragment>
         );
       })}
       {/* Render peeked block at the end if there are no blocks */}
-      {pageData.blocks.length === 0 && (
-        <PeekedBlock onExitComplete={onExitComplete} />
-      )}
+      {pageData.blocks.length === 0 && <PeekedBlock onExitComplete={onExitComplete} />}
     </>
   );
 
@@ -212,9 +204,7 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
     );
   }
 
-  return (
-    <main className="flex min-h-screen flex-col">{pageBlocksContent}</main>
-  );
+  return <main className="flex min-h-screen flex-col">{pageBlocksContent}</main>;
 };
 
 /* -------------------------------------------------------------------------------------------------
@@ -223,14 +213,8 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
 
 export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
   const { isSignedIn } = useClerk();
-  const isPresentationMode = useSelector(
-    previewStore,
-    (state) => state.context.isPresentationMode,
-  );
-  const isSidebarOpen = useSelector(
-    previewStore,
-    (state) => state.context.isSidebarOpen,
-  );
+  const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
+  const isSidebarOpen = useSelector(previewStore, (state) => state.context.isSidebarOpen);
 
   React.useEffect(() => {
     const actions = [
@@ -274,15 +258,15 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
   return (
     <>
       <SignedIn>
-        <div className="h-screen overflow-hidden bg-background flex flex-col">
+        <div className="bg-background flex h-screen flex-col overflow-hidden">
           <Navbar />
-          <div className="h-full flex flex-row items-stretch">
+          <div className="flex h-full flex-row items-stretch">
             {isSidebarOpen && (
-              <div className="w-[300px] flex flex-col border-r-2">
-                <PanelHeader className="px-2 py-2 flex flew-row gap-2">
+              <div className="flex w-[300px] flex-col border-r-2">
+                <PanelHeader className="flew-row flex gap-2 px-2 py-2">
                   <PagePicker />
                 </PanelHeader>
-                <PanelContent className="grow basis-0 flex flex-col gap-2 p-2 overflow-auto">
+                <PanelContent className="flex grow basis-0 flex-col gap-2 overflow-auto p-2">
                   <PageTree />
                 </PanelContent>
               </div>
@@ -322,8 +306,7 @@ export function usePreviewPagesActions() {
         groupLabel: "Preview",
         icon: "FilePlus",
         checkIfAvailable: () => true,
-        execute: () =>
-          previewStore.send({ type: "openCreatePageSheet" }),
+        execute: () => previewStore.send({ type: "openCreatePageSheet" }),
       },
       {
         id: "edit-current-page",

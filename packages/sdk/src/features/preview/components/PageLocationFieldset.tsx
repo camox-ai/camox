@@ -4,7 +4,11 @@
  * Used by CreatePageSheet and EditPageSheet.
  * -----------------------------------------------------------------------------------------------*/
 
+import { Id, Doc } from "camox/_generated/dataModel";
+
+import * as ControlGroup from "@/components/ui/control-group";
 import { Input } from "@/components/ui/input";
+import { InputBase, InputBaseAdornment } from "@/components/ui/input-base";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -14,10 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import * as ControlGroup from "@/components/ui/control-group";
-import { InputBase, InputBaseAdornment } from "@/components/ui/input-base";
 import { formatPathSegment } from "@/lib/utils";
-import { Id, Doc } from "camox/_generated/dataModel";
 
 const NO_PARENT_VALUE = "__no_parent__";
 
@@ -47,9 +48,7 @@ const PageLocationFieldset = ({
     return page ? page.fullPath + "/" : "/";
   };
 
-  const nonRootPages = pages?.filter(
-    (page) => page._id !== excludePageId && page.fullPath !== "/",
-  );
+  const nonRootPages = pages?.filter((page) => page._id !== excludePageId && page.fullPath !== "/");
   const hasParentOptions = nonRootPages && nonRootPages.length > 0;
 
   return (
@@ -63,9 +62,7 @@ const PageLocationFieldset = ({
           disabled={disabled || !hasParentOptions}
           onValueChange={(value) =>
             onParentPageIdChange(
-              ["", NO_PARENT_VALUE].includes(value)
-                ? undefined
-                : (value as Id<"pages">),
+              ["", NO_PARENT_VALUE].includes(value) ? undefined : (value as Id<"pages">),
             )
           }
         >
@@ -76,17 +73,15 @@ const PageLocationFieldset = ({
             <SelectItem value={NO_PARENT_VALUE}>No parent</SelectItem>
             <SelectSeparator />
             {nonRootPages?.map((page) => (
-                <SelectItem key={page._id} value={page._id}>
-                  <div className="flex flex-col items-start">
-                    <span>
-                      {page.metaTitle ?? formatPathSegment(page.pathSegment)}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-mono [[data-slot=select-value]_&]:hidden">
-                      {page.fullPath}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
+              <SelectItem key={page._id} value={page._id}>
+                <div className="flex flex-col items-start">
+                  <span>{page.metaTitle ?? formatPathSegment(page.pathSegment)}</span>
+                  <span className="text-muted-foreground font-mono text-xs [[data-slot=select-value]_&]:hidden">
+                    {page.fullPath}
+                  </span>
+                </div>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <p className="text-muted-foreground text-xs">

@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import type { CamoxApp } from "../../../core/createApp";
 
 const CamoxAppContext = React.createContext<CamoxApp | undefined>(undefined);
@@ -10,9 +11,7 @@ export const CamoxAppProvider = ({
   app: CamoxApp;
   children: React.ReactNode;
 }) => {
-  return (
-    <CamoxAppContext.Provider value={app}>{children}</CamoxAppContext.Provider>
-  );
+  return <CamoxAppContext.Provider value={app}>{children}</CamoxAppContext.Provider>;
 };
 
 export function useCamoxApp() {

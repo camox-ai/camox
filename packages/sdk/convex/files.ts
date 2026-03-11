@@ -1,14 +1,10 @@
-import {
-  mutation,
-  query,
-  internalAction,
-  internalMutation,
-} from "./_generated/server";
-import { internal } from "./_generated/api";
-import { v } from "convex/values";
 import { buildDownloadUrl } from "convex-fs";
-import { fs } from "./fs";
+import { v } from "convex/values";
+
 import { generateImageMetadata } from "../src/lib/ai";
+import { internal } from "./_generated/api";
+import { mutation, query, internalAction, internalMutation } from "./_generated/server";
+import { fs } from "./fs";
 import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 
 const FS_PREFIX = "/fs";
@@ -164,10 +160,7 @@ export const generateFileMetadata = internalAction({
     currentFilename: v.string(),
   },
   handler: async (ctx, args) => {
-    const metadata = await generateImageMetadata(
-      args.imageUrl,
-      args.currentFilename,
-    );
+    const metadata = await generateImageMetadata(args.imageUrl, args.currentFilename);
 
     const ext = args.currentFilename.includes(".")
       ? `.${args.currentFilename.split(".").pop()}`

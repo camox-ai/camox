@@ -1,8 +1,4 @@
-import {
-  ParagraphNode,
-  type EditorConfig,
-  type SerializedParagraphNode,
-} from "lexical";
+import { ParagraphNode, type EditorConfig, type SerializedParagraphNode } from "lexical";
 
 export class InlineParagraphNode extends ParagraphNode {
   static getType(): string {
@@ -24,9 +20,7 @@ export class InlineParagraphNode extends ParagraphNode {
     return false;
   }
 
-  static importJSON(
-    serializedNode: SerializedParagraphNode,
-  ): InlineParagraphNode {
+  static importJSON(serializedNode: SerializedParagraphNode): InlineParagraphNode {
     const node = new InlineParagraphNode();
     node.setDirection(serializedNode.direction);
     node.setFormat(serializedNode.format);

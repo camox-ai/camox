@@ -1,39 +1,33 @@
+import { Slot } from "@radix-ui/react-slot";
+import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
+import { useSelector } from "@xstate/store/react";
+import { api } from "camox/_generated/api";
+import type { Id } from "camox/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { Slot } from "@radix-ui/react-slot";
-import { useSelector } from "@xstate/store/react";
-import { useMutation, useQuery } from "convex/react";
-import {
-  Type as TypeBoxType,
-  type TSchema,
-  type Static,
-} from "@sinclair/typebox";
-import { api } from "camox/_generated/api";
-import { previewStore } from "../features/preview/previewStore";
-import { postOverlayMessage } from "../features/preview/overlayMessages";
+
+import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet.tsx";
+
+import { useFrame } from "../components/ui/frame";
+import { Input } from "../components/ui/input";
+import { Kbd } from "../components/ui/kbd";
+import { Label } from "../components/ui/label";
+import { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from "../components/ui/popover";
+import { toast } from "../components/ui/toaster";
 import {
   OVERLAY_WIDTHS,
   OVERLAY_OFFSETS,
   OVERLAY_COLORS,
   LAYOUT_OVERLAY_COLORS,
 } from "../features/preview/overlayConstants";
-import { useFrame } from "../components/ui/frame";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverAnchor,
-} from "../components/ui/popover";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { toast } from "../components/ui/toaster";
-import { Kbd } from "../components/ui/kbd";
-import type { Id } from "camox/_generated/dataModel";
+import { postOverlayMessage } from "../features/preview/overlayMessages";
+import { previewStore } from "../features/preview/previewStore";
+import { AddBlockControlBar } from "./components/AddBlockControlBar.tsx";
+import { InlineLexicalEditor } from "./components/lexical/InlineLexicalEditor";
+import { useFieldSelection } from "./hooks/useFieldSelection.ts";
 import { useIsEditable } from "./hooks/useIsEditable.ts";
 import { useOverlayMessage } from "./hooks/useOverlayMessage.ts";
-import { useFieldSelection } from "./hooks/useFieldSelection.ts";
-import { AddBlockControlBar } from "./components/AddBlockControlBar.tsx";
-import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet.tsx";
 import {
   Type,
   type EmbedURL,
@@ -43,7 +37,6 @@ import {
   type ExtractAllPlaceholders,
 } from "./lib/contentType.ts";
 import { lexicalStateToReactNodes } from "./lib/lexicalReact";
-import { InlineLexicalEditor } from "./components/lexical/InlineLexicalEditor";
 
 export { Type };
 
@@ -111,9 +104,7 @@ interface CreateBlockOptions<
    * @example
    * toMarkdown: ["# {{title}}", "{{description}}", "{{illustration}}", "{{cta}}"]
    */
-  toMarkdown: [ExtractAllPlaceholders<TMarkdown>] extends [
-    Extract<keyof TSchemaShape, string>,
-  ]
+  toMarkdown: [ExtractAllPlaceholders<TMarkdown>] extends [Extract<keyof TSchemaShape, string>]
     ? TMarkdown
     : readonly [
         `Invalid toMarkdown placeholder {{${Exclude<ExtractAllPlaceholders<TMarkdown>, Extract<keyof TSchemaShape, string>>}}}`,
@@ -180,9 +171,7 @@ export function createBlock<
   };
 
   // Build settings schema (if provided)
-  const settingsTypeboxSchema = options.settings
-    ? TypeBoxType.Object(options.settings)
-    : null;
+  const settingsTypeboxSchema = options.settings ? TypeBoxType.Object(options.settings) : null;
 
   const settingsSchema = settingsTypeboxSchema
     ? {
@@ -201,12 +190,7 @@ export function createBlock<
       // Exclude asset fields from storage defaults — placeholders should only exist at the rendering layer
       const ft = (prop as any).fieldType;
       const ait = (prop as any).arrayItemType;
-      if (
-        ft === "Image" ||
-        ft === "File" ||
-        ait === "Image" ||
-        ait === "File"
-      ) {
+      if (ft === "Image" || ft === "File" || ait === "Image" || ait === "File") {
         continue;
       }
       contentDefaultsForStorage[key] = prop.default;
@@ -232,9 +216,7 @@ export function createBlock<
 
   const settingsDefaults: Record<string, unknown> = {};
   if (settingsTypeboxSchema) {
-    for (const [key, prop] of Object.entries(
-      settingsTypeboxSchema.properties,
-    )) {
+    for (const [key, prop] of Object.entries(settingsTypeboxSchema.properties)) {
       if ("default" in prop) {
         settingsDefaults[key] = prop.default;
       }
@@ -270,8 +252,7 @@ export function createBlock<
   }
 
   const Context = React.createContext<BlockContextValue | null>(null);
-  const RepeaterItemContext =
-    React.createContext<RepeaterItemContextValue | null>(null);
+  const RepeaterItemContext = React.createContext<RepeaterItemContextValue | null>(null);
 
   // Context to track if the parent repeater container is being hovered from sidebar
   const RepeaterHoverContext = React.createContext<boolean>(false);
@@ -291,8 +272,7 @@ export function createBlock<
       return `${blockId}__${repeaterContext.itemId}__${fieldName}`;
     }
     if (repeaterContext?.nested) {
-      const { parentItemId, nestedFieldName, nestedIndex } =
-        repeaterContext.nested;
+      const { parentItemId, nestedFieldName, nestedIndex } = repeaterContext.nested;
       return `${blockId}__${parentItemId}:${nestedFieldName}:${nestedIndex}__${fieldName}`;
     }
     return `${blockId}__${fieldName}`;
@@ -309,16 +289,12 @@ export function createBlock<
 
   // Only allow embed URL fields
   type EmbedFields = {
-    [K in keyof TContent as TContent[K] extends EmbedURL
-      ? K
-      : never]: TContent[K];
+    [K in keyof TContent as TContent[K] extends EmbedURL ? K : never]: TContent[K];
   };
 
   // Only allow link fields
   type LinkFields = {
-    [K in keyof TContent as TContent[K] extends LinkValue
-      ? K
-      : never]: TContent[K];
+    [K in keyof TContent as TContent[K] extends LinkValue ? K : never]: TContent[K];
   };
 
   // Only allow image fields
@@ -341,9 +317,7 @@ export function createBlock<
 
   // Only allow array fields (from repeatableObject)
   type RepeatableFields = {
-    [K in keyof TContent as TContent[K] extends Array<any>
-      ? K
-      : never]: TContent[K];
+    [K in keyof TContent as TContent[K] extends Array<any> ? K : never]: TContent[K];
   };
 
   // Extract the element type from a repeatable array field
@@ -421,9 +395,9 @@ export function createBlock<
     const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));
 
     // Get field value based on context
-    const fieldValue = (repeaterContext
-      ? repeaterContext.itemContent[name]
-      : content[name]) as string;
+    const fieldValue = (
+      repeaterContext ? repeaterContext.itemContent[name] : content[name]
+    ) as string;
 
     // Local hover/focus state for overlay styling
     const [isHovered, setIsHovered] = React.useState(false);
@@ -457,23 +431,26 @@ export function createBlock<
       api.repeatableItems.updateRepeatableItemContent,
     );
 
-    const handleChange = React.useCallback((newValue: string) => {
-      if (repeaterContext) {
-        const { itemId } = repeaterContext;
-        if (itemId) {
-          updateRepeatableItemContent({
-            itemId: itemId,
+    const handleChange = React.useCallback(
+      (newValue: string) => {
+        if (repeaterContext) {
+          const { itemId } = repeaterContext;
+          if (itemId) {
+            updateRepeatableItemContent({
+              itemId: itemId,
+              content: { [name]: newValue },
+            });
+          }
+        } else {
+          updateBlockContent({
+            blockId,
             content: { [name]: newValue },
           });
         }
-      } else {
-        updateBlockContent({
-          blockId,
-          content: { [name]: newValue },
-        });
-      }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [blockId, name, repeaterContext?.itemId]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      },
+      [blockId, name, repeaterContext?.itemId],
+    );
 
     const handleFocus = React.useCallback(() => {
       setIsEditorFocused(true);
@@ -492,7 +469,7 @@ export function createBlock<
           fieldType: "String",
         });
       }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [blockId, name, repeaterContext?.itemId]);
 
     const handleBlur = React.useCallback(() => {
@@ -515,9 +492,7 @@ export function createBlock<
       isContentEditable && (isHovered || isFocused)
         ? {
             outline: `${isFocused ? OVERLAY_WIDTHS.selected : OVERLAY_WIDTHS.hover} solid ${isFocused ? colors.selected : colors.hover}`,
-            outlineOffset: isFocused
-              ? OVERLAY_OFFSETS.fieldSelected
-              : OVERLAY_OFFSETS.fieldHover,
+            outlineOffset: isFocused ? OVERLAY_OFFSETS.fieldSelected : OVERLAY_OFFSETS.fieldHover,
           }
         : undefined;
 
@@ -679,12 +654,8 @@ export function createBlock<
         <PopoverTrigger asChild>
           <div
             style={{ position: "relative" }}
-            onMouseEnter={
-              isContentEditable ? () => setIsHovered(true) : undefined
-            }
-            onMouseLeave={
-              isContentEditable ? () => setIsHovered(false) : undefined
-            }
+            onMouseEnter={isContentEditable ? () => setIsHovered(true) : undefined}
+            onMouseLeave={isContentEditable ? () => setIsHovered(false) : undefined}
           >
             {children(fieldValue)}
             {isContentEditable && (
@@ -710,9 +681,7 @@ export function createBlock<
                   <div
                     style={{
                       position: "absolute",
-                      inset: isOpen
-                        ? OVERLAY_OFFSETS.blockSelected
-                        : OVERLAY_OFFSETS.blockHover,
+                      inset: isOpen ? OVERLAY_OFFSETS.blockSelected : OVERLAY_OFFSETS.blockHover,
                       border: `${isOpen ? OVERLAY_WIDTHS.selected : OVERLAY_WIDTHS.hover} solid ${isOpen ? colors.selected : colors.hover}`,
                       pointerEvents: "none",
                       zIndex: 11,
@@ -727,15 +696,9 @@ export function createBlock<
           <PopoverContent className="w-96 gap-2">
             <form className="grid gap-2">
               <Label htmlFor="url">
-                {(options.content[name] as { title?: string })?.title ??
-                  String(name)}
+                {(options.content[name] as { title?: string })?.title ?? String(name)}
               </Label>
-              <Input
-                type="url"
-                id="url"
-                value={urlValue}
-                onChange={handleUrlChange}
-              />
+              <Input type="url" id="url" value={urlValue} onChange={handleUrlChange} />
             </form>
           </PopoverContent>
         )}
@@ -748,11 +711,7 @@ export function createBlock<
     children,
   }: {
     name: K;
-    children: (link: {
-      text: string;
-      href: string;
-      newTab: boolean;
-    }) => React.ReactNode;
+    children: (link: { text: string; href: string; newTab: boolean }) => React.ReactNode;
   }) => {
     const blockContext = React.use(Context);
     if (!blockContext) {
@@ -768,9 +727,7 @@ export function createBlock<
     const rawFieldValue = repeaterContext
       ? (repeaterContext.itemContent[name] as LinkValue)
       : (content[name] as LinkValue);
-    const fieldValue = normalizeLinkValue(
-      rawFieldValue as unknown as Record<string, unknown>,
-    );
+    const fieldValue = normalizeLinkValue(rawFieldValue as unknown as Record<string, unknown>);
     const pages = useQuery(api.pages.listPages);
     const resolvedHref = resolveLinkHref(fieldValue, pages);
 
@@ -909,20 +866,12 @@ export function createBlock<
             ref={elementRef}
             data-camox-field-id={isContentEditable ? fieldId : undefined}
             contentEditable={isContentEditable}
-            onClick={
-              isContentEditable
-                ? (e: React.MouseEvent) => e.preventDefault()
-                : undefined
-            }
+            onClick={isContentEditable ? (e: React.MouseEvent) => e.preventDefault() : undefined}
             onInput={handleInput}
             onFocus={handleFocus}
             onBlur={handleBlur}
-            onMouseEnter={
-              isContentEditable ? () => setIsHovered(true) : undefined
-            }
-            onMouseLeave={
-              isContentEditable ? () => setIsHovered(false) : undefined
-            }
+            onMouseEnter={isContentEditable ? () => setIsHovered(true) : undefined}
+            onMouseLeave={isContentEditable ? () => setIsHovered(false) : undefined}
             onKeyDown={(e: React.KeyboardEvent) => {
               if (e.key === "Escape") {
                 (e.target as HTMLElement).blur();
@@ -956,7 +905,7 @@ export function createBlock<
           >
             <button
               type="button"
-              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-accent transition-colors"
+              className="hover:bg-accent flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors"
               onMouseDown={(e) => e.preventDefault()}
               onClick={handleEditLink}
             >
@@ -994,12 +943,7 @@ export function createBlock<
     const [isHovered, setIsHovered] = React.useState(false);
 
     // Derive selected state from selectionBreadcrumbs
-    const isFocused = useFieldSelection(
-      blockId,
-      String(name),
-      "Image",
-      repeaterContext?.itemId,
-    );
+    const isFocused = useFieldSelection(blockId, String(name), "Image", repeaterContext?.itemId);
 
     // Keep sidebar hover via postMessage (transient state)
     const isHoveredFromSidebar = useOverlayMessage(
@@ -1077,9 +1021,7 @@ export function createBlock<
           <div
             style={{
               position: "absolute",
-              inset: isFocused
-                ? OVERLAY_OFFSETS.blockSelected
-                : OVERLAY_OFFSETS.blockHover,
+              inset: isFocused ? OVERLAY_OFFSETS.blockSelected : OVERLAY_OFFSETS.blockHover,
               border: `${isFocused ? OVERLAY_WIDTHS.selected : OVERLAY_WIDTHS.hover} solid ${isFocused ? colors.selected : colors.hover}`,
               pointerEvents: "none",
               zIndex: 10,
@@ -1183,9 +1125,7 @@ export function createBlock<
     );
 
     return (
-      <RepeaterHoverContext.Provider value={isHovered}>
-        {children}
-      </RepeaterHoverContext.Provider>
+      <RepeaterHoverContext.Provider value={isHovered}>{children}</RepeaterHoverContext.Provider>
     );
   };
 
@@ -1202,11 +1142,7 @@ export function createBlock<
         }) => React.ReactNode;
         Link: <F extends keyof ItemLinkFields<K>>(props: {
           name: F;
-          children: (link: {
-            text: string;
-            href: string;
-            newTab: boolean;
-          }) => React.ReactNode;
+          children: (link: { text: string; href: string; newTab: boolean }) => React.ReactNode;
         }) => React.ReactNode;
         Embed: <F extends keyof ItemEmbedFields<K>>(props: {
           name: F;
@@ -1280,11 +1216,7 @@ export function createBlock<
 
     const ItemLink = Link as <F extends keyof ItemLinkFields<K>>(props: {
       name: F;
-      children: (link: {
-        text: string;
-        href: string;
-        newTab: boolean;
-      }) => React.ReactNode;
+      children: (link: { text: string; href: string; newTab: boolean }) => React.ReactNode;
     }) => React.ReactNode;
 
     const ItemEmbed = Embed as <F extends keyof ItemEmbedFields<K>>(props: {
@@ -1302,9 +1234,7 @@ export function createBlock<
       children: (file: FileValue) => React.ReactNode;
     }) => React.ReactNode;
 
-    const ItemRepeater = Repeater as <
-      F extends keyof ItemRepeatableFields<K>,
-    >(props: {
+    const ItemRepeater = Repeater as <F extends keyof ItemRepeatableFields<K>>(props: {
       name: F;
       children: (
         item: {
@@ -1314,11 +1244,7 @@ export function createBlock<
           }) => React.ReactNode;
           Link: (props: {
             name: string;
-            children: (link: {
-              text: string;
-              href: string;
-              newTab: boolean;
-            }) => React.ReactNode;
+            children: (link: { text: string; href: string; newTab: boolean }) => React.ReactNode;
           }) => React.ReactNode;
           Embed: (props: {
             name: string;
@@ -1352,8 +1278,7 @@ export function createBlock<
 
     // Nested repeater: items are plain objects in parent item's content
     if (parentRepeaterContext) {
-      const nestedArray = (parentRepeaterContext.itemContent[name] ??
-        []) as any[];
+      const nestedArray = (parentRepeaterContext.itemContent[name] ?? []) as any[];
 
       if (!Array.isArray(nestedArray)) {
         throw new Error(`Field "${String(name)}" is not an array`);
@@ -1384,11 +1309,7 @@ export function createBlock<
                   },
                 }}
               >
-                <RepeaterItemWrapper
-                  itemId={nestedItemId}
-                  blockId={blockId}
-                  mode={mode}
-                >
+                <RepeaterItemWrapper itemId={nestedItemId} blockId={blockId} mode={mode}>
                   {children(itemComponents, index)}
                 </RepeaterItemWrapper>
               </RepeaterItemContext.Provider>
@@ -1426,11 +1347,7 @@ export function createBlock<
                 itemId: itemId,
               }}
             >
-              <RepeaterItemWrapper
-                itemId={itemId}
-                blockId={blockId}
-                mode={mode}
-              >
+              <RepeaterItemWrapper itemId={itemId} blockId={blockId} mode={mode}>
                 {children(itemComponents, index)}
               </RepeaterItemWrapper>
             </RepeaterItemContext.Provider>
@@ -1512,11 +1429,7 @@ export function createBlock<
       // Transform array fields from full item objects to content-only for the component prop
       for (const key in result) {
         const value = result[key];
-        if (
-          Array.isArray(value) &&
-          value.length > 0 &&
-          value[0]?.content !== undefined
-        ) {
+        if (Array.isArray(value) && value.length > 0 && value[0]?.content !== undefined) {
           // Extract just the content for the component prop
           result[key] = value.map((item: any) => item.content);
         }
@@ -1560,9 +1473,7 @@ export function createBlock<
 
     // The bright colors overlays to show selection and editable content
     const shouldShowOverlay =
-      isContentEditable &&
-      (isHovered || isBlockSelected) &&
-      !isAddBlockSheetOpen;
+      isContentEditable && (isHovered || isBlockSelected) && !isAddBlockSheetOpen;
 
     // The overlay to darken everything but one block when a preview sheet is open
     const shouldShowSheetOverlay =
@@ -1619,8 +1530,7 @@ export function createBlock<
         {/* Overlay UI */}
         {shouldShowOverlay &&
           (() => {
-            const colors =
-              mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
+            const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
             return (
               <>
                 {/* Border overlay */}
@@ -1638,8 +1548,7 @@ export function createBlock<
 
                 {(() => {
                   // Use explicit show flags if provided, otherwise fall back to legacy behavior
-                  const displayTop =
-                    showAddBlockTop ?? (mode !== "layout" && !isFirstBlock);
+                  const displayTop = showAddBlockTop ?? (mode !== "layout" && !isFirstBlock);
                   const displayBottom = showAddBlockBottom ?? mode !== "layout";
                   return (
                     <>
@@ -1681,11 +1590,7 @@ export function createBlock<
    * Wraps block content that renders outside the block's visual bounds (fixed navbars, modals, portals, etc.).
    * Provides the same hover, selection, and sheet overlays as the main BlockComponent.
    */
-  const Detached = ({
-    children,
-  }: {
-    children: React.ReactNode;
-  }): React.JSX.Element => {
+  const Detached = ({ children }: { children: React.ReactNode }): React.JSX.Element => {
     const ctx = React.use(Context);
     if (!ctx) {
       throw new Error("Detached must be used within a Block Component");
@@ -1723,13 +1628,10 @@ export function createBlock<
     }, [isHoveredFromSidebar, setIsHovered]);
 
     const shouldShowOverlay =
-      isContentEditable &&
-      (isHovered || isBlockSelected) &&
-      !isAddBlockSheetOpen;
+      isContentEditable && (isHovered || isBlockSelected) && !isAddBlockSheetOpen;
 
     const shouldShowSheetOverlay =
-      (isAddBlockSheetOpen && mode !== "peek") ||
-      (isPageContentSheetOpen && !isBlockSelected);
+      (isAddBlockSheetOpen && mode !== "peek") || (isPageContentSheetOpen && !isBlockSelected);
 
     const handleClick = (e: React.MouseEvent) => {
       if (!isContentEditable) return;
@@ -1779,8 +1681,7 @@ export function createBlock<
               {/* Border overlay */}
               {shouldShowOverlay &&
                 (() => {
-                  const colors =
-                    mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
+                  const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
                   return (
                     <div
                       style={{

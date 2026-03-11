@@ -1,5 +1,6 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
+
 import { cn } from "@/lib/utils";
 
 interface FrameContextValue {
@@ -41,8 +42,7 @@ export const Frame = ({
 }: FrameProps) => {
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const [iframeWindow, setIframeWindow] = React.useState<Window | null>(null);
-  const [iframeElement, setIframeElement] =
-    React.useState<HTMLIFrameElement | null>(null);
+  const [iframeElement, setIframeElement] = React.useState<HTMLIFrameElement | null>(null);
   const [mountNode, setMountNode] = React.useState<HTMLElement | null>(null);
   const [hasRadixPopper, setHasRadixPopper] = React.useState(false);
 
@@ -113,9 +113,7 @@ export const Frame = ({
   React.useEffect(() => {
     const checkForRadixPopper = () => {
       const hasPopper =
-        document.body.querySelector(
-          ":scope > [data-radix-popper-content-wrapper]",
-        ) !== null;
+        document.body.querySelector(":scope > [data-radix-popper-content-wrapper]") !== null;
       setHasRadixPopper(hasPopper);
     };
 
@@ -138,9 +136,7 @@ export const Frame = ({
     <div className={cn("relative w-full h-full", className)} style={style}>
       {/* Display an overlay to properly close close Radix portals (modals, popovers...) */}
       {/* because otherwise Radix wouldn't detect pointer events that would happen on the iframe */}
-      {hasRadixPopper && (
-        <div className="absolute w-full h-full top-0 left-0" />
-      )}
+      {hasRadixPopper && <div className="absolute top-0 left-0 h-full w-full" />}
       <FrameContext.Provider value={{ window: iframeWindow, iframeElement }}>
         <iframe ref={iframeRef} className={cn("w-full h-full")} />
         {mountNode && createPortal(children, mountNode)}

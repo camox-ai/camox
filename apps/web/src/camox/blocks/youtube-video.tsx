@@ -1,4 +1,5 @@
 import { Type, createBlock } from "camox/createBlock";
+
 import { cn } from "@/lib/utils";
 
 const youtubeVideo = createBlock({
@@ -116,8 +117,7 @@ function getYouTubeEmbedUrl(url: string, params: YouTubeParams): string {
   if (params.showCaptions) searchParams.set("cc_load_policy", "1");
   if (!params.rel) searchParams.set("rel", "0");
   if (!params.fullscreen) searchParams.set("fs", "0");
-  if (params.progressBarColor !== "red")
-    searchParams.set("color", params.progressBarColor);
+  if (params.progressBarColor !== "red") searchParams.set("color", params.progressBarColor);
   if (!params.keyboard) searchParams.set("disablekb", "1");
 
   const query = searchParams.toString();
@@ -166,7 +166,7 @@ function YouTubeVideoComponent() {
                   title="YouTube video"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen={fullscreen}
-                  className="absolute inset-0 w-full h-full"
+                  className="absolute inset-0 h-full w-full"
                 />
               </div>
             )}

@@ -84,11 +84,7 @@ export default defineSchema({
       v.literal("pages"),
     ),
     entityId: v.string(),
-    type: v.union(
-      v.literal("summary"),
-      v.literal("fileMetadata"),
-      v.literal("seo"),
-    ),
+    type: v.union(v.literal("summary"), v.literal("fileMetadata"), v.literal("seo")),
     scheduledFunctionId: v.id("_scheduled_functions"),
     createdAt: v.number(),
   }).index("by_entity", ["entityTable", "entityId", "type"]),

@@ -1,32 +1,20 @@
-import {
-  Check,
-  Download,
-  FileIcon,
-  Link,
-  Loader2,
-  Trash2,
-  X,
-} from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { api } from "camox/_generated/api";
+import type { Id } from "camox/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
+import { Check, Download, FileIcon, Link, Loader2, Trash2, X } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-
 import { Switch } from "@/components/ui/switch";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-import { FS_PREFIX, getSiteUrl } from "@/lib/convex-site";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
-import { api } from "camox/_generated/api";
-import type { Id } from "camox/_generated/dataModel";
+import { FS_PREFIX, getSiteUrl } from "@/lib/convex-site";
+import { cn } from "@/lib/utils";
+
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
 
 interface AssetLightboxProps {
@@ -94,17 +82,13 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
               reject(new Error(`Upload failed: ${xhr.status}`));
             }
           });
-          xhr.addEventListener("error", () =>
-            reject(new Error("Upload failed")),
-          );
+          xhr.addEventListener("error", () => reject(new Error("Upload failed")));
           xhr.open("POST", `${siteUrl}${FS_PREFIX}/upload`);
           xhr.setRequestHeader("Content-Type", droppedFile.type);
           xhr.send(droppedFile);
         });
 
-        setUploadState((prev) =>
-          prev ? { ...prev, status: "committing", progress: 100 } : prev,
-        );
+        setUploadState((prev) => (prev ? { ...prev, status: "committing", progress: 100 } : prev));
 
         const { fileId: newFileId } = await commitFile({
           blobId,
@@ -118,9 +102,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
           newFileId: newFileId as Id<"files">,
         });
 
-        setUploadState((prev) =>
-          prev ? { ...prev, status: "complete" } : prev,
-        );
+        setUploadState((prev) => (prev ? { ...prev, status: "complete" } : prev));
         toast.success("File replaced");
         setTimeout(() => {
           setUploadState(null);
@@ -128,9 +110,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
         }, 600);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Upload failed";
-        setUploadState((prev) =>
-          prev ? { ...prev, status: "error", error: message } : prev,
-        );
+        setUploadState((prev) => (prev ? { ...prev, status: "error", error: message } : prev));
         toast.error(message);
         setTimeout(() => setUploadState(null), 3000);
       }
@@ -170,12 +150,10 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
       }}
     >
       <DialogContent
-        className="w-[90vw] h-[90vh] max-w-[90vw] max-h-[90vh] p-0 overflow-hidden sm:max-w-[90vw] gap-0"
+        className="h-[90vh] max-h-[90vh] w-[90vw] max-w-[90vw] gap-0 overflow-hidden p-0 sm:max-w-[90vw]"
         showCloseButton={false}
       >
-        <DialogTitle className="sr-only">
-          {file.alt || file.filename || "File preview"}
-        </DialogTitle>
+        <DialogTitle className="sr-only">{file.alt || file.filename || "File preview"}</DialogTitle>
         <Button
           type="button"
           variant="ghost"
@@ -185,20 +163,18 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
         >
           <X />
         </Button>
-        <div className="flex flex-row h-full">
+        <div className="flex h-full flex-row">
           <UploadDropZone
             label="Drop file to replace"
             onDrop={handleReplaceDrop}
-            className="flex-1 min-w-0"
+            className="min-w-0 flex-1"
           >
             {isImage ? (
               <div
                 ref={containerRef}
                 className={cn(
                   "checkered absolute inset-0",
-                  zoomed
-                    ? "overflow-auto"
-                    : "overflow-hidden flex items-center justify-center p-6",
+                  zoomed ? "overflow-auto" : "overflow-hidden flex items-center justify-center p-6",
                 )}
                 onClick={() => {
                   if (!zoomed) return;
@@ -206,11 +182,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                   setZoomedWidth(null);
                 }}
               >
-                <div
-                  className={cn(
-                    zoomed && "min-h-full flex items-center",
-                  )}
-                >
+                <div className={cn(zoomed && "min-h-full flex items-center")}>
                   <img
                     src={file.url}
                     alt={file.alt || file.filename}
@@ -220,11 +192,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                         ? "max-w-none cursor-zoom-out"
                         : "max-w-full max-h-full object-contain cursor-zoom-in",
                     )}
-                    style={
-                      zoomed && zoomedWidth
-                        ? { width: zoomedWidth }
-                        : undefined
-                    }
+                    style={zoomed && zoomedWidth ? { width: zoomedWidth } : undefined}
                     onClick={(e) => {
                       if (zoomed) return;
                       e.stopPropagation();
@@ -233,89 +201,75 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                       const fracX = (e.clientX - rect.left) / rect.width;
                       const fracY = (e.clientY - rect.top) / rect.height;
                       const container = containerRef.current;
-                      const minWidth = container
-                        ? container.clientWidth * 2
-                        : 0;
-                      setZoomedWidth(
-                        Math.max(img.naturalWidth, minWidth),
-                      );
+                      const minWidth = container ? container.clientWidth * 2 : 0;
+                      setZoomedWidth(Math.max(img.naturalWidth, minWidth));
                       setZoomed(true);
                       requestAnimationFrame(() => {
                         const container = containerRef.current;
                         const zoomedImg = container?.querySelector("img");
                         if (!container || !zoomedImg) return;
                         container.scrollLeft =
-                          fracX * zoomedImg.offsetWidth -
-                          container.clientWidth / 2;
+                          fracX * zoomedImg.offsetWidth - container.clientWidth / 2;
                         container.scrollTop =
-                          fracY * zoomedImg.offsetHeight -
-                          container.clientHeight / 2;
+                          fracY * zoomedImg.offsetHeight - container.clientHeight / 2;
                       });
                     }}
                   />
                 </div>
               </div>
             ) : (
-              <div className="h-full min-h-[70vh] flex items-center justify-center p-6 bg-muted/30">
-                <FileIcon className="h-16 w-16 text-muted-foreground" />
+              <div className="bg-muted/30 flex h-full min-h-[70vh] items-center justify-center p-6">
+                <FileIcon className="text-muted-foreground h-16 w-16" />
               </div>
             )}
             {uploadState && (
-              <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-                <div className="w-64 rounded-lg border border-border bg-background p-4 shadow-lg">
+              <div className="bg-background/80 absolute inset-0 z-30 flex items-center justify-center backdrop-blur-sm">
+                <div className="border-border bg-background w-64 rounded-lg border p-4 shadow-lg">
                   <div className="flex items-center gap-2">
                     <div className="shrink-0">
                       {uploadState.status === "uploading" && (
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
                       )}
                       {uploadState.status === "committing" && (
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <Loader2 className="text-primary h-4 w-4 animate-spin" />
                       )}
                       {uploadState.status === "complete" && (
                         <Check className="h-4 w-4 text-green-500" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
                         {uploadState.status === "uploading" && "Uploading…"}
                         {uploadState.status === "committing" && "Processing…"}
                         {uploadState.status === "complete" && "Replaced"}
                         {uploadState.status === "error" && "Upload failed"}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">
+                      <p className="text-muted-foreground truncate text-xs">
                         {uploadState.filename}
                       </p>
                     </div>
                   </div>
-                  {(uploadState.status === "uploading" ||
-                    uploadState.status === "committing") && (
-                    <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
+                  {(uploadState.status === "uploading" || uploadState.status === "committing") && (
+                    <div className="bg-muted mt-3 h-1.5 overflow-hidden rounded-full">
                       <div
-                        className="h-full bg-primary transition-all duration-200"
+                        className="bg-primary h-full transition-all duration-200"
                         style={{ width: `${uploadState.progress}%` }}
                       />
                     </div>
                   )}
                   {uploadState.status === "error" && uploadState.error && (
-                    <p className="mt-2 text-xs text-destructive">
-                      {uploadState.error}
-                    </p>
+                    <p className="text-destructive mt-2 text-xs">{uploadState.error}</p>
                   )}
                 </div>
               </div>
             )}
           </UploadDropZone>
-          <div className="w-80 shrink-0 border-l border-border bg-background flex flex-col">
-            <div className="p-4 space-y-4 overflow-y-auto flex-1">
+          <div className="border-border bg-background flex w-80 shrink-0 flex-col border-l">
+            <div className="flex-1 space-y-4 overflow-y-auto p-4">
               <ButtonGroup>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={handleCopyUrl}
-                    >
+                    <Button type="button" variant="outline" size="icon" onClick={handleCopyUrl}>
                       <Link />
                     </Button>
                   </TooltipTrigger>
@@ -323,12 +277,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={handleDownload}
-                    >
+                    <Button type="button" variant="outline" size="icon" onClick={handleDownload}>
                       <Download />
                     </Button>
                   </TooltipTrigger>
@@ -336,12 +285,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={handleDelete}
-                    >
+                    <Button type="button" variant="outline" size="icon" onClick={handleDelete}>
                       <Trash2 />
                     </Button>
                   </TooltipTrigger>
@@ -352,9 +296,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 <Switch
                   id="ai-metadata"
                   checked={file.aiMetadataEnabled !== false}
-                  onCheckedChange={(checked) =>
-                    setAiMetadata({ fileId, enabled: checked })
-                  }
+                  onCheckedChange={(checked) => setAiMetadata({ fileId, enabled: checked })}
                 />
                 <Label htmlFor="ai-metadata">AI metadata</Label>
               </div>
@@ -363,9 +305,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 placeholder="File name..."
                 initialValue={file.filename}
                 disabled={file.aiMetadataEnabled !== false}
-                onSave={(value) =>
-                  updateFileFilename({ fileId, filename: value })
-                }
+                onSave={(value) => updateFileFilename({ fileId, filename: value })}
               />
               <DebouncedFieldEditor
                 label="Alt text"

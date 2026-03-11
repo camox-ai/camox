@@ -1,8 +1,9 @@
-import * as React from "react";
 import { useSelector } from "@xstate/store/react";
-import { previewStore } from "../previewStore";
-import { isOverlayMessage, type OverlayMessage } from "../overlayMessages";
+import * as React from "react";
+
 import { usePreviewedPage } from "../CamoxPreview";
+import { isOverlayMessage, type OverlayMessage } from "../overlayMessages";
+import { previewStore } from "../previewStore";
 
 interface OverlaysProps {
   iframeElement: HTMLIFrameElement | null;
@@ -17,10 +18,7 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
     previewStore,
     (state) => state.context.selectionBreadcrumbs,
   );
-  const peekedBlock = useSelector(
-    previewStore,
-    (state) => state.context.peekedBlock,
-  );
+  const peekedBlock = useSelector(previewStore, (state) => state.context.peekedBlock);
   const page = usePreviewedPage();
 
   // Listen for messages from iframe
@@ -41,9 +39,7 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
           afterPosition = blockPosition;
         } else {
           // Insert before: find the previous block's position
-          const blockIndex = page?.blocks.findIndex(
-            (b) => b.position === blockPosition,
-          );
+          const blockIndex = page?.blocks.findIndex((b) => b.position === blockPosition);
           if (blockIndex !== undefined && blockIndex > 0) {
             afterPosition = page?.blocks[blockIndex - 1].position ?? null;
           } else if (blockIndex === 0) {
@@ -69,15 +65,11 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
     if (selectionBreadcrumbs.length === 0) return;
 
     // Get the last breadcrumb which should be the field
-    const fieldBreadcrumb = selectionBreadcrumbs.find(
-      (b) => b.type === "String",
-    );
+    const fieldBreadcrumb = selectionBreadcrumbs.find((b) => b.type === "String");
     if (!fieldBreadcrumb) return;
 
     // Build the field ID from breadcrumbs
-    const blockBreadcrumb = selectionBreadcrumbs.find(
-      (b) => b.type === "Block",
-    );
+    const blockBreadcrumb = selectionBreadcrumbs.find((b) => b.type === "Block");
     if (!blockBreadcrumb) return;
 
     const repeatableItemBreadcrumb = selectionBreadcrumbs.find(

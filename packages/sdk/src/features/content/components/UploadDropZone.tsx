@@ -1,5 +1,6 @@
 import { Upload } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+
 import { cn } from "@/lib/utils";
 
 interface UploadDropZoneProps {
@@ -65,12 +66,10 @@ export function UploadDropZone({
     >
       {children}
       {isDragging && (
-        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-2 bg-background p-4">
-          <div className="flex flex-col items-center justify-center gap-2 w-full h-full rounded-lg border-3 border-dashed border-accent-foreground">
-            <Upload className="h-8 w-8 text-accent-foreground" />
-            <p className="text-sm font-medium text-accent-foreground">
-              {label}
-            </p>
+        <div className="bg-background absolute inset-0 z-40 flex flex-col items-center justify-center gap-2 p-4">
+          <div className="border-accent-foreground flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border-3 border-dashed">
+            <Upload className="text-accent-foreground h-8 w-8" />
+            <p className="text-accent-foreground text-sm font-medium">{label}</p>
           </div>
         </div>
       )}

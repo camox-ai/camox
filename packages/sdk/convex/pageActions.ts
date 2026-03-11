@@ -1,10 +1,11 @@
 "use node";
 
 import { v } from "convex/values";
-import { action } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { generatePageDraft } from "../src/lib/ai";
+
 import { markdownToLexicalState, plainTextToLexicalState } from "../src/core/lib/lexicalState";
+import { generatePageDraft } from "../src/lib/ai";
+import { internal } from "./_generated/api";
+import { action } from "./_generated/server";
 
 const DEFAULT_HERO_BLOCK = {
   type: "hero",
@@ -23,17 +24,12 @@ export const createPage = action({
     layoutId: v.id("layouts"),
     contentDescription: v.optional(v.string()),
   },
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{ pageId: string; fullPath: string }> => {
+  handler: async (ctx, args): Promise<{ pageId: string; fullPath: string }> => {
     let blocks: Array<{
       type: string;
       content: Record<string, unknown>;
       settings?: Record<string, unknown>;
-    }> = [
-      DEFAULT_HERO_BLOCK,
-    ];
+    }> = [DEFAULT_HERO_BLOCK];
 
     // If contentDescription provided, generate blocks with AI
     if (args.contentDescription) {
@@ -42,9 +38,7 @@ export const createPage = action({
           internal.blockDefinitions.getBlockDefinitionsInternal,
           { projectId: args.projectId },
         );
-        const blockDefinitions = allBlockDefinitions.filter(
-          (d) => !d.layoutOnly,
-        );
+        const blockDefinitions = allBlockDefinitions.filter((d) => !d.layoutOnly);
 
         if (blockDefinitions.length > 0) {
           blocks = await generatePageDraft({
@@ -53,9 +47,7 @@ export const createPage = action({
           });
 
           // Convert String field values from markdown to Lexical JSON
-          const defsByType = new Map(
-            blockDefinitions.map((d) => [d.blockId, d]),
-          );
+          const defsByType = new Map(blockDefinitions.map((d) => [d.blockId, d]));
           for (const block of blocks) {
             const def = defsByType.get(block.type);
             const props = (def?.contentSchema as any)?.properties;
@@ -65,9 +57,7 @@ export const createPage = action({
                 (schemaProp as any)?.fieldType === "String" &&
                 typeof block.content[key] === "string"
               ) {
-                block.content[key] = markdownToLexicalState(
-                  block.content[key] as string,
-                );
+                block.content[key] = markdownToLexicalState(block.content[key] as string);
               }
             }
           }

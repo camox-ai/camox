@@ -1,6 +1,3 @@
-import * as React from "react";
-import { useMutation } from "convex/react";
-import { useLocation } from "@tanstack/react-router";
 import {
   DndContext,
   closestCenter,
@@ -10,6 +7,7 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -17,15 +15,18 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { generateKeyBetween } from "fractional-indexing";
-import { FileIcon, GripVertical, X } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { FileUpload, type FileRef } from "@/components/file-upload";
-import { cn } from "@/lib/utils";
+import { useLocation } from "@tanstack/react-router";
 import { api } from "camox/_generated/api";
 import type { Doc, Id } from "camox/_generated/dataModel";
+import { useMutation } from "convex/react";
+import { generateKeyBetween } from "fractional-indexing";
+import { FileIcon, GripVertical, X } from "lucide-react";
+import * as React from "react";
+
+import { FileUpload, type FileRef } from "@/components/file-upload";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
 import { AssetLightbox } from "./AssetLightbox";
 
 /* -------------------------------------------------------------------------------------------------
@@ -47,14 +48,9 @@ const SortableAssetItem = ({
   onRemove,
   onAssetOpen,
 }: SortableAssetItemProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item._id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item._id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -84,7 +80,7 @@ const SortableAssetItem = ({
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground flex shrink-0"
+          className="text-muted-foreground hover:text-foreground flex shrink-0 cursor-grab active:cursor-grabbing"
           {...attributes}
           {...listeners}
         >
@@ -93,24 +89,20 @@ const SortableAssetItem = ({
 
         <button
           type="button"
-          className="flex flex-1 items-center gap-2 min-w-0 cursor-zoom-in"
+          className="flex min-w-0 flex-1 cursor-zoom-in items-center gap-2"
           onClick={() => onAssetOpen(item)}
         >
           {assetType === "Image" ? (
-            <div className="w-12 h-12 rounded border border-border overflow-hidden shrink-0">
-              <img
-                src={url}
-                alt={alt || filename}
-                className="w-full h-full object-cover"
-              />
+            <div className="border-border h-12 w-12 shrink-0 overflow-hidden rounded border">
+              <img src={url} alt={alt || filename} className="h-full w-full object-cover" />
             </div>
           ) : (
-            <div className="w-12 h-12 rounded border border-border overflow-hidden shrink-0 flex items-center justify-center bg-muted">
-              <FileIcon className="h-6 w-6 text-muted-foreground" />
+            <div className="border-border bg-muted flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded border">
+              <FileIcon className="text-muted-foreground h-6 w-6" />
             </div>
           )}
 
-          <p className="flex-1 truncate text-sm text-left" title={filename}>
+          <p className="flex-1 truncate text-left text-sm" title={filename}>
             {filename}
           </p>
         </button>
@@ -119,7 +111,7 @@ const SortableAssetItem = ({
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="hidden group-hover:flex group-focus-within:flex text-muted-foreground hover:text-foreground shrink-0"
+          className="text-muted-foreground hover:text-foreground hidden shrink-0 group-focus-within:flex group-hover:flex"
           onClick={(e) => {
             e.stopPropagation();
             onRemove(item._id);
@@ -152,12 +144,8 @@ const MultipleAssetFieldEditor = ({
   const { pathname } = useLocation();
   const contentKey = assetType === "Image" ? "image" : "file";
 
-  const createItemMutation = useMutation(
-    api.repeatableItems.createRepeatableItem,
-  );
-  const deleteItemMutation = useMutation(
-    api.repeatableItems.deleteRepeatableItem,
-  );
+  const createItemMutation = useMutation(api.repeatableItems.createRepeatableItem);
+  const deleteItemMutation = useMutation(api.repeatableItems.deleteRepeatableItem);
   const updatePositionMutation = useMutation(
     api.repeatableItems.updateRepeatableItemPosition,
   ).withOptimisticUpdate((localStore, args) => {
@@ -168,14 +156,12 @@ const MultipleAssetFieldEditor = ({
     if (!currentPage) return;
 
     const updatedBlocks = currentPage.blocks.map((block) => {
-      const hasItemInAnyField = Object.entries(block.content).some(
-        ([_, value]) => {
-          if (Array.isArray(value)) {
-            return value.some((item) => item._id === args.itemId);
-          }
-          return false;
-        },
-      );
+      const hasItemInAnyField = Object.entries(block.content).some(([_, value]) => {
+        if (Array.isArray(value)) {
+          return value.some((item) => item._id === args.itemId);
+        }
+        return false;
+      });
 
       if (!hasItemInAnyField) return block;
 
@@ -227,8 +213,7 @@ const MultipleAssetFieldEditor = ({
   });
 
   // Lightbox state
-  const [lightboxItem, setLightboxItem] =
-    React.useState<Doc<"repeatableItems"> | null>(null);
+  const [lightboxItem, setLightboxItem] = React.useState<Doc<"repeatableItems"> | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -252,10 +237,7 @@ const MultipleAssetFieldEditor = ({
 
     if (oldIndex < newIndex) {
       afterPosition = dbItems[newIndex].position;
-      beforePosition =
-        newIndex < dbItems.length - 1
-          ? dbItems[newIndex + 1].position
-          : undefined;
+      beforePosition = newIndex < dbItems.length - 1 ? dbItems[newIndex + 1].position : undefined;
     } else {
       afterPosition = newIndex > 0 ? dbItems[newIndex - 1].position : undefined;
       beforePosition = dbItems[newIndex].position;
@@ -285,7 +267,7 @@ const MultipleAssetFieldEditor = ({
   };
 
   return (
-    <div className="py-4 px-4 space-y-4">
+    <div className="space-y-4 px-4 py-4">
       {items.length > 0 && (
         <DndContext
           sensors={sensors}
@@ -321,9 +303,7 @@ const MultipleAssetFieldEditor = ({
       />
 
       {(() => {
-        const asset = lightboxItem?.content?.[contentKey] as
-          | { _fileId?: string }
-          | undefined;
+        const asset = lightboxItem?.content?.[contentKey] as { _fileId?: string } | undefined;
         if (!asset?._fileId) return null;
         return (
           <AssetLightbox

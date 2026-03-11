@@ -1,6 +1,7 @@
-import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { api } from "camox/_generated/api";
 import { useQuery } from "convex/react";
+import { Check, ChevronsUpDown } from "lucide-react";
+import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,16 +14,11 @@ import {
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn, formatPathSegment } from "@/lib/utils";
-import { api } from "camox/_generated/api";
 import type { LinkValue } from "@/core/lib/contentType.ts";
+import { cn, formatPathSegment } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------------------------------
  * LinkFieldEditor
@@ -42,27 +38,19 @@ const normalizeLinkValue = (value: Record<string, unknown>): LinkValue => {
   return value as LinkValue;
 };
 
-const LinkFieldEditor = ({
-  fieldName,
-  linkValue: rawLinkValue,
-  onSave,
-}: LinkFieldEditorProps) => {
+const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFieldEditorProps) => {
   const linkValue = normalizeLinkValue(rawLinkValue);
 
   const timerRef = React.useRef<number | null>(null);
   const [text, setText] = React.useState(linkValue.text);
-  const [href, setHref] = React.useState(
-    linkValue.type === "external" ? linkValue.href : "",
-  );
+  const [href, setHref] = React.useState(linkValue.type === "external" ? linkValue.href : "");
   const linkValueRef = React.useRef<LinkValue>(linkValue);
   const [pagePickerOpen, setPagePickerOpen] = React.useState(false);
 
   const pages = useQuery(api.pages.listPages);
 
   const selectedPage =
-    linkValue.type === "page"
-      ? pages?.find((p) => p._id === linkValue.pageId)
-      : null;
+    linkValue.type === "page" ? pages?.find((p) => p._id === linkValue.pageId) : null;
 
   React.useEffect(() => {
     linkValueRef.current = linkValue;
@@ -151,15 +139,10 @@ const LinkFieldEditor = ({
         {linkValue.type === "page" ? (
           <Popover open={pagePickerOpen} onOpenChange={setPagePickerOpen}>
             <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                className="justify-between font-normal"
-              >
+              <Button variant="outline" role="combobox" className="justify-between font-normal">
                 {selectedPage ? (
                   <span className="truncate">
-                    {selectedPage.metaTitle ??
-                      formatPathSegment(selectedPage.pathSegment)}
+                    {selectedPage.metaTitle ?? formatPathSegment(selectedPage.pathSegment)}
                   </span>
                 ) : (
                   <span className="text-muted-foreground">Select a page</span>
@@ -182,17 +165,12 @@ const LinkFieldEditor = ({
                         <Check
                           className={cn(
                             "mr-2 size-4",
-                            selectedPage?._id === page._id
-                              ? "opacity-100"
-                              : "opacity-0",
+                            selectedPage?._id === page._id ? "opacity-100" : "opacity-0",
                           )}
                         />
                         <div className="flex flex-col">
-                          <span>
-                            {page.metaTitle ??
-                              formatPathSegment(page.pathSegment)}
-                          </span>
-                          <span className="text-xs text-muted-foreground font-mono">
+                          <span>{page.metaTitle ?? formatPathSegment(page.pathSegment)}</span>
+                          <span className="text-muted-foreground font-mono text-xs">
                             {page.fullPath}
                           </span>
                         </div>

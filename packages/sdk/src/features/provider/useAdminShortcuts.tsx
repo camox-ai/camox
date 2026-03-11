@@ -1,8 +1,10 @@
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
-import { actionsStore } from "./actionsStore";
+
 import { checkIfInputFocused } from "@/lib/utils";
+
 import { previewStore } from "../preview/previewStore";
+import { actionsStore } from "./actionsStore";
 
 /**
  * Hook that listens for global keyboard shortcuts defined in the actionsStore
@@ -40,9 +42,9 @@ export function useAdminShortcuts() {
         const { key, withMeta, withAlt, withShift } = action.shortcut;
         return (
           key.toLowerCase() === event.key.toLowerCase() &&
-          !!(withMeta) === (event.metaKey || event.ctrlKey) &&
-          !!(withAlt) === event.altKey &&
-          !!(withShift) === event.shiftKey
+          !!withMeta === (event.metaKey || event.ctrlKey) &&
+          !!withAlt === event.altKey &&
+          !!withShift === event.shiftKey
         );
       });
       if (!matchingAction) return;
@@ -63,7 +65,8 @@ export function useAdminShortcuts() {
 
     const releaseLock = () => {
       if (previousLockState.current === null) return;
-      const holdDuration = lockKeyDownTime.current !== null ? Date.now() - lockKeyDownTime.current : Infinity;
+      const holdDuration =
+        lockKeyDownTime.current !== null ? Date.now() - lockKeyDownTime.current : Infinity;
       lockKeyDownTime.current = null;
 
       const wasShortTap = holdDuration < HOLD_THRESHOLD_MS;

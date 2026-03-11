@@ -1,8 +1,8 @@
 {
   "name": "camox",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "version": "1.0.0",
   "exports": {
     "./createApp": {
       "source": "./src/core/createApp.ts",

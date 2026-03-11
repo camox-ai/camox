@@ -1,4 +1,5 @@
 import { Type, createBlock } from "camox/createBlock";
+
 import { cn } from "@/lib/utils";
 
 const gallery = createBlock({
@@ -40,9 +41,7 @@ function GalleryComponent() {
       <div className="container mx-auto px-4">
         <gallery.Field name="title">
           {(content) => (
-            <h2 className="text-3xl font-bold tracking-tight text-foreground mb-8">
-              {content}
-            </h2>
+            <h2 className="text-foreground mb-8 text-3xl font-bold tracking-tight">{content}</h2>
           )}
         </gallery.Field>
         <div
@@ -50,8 +49,7 @@ function GalleryComponent() {
             "grid gap-4",
             columns === "2" && "grid-cols-1 sm:grid-cols-2",
             columns === "3" && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-            columns === "4" &&
-              "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+            columns === "4" && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
           )}
         >
           <gallery.Repeater name="images">
@@ -61,7 +59,7 @@ function GalleryComponent() {
                   <img
                     src={img.url}
                     alt={img.alt}
-                    className="w-full aspect-square object-cover rounded-lg"
+                    className="aspect-square w-full rounded-lg object-cover"
                   />
                 )}
               </item.Image>

@@ -1,6 +1,7 @@
-import { mutation } from "./_generated/server";
 import { generateNKeysBetween } from "fractional-indexing";
+
 import { plainTextToLexicalState } from "../src/core/lib/lexicalState";
+import { mutation } from "./_generated/server";
 
 /**
  * Seed script to populate the database with initial homepage and blocks
@@ -40,9 +41,7 @@ export const seedWebsite = mutation({
       await ctx.db.delete(tmpl._id);
     }
 
-    const existingBlockDefinitions = await ctx.db
-      .query("blockDefinitions")
-      .collect();
+    const existingBlockDefinitions = await ctx.db.query("blockDefinitions").collect();
     for (const def of existingBlockDefinitions) {
       await ctx.db.delete(def._id);
     }
@@ -154,11 +153,7 @@ export const seedWebsite = mutation({
     });
 
     // Generate positions for statistics items
-    const [statPos0, statPos1, statPos2, statPos3] = generateNKeysBetween(
-      null,
-      null,
-      4,
-    );
+    const [statPos0, statPos1, statPos2, statPos3] = generateNKeysBetween(null, null, 4);
 
     // Create statistics repeatableItems
     await ctx.db.insert("repeatableItems", {

@@ -1,5 +1,10 @@
 import { v } from "convex/values";
 import { generateKeyBetween } from "fractional-indexing";
+
+import { generateObjectSummary, generatePageSeo as generatePageSeoAI } from "../src/lib/ai";
+import { api, internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import type { QueryCtx } from "./_generated/server";
 import {
   query,
   mutation,
@@ -7,13 +12,7 @@ import {
   internalMutation,
   internalQuery,
 } from "./_generated/server";
-import type { QueryCtx } from "./_generated/server";
-import type { Doc, Id } from "./_generated/dataModel";
-import { api, internal } from "./_generated/api";
-import {
-  generateObjectSummary,
-  generatePageSeo as generatePageSeoAI,
-} from "../src/lib/ai";
+import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 import {
   sortByPosition,
   splitContent,
@@ -21,7 +20,6 @@ import {
   type ContentRecord,
 } from "./lib/contentAssembly";
 import { contentToMarkdown } from "./lib/contentMarkdown";
-import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 
 async function getProjectIdForBlock(
   ctx: QueryCtx,
@@ -38,16 +36,10 @@ async function getProjectIdForBlock(
   return null;
 }
 
-async function getBlockDefinition(
-  ctx: QueryCtx,
-  projectId: Id<"projects">,
-  blockType: string,
-) {
+async function getBlockDefinition(ctx: QueryCtx, projectId: Id<"projects">, blockType: string) {
   return ctx.db
     .query("blockDefinitions")
-    .withIndex("by_project_blockId", (q) =>
-      q.eq("projectId", projectId).eq("blockId", blockType),
-    )
+    .withIndex("by_project_blockId", (q) => q.eq("projectId", projectId).eq("blockId", blockType))
     .first();
 }
 
@@ -85,14 +77,9 @@ export const createBlock = mutation({
       newPosition = generateKeyBetween(null, firstBlock?.position ?? null);
     } else {
       // Insert after the specified position
-      const afterIndex = sortedBlocks.findIndex(
-        (b) => b.position === args.afterPosition
-      );
+      const afterIndex = sortedBlocks.findIndex((b) => b.position === args.afterPosition);
       const nextBlock = sortedBlocks[afterIndex + 1];
-      newPosition = generateKeyBetween(
-        args.afterPosition,
-        nextBlock?.position ?? null
-      );
+      newPosition = generateKeyBetween(args.afterPosition, nextBlock?.position ?? null);
     }
 
     const { scalarContent, arrayFields } = splitContent(args.content);
@@ -123,7 +110,7 @@ export const createBlock = mutation({
             fieldName,
             content: itemContent,
             afterPosition: prevPosition ?? undefined,
-          })
+          }),
         );
         prevPosition = itemPosition;
       }
@@ -202,10 +189,7 @@ export const updateBlockPosition = mutation({
     }
 
     // Calculate new position between afterPosition and beforePosition
-    const newPosition = generateKeyBetween(
-      args.afterPosition ?? null,
-      args.beforePosition ?? null
-    );
+    const newPosition = generateKeyBetween(args.afterPosition ?? null, args.beforePosition ?? null);
 
     await ctx.db.patch(args.blockId, {
       position: newPosition,
@@ -257,7 +241,7 @@ export const deleteBlocks = mutation({
 
         // Delete the block
         await ctx.db.delete(blockId);
-      })
+      }),
     );
   },
 });
@@ -285,10 +269,7 @@ export const duplicateBlock = mutation({
     // Find the block after the original to calculate new position
     const originalIndex = sortedBlocks.findIndex((b) => b._id === args.blockId);
     const nextBlock = sortedBlocks[originalIndex + 1];
-    const newPosition = generateKeyBetween(
-      block.position,
-      nextBlock?.position ?? null
-    );
+    const newPosition = generateKeyBetween(block.position, nextBlock?.position ?? null);
 
     // Create the duplicated block
     const newBlockId = await ctx.db.insert("blocks", {
@@ -318,8 +299,8 @@ export const duplicateBlock = mutation({
           position: item.position,
           createdAt: now,
           updatedAt: now,
-        })
-      )
+        }),
+      ),
     );
 
     return newBlockId;
@@ -336,9 +317,7 @@ export const getAssembledBlockContent = internalQuery({
 
     // Look up block definition for field order and content schema
     const projectId = await getProjectIdForBlock(ctx, block);
-    const def = projectId
-      ? await getBlockDefinition(ctx, projectId, block.type)
-      : null;
+    const def = projectId ? await getBlockDefinition(ctx, projectId, block.type) : null;
     const fieldOrder = def?.contentSchema?.properties
       ? Object.keys(def.contentSchema.properties)
       : undefined;
@@ -360,15 +339,19 @@ export const generateBlockSummary = internalAction({
     blockId: v.id("blocks"),
   },
   handler: async (ctx, args) => {
-    const assembled = await ctx.runQuery(
-      internal.blocks.getAssembledBlockContent,
-      { blockId: args.blockId },
-    );
+    const assembled = await ctx.runQuery(internal.blocks.getAssembledBlockContent, {
+      blockId: args.blockId,
+    });
     if (!assembled) return;
 
-    const markdown = assembled.contentSchema?.toMarkdown && assembled.contentSchema?.properties
-      ? contentToMarkdown(assembled.contentSchema.toMarkdown, assembled.contentSchema.properties, assembled.content)
-      : null;
+    const markdown =
+      assembled.contentSchema?.toMarkdown && assembled.contentSchema?.properties
+        ? contentToMarkdown(
+            assembled.contentSchema.toMarkdown,
+            assembled.contentSchema.properties,
+            assembled.content,
+          )
+        : null;
 
     let summary: string;
     try {
@@ -496,10 +479,7 @@ export const getAssembledPageContent = internalQuery({
     const contentSchemaByType = new Map<string, any>();
     for (const def of blockDefs) {
       if (def.contentSchema?.properties) {
-        fieldOrderByType.set(
-          def.blockId,
-          Object.keys(def.contentSchema.properties),
-        );
+        fieldOrderByType.set(def.blockId, Object.keys(def.contentSchema.properties));
         contentSchemaByType.set(def.blockId, def.contentSchema);
       }
     }
@@ -524,8 +504,7 @@ export const getAssembledPageContent = internalQuery({
       fullPath: page.fullPath,
       aiSeoEnabled: page.aiSeoEnabled,
       blocks: assembledBlocks.filter(
-        (b): b is { type: string; content: ContentRecord; contentSchema: any } =>
-          b !== null,
+        (b): b is { type: string; content: ContentRecord; contentSchema: any } => b !== null,
       ),
       previousMetaTitle: page.metaTitle,
       previousMetaDescription: page.metaDescription,
@@ -559,17 +538,21 @@ export const generatePageSeo = internalAction({
     pageId: v.id("pages"),
   },
   handler: async (ctx, args) => {
-    const assembled = await ctx.runQuery(
-      internal.blocks.getAssembledPageContent,
-      { pageId: args.pageId },
-    );
+    const assembled = await ctx.runQuery(internal.blocks.getAssembledPageContent, {
+      pageId: args.pageId,
+    });
     if (!assembled || assembled.aiSeoEnabled === false) return;
 
     const markdownBlocks = assembled.blocks.map((block) => ({
       type: block.type,
-      markdown: block.contentSchema?.toMarkdown && block.contentSchema?.properties
-        ? contentToMarkdown(block.contentSchema.toMarkdown, block.contentSchema.properties, block.content)
-        : JSON.stringify(block.content),
+      markdown:
+        block.contentSchema?.toMarkdown && block.contentSchema?.properties
+          ? contentToMarkdown(
+              block.contentSchema.toMarkdown,
+              block.contentSchema.properties,
+              block.content,
+            )
+          : JSON.stringify(block.content),
     }));
 
     let seo: { metaTitle: string; metaDescription: string };
@@ -616,10 +599,7 @@ export const getPageMarkdown = query({
     for (const def of blockDefs) {
       titleByType.set(def.blockId, def.title);
       if (def.contentSchema?.properties) {
-        fieldOrderByType.set(
-          def.blockId,
-          Object.keys(def.contentSchema.properties),
-        );
+        fieldOrderByType.set(def.blockId, Object.keys(def.contentSchema.properties));
         contentSchemaByType.set(def.blockId, def.contentSchema);
       }
     }
@@ -637,7 +617,11 @@ export const getPageMarkdown = query({
           const schema = contentSchemaByType.get(block.type);
           if (!schema?.toMarkdown || !schema?.properties) return null;
 
-          const markdown = contentToMarkdown(schema.toMarkdown, schema.properties, assembled.content);
+          const markdown = contentToMarkdown(
+            schema.toMarkdown,
+            schema.properties,
+            assembled.content,
+          );
           const title = titleByType.get(block.type) ?? block.type;
           return `<!-- ${title} -->\n${markdown}`;
         }),
@@ -671,8 +655,7 @@ export const getPageMarkdown = query({
       }
     }
 
-    return [...beforeMarkdown, ...pageMarkdown, ...afterMarkdown]
-      .join("\n\n");
+    return [...beforeMarkdown, ...pageMarkdown, ...afterMarkdown].join("\n\n");
   },
 });
 
@@ -712,4 +695,3 @@ export const getBlockInternal = internalQuery({
     return null;
   },
 });
-

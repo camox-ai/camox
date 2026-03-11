@@ -21,16 +21,15 @@ import { block as navbarBlock } from "../blocks/navbar";
 import { block as footerBlock } from "../blocks/footer";
 
 const myLayout = createLayout({
-  id: "my-layout",              // Must match filename (kebab-case)
-  title: "My Layout",           // Human-readable name
+  id: "my-layout", // Must match filename (kebab-case)
+  title: "My Layout", // Human-readable name
   description: "When to use this layout",
   blocks: {
-    before: [navbarBlock],      // Blocks rendered before page content
-    after: [footerBlock],       // Blocks rendered after page content
+    before: [navbarBlock], // Blocks rendered before page content
+    after: [footerBlock], // Blocks rendered after page content
   },
   component: MyLayoutComponent,
-  buildMetaTitle: ({ pageMetaTitle, projectName }) =>
-    `${pageMetaTitle} | ${projectName}`,
+  buildMetaTitle: ({ pageMetaTitle, projectName }) => `${pageMetaTitle} | ${projectName}`,
 });
 
 function MyLayoutComponent({ children }: { children: React.ReactNode }) {
@@ -48,15 +47,15 @@ export { myLayout as layout };
 
 ## The `createLayout` options
 
-| Option | Required | Description |
-|---|---|---|
-| `id` | yes | Unique kebab-case identifier. Must match the filename without extension. |
-| `title` | yes | Display name shown in the CMS UI. |
-| `description` | yes | Tells the CMS user (or AI agent) when to pick this layout. Write it as guidance — explain what kind of pages this layout suits. |
-| `blocks` | yes | An object with `before` and `after` arrays. Each array contains block instances (imported from block files). `before` blocks render above the page content, `after` blocks render below it. |
-| `component` | yes | A named React function component that renders the layout shell. Receives `{ children }` — the page content. |
-| `buildMetaTitle` | yes | A function that builds the `<title>` tag. Receives `{ pageMetaTitle, projectName, pageFullPath }` and returns a string. |
-| `buildOgImage` | no | A function that returns a JSX element for generating Open Graph images. Receives `{ title, description, projectName }`. |
+| Option           | Required | Description                                                                                                                                                                                 |
+| ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | yes      | Unique kebab-case identifier. Must match the filename without extension.                                                                                                                    |
+| `title`          | yes      | Display name shown in the CMS UI.                                                                                                                                                           |
+| `description`    | yes      | Tells the CMS user (or AI agent) when to pick this layout. Write it as guidance — explain what kind of pages this layout suits.                                                             |
+| `blocks`         | yes      | An object with `before` and `after` arrays. Each array contains block instances (imported from block files). `before` blocks render above the page content, `after` blocks render below it. |
+| `component`      | yes      | A named React function component that renders the layout shell. Receives `{ children }` — the page content.                                                                                 |
+| `buildMetaTitle` | yes      | A function that builds the `<title>` tag. Receives `{ pageMetaTitle, projectName, pageFullPath }` and returns a string.                                                                     |
+| `buildOgImage`   | no       | A function that returns a JSX element for generating Open Graph images. Receives `{ title, description, projectName }`.                                                                     |
 
 ## Block Placement — `before` and `after`
 

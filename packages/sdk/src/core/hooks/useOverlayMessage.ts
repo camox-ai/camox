@@ -1,8 +1,6 @@
 import * as React from "react";
-import {
-  isOverlayMessage,
-  type OverlayMessage,
-} from "../../features/preview/overlayMessages";
+
+import { isOverlayMessage, type OverlayMessage } from "../../features/preview/overlayMessages";
 
 /**
  * Listens for a pair of overlay start/end messages on the iframe window and

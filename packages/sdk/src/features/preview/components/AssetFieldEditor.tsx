@@ -1,9 +1,10 @@
-import * as React from "react";
-import { FileIcon, X } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { FileUpload } from "@/components/file-upload";
 import type { Id } from "camox/_generated/dataModel";
+import { FileIcon, X } from "lucide-react";
+import * as React from "react";
+
+import { FileUpload } from "@/components/file-upload";
+import { Button } from "@/components/ui/button";
+
 import { AssetLightbox } from "./AssetLightbox";
 
 /* -------------------------------------------------------------------------------------------------
@@ -36,32 +37,29 @@ const SingleAssetFieldEditor = ({
   const isImage = assetType === "Image";
 
   return (
-    <div className="py-4 px-4 space-y-4">
+    <div className="space-y-4 px-4 py-4">
       {hasAsset && (
-        <div className="flex flex-row items-center gap-2 px-1 py-1 max-w-full rounded-lg text-foreground hover:bg-accent/75 border-2">
+        <div className="text-foreground hover:bg-accent/75 flex max-w-full flex-row items-center gap-2 rounded-lg border-2 px-1 py-1">
           <button
             type="button"
-            className="flex flex-1 items-center gap-2 min-w-0 cursor-zoom-in"
+            className="flex min-w-0 flex-1 cursor-zoom-in items-center gap-2"
             onClick={() => setLightboxOpen(true)}
           >
             {isImage ? (
-              <div className="w-10 h-10 rounded border border-border overflow-hidden shrink-0">
+              <div className="border-border h-10 w-10 shrink-0 overflow-hidden rounded border">
                 <img
                   src={asset.url}
                   alt={asset.alt || asset.filename}
-                  className="w-full h-full object-cover"
+                  className="h-full w-full object-cover"
                 />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded border border-border overflow-hidden shrink-0 flex items-center justify-center bg-muted">
-                <FileIcon className="h-5 w-5 text-muted-foreground" />
+              <div className="border-border bg-muted flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border">
+                <FileIcon className="text-muted-foreground h-5 w-5" />
               </div>
             )}
 
-            <p
-              className="flex-1 truncate text-sm text-left"
-              title={asset.filename}
-            >
+            <p className="flex-1 truncate text-left text-sm" title={asset.filename}>
               {asset.filename || "Untitled"}
             </p>
           </button>

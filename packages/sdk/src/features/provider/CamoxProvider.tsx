@@ -1,28 +1,25 @@
-import studioCssUrl from "../../../dist/studio.css?url";
-
-import * as React from "react";
 import { SignedIn, SignedOut, useClerk } from "@clerk/clerk-react";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
+import * as React from "react";
+
 import { Toaster } from "@/components/ui/toaster";
-import { useAdminShortcuts } from "./useAdminShortcuts";
+import type { CamoxApp } from "@/core/createApp";
+
+import { usePreviewPagesActions } from "../preview/CamoxPreview";
+import { useNavbarActions } from "../studio/components/Navbar";
+import { useThemeActions } from "../studio/useTheme";
 import { AuthProvider, useAuthActions } from "./components/AuthProvider";
 import { CamoxAppProvider } from "./components/CamoxAppContext";
-import type { CamoxApp } from "@/core/createApp";
-import {
-  CommandPalette,
-  useCommandPaletteActions,
-} from "./components/CommandPalette";
-import { useNavbarActions } from "../studio/components/Navbar";
-import { usePreviewPagesActions } from "../preview/CamoxPreview";
-import { useThemeActions } from "../studio/useTheme";
+import { CommandPalette, useCommandPaletteActions } from "./components/CommandPalette";
+import { useAdminShortcuts } from "./useAdminShortcuts";
+
+import studioCssUrl from "../../../dist/studio.css?url";
 
 interface AuthenticatedCamoxProviderProps {
   children: React.ReactNode;
 }
 
-const AuthenticatedCamoxProvider = ({
-  children,
-}: AuthenticatedCamoxProviderProps) => {
+const AuthenticatedCamoxProvider = ({ children }: AuthenticatedCamoxProviderProps) => {
   // Listen for shortcuts matching registered actions
   useAdminShortcuts();
 
@@ -46,11 +43,7 @@ const AuthenticatedCamoxProvider = ({
   );
 };
 
-const UnauthenticatedCamoxProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode }) => {
   const { openSignIn } = useClerk();
 
   // This shortcut is intentionnally not registered in useAdminShortcuts and the actionsStore
@@ -72,7 +65,7 @@ const UnauthenticatedCamoxProvider = ({
 
   return (
     <>
-      <div className="min-h-screen bg-background">{children}</div>
+      <div className="bg-background min-h-screen">{children}</div>
     </>
   );
 };
@@ -83,15 +76,8 @@ interface CamoxProviderProps {
   convexUrl: string;
 }
 
-export function CamoxProvider({
-  children,
-  camoxApp,
-  convexUrl,
-}: CamoxProviderProps) {
-  const convexReactClient = React.useMemo(
-    () => new ConvexReactClient(convexUrl),
-    [convexUrl],
-  );
+export function CamoxProvider({ children, camoxApp, convexUrl }: CamoxProviderProps) {
+  const convexReactClient = React.useMemo(() => new ConvexReactClient(convexUrl), [convexUrl]);
 
   return (
     <ConvexProvider client={convexReactClient}>
@@ -102,9 +88,7 @@ export function CamoxProvider({
             <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
           </SignedIn>
           <SignedOut>
-            <UnauthenticatedCamoxProvider>
-              {children}
-            </UnauthenticatedCamoxProvider>
+            <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>
           </SignedOut>
         </CamoxAppProvider>
       </AuthProvider>

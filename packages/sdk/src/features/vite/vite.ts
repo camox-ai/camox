@@ -1,12 +1,11 @@
-import type { Plugin, ViteDevServer } from "vite";
 import { resolve } from "node:path";
-import { watchNewBlockFiles } from "./blockBoilerplate";
-import {
-  syncDefinitions,
-  type DefinitionsSyncOptions,
-} from "./definitionsSync";
-import { startConvexDev, stopConvexDev } from "./convexSync";
+
+import type { Plugin, ViteDevServer } from "vite";
+
 import { generateAppFile, watchAppFile } from "./appGeneration";
+import { watchNewBlockFiles } from "./blockBoilerplate";
+import { startConvexDev, stopConvexDev } from "./convexSync";
+import { syncDefinitions, type DefinitionsSyncOptions } from "./definitionsSync";
 import { generateRouteFiles, watchRouteFiles } from "./routeGeneration";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 

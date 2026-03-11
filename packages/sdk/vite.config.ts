@@ -1,8 +1,9 @@
-import { defineConfig } from "vite";
+import { resolve } from "node:path";
+
 import viteReact from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { resolve } from "node:path";
 
 const config = defineConfig({
   plugins: [
@@ -26,10 +27,7 @@ const config = defineConfig({
       entry: {
         "core/createApp": resolve(__dirname, "src/core/createApp.ts"),
         "core/createBlock": resolve(__dirname, "src/core/createBlock.tsx"),
-        "core/createLayout": resolve(
-          __dirname,
-          "src/core/createLayout.tsx",
-        ),
+        "core/createLayout": resolve(__dirname, "src/core/createLayout.tsx"),
         "features/preview/CamoxPreview": resolve(
           __dirname,
           "src/features/preview/CamoxPreview.tsx",
@@ -42,19 +40,10 @@ const config = defineConfig({
           __dirname,
           "src/features/provider/CamoxProvider.tsx",
         ),
-        "features/studio/CamoxStudio": resolve(
-          __dirname,
-          "src/features/studio/CamoxStudio.tsx",
-        ),
+        "features/studio/CamoxStudio": resolve(__dirname, "src/features/studio/CamoxStudio.tsx"),
         "features/vite/vite": resolve(__dirname, "src/features/vite/vite.ts"),
-        "features/routes/pageRoute": resolve(
-          __dirname,
-          "src/features/routes/pageRoute.tsx",
-        ),
-        "features/routes/ogRoute": resolve(
-          __dirname,
-          "src/features/routes/ogRoute.ts",
-        ),
+        "features/routes/pageRoute": resolve(__dirname, "src/features/routes/pageRoute.tsx"),
+        "features/routes/ogRoute": resolve(__dirname, "src/features/routes/ogRoute.ts"),
       },
       formats: ["es"],
     },

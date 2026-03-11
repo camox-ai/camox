@@ -1,8 +1,11 @@
-import * as React from "react";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "convex/react";
 import { api } from "camox/_generated/api";
-import { toast } from "@/components/ui/toaster";
+import { useMutation, useQuery } from "convex/react";
+import * as React from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -10,11 +13,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toaster";
 
 const ProjectSettingsModal = ({
   open,
@@ -71,7 +72,7 @@ const ProjectSettingsModal = ({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="min-w-[500px]">
-        <SheetHeader className="border-b border-border">
+        <SheetHeader className="border-border border-b">
           <SheetTitle>Project settings</SheetTitle>
           <SheetDescription>
             Update your project details. Changes will be saved immediately.
@@ -83,7 +84,7 @@ const ProjectSettingsModal = ({
             e.stopPropagation();
             form.handleSubmit();
           }}
-          className="space-y-4 py-4 px-4"
+          className="space-y-4 px-4 py-4"
         >
           <form.Field
             name="name"
@@ -106,9 +107,7 @@ const ProjectSettingsModal = ({
                   aria-invalid={!!field.state.meta.errors.length}
                 />
                 {field.state.meta.errors.length > 0 && (
-                  <p className="text-destructive text-xs">
-                    {field.state.meta.errors[0]}
-                  </p>
+                  <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
                 )}
               </div>
             )}
@@ -124,9 +123,7 @@ const ProjectSettingsModal = ({
                   onChange={(e) => field.handleChange(e.target.value)}
                   rows={3}
                 />
-                <p className="text-muted-foreground text-xs">
-                  A brief description of your project
-                </p>
+                <p className="text-muted-foreground text-xs">A brief description of your project</p>
               </div>
             )}
           </form.Field>
@@ -152,13 +149,9 @@ const ProjectSettingsModal = ({
                   aria-invalid={!!field.state.meta.errors.length}
                 />
                 {field.state.meta.errors.length > 0 && (
-                  <p className="text-destructive text-xs">
-                    {field.state.meta.errors[0]}
-                  </p>
+                  <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
                 )}
-                <p className="text-muted-foreground text-xs">
-                  Your project's domain name
-                </p>
+                <p className="text-muted-foreground text-xs">Your project's domain name</p>
               </div>
             )}
           </form.Field>

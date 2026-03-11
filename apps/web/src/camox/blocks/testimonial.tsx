@@ -21,12 +21,12 @@ const testimonial = createBlock({
 
 function TestimonialComponent() {
   return (
-    <section className="py-24 bg-background">
+    <section className="bg-background py-24">
       <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="mx-auto max-w-4xl text-center">
           <testimonial.Field name="quote">
             {(content) => (
-              <blockquote className="text-2xl font-medium leading-relaxed text-foreground mb-8 sm:text-3xl">
+              <blockquote className="text-foreground mb-8 text-2xl leading-relaxed font-medium sm:text-3xl">
                 "{content}"
               </blockquote>
             )}
@@ -34,12 +34,10 @@ function TestimonialComponent() {
           <div className="flex flex-col items-center">
             <testimonial.Field name="author">
               {(content) => (
-                <cite className="not-italic font-semibold text-lg text-foreground">
-                  {content}
-                </cite>
+                <cite className="text-foreground text-lg font-semibold not-italic">{content}</cite>
               )}
             </testimonial.Field>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 text-muted-foreground">
+            <div className="text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:gap-2">
               <testimonial.Field name="title">
                 {(content) => <span>{content}</span>}
               </testimonial.Field>

@@ -1,5 +1,5 @@
-import * as React from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import * as React from "react";
 
 /**
  * A ContentEditable that renders a <span> instead of <div>,
@@ -36,13 +36,5 @@ export const InlineContentEditable = React.forwardRef<
     return editor.registerEditableListener(setEditable);
   }, [editor]);
 
-  return (
-    <span
-      {...props}
-      contentEditable={isEditable}
-      ref={mergedRef}
-      role="textbox"
-      spellCheck
-    />
-  );
+  return <span {...props} contentEditable={isEditable} ref={mergedRef} role="textbox" spellCheck />;
 });

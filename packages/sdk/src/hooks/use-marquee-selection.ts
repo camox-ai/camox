@@ -120,17 +120,14 @@ export function useMarqueeSelection(
 
   const didDrag = useRef(false);
 
-  const onPointerUp = useCallback(
-    (e: React.PointerEvent) => {
-      if (!startPoint.current) return;
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-      didDrag.current = isDragging.current;
-      startPoint.current = null;
-      isDragging.current = false;
-      setSelectionRect(null);
-    },
-    [],
-  );
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    if (!startPoint.current) return;
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    didDrag.current = isDragging.current;
+    startPoint.current = null;
+    isDragging.current = false;
+    setSelectionRect(null);
+  }, []);
 
   return {
     selectionRect,

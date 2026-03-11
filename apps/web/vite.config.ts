@@ -1,9 +1,11 @@
-import { defineConfig } from "vite";
+import { resolve } from "node:path";
+
+import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
-import tailwindcss from "@tailwindcss/vite";
-import { resolve } from "node:path";
+
 import { camox } from "../../packages/sdk/src/features/vite/vite";
 
 const config = defineConfig({
@@ -12,31 +14,19 @@ const config = defineConfig({
       // Point to SDK source files directly instead of built output
       {
         find: "camox/createApp",
-        replacement: resolve(
-          __dirname,
-          "../../packages/sdk/src/core/createApp.ts",
-        ),
+        replacement: resolve(__dirname, "../../packages/sdk/src/core/createApp.ts"),
       },
       {
         find: "camox/createBlock",
-        replacement: resolve(
-          __dirname,
-          "../../packages/sdk/src/core/createBlock.tsx",
-        ),
+        replacement: resolve(__dirname, "../../packages/sdk/src/core/createBlock.tsx"),
       },
       {
         find: "camox/CamoxPreview",
-        replacement: resolve(
-          __dirname,
-          "../../packages/sdk/src/features/preview/CamoxPreview.tsx",
-        ),
+        replacement: resolve(__dirname, "../../packages/sdk/src/features/preview/CamoxPreview.tsx"),
       },
       {
         find: "camox/CamoxContent",
-        replacement: resolve(
-          __dirname,
-          "../../packages/sdk/src/features/content/CamoxContent.tsx",
-        ),
+        replacement: resolve(__dirname, "../../packages/sdk/src/features/content/CamoxContent.tsx"),
       },
       {
         find: "camox/CamoxProvider",
@@ -47,31 +37,19 @@ const config = defineConfig({
       },
       {
         find: "camox/CamoxStudio",
-        replacement: resolve(
-          __dirname,
-          "../../packages/sdk/src/features/studio/CamoxStudio.tsx",
-        ),
+        replacement: resolve(__dirname, "../../packages/sdk/src/features/studio/CamoxStudio.tsx"),
       },
       {
         find: "camox/og",
-        replacement: resolve(
-          __dirname,
-          "../../packages/sdk/src/og/og.ts",
-        ),
+        replacement: resolve(__dirname, "../../packages/sdk/src/og/og.ts"),
       },
       {
         find: "camox/_internal/pageRoute",
-        replacement: resolve(
-          __dirname,
-          "../../packages/sdk/src/features/routes/pageRoute.tsx",
-        ),
+        replacement: resolve(__dirname, "../../packages/sdk/src/features/routes/pageRoute.tsx"),
       },
       {
         find: "camox/_internal/ogRoute",
-        replacement: resolve(
-          __dirname,
-          "../../packages/sdk/src/features/routes/ogRoute.ts",
-        ),
+        replacement: resolve(__dirname, "../../packages/sdk/src/features/routes/ogRoute.ts"),
       },
     ],
   },

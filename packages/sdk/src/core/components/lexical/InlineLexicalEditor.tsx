@@ -1,14 +1,15 @@
-import * as React from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { InlineContentEditable } from "./InlineContentEditable";
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import type { EditorState } from "lexical";
 import { COMMAND_PRIORITY_LOW, KEY_ESCAPE_COMMAND } from "lexical";
+import * as React from "react";
+
+import { useFrame } from "../../../components/ui/frame";
 import { createEditorConfig, normalizeLexicalState } from "./editorConfig";
 import { FloatingToolbar } from "./FloatingToolbar";
-import { useFrame } from "../../../components/ui/frame";
+import { InlineContentEditable } from "./InlineContentEditable";
 
 interface InlineLexicalEditorProps {
   initialState: string;
@@ -72,13 +73,7 @@ function EscapeHandler() {
   return null;
 }
 
-function FocusBlurHandler({
-  onFocus,
-  onBlur,
-}: {
-  onFocus: () => void;
-  onBlur: () => void;
-}) {
+function FocusBlurHandler({ onFocus, onBlur }: { onFocus: () => void; onBlur: () => void }) {
   const [editor] = useLexicalComposerContext();
 
   React.useEffect(() => {
@@ -135,9 +130,7 @@ export function InlineLexicalEditor({
   return (
     <LexicalComposer initialConfig={config}>
       <RichTextPlugin
-        contentEditable={
-          <InlineContentEditable style={{ outline: "none" }} />
-        }
+        contentEditable={<InlineContentEditable style={{ outline: "none" }} />}
         ErrorBoundary={LexicalErrorBoundary}
       />
       <OnChangePlugin onChange={handleChange} />
@@ -145,10 +138,7 @@ export function InlineLexicalEditor({
       <EscapeHandler />
       <FocusBlurHandler onFocus={onFocus} onBlur={onBlur} />
       {iframeWindow && (
-        <FloatingToolbar
-          portalContainer={portalContainer}
-          targetWindow={iframeWindow}
-        />
+        <FloatingToolbar portalContainer={portalContainer} targetWindow={iframeWindow} />
       )}
     </LexicalComposer>
   );

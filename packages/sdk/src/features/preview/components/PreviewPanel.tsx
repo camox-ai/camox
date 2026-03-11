@@ -1,17 +1,18 @@
-import * as React from "react";
 import { useSelector } from "@xstate/store/react";
+import * as React from "react";
 
-import { previewStore } from "../previewStore";
 import { Frame, useFrame } from "@/components/ui/frame";
-import type { Action } from "../../provider/actionsStore";
-import { checkIfInputFocused } from "@/lib/utils";
-import { actionsStore } from "../../provider/actionsStore";
 import { PanelContent } from "@/components/ui/panel";
-import { Overlays } from "./Overlays";
-import { OverlayTracker } from "./OverlayTracker";
+import { checkIfInputFocused } from "@/lib/utils";
+
+import type { Action } from "../../provider/actionsStore";
+import { actionsStore } from "../../provider/actionsStore";
 import { SHEET_WIDTH } from "../previewConstants";
+import { previewStore } from "../previewStore";
 import { useBlockActionsShortcuts } from "./BlockActionsPopover";
 import { FloatingToolbar } from "./FloatingToolbar";
+import { Overlays } from "./Overlays";
+import { OverlayTracker } from "./OverlayTracker";
 import { useIsPreviewSheetOpen } from "./PreviewSideSheet";
 
 /* -------------------------------------------------------------------------------------------------
@@ -48,21 +49,13 @@ const KeyDownForwarder = () => {
 
   React.useEffect(() => {
     // Do nothing if we're not in an iframe
-    if (
-      !iframeWindow ||
-      !iframeWindow.parent ||
-      iframeWindow.parent === iframeWindow
-    ) {
+    if (!iframeWindow || !iframeWindow.parent || iframeWindow.parent === iframeWindow) {
       return;
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Handle L key hold separately — forward as holdLockContent
-      if (
-        e.key.toLowerCase() === "l" &&
-        !e.repeat &&
-        !checkIfInputFocused(iframeWindow.document)
-      ) {
+      if (e.key.toLowerCase() === "l" && !e.repeat && !checkIfInputFocused(iframeWindow.document)) {
         e.preventDefault();
         iframeWindow.parent.postMessage({ type: "holdLockContent" }, "*");
         return;
@@ -76,8 +69,7 @@ const KeyDownForwarder = () => {
         // unless it's a modified shortcut (meta/alt) that isn't Backspace
         const userIsTyping = checkIfInputFocused(iframeWindow.document);
         if (userIsTyping) {
-          if (!action.shortcut.withMeta && !action.shortcut.withAlt)
-            return false;
+          if (!action.shortcut.withMeta && !action.shortcut.withAlt) return false;
           if (action.shortcut.key === "Backspace") return false;
         }
 
@@ -127,17 +119,11 @@ const KeyDownForwarder = () => {
 const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
   useBlockActionsShortcuts();
 
-  const iframeElement = useSelector(
-    previewStore,
-    (state) => state.context.iframeElement,
-  );
+  const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
   const handleIframeReady = React.useCallback((element: HTMLIFrameElement) => {
     previewStore.send({ type: "setIframeElement", element });
   }, []);
-  const isMobileMode = useSelector(
-    previewStore,
-    (state) => state.context.isMobileMode,
-  );
+  const isMobileMode = useSelector(previewStore, (state) => state.context.isMobileMode);
   const isAgentChatSheetOpen = useSelector(
     previewStore,
     (state) => state.context.isAgentChatSheetOpen,
@@ -162,8 +148,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const sheetOverlap = Math.max(0, SHEET_WIDTH - panelLeft);
-  const sheetOpenScale =
-    panelWidth > 0 ? (panelWidth - sheetOverlap) / panelWidth : 1;
+  const sheetOpenScale = panelWidth > 0 ? (panelWidth - sheetOverlap) / panelWidth : 1;
 
   React.useEffect(() => {
     const actions = [
@@ -223,18 +208,13 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
           style={{
             height: isAnySideSheetOpen ? `${100 / sheetOpenScale}%` : "100%",
             transformOrigin: "top right",
-            transform: isAnySideSheetOpen
-              ? `scale(${sheetOpenScale})`
-              : "scale(1)",
+            transform: isAnySideSheetOpen ? `scale(${sheetOpenScale})` : "scale(1)",
           }}
         >
           {isMobileMode ? (
-            <div className="flex h-full justify-center checkered">
-              <div className="mt-8 relative w-[393px] h-[700px] overflow-hidden">
-                <PreviewFrame
-                  className="overflow-auto"
-                  onIframeReady={handleIframeReady}
-                >
+            <div className="checkered flex h-full justify-center">
+              <div className="relative mt-8 h-[700px] w-[393px] overflow-hidden">
+                <PreviewFrame className="overflow-auto" onIframeReady={handleIframeReady}>
                   {children}
                 </PreviewFrame>
                 <Overlays iframeElement={iframeElement} />
@@ -243,10 +223,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
             </div>
           ) : (
             <>
-              <PreviewFrame
-                className="w-full h-full checkered"
-                onIframeReady={handleIframeReady}
-              >
+              <PreviewFrame className="checkered h-full w-full" onIframeReady={handleIframeReady}>
                 {children}
               </PreviewFrame>
               <Overlays iframeElement={iframeElement} />

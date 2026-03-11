@@ -1,10 +1,12 @@
 import path from "node:path";
-import type { ViteDevServer } from "vite";
-import { ConvexClient } from "convex/browser";
+
 import { api } from "camox/_generated/api";
+import type { Id } from "camox/_generated/dataModel";
+import { ConvexClient } from "convex/browser";
+import type { ViteDevServer } from "vite";
+
 import type { CamoxApp } from "@/core/createApp";
 import type { Block } from "@/core/createBlock";
-import type { Id } from "camox/_generated/dataModel";
 
 const SYNC_DEBOUNCE_DELAY_MS = 100;
 
@@ -27,10 +29,9 @@ export async function syncDefinitions(
 
   const convexUrl = process.env.VITE_CONVEX_URL;
   if (!convexUrl) {
-    server.config.logger.warn(
-      "[camox] VITE_CONVEX_URL not set, skipping block definitions sync",
-      { timestamp: true },
-    );
+    server.config.logger.warn("[camox] VITE_CONVEX_URL not set, skipping block definitions sync", {
+      timestamp: true,
+    });
     return;
   }
 
@@ -39,10 +40,9 @@ export async function syncDefinitions(
   async function getProjectId(): Promise<Id<"projects"> | null> {
     const project = await client.query(api.projects.getFirstProject, {});
     if (!project) {
-      server.config.logger.warn(
-        "[camox] No project found, skipping block definitions sync",
-        { timestamp: true },
-      );
+      server.config.logger.warn("[camox] No project found, skipping block definitions sync", {
+        timestamp: true,
+      });
       return null;
     }
     return project._id;
@@ -54,10 +54,9 @@ export async function syncDefinitions(
     };
 
     if (!camoxModule.camoxApp) {
-      server.config.logger.warn(
-        `[camox] No camoxApp export found in ${camoxAppPath}`,
-        { timestamp: true },
-      );
+      server.config.logger.warn(`[camox] No camoxApp export found in ${camoxAppPath}`, {
+        timestamp: true,
+      });
       return;
     }
 
@@ -85,8 +84,7 @@ export async function syncDefinitions(
     );
 
     // Sync layouts
-    const layoutDefinitions =
-      camoxModule.camoxApp.getSerializableLayoutDefinitions();
+    const layoutDefinitions = camoxModule.camoxApp.getSerializableLayoutDefinitions();
     if (layoutDefinitions.length > 0) {
       await client.mutation(api.layouts.syncLayouts, {
         projectId,
@@ -113,10 +111,9 @@ export async function syncDefinitions(
     };
 
     if (!blockModule.block) {
-      server.config.logger.warn(
-        `[camox] No block export found in ${relativePath}`,
-        { timestamp: true },
-      );
+      server.config.logger.warn(`[camox] No block export found in ${relativePath}`, {
+        timestamp: true,
+      });
       return;
     }
 
@@ -124,18 +121,15 @@ export async function syncDefinitions(
     const projectId = await getProjectId();
     if (!projectId) return;
 
-    const result = await client.mutation(
-      api.blockDefinitions.upsertBlockDefinition,
-      {
-        projectId,
-        blockId: block.id,
-        title: block.title,
-        description: block.description,
-        contentSchema: block.contentSchema,
-        settingsSchema: block.settingsSchema,
-        layoutOnly: block.layoutOnly || undefined,
-      },
-    );
+    const result = await client.mutation(api.blockDefinitions.upsertBlockDefinition, {
+      projectId,
+      blockId: block.id,
+      title: block.title,
+      description: block.description,
+      contentSchema: block.contentSchema,
+      settingsSchema: block.settingsSchema,
+      layoutOnly: block.layoutOnly || undefined,
+    });
 
     server.config.logger.info(
       `[camox] ${result.action === "created" ? "Created" : "Updated"} block "${block.id}"`,
@@ -148,13 +142,10 @@ export async function syncDefinitions(
     const projectId = await getProjectId();
     if (!projectId) return;
 
-    const result = await client.mutation(
-      api.blockDefinitions.deleteBlockDefinition,
-      {
-        projectId,
-        blockId,
-      },
-    );
+    const result = await client.mutation(api.blockDefinitions.deleteBlockDefinition, {
+      projectId,
+      blockId,
+    });
 
     if (result.deleted) {
       server.config.logger.info(`[camox] Deleted block "${blockId}"`, {
@@ -167,10 +158,9 @@ export async function syncDefinitions(
   try {
     await performInitialSync();
   } catch (error) {
-    server.config.logger.error(
-      `[camox] Failed to sync block definitions: ${error}`,
-      { timestamp: true },
-    );
+    server.config.logger.error(`[camox] Failed to sync block definitions: ${error}`, {
+      timestamp: true,
+    });
   }
 
   // Watch for changes in block files
@@ -201,10 +191,7 @@ export async function syncDefinitions(
         try {
           await upsertBlock(filePath);
         } catch (error) {
-          server.config.logger.error(
-            `[camox] Failed to sync block: ${error}`,
-            { timestamp: true },
-          );
+          server.config.logger.error(`[camox] Failed to sync block: ${error}`, { timestamp: true });
         }
       }, SYNC_DEBOUNCE_DELAY_MS),
     );
@@ -224,10 +211,7 @@ export async function syncDefinitions(
       try {
         await deleteBlock(filePath);
       } catch (error) {
-        server.config.logger.error(
-          `[camox] Failed to delete block: ${error}`,
-          { timestamp: true },
-        );
+        server.config.logger.error(`[camox] Failed to delete block: ${error}`, { timestamp: true });
       }
     }, SYNC_DEBOUNCE_DELAY_MS);
   };
@@ -242,10 +226,7 @@ export async function syncDefinitions(
       try {
         await performInitialSync();
       } catch (error) {
-        server.config.logger.error(
-          `[camox] Failed to sync layouts: ${error}`,
-          { timestamp: true },
-        );
+        server.config.logger.error(`[camox] Failed to sync layouts: ${error}`, { timestamp: true });
       }
     }, SYNC_DEBOUNCE_DELAY_MS);
   };

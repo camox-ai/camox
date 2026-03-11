@@ -1,14 +1,11 @@
-import * as React from "react";
+import { useSelector } from "@xstate/store/react";
+import { Doc, Id } from "camox/_generated/dataModel";
+import { api } from "convex/_generated/api";
+import { useMutation } from "convex/react";
 import { Copy, Pen, Settings, Trash2 } from "lucide-react";
+import * as React from "react";
+import { toast } from "sonner";
 
-import {
-  Command,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/ui/command";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,23 +16,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { useSelector } from "@xstate/store/react";
-import { previewStore, type SelectionBreadcrumb } from "../previewStore";
-import { Doc, Id } from "camox/_generated/dataModel";
-import { useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
-import { toast } from "sonner";
-import { usePreviewedPage } from "../CamoxPreview";
 import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatShortcut } from "@/lib/utils";
-import { actionsStore } from "../../provider/actionsStore";
+
 import type { Action } from "../../provider/actionsStore";
+import { actionsStore } from "../../provider/actionsStore";
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
+import { usePreviewedPage } from "../CamoxPreview";
+import { previewStore, type SelectionBreadcrumb } from "../previewStore";
 
 interface BlockActionsPopoverProps {
   block: Doc<"blocks"> | undefined | null;
@@ -56,8 +53,7 @@ const BlockActionsPopover = ({
   isLayoutBlock,
   layoutPlacement,
 }: BlockActionsPopoverProps) => {
-  const [blockToDelete, setBlockToDelete] =
-    React.useState<Doc<"blocks"> | null>(null);
+  const [blockToDelete, setBlockToDelete] = React.useState<Doc<"blocks"> | null>(null);
 
   const camoxApp = useCamoxApp();
   const page = usePreviewedPage();
@@ -91,8 +87,7 @@ const BlockActionsPopover = ({
     if (!page) return;
 
     const blockIndex = page.blocks.findIndex((b) => b._id === block._id);
-    const afterPosition =
-      blockIndex > 0 ? page.blocks[blockIndex - 1].position : "";
+    const afterPosition = blockIndex > 0 ? page.blocks[blockIndex - 1].position : "";
 
     previewStore.send({
       type: "openAddBlockSheet",
@@ -125,9 +120,7 @@ const BlockActionsPopover = ({
 
     try {
       await deleteBlocksMutation({ blockIds: blocksAbove.map((b) => b._id) });
-      toast.success(
-        `Deleted ${blocksAbove.length} block${blocksAbove.length === 1 ? "" : "s"}`,
-      );
+      toast.success(`Deleted ${blocksAbove.length} block${blocksAbove.length === 1 ? "" : "s"}`);
     } catch (error) {
       console.error("Failed to delete blocks above:", error);
       toast.error("Could not delete blocks");
@@ -140,9 +133,7 @@ const BlockActionsPopover = ({
 
     try {
       await deleteBlocksMutation({ blockIds: blocksBelow.map((b) => b._id) });
-      toast.success(
-        `Deleted ${blocksBelow.length} block${blocksBelow.length === 1 ? "" : "s"}`,
-      );
+      toast.success(`Deleted ${blocksBelow.length} block${blocksBelow.length === 1 ? "" : "s"}`);
     } catch (error) {
       console.error("Failed to delete blocks below:", error);
       toast.error("Could not delete blocks");
@@ -169,7 +160,7 @@ const BlockActionsPopover = ({
                       onOpenChange(false);
                     }}
                   >
-                    <div className="flex gap-2 items-center">
+                    <div className="flex items-center gap-2">
                       <Pen className="h-4 w-4" />
                       Edit in form
                     </div>
@@ -180,8 +171,7 @@ const BlockActionsPopover = ({
                       const blockDef = camoxApp.getBlockById(block.type);
                       const hasSettings =
                         blockDef?.settingsSchema?.properties &&
-                        Object.keys(blockDef.settingsSchema.properties)
-                          .length > 0;
+                        Object.keys(blockDef.settingsSchema.properties).length > 0;
                       if (!hasSettings) return null;
                       return (
                         <CommandItem
@@ -194,7 +184,7 @@ const BlockActionsPopover = ({
                             onOpenChange(false);
                           }}
                         >
-                          <div className="flex gap-2 items-center">
+                          <div className="flex items-center gap-2">
                             <Settings className="h-4 w-4" />
                             Open settings
                           </div>
@@ -215,7 +205,7 @@ const BlockActionsPopover = ({
                           onOpenChange(false);
                         }}
                       >
-                        <div className="flex gap-2 items-center">
+                        <div className="flex items-center gap-2">
                           <span className="w-4" />
                           Add block below
                         </div>
@@ -229,8 +219,7 @@ const BlockActionsPopover = ({
                     <CommandGroup>
                       <CommandItem
                         onSelect={() => {
-                          const lastPageBlock =
-                            page?.blocks[page.blocks.length - 1];
+                          const lastPageBlock = page?.blocks[page.blocks.length - 1];
                           previewStore.send({
                             type: "openAddBlockSheet",
                             afterPosition: lastPageBlock?.position,
@@ -238,7 +227,7 @@ const BlockActionsPopover = ({
                           onOpenChange(false);
                         }}
                       >
-                        <div className="flex gap-2 items-center">
+                        <div className="flex items-center gap-2">
                           <span className="w-4" />
                           Add block above
                         </div>
@@ -257,7 +246,7 @@ const BlockActionsPopover = ({
                           onOpenChange(false);
                         }}
                       >
-                        <div className="flex gap-2 items-center">
+                        <div className="flex items-center gap-2">
                           <span className="w-4" />
                           Add block below
                         </div>
@@ -270,7 +259,7 @@ const BlockActionsPopover = ({
                           onOpenChange(false);
                         }}
                       >
-                        <div className="flex gap-2 items-center">
+                        <div className="flex items-center gap-2">
                           <span className="w-4" />
                           Add block above
                         </div>
@@ -286,7 +275,7 @@ const BlockActionsPopover = ({
                           onOpenChange(false);
                         }}
                       >
-                        <div className="flex gap-2 items-center">
+                        <div className="flex items-center gap-2">
                           <Copy className="h-4 w-4" />
                           Duplicate block
                         </div>
@@ -322,7 +311,7 @@ const BlockActionsPopover = ({
                           onOpenChange(false);
                         }}
                       >
-                        <div className="flex gap-2 items-center">
+                        <div className="flex items-center gap-2">
                           <Trash2 className="h-4 w-4" />
                           Delete block
                         </div>
@@ -336,17 +325,13 @@ const BlockActionsPopover = ({
           </PopoverContent>
         )}
       </Popover>
-      <AlertDialog
-        open={!!blockToDelete}
-        onOpenChange={(open) => !open && setBlockToDelete(null)}
-      >
+      <AlertDialog open={!!blockToDelete} onOpenChange={(open) => !open && setBlockToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete block</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>{blockToDelete?.summary}</strong>? This action cannot be
-              undone.
+              Are you sure you want to delete <strong>{blockToDelete?.summary}</strong>? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -378,15 +363,9 @@ function findClosestActionable(breadcrumbs: SelectionBreadcrumb[]) {
   return null;
 }
 
-function isLayoutBlockId(
-  page: ReturnType<typeof usePreviewedPage>,
-  blockId: string,
-): boolean {
+function isLayoutBlockId(page: ReturnType<typeof usePreviewedPage>, blockId: string): boolean {
   if (!page?.layout) return false;
-  const allLayoutBlocks = [
-    ...(page.layout.beforeBlocks ?? []),
-    ...(page.layout.afterBlocks ?? []),
-  ];
+  const allLayoutBlocks = [...(page.layout.beforeBlocks ?? []), ...(page.layout.afterBlocks ?? [])];
   return allLayoutBlocks.some((b) => b._id === blockId);
 }
 
@@ -400,15 +379,9 @@ function useBlockActionsShortcuts() {
 
   const deleteBlockMutation = useMutation(api.blocks.deleteBlock);
   const duplicateBlockMutation = useMutation(api.blocks.duplicateBlock);
-  const updateBlockPositionMutation = useMutation(
-    api.blocks.updateBlockPosition,
-  );
-  const deleteRepeatableItemMutation = useMutation(
-    api.repeatableItems.deleteRepeatableItem,
-  );
-  const duplicateRepeatableItemMutation = useMutation(
-    api.repeatableItems.duplicateRepeatableItem,
-  );
+  const updateBlockPositionMutation = useMutation(api.blocks.updateBlockPosition);
+  const deleteRepeatableItemMutation = useMutation(api.repeatableItems.deleteRepeatableItem);
+  const duplicateRepeatableItemMutation = useMutation(api.repeatableItems.duplicateRepeatableItem);
 
   React.useEffect(() => {
     const actions = [
@@ -423,8 +396,7 @@ function useBlockActionsShortcuts() {
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
           const breadcrumbs = ctx.selectionBreadcrumbs;
           const blockCrumb = breadcrumbs.find((b) => b.type === "Block");
-          if (blockCrumb && isLayoutBlockId(page, blockCrumb.id))
-            return false;
+          if (blockCrumb && isLayoutBlockId(page, blockCrumb.id)) return false;
           const target = findClosestActionable(breadcrumbs);
           if (!target) return false;
 
@@ -435,9 +407,7 @@ function useBlockActionsShortcuts() {
             if (!block) return false;
             for (const [, value] of Object.entries(block.content)) {
               if (!Array.isArray(value)) continue;
-              const item = value.find(
-                (i: Doc<"repeatableItems">) => i._id === target.id,
-              );
+              const item = value.find((i: Doc<"repeatableItems">) => i._id === target.id);
               if (item) return value.length > 1;
             }
             return false;
@@ -447,8 +417,7 @@ function useBlockActionsShortcuts() {
           return (page?.blocks.length ?? 0) > 1;
         },
         execute: () => {
-          const breadcrumbs =
-            previewStore.getSnapshot().context.selectionBreadcrumbs;
+          const breadcrumbs = previewStore.getSnapshot().context.selectionBreadcrumbs;
           const target = findClosestActionable(breadcrumbs);
           if (!target) return;
 
@@ -480,16 +449,12 @@ function useBlockActionsShortcuts() {
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
-          const blockCrumb = ctx.selectionBreadcrumbs.find(
-            (b) => b.type === "Block",
-          );
-          if (blockCrumb && isLayoutBlockId(page, blockCrumb.id))
-            return false;
+          const blockCrumb = ctx.selectionBreadcrumbs.find((b) => b.type === "Block");
+          if (blockCrumb && isLayoutBlockId(page, blockCrumb.id)) return false;
           return findClosestActionable(ctx.selectionBreadcrumbs) !== null;
         },
         execute: () => {
-          const breadcrumbs =
-            previewStore.getSnapshot().context.selectionBreadcrumbs;
+          const breadcrumbs = previewStore.getSnapshot().context.selectionBreadcrumbs;
           const target = findClosestActionable(breadcrumbs);
           if (!target) return;
 
@@ -519,9 +484,7 @@ function useBlockActionsShortcuts() {
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
-          const blockCrumb = ctx.selectionBreadcrumbs.find(
-            (b) => b.type === "Block",
-          );
+          const blockCrumb = ctx.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return false;
           if (isLayoutBlockId(page, blockCrumb.id)) return false;
           const index = page.blocks.findIndex((b) => b._id === blockCrumb.id);
@@ -536,8 +499,7 @@ function useBlockActionsShortcuts() {
           const index = page.blocks.findIndex((b) => b._id === blockId);
           if (index <= 0) return;
 
-          const afterPosition =
-            index > 1 ? page.blocks[index - 2].position : undefined;
+          const afterPosition = index > 1 ? page.blocks[index - 2].position : undefined;
           const beforePosition = page.blocks[index - 1].position;
 
           updateBlockPositionMutation({
@@ -559,9 +521,7 @@ function useBlockActionsShortcuts() {
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
-          const blockCrumb = ctx.selectionBreadcrumbs.find(
-            (b) => b.type === "Block",
-          );
+          const blockCrumb = ctx.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return false;
           if (isLayoutBlockId(page, blockCrumb.id)) return false;
           const index = page.blocks.findIndex((b) => b._id === blockCrumb.id);
@@ -578,9 +538,7 @@ function useBlockActionsShortcuts() {
 
           const afterPosition = page.blocks[index + 1].position;
           const beforePosition =
-            index + 2 < page.blocks.length
-              ? page.blocks[index + 2].position
-              : undefined;
+            index + 2 < page.blocks.length ? page.blocks[index + 2].position : undefined;
 
           updateBlockPositionMutation({
             blockId,
@@ -600,9 +558,7 @@ function useBlockActionsShortcuts() {
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
-          return (
-            ctx.selectionBreadcrumbs.find((b) => b.type === "Block") !== null
-          );
+          return ctx.selectionBreadcrumbs.find((b) => b.type === "Block") !== null;
         },
         execute: () => {
           const blockCrumb = previewStore
@@ -626,22 +582,17 @@ function useBlockActionsShortcuts() {
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
-          return (
-            ctx.selectionBreadcrumbs.find((b) => b.type === "Block") !== null
-          );
+          return ctx.selectionBreadcrumbs.find((b) => b.type === "Block") !== null;
         },
         execute: () => {
           const blockCrumb = previewStore
             .getSnapshot()
             .context.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return;
-          const blockIndex = page.blocks.findIndex(
-            (b) => b._id === blockCrumb.id,
-          );
+          const blockIndex = page.blocks.findIndex((b) => b._id === blockCrumb.id);
           if (blockIndex === -1) return;
 
-          const afterPosition =
-            blockIndex > 0 ? page.blocks[blockIndex - 1].position : "";
+          const afterPosition = blockIndex > 0 ? page.blocks[blockIndex - 1].position : "";
 
           previewStore.send({
             type: "openAddBlockSheet",

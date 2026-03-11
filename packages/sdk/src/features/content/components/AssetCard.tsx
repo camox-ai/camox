@@ -1,7 +1,7 @@
+import type { Doc } from "camox/_generated/dataModel";
 import { CheckIcon, FileIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { Doc } from "camox/_generated/dataModel";
 
 interface AssetCardProps {
   file: Doc<"files">;
@@ -10,12 +10,7 @@ interface AssetCardProps {
   onOpen: () => void;
 }
 
-export const AssetCard = ({
-  file,
-  selected,
-  onSelect,
-  onOpen,
-}: AssetCardProps) => {
+export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) => {
   const isImage = file.mimeType?.startsWith("image/");
   const extension = file.filename?.split(".").pop()?.toUpperCase() ?? "";
 
@@ -36,9 +31,9 @@ export const AssetCard = ({
         onOpen();
       }}
     >
-      <div className="relative aspect-4/3 w-full overflow-hidden rounded-md bg-muted/30 flex items-center justify-center">
+      <div className="bg-muted/30 relative flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-md">
         {selected && (
-          <div className="absolute top-1.5 left-1.5 z-10 flex h-5 w-5 items-center justify-center rounded bg-primary text-primary-foreground shadow-sm">
+          <div className="bg-primary text-primary-foreground absolute top-1.5 left-1.5 z-10 flex h-5 w-5 items-center justify-center rounded shadow-sm">
             <CheckIcon className="h-3.5 w-3.5" />
           </div>
         )}
@@ -50,15 +45,13 @@ export const AssetCard = ({
             className="pointer-events-none h-full w-full object-cover"
           />
         ) : (
-          <div className="flex flex-col items-center gap-1 text-muted-foreground">
+          <div className="text-muted-foreground flex flex-col items-center gap-1">
             <FileIcon className="h-8 w-8" />
-            {extension && (
-              <span className="text-xs font-medium">{extension}</span>
-            )}
+            {extension && <span className="text-xs font-medium">{extension}</span>}
           </div>
         )}
       </div>
-      <p className="text-xs line-clamp-2 break-all px-0.5">{file.filename}</p>
+      <p className="line-clamp-2 px-0.5 text-xs break-all">{file.filename}</p>
     </button>
   );
 };
