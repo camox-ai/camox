@@ -6,12 +6,14 @@ interface UploadDropZoneProps {
   onDrop: (files: FileList) => void;
   children: React.ReactNode;
   className?: string;
+  label?: string;
 }
 
 export function UploadDropZone({
   onDrop,
   children,
   className,
+  label = "Drop files to upload",
 }: UploadDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
@@ -67,7 +69,7 @@ export function UploadDropZone({
           <div className="flex flex-col items-center justify-center gap-2 w-full h-full rounded-lg border-3 border-dashed border-accent-foreground">
             <Upload className="h-8 w-8 text-accent-foreground" />
             <p className="text-sm font-medium text-accent-foreground">
-              Drop files to upload
+              {label}
             </p>
           </div>
         </div>
