@@ -18,26 +18,32 @@ Any manual edits will be automatically reverted by the dev server. -->
 
 `;
 
-function generateSkillContent(): string {
-  const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-  const skillPath = resolve(sdkRoot, "skills/camox-block/SKILL.md");
+const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+
+function getSkillNames(): string[] {
+  const skillsDir = resolve(sdkRoot, "skills");
+  return readdirSync(skillsDir).filter((name) =>
+    lstatSync(resolve(skillsDir, name)).isDirectory(),
+  );
+}
+
+function generateSkillContent(skillName: string): string {
+  const skillPath = resolve(sdkRoot, `skills/${skillName}/SKILL.md`);
   const content = readFileSync(skillPath, "utf-8");
   return HEADER + content;
 }
 
 function getSkillFileEntries(appRoot: string) {
-  const skillDir = resolve(appRoot, ".agents/skills/camox-block");
-  return [
-    {
-      path: resolve(skillDir, "SKILL.md"),
-      content: generateSkillContent(),
-    },
-  ];
+  return getSkillNames().map((name) => ({
+    path: resolve(appRoot, `.agents/skills/${name}/SKILL.md`),
+    content: generateSkillContent(name),
+  }));
 }
 
 export function generateSkillFiles(appRoot: string) {
-  const skillDir = resolve(appRoot, ".agents/skills/camox-block");
-  mkdirSync(skillDir, { recursive: true });
+  for (const name of getSkillNames()) {
+    mkdirSync(resolve(appRoot, `.agents/skills/${name}`), { recursive: true });
+  }
 
   for (const entry of getSkillFileEntries(appRoot)) {
     writeIfChanged(entry.path, entry.content);
