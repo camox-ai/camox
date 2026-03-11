@@ -29,6 +29,7 @@ export default defineSchema({
   layouts: defineTable({
     projectId: v.id("projects"),
     layoutId: v.string(),
+    description: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -100,7 +101,6 @@ export default defineSchema({
     contentSchema: v.any(),
     settingsSchema: v.optional(v.any()),
     layoutOnly: v.optional(v.boolean()),
-    code: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

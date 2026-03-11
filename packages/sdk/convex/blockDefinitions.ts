@@ -26,7 +26,6 @@ export const syncBlockDefinitions = mutation({
         contentSchema: v.any(),
         settingsSchema: v.optional(v.any()),
         layoutOnly: v.optional(v.boolean()),
-        code: v.optional(v.string()),
       })
     ),
   },
@@ -55,7 +54,6 @@ export const syncBlockDefinitions = mutation({
           contentSchema: def.contentSchema,
           settingsSchema: def.settingsSchema,
           layoutOnly: def.layoutOnly,
-          code: def.code,
           updatedAt: now,
         });
       } else {
@@ -67,7 +65,6 @@ export const syncBlockDefinitions = mutation({
           contentSchema: def.contentSchema,
           settingsSchema: def.settingsSchema,
           layoutOnly: def.layoutOnly,
-          code: def.code,
           createdAt: now,
           updatedAt: now,
         });
@@ -94,7 +91,6 @@ export const upsertBlockDefinition = mutation({
     contentSchema: v.any(),
     settingsSchema: v.optional(v.any()),
     layoutOnly: v.optional(v.boolean()),
-    code: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -112,7 +108,6 @@ export const upsertBlockDefinition = mutation({
         contentSchema: args.contentSchema,
         settingsSchema: args.settingsSchema,
         layoutOnly: args.layoutOnly,
-        code: args.code,
         updatedAt: now,
       });
       return { action: "updated" as const, blockId: args.blockId };
@@ -126,7 +121,6 @@ export const upsertBlockDefinition = mutation({
       contentSchema: args.contentSchema,
       settingsSchema: args.settingsSchema,
       layoutOnly: args.layoutOnly,
-      code: args.code,
       createdAt: now,
       updatedAt: now,
     });

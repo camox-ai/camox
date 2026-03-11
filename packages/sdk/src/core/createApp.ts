@@ -44,6 +44,7 @@ export function createApp({ blocks, layouts = [] }: CreateAppOptions) {
     getSerializableLayoutDefinitions() {
       return Array.from(layoutsMap.values()).map((layout) => ({
         layoutId: layout.id,
+        description: layout.description,
         blocks: layout.blockDefinitions,
       }));
     },

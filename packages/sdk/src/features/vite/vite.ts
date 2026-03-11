@@ -2,9 +2,9 @@ import type { Plugin, ViteDevServer } from "vite";
 import { resolve } from "node:path";
 import { watchNewBlockFiles } from "./blockBoilerplate";
 import {
-  syncBlockDefinitions,
-  type BlockDefinitionsSyncOptions,
-} from "./blockDefinitionsSync";
+  syncDefinitions,
+  type DefinitionsSyncOptions,
+} from "./definitionsSync";
 import { startConvexDev, stopConvexDev } from "./convexSync";
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { generateRouteFiles, watchRouteFiles } from "./routeGeneration";
@@ -17,10 +17,10 @@ export interface CamoxPluginOptions {
   convexUrl: string;
   /** Disable the generation of boilerplate code when creating a blank file in the blocks directory (default: false) */
   disableBlockBoilerplateGeneration?: boolean;
-  /** Disable automatic block definitions sync on server start (default: false) */
-  disableBlockDefinitionsSync?: boolean;
-  /** Options for block definitions sync */
-  blockDefinitionsSync?: BlockDefinitionsSyncOptions;
+  /** Disable automatic definitions sync on server start (default: false) */
+  disableDefinitionsSync?: boolean;
+  /** Options for definitions sync */
+  definitionsSync?: DefinitionsSyncOptions;
 }
 
 export function camox(options: CamoxPluginOptions): Plugin {
@@ -54,10 +54,10 @@ export function camox(options: CamoxPluginOptions): Plugin {
         deployKey: options.convexDeployKey,
       });
 
-      if (!options.disableBlockDefinitionsSync) {
+      if (!options.disableDefinitionsSync) {
         // Sync after the server is ready to ensure modules can be loaded
         server.httpServer?.once("listening", () => {
-          syncBlockDefinitions(server, options.blockDefinitionsSync);
+          syncDefinitions(server, options.definitionsSync);
         });
       }
     },

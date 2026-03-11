@@ -21,6 +21,7 @@ export const syncLayouts = mutation({
     layouts: v.array(
       v.object({
         layoutId: v.string(),
+        description: v.string(),
         blocks: v.array(
           v.object({
             type: v.string(),
@@ -46,7 +47,10 @@ export const syncLayouts = mutation({
         .first();
 
       if (existing) {
-        await ctx.db.patch(existing._id, { updatedAt: now });
+        await ctx.db.patch(existing._id, {
+          description: tmpl.description,
+          updatedAt: now,
+        });
         continue;
       }
 
@@ -54,6 +58,7 @@ export const syncLayouts = mutation({
       const layoutDocId = await ctx.db.insert("layouts", {
         projectId: args.projectId,
         layoutId: tmpl.layoutId,
+        description: tmpl.description,
         createdAt: now,
         updatedAt: now,
       });
