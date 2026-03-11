@@ -1,6 +1,6 @@
 import { useSelector } from "@xstate/store/react";
+import { api } from "camox/_generated/api";
 import { Doc, Id } from "camox/_generated/dataModel";
-import { api } from "convex/_generated/api";
 import { useMutation } from "convex/react";
 import { Copy, Pen, Settings, Trash2 } from "lucide-react";
 import * as React from "react";

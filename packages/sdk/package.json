@@ -69,7 +69,7 @@
     "build": "pnpm build:css && vite build",
     "build:watch": "vite build --watch",
     "lint": "oxlint",
-    "check": "tsc --noEmit && oxlint --fix"
+    "check": "tsgo --noEmit && oxlint --fix"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.22.13",
@@ -131,6 +131,7 @@
     "@types/node": "^24.6.2",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.1.9",
+    "@typescript/native-preview": "^7.0.0-dev",
     "@vitejs/plugin-react": "^5.0.4",
     "oxlint": "^0.15.0",
     "tailwindcss": "^4.0.6",

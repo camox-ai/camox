@@ -9,7 +9,7 @@
     "serve": "vite preview",
     "test": "vitest run",
     "lint": "oxlint",
-    "check": "tsc --noEmit && oxlint --fix"
+    "check": "tsgo --noEmit && oxlint --fix"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -55,6 +55,7 @@
     "@testing-library/react": "^16.2.0",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
+    "@typescript/native-preview": "^7.0.0-dev",
     "@vitejs/plugin-react": "^5.0.4",
     "babel-plugin-react-compiler": "19.1.0-rc.3",
     "jsdom": "^26.0.0",
