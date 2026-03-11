@@ -31,6 +31,7 @@ import { Kbd } from "../components/ui/kbd";
 import type { Id } from "camox/_generated/dataModel";
 import { useIsEditable } from "./hooks/useIsEditable.ts";
 import { useOverlayMessage } from "./hooks/useOverlayMessage.ts";
+import { useFieldSelection } from "./hooks/useFieldSelection.ts";
 import { AddBlockControlBar } from "./components/AddBlockControlBar.tsx";
 import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet.tsx";
 import {
@@ -426,9 +427,19 @@ export function createBlock<
 
     // Local hover/focus state for overlay styling
     const [isHovered, setIsHovered] = React.useState(false);
-    const [isFocused, setIsFocused] = React.useState(false);
+    const [isEditorFocused, setIsEditorFocused] = React.useState(false);
 
-    // Listen for sidebar-triggered hover/focus messages
+    // Derive selected state from selectionBreadcrumbs
+    const isSelectedFromBreadcrumbs = useFieldSelection(
+      blockId,
+      String(name),
+      "String",
+      repeaterContext?.itemId,
+    );
+
+    const isFocused = isEditorFocused || isSelectedFromBreadcrumbs;
+
+    // Keep sidebar hover via postMessage (transient state)
     const isHoveredFromSidebar = useOverlayMessage(
       iframeWindow,
       isContentEditable,
@@ -436,21 +447,10 @@ export function createBlock<
       "CAMOX_HOVER_FIELD_END",
       { fieldId },
     );
-    const isFocusedFromSidebar = useOverlayMessage(
-      iframeWindow,
-      isContentEditable,
-      "CAMOX_FOCUS_FIELD",
-      "CAMOX_FOCUS_FIELD_END",
-      { fieldId },
-    );
 
     React.useEffect(() => {
       setIsHovered(isHoveredFromSidebar);
     }, [isHoveredFromSidebar]);
-
-    React.useEffect(() => {
-      setIsFocused(isFocusedFromSidebar);
-    }, [isFocusedFromSidebar]);
 
     const updateBlockContent = useMutation(api.blocks.updateBlockContent);
     const updateRepeatableItemContent = useMutation(
@@ -476,7 +476,7 @@ export function createBlock<
     }, [blockId, name, repeaterContext?.itemId]);
 
     const handleFocus = React.useCallback(() => {
-      setIsFocused(true);
+      setIsEditorFocused(true);
       if (repeaterContext && repeaterContext.itemId) {
         previewStore.send({
           type: "setSelectedRepeatableItem",
@@ -496,7 +496,7 @@ export function createBlock<
     }, [blockId, name, repeaterContext?.itemId]);
 
     const handleBlur = React.useCallback(() => {
-      setIsFocused(false);
+      setIsEditorFocused(false);
     }, []);
 
     const handleMouseEnter = () => {
@@ -779,7 +779,17 @@ export function createBlock<
     const [isEditing, setIsEditing] = React.useState(false);
     const [displayText, setDisplayText] = React.useState(fieldValue.text);
     const [isHovered, setIsHovered] = React.useState(false);
-    const [isFocused, setIsFocused] = React.useState(false);
+    const [isEditorFocused, setIsEditorFocused] = React.useState(false);
+
+    // Derive selected state from selectionBreadcrumbs
+    const isSelectedFromBreadcrumbs = useFieldSelection(
+      blockId,
+      String(name),
+      "Link",
+      repeaterContext?.itemId,
+    );
+
+    const isFocused = isEditorFocused || isSelectedFromBreadcrumbs;
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -787,6 +797,7 @@ export function createBlock<
       }
     }, [fieldValue.text, isEditing]);
 
+    // Keep sidebar hover via postMessage (transient state)
     const isHoveredFromSidebar = useOverlayMessage(
       iframeWindow,
       isContentEditable,
@@ -872,7 +883,7 @@ export function createBlock<
 
     const handleFocus = () => {
       setIsEditing(true);
-      setIsFocused(true);
+      setIsEditorFocused(true);
       previewStore.send({
         type: "setSelectionBreadcrumbs",
         breadcrumbs: buildLinkBreadcrumbs(),
@@ -881,18 +892,18 @@ export function createBlock<
 
     const handleBlur = () => {
       setIsEditing(false);
-      setIsFocused(false);
+      setIsEditorFocused(false);
     };
 
     const handleEditLink = (e: React.MouseEvent) => {
       e.stopPropagation();
       previewStore.send({ type: "toggleContentSheet" });
-      setIsFocused(false);
+      setIsEditorFocused(false);
       setIsEditing(false);
     };
 
     return (
-      <Popover open={isContentEditable && isFocused}>
+      <Popover open={isContentEditable && isEditorFocused}>
         <PopoverAnchor asChild>
           <Slot
             ref={elementRef}
@@ -981,8 +992,16 @@ export function createBlock<
     const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));
 
     const [isHovered, setIsHovered] = React.useState(false);
-    const [isFocused, setIsFocused] = React.useState(false);
 
+    // Derive selected state from selectionBreadcrumbs
+    const isFocused = useFieldSelection(
+      blockId,
+      String(name),
+      "Image",
+      repeaterContext?.itemId,
+    );
+
+    // Keep sidebar hover via postMessage (transient state)
     const isHoveredFromSidebar = useOverlayMessage(
       iframeWindow,
       isContentEditable,
@@ -990,21 +1009,10 @@ export function createBlock<
       "CAMOX_HOVER_FIELD_END",
       { fieldId },
     );
-    const isFocusedFromSidebar = useOverlayMessage(
-      iframeWindow,
-      isContentEditable,
-      "CAMOX_FOCUS_FIELD",
-      "CAMOX_FOCUS_FIELD_END",
-      { fieldId },
-    );
 
     React.useEffect(() => {
       setIsHovered(isHoveredFromSidebar);
     }, [isHoveredFromSidebar]);
-
-    React.useEffect(() => {
-      setIsFocused(isFocusedFromSidebar);
-    }, [isFocusedFromSidebar]);
 
     const buildImageBreadcrumbs = () => {
       const crumbs: Array<{

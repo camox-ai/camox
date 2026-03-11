@@ -168,9 +168,15 @@ export const generateFileMetadata = internalAction({
       args.imageUrl,
       args.currentFilename,
     );
+
+    const ext = args.currentFilename.includes(".")
+      ? `.${args.currentFilename.split(".").pop()}`
+      : "";
+    const nameWithoutExt = metadata.filename.replace(/\.[^.]+$/, "");
+
     await ctx.runMutation(internal.files.applyFileMetadata, {
       fileId: args.fileId,
-      filename: metadata.filename,
+      filename: `${nameWithoutExt}${ext}`,
       alt: metadata.alt,
     });
   },
