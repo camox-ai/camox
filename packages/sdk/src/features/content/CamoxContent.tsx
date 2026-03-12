@@ -9,6 +9,7 @@ import { useFileUpload } from "@/hooks/use-file-upload";
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
 
 import { AssetCard } from "./components/AssetCard";
+import { AssetCardSkeleton } from "./components/AssetCardSkeleton";
 import { ContentSidebar } from "./components/ContentSidebar";
 import { UploadDropZone } from "./components/UploadDropZone";
 import { UploadProgressDrawer } from "./components/UploadProgressDrawer";
@@ -43,7 +44,13 @@ export const CamoxContent = () => {
             onPointerMove={handlers.onPointerMove}
             onPointerUp={handlers.onPointerUp}
           >
-            {files === undefined ? null : files.length === 0 ? (
+            {files === undefined ? (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
+                {Array.from({ length: 12 }, (_, i) => (
+                  <AssetCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : files.length === 0 ? (
               <div className="flex h-full flex-1 items-center justify-center">
                 <p className="text-muted-foreground">No assets yet</p>
               </div>

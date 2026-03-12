@@ -36,7 +36,7 @@ export const FloatingToolbar = () => {
       <menu
         role="toolbar"
         className={cn(
-          "absolute bg-background/95 backdrop-blur-lg p-2 rounded-lg shadow-2xl bottom-2 left-[50%] translate-x-[-50%] z-30  flex items-center gap-4 justify-between border-1 transition-all duration-200",
+          "absolute bg-background/95 backdrop-blur-lg p-2 rounded-xl shadow-2xl bottom-2 left-[50%] translate-x-[-50%] z-30  flex items-center gap-4 justify-between border-1 transition-all duration-200",
           isAnySideSheetOpen && "opacity-0 pointer-events-none translate-y-full",
         )}
       >

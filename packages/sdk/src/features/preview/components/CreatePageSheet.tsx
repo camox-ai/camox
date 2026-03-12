@@ -92,7 +92,7 @@ const CreatePageSheet = () => {
         if (!value) previewStore.send({ type: "closeCreatePageSheet" });
       }}
     >
-      <Sheet.SheetContent className="min-w-[500px]">
+      <Sheet.SheetContent className="flex max-h-dvh min-w-[500px] flex-col">
         <Sheet.SheetHeader className="border-border border-b">
           <Sheet.SheetTitle>Create page</Sheet.SheetTitle>
           <Sheet.SheetDescription>
@@ -105,7 +105,7 @@ const CreatePageSheet = () => {
             e.stopPropagation();
             form.handleSubmit();
           }}
-          className="space-y-4 px-4 py-4"
+          className="space-y-4 overflow-y-auto px-4 py-4"
         >
           <form.Field name="parentPageId">
             {(parentField) => (

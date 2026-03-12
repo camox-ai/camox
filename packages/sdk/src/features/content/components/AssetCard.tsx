@@ -1,5 +1,5 @@
 import type { Doc } from "camox/_generated/dataModel";
-import { CheckIcon, FileIcon } from "lucide-react";
+import { FileIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) 
       data-asset-id={file._id}
       className={cn(
         "group flex flex-col gap-1.5 rounded-lg p-2 text-left",
-        selected ? "bg-accent" : "hover:bg-accent/50",
+        selected ? "bg-primary/40" : "hover:bg-primary/10",
       )}
       onClick={(e) => {
         e.stopPropagation();
@@ -31,12 +31,7 @@ export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) 
         onOpen();
       }}
     >
-      <div className="bg-muted/30 relative flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-md">
-        {selected && (
-          <div className="bg-primary text-primary-foreground absolute top-1.5 left-1.5 z-10 flex h-5 w-5 items-center justify-center rounded shadow-sm">
-            <CheckIcon className="h-3.5 w-3.5" />
-          </div>
-        )}
+      <div className="bg-muted flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-md">
         {isImage ? (
           <img
             src={file.url}
@@ -47,7 +42,7 @@ export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) 
         ) : (
           <div className="text-muted-foreground flex flex-col items-center gap-1">
             <FileIcon className="h-8 w-8" />
-            {extension && <span className="text-xs font-medium">{extension}</span>}
+            {extension && <span className="text-sm font-medium">{extension}</span>}
           </div>
         )}
       </div>

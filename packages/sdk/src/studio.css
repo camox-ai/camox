@@ -35,8 +35,8 @@ code {
   --card-foreground: theme(--color-zinc-950);
   --popover: oklch(1 0 0);
   --popover-foreground: theme(--color-zinc-950);
-  --primary: theme(--color-zinc-900);
-  --primary-foreground: theme(--color-zinc-50);
+  --primary: theme(--color-emerald-500);
+  --primary-foreground: theme(--color-emerald-50);
   --secondary: theme(--color-zinc-100);
   --secondary-foreground: theme(--color-zinc-900);
   --muted: theme(--color-zinc-100);
@@ -76,8 +76,8 @@ code {
   --card-foreground: theme(--color-zinc-50);
   --popover: theme(--color-zinc-900);
   --popover-foreground: theme(--color-zinc-50);
-  --primary: theme(--color-zinc-200);
-  --primary-foreground: theme(--color-zinc-900);
+  --primary: theme(--color-emerald-600);
+  --primary-foreground: theme(--color-emerald-100);
   --secondary: theme(--color-zinc-800);
   --secondary-foreground: theme(--color-zinc-50);
   --muted: theme(--color-zinc-800);
