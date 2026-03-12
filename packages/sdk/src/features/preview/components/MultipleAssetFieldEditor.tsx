@@ -20,7 +20,7 @@ import { api } from "camox/_generated/api";
 import type { Doc, Id } from "camox/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { generateKeyBetween } from "fractional-indexing";
-import { FileIcon, GripVertical, X } from "lucide-react";
+import { FileIcon, GripVertical } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { AssetActionButtons } from "./AssetFieldEditor";
 import { AssetLightbox } from "./AssetLightbox";
 import { AssetPickerGrid } from "./AssetPickerGrid";
+import { UnlinkAssetButton } from "./UnlinkAssetButton";
 
 /* -------------------------------------------------------------------------------------------------
  * SortableAssetItem
@@ -62,7 +63,7 @@ const SortableAssetItem = ({
   };
 
   const asset = item.content?.[contentKey] as
-    | { url: string; alt: string; filename: string }
+    | { url: string; alt: string; filename: string; _fileId?: string }
     | undefined;
 
   const url = asset?.url ?? "";
@@ -110,18 +111,11 @@ const SortableAssetItem = ({
           </p>
         </button>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="text-muted-foreground hover:text-foreground hidden shrink-0 group-focus-within:flex group-hover:flex"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove(item._id);
-          }}
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <UnlinkAssetButton
+          fileId={asset?._fileId as Id<"files"> | undefined}
+          onUnlink={() => onRemove(item._id)}
+          className="hidden group-focus-within:flex group-hover:flex"
+        />
       </div>
     </li>
   );

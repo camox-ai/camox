@@ -1,5 +1,5 @@
 import type { Doc, Id } from "camox/_generated/dataModel";
-import { FileIcon, Upload, X } from "lucide-react";
+import { FileIcon, Upload } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { type UploadItem, useFileUpload } from "@/hooks/use-file-upload";
 
 import { AssetLightbox } from "./AssetLightbox";
 import { AssetPickerGrid } from "./AssetPickerGrid";
+import { UnlinkAssetButton } from "./UnlinkAssetButton";
 
 /* -------------------------------------------------------------------------------------------------
  * AssetActionButtons
@@ -164,12 +165,9 @@ const SingleAssetFieldEditor = ({
                   {asset.filename || "Untitled"}
                 </p>
               </button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground hover:text-foreground shrink-0"
-                onClick={() => {
+              <UnlinkAssetButton
+                fileId={asset._fileId as Id<"files"> | undefined}
+                onUnlink={() => {
                   onFieldChange(fieldName, {
                     url: "",
                     alt: "",
@@ -177,9 +175,7 @@ const SingleAssetFieldEditor = ({
                     mimeType: "",
                   });
                 }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              />
               {asset._fileId && (
                 <AssetLightbox
                   open={lightboxOpen}

@@ -74,6 +74,7 @@ export function useFileUpload(options?: UseFileUploadOptions) {
         blobId,
         filename: file.name,
         contentType: file.type,
+        size: file.size,
         siteUrl,
       });
 
