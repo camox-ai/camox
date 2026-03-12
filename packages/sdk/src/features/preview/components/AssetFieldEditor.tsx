@@ -1,4 +1,4 @@
-import type { Id } from "camox/_generated/dataModel";
+import type { Doc, Id } from "camox/_generated/dataModel";
 import { FileIcon, X } from "lucide-react";
 import * as React from "react";
 
@@ -6,6 +6,7 @@ import { FileUpload } from "@/components/file-upload";
 import { Button } from "@/components/ui/button";
 
 import { AssetLightbox } from "./AssetLightbox";
+import { AssetPickerGrid } from "./AssetPickerGrid";
 
 /* -------------------------------------------------------------------------------------------------
  * SingleAssetFieldEditor
@@ -34,7 +35,31 @@ const SingleAssetFieldEditor = ({
 
   const hasAsset = !!asset?.url;
   const [lightboxOpen, setLightboxOpen] = React.useState(false);
+  const [pickerOpen, setPickerOpen] = React.useState(false);
   const isImage = assetType === "Image";
+
+  const handleSelectExisting = (file: Doc<"files">) => {
+    onFieldChange(fieldName, {
+      url: file.url,
+      alt: file.alt,
+      filename: file.filename,
+      mimeType: file.mimeType,
+      _fileId: file._id,
+    });
+    setPickerOpen(false);
+  };
+
+  if (pickerOpen) {
+    return (
+      <AssetPickerGrid
+        assetType={assetType}
+        mode="single"
+        onSelectSingle={handleSelectExisting}
+        onSelectMultiple={() => {}}
+        onClose={() => setPickerOpen(false)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4 px-4 py-4">
@@ -90,6 +115,10 @@ const SingleAssetFieldEditor = ({
           )}
         </div>
       )}
+
+      <Button variant="default" className="mx-auto block" onClick={() => setPickerOpen(true)}>
+        Select existing {isImage ? "image" : "file"}
+      </Button>
 
       <FileUpload
         initialValue={asset}

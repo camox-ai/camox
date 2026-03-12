@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { AssetLightbox } from "./AssetLightbox";
+import { AssetPickerGrid } from "./AssetPickerGrid";
 
 /* -------------------------------------------------------------------------------------------------
  * SortableAssetItem
@@ -212,7 +213,8 @@ const MultipleAssetFieldEditor = ({
     return !!asset?.url;
   });
 
-  // Lightbox state
+  // Picker & lightbox state
+  const [pickerOpen, setPickerOpen] = React.useState(false);
   const [lightboxItem, setLightboxItem] = React.useState<Doc<"repeatableItems"> | null>(null);
 
   const sensors = useSensors(
@@ -266,6 +268,37 @@ const MultipleAssetFieldEditor = ({
     setLightboxItem(item);
   };
 
+  const handleSelectMultiple = async (files: Doc<"files">[]) => {
+    for (const file of files) {
+      await createItemMutation({
+        blockId,
+        fieldName,
+        content: {
+          [contentKey]: {
+            url: file.url,
+            alt: file.alt,
+            filename: file.filename,
+            mimeType: file.mimeType,
+            _fileId: file._id,
+          },
+        },
+      });
+    }
+    setPickerOpen(false);
+  };
+
+  if (pickerOpen) {
+    return (
+      <AssetPickerGrid
+        assetType={assetType}
+        mode="multiple"
+        onSelectSingle={() => {}}
+        onSelectMultiple={handleSelectMultiple}
+        onClose={() => setPickerOpen(false)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4 px-4 py-4">
       {items.length > 0 && (
@@ -294,6 +327,10 @@ const MultipleAssetFieldEditor = ({
           </SortableContext>
         </DndContext>
       )}
+
+      <Button variant="default" className="mx-auto block" onClick={() => setPickerOpen(true)}>
+        Select existing {assetType === "Image" ? "images" : "files"}
+      </Button>
 
       <FileUpload
         multiple
