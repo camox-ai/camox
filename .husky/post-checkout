@@ -21,5 +21,13 @@ current_dir=$(pwd)
   echo "Copied $env_file"
 done
 
+# Copy .claude/settings.local.json if it exists
+settings_file="$main_worktree/.claude/settings.local.json"
+if [ -f "$settings_file" ]; then
+  mkdir -p "$current_dir/.claude"
+  cp "$settings_file" "$current_dir/.claude/settings.local.json"
+  echo "Copied .claude/settings.local.json"
+fi
+
 pnpm install
 pnpm build

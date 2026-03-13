@@ -227,28 +227,11 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
 };
 
 /* -------------------------------------------------------------------------------------------------
- * SortableBlock
+ * useBlockTreeItem
  * -----------------------------------------------------------------------------------------------*/
 
-interface SortableBlockProps {
-  block: Doc<"blocks">;
-  isSelected: boolean;
-}
-
-const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
-  const [gripPopoverOpen, setGripPopoverOpen] = React.useState(false);
+function useBlockTreeItem(block: Doc<"blocks">, isSelected: boolean, isDragging = false) {
   const [ellipsisPopoverOpen, setEllipsisPopoverOpen] = React.useState(false);
-
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: block._id,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
   const selectionBreadcrumbs = useSelector(
     previewStore,
     (state) => state.context.selectionBreadcrumbs,
@@ -276,6 +259,131 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
     iframeElement.contentWindow.postMessage(message, "*");
   };
 
+  const toggleSelection = () => {
+    if (isSelected) {
+      previewStore.send({ type: "clearSelection" });
+    } else {
+      previewStore.send({
+        type: "setFocusedBlock",
+        blockId: block._id,
+      });
+    }
+  };
+
+  return {
+    ellipsisPopoverOpen,
+    setEllipsisPopoverOpen,
+    isParentOfSelection,
+    shouldShowHover,
+    shouldShowActive,
+    handleBlockMouseEnter,
+    handleBlockMouseLeave,
+    toggleSelection,
+  };
+}
+
+/* -------------------------------------------------------------------------------------------------
+ * BlockTreeItem sub-components
+ * -----------------------------------------------------------------------------------------------*/
+
+const BlockTreeItemHeader = ({
+  children,
+  shouldShowHover,
+  shouldShowActive,
+  isParentOfSelection,
+  className,
+  ref,
+  ...props
+}: React.ComponentPropsWithRef<"div"> & {
+  shouldShowHover: boolean;
+  shouldShowActive: boolean;
+  isParentOfSelection: boolean;
+}) => (
+  <div
+    ref={ref}
+    className={cn(
+      "flex flex-row justify-between items-center gap-1 px-1 max-w-full rounded-lg text-foreground transition-all hover:transition-none",
+      shouldShowHover && "hover:bg-accent/75",
+      shouldShowActive && "bg-accent text-accent-foreground",
+      isParentOfSelection && "bg-accent/25",
+      "data-[state=open]:rounded-b-none",
+      className,
+    )}
+    {...props}
+  >
+    {children}
+  </div>
+);
+
+const BlockTreeItemTrigger = ({
+  displayText,
+  onClick,
+}: {
+  displayText: string;
+  onClick: () => void;
+}) => (
+  <div className="flex flex-1 items-center gap-1 overflow-x-hidden">
+    <Accordion.Trigger asChild>
+      <button
+        className={cn(
+          "cursor-default flex-1 truncate py-2 text-sm text-left rounded-sm",
+          "focus-visible:underline outline-none focus-visible:decoration-ring/50 focus-visible:decoration-4",
+        )}
+        title={displayText}
+        onClick={onClick}
+      >
+        {displayText}
+      </button>
+    </Accordion.Trigger>
+  </div>
+);
+
+const BlockTreeItemEllipsis = ({
+  open,
+  className,
+  ...props
+}: React.ComponentPropsWithRef<typeof Button> & { open: boolean }) => (
+  <Button
+    variant="ghost"
+    size="icon-sm"
+    className={cn(
+      "text-muted-foreground hover:text-foreground",
+      open ? "flex" : "hidden group-hover:flex group-focus-within:flex",
+      className,
+    )}
+    {...props}
+  >
+    <Ellipsis className="size-4" />
+  </Button>
+);
+
+const BlockTreeItemContent = ({ block }: { block: Doc<"blocks"> }) => (
+  <Accordion.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down text-muted-foreground data-[state=open]:bg-accent/25 overflow-hidden rounded-b-lg text-sm">
+    <BlockFields block={block} />
+  </Accordion.Content>
+);
+
+/* -------------------------------------------------------------------------------------------------
+ * SortableBlock
+ * -----------------------------------------------------------------------------------------------*/
+
+interface SortableBlockProps {
+  block: Doc<"blocks">;
+  isSelected: boolean;
+}
+
+const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
+  const [gripPopoverOpen, setGripPopoverOpen] = React.useState(false);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: block._id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  const ctx = useBlockTreeItem(block, isSelected, isDragging);
+
   return (
     <Accordion.Root type="single" collapsible value={isSelected ? block._id : ""}>
       <Accordion.Item
@@ -283,18 +391,14 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
         ref={setNodeRef}
         style={style}
         className="group"
-        onMouseEnter={handleBlockMouseEnter}
-        onMouseLeave={handleBlockMouseLeave}
+        onMouseEnter={ctx.handleBlockMouseEnter}
+        onMouseLeave={ctx.handleBlockMouseLeave}
       >
         <Accordion.Header asChild>
-          <div
-            className={cn(
-              "flex flex-row justify-between items-center gap-1 px-1 max-w-full rounded-lg text-foreground transition-all hover:transition-none",
-              shouldShowHover && "hover:bg-accent/75",
-              shouldShowActive && "bg-accent text-accent-foreground",
-              isParentOfSelection && "bg-accent/25",
-              "data-[state=open]:rounded-b-none",
-            )}
+          <BlockTreeItemHeader
+            shouldShowHover={ctx.shouldShowHover}
+            shouldShowActive={ctx.shouldShowActive}
+            isParentOfSelection={ctx.isParentOfSelection}
           >
             <BlockActionsPopover
               block={block}
@@ -312,50 +416,17 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
                 <GripVertical className="h-4 w-4" />
               </Button>
             </BlockActionsPopover>
-            <div className="flex flex-1 items-center gap-1 overflow-x-hidden">
-              <Accordion.Trigger asChild>
-                <button
-                  className={cn(
-                    "cursor-default flex-1 truncate py-2 text-sm text-left rounded-sm",
-                    "focus-visible:underline outline-none focus-visible:decoration-ring/50 focus-visible:decoration-4",
-                  )}
-                  title={block.summary}
-                  onClick={() => {
-                    if (isSelected) {
-                      previewStore.send({ type: "clearSelection" });
-                    } else {
-                      previewStore.send({
-                        type: "setFocusedBlock",
-                        blockId: block._id,
-                      });
-                    }
-                  }}
-                >
-                  {block.summary}
-                </button>
-              </Accordion.Trigger>
-            </div>
+            <BlockTreeItemTrigger displayText={block.summary} onClick={ctx.toggleSelection} />
             <BlockActionsPopover
               block={block}
-              open={ellipsisPopoverOpen}
-              onOpenChange={setEllipsisPopoverOpen}
+              open={ctx.ellipsisPopoverOpen}
+              onOpenChange={ctx.setEllipsisPopoverOpen}
             >
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className={cn(
-                  "text-muted-foreground hover:text-foreground",
-                  ellipsisPopoverOpen ? "flex" : "hidden group-hover:flex group-focus-within:flex",
-                )}
-              >
-                <Ellipsis className="size-4" />
-              </Button>
+              <BlockTreeItemEllipsis open={ctx.ellipsisPopoverOpen} />
             </BlockActionsPopover>
-          </div>
+          </BlockTreeItemHeader>
         </Accordion.Header>
-        <Accordion.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down text-muted-foreground data-[state=open]:bg-accent/25 overflow-hidden rounded-b-lg text-sm">
-          <BlockFields block={block} />
-        </Accordion.Content>
+        <BlockTreeItemContent block={block} />
       </Accordion.Item>
     </Accordion.Root>
   );
@@ -372,52 +443,24 @@ interface LayoutBlockItemProps {
 }
 
 const LayoutBlockItem = ({ block, isSelected, layoutName }: LayoutBlockItemProps) => {
-  const [ellipsisPopoverOpen, setEllipsisPopoverOpen] = React.useState(false);
   const camoxApp = useCamoxApp();
   const blockDef = camoxApp.getBlockById(block.type);
-
-  const selectionBreadcrumbs = useSelector(
-    previewStore,
-    (state) => state.context.selectionBreadcrumbs,
-  );
-  const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
-  const isParentOfSelection = selectionBreadcrumbs.at(-2)?.id === block._id;
-
-  const handleBlockMouseEnter = () => {
-    if (!iframeElement?.contentWindow) return;
-    const message: OverlayMessage = {
-      type: "CAMOX_HOVER_BLOCK",
-      blockId: block._id,
-    };
-    iframeElement.contentWindow.postMessage(message, "*");
-  };
-
-  const handleBlockMouseLeave = () => {
-    if (!iframeElement?.contentWindow) return;
-    const message: OverlayMessage = {
-      type: "CAMOX_HOVER_BLOCK_END",
-      blockId: block._id,
-    };
-    iframeElement.contentWindow.postMessage(message, "*");
-  };
+  const ctx = useBlockTreeItem(block, isSelected);
+  const displayText = blockDef?.title ?? block.type;
 
   return (
     <Accordion.Root type="single" collapsible value={isSelected ? block._id : ""}>
       <Accordion.Item
         value={block._id}
         className="group"
-        onMouseEnter={handleBlockMouseEnter}
-        onMouseLeave={handleBlockMouseLeave}
+        onMouseEnter={ctx.handleBlockMouseEnter}
+        onMouseLeave={ctx.handleBlockMouseLeave}
       >
         <Accordion.Header asChild>
-          <div
-            className={cn(
-              "flex flex-row justify-between items-center gap-1 px-1 max-w-full rounded-lg text-foreground transition-all hover:transition-none",
-              !isSelected && "hover:bg-accent/75",
-              isSelected && !isParentOfSelection && "bg-accent text-accent-foreground",
-              isParentOfSelection && "bg-accent/25",
-              "data-[state=open]:rounded-b-none",
-            )}
+          <BlockTreeItemHeader
+            shouldShowHover={ctx.shouldShowHover}
+            shouldShowActive={ctx.shouldShowActive}
+            isParentOfSelection={ctx.isParentOfSelection}
           >
             <div className="text-muted-foreground flex size-7 shrink-0 items-center justify-center">
               <Tooltip delayDuration={500}>
@@ -431,52 +474,19 @@ const LayoutBlockItem = ({ block, isSelected, layoutName }: LayoutBlockItemProps
                 </TooltipContent>
               </Tooltip>
             </div>
-            <div className="flex flex-1 items-center gap-1 overflow-x-hidden">
-              <Accordion.Trigger asChild>
-                <button
-                  className={cn(
-                    "cursor-default flex-1 truncate py-2 text-sm text-left rounded-sm",
-                    "focus-visible:underline outline-none focus-visible:decoration-ring/50 focus-visible:decoration-4",
-                  )}
-                  title={blockDef?.title ?? block.type}
-                  onClick={() => {
-                    if (isSelected) {
-                      previewStore.send({ type: "clearSelection" });
-                    } else {
-                      previewStore.send({
-                        type: "setFocusedBlock",
-                        blockId: block._id,
-                      });
-                    }
-                  }}
-                >
-                  {blockDef?.title ?? block.type}
-                </button>
-              </Accordion.Trigger>
-            </div>
+            <BlockTreeItemTrigger displayText={displayText} onClick={ctx.toggleSelection} />
             <BlockActionsPopover
               block={block}
-              open={ellipsisPopoverOpen}
-              onOpenChange={setEllipsisPopoverOpen}
+              open={ctx.ellipsisPopoverOpen}
+              onOpenChange={ctx.setEllipsisPopoverOpen}
               isLayoutBlock
               layoutPlacement={block.placement as "before" | "after"}
             >
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className={cn(
-                  "text-muted-foreground hover:text-foreground",
-                  ellipsisPopoverOpen ? "flex" : "hidden group-hover:flex group-focus-within:flex",
-                )}
-              >
-                <Ellipsis className="size-4" />
-              </Button>
+              <BlockTreeItemEllipsis open={ctx.ellipsisPopoverOpen} />
             </BlockActionsPopover>
-          </div>
+          </BlockTreeItemHeader>
         </Accordion.Header>
-        <Accordion.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down text-muted-foreground data-[state=open]:bg-accent/25 overflow-hidden rounded-b-lg text-sm">
-          <BlockFields block={block} />
-        </Accordion.Content>
+        <BlockTreeItemContent block={block} />
       </Accordion.Item>
     </Accordion.Root>
   );
