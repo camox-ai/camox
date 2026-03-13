@@ -203,7 +203,7 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
       {Object.keys(schemaProperties ?? {}).map((fieldName) => {
         const value = block.content[fieldName];
         const fieldSchema = schemaProperties?.[fieldName];
-        if (!fieldSchema || value === undefined) return null;
+        if (!fieldSchema) return null;
         const fieldType = fieldSchema.fieldType;
         const isRepeatable = fieldType === "RepeatableObject";
         return (

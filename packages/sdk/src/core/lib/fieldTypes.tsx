@@ -119,8 +119,11 @@ const fieldTypesDictionary = {
     isScalar: false,
     isContentEditable: false,
     getIcon: () => (props: LucideProps) => <ImageIcon {...props} />,
-    getLabel: (value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) =>
-      (value as { filename?: string } | null)?.filename ?? schemaTitle ?? fieldName,
+    getLabel: (value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) => {
+      const filename = (value as { filename?: string } | null | undefined)?.filename;
+      if (!filename) return `Missing ${schemaTitle ?? fieldName}`;
+      return filename;
+    },
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
       previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "Image" });
       previewStore.send({ type: "openBlockContentSheet", blockId });
@@ -132,8 +135,11 @@ const fieldTypesDictionary = {
     isScalar: false,
     isContentEditable: false,
     getIcon: () => (props: LucideProps) => <FileIcon {...props} />,
-    getLabel: (value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) =>
-      (value as { filename?: string } | null)?.filename ?? schemaTitle ?? fieldName,
+    getLabel: (value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) => {
+      const filename = (value as { filename?: string } | null | undefined)?.filename;
+      if (!filename) return `Missing ${schemaTitle ?? fieldName}`;
+      return filename;
+    },
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
       previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "File" });
       previewStore.send({ type: "openBlockContentSheet", blockId });

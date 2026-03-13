@@ -1498,7 +1498,23 @@ export function createBlock<
         <Context.Provider
           value={{
             blockId: blockData._id,
-            content: { ...contentDefaults, ...blockData.content },
+            content: (() => {
+              const merged = { ...contentDefaults, ...blockData.content };
+              const overrides: Record<string, unknown> = {};
+              for (const key in merged) {
+                const val = (merged as Record<string, unknown>)[key];
+                if (
+                  val &&
+                  typeof val === "object" &&
+                  "url" in val &&
+                  !(val as any).url &&
+                  contentDefaults[key]
+                ) {
+                  overrides[key] = contentDefaults[key];
+                }
+              }
+              return { ...merged, ...overrides };
+            })(),
             settings: {
               ...settingsDefaults,
               ...blockData.settings,

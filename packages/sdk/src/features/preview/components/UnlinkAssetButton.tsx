@@ -63,7 +63,7 @@ const UnlinkAssetButton = ({ fileId, onUnlink, className }: UnlinkAssetButtonPro
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => onUnlink()} asChild>
-              <Button variant="outline" className="text-foreground">
+              <Button variant="outline" className="bg-background hover:bg-accent text-foreground">
                 Unlink only
               </Button>
             </AlertDialogAction>
