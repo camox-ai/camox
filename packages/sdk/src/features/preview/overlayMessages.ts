@@ -26,7 +26,11 @@ export type OverlayMessage =
       blockPosition: string;
       insertPosition: "before" | "after";
       afterPosition?: string | null;
-    };
+    }
+  // Text selection (Iframe → Parent)
+  | { type: "CAMOX_TEXT_SELECTION_STATE"; hasSelection: boolean; activeFormats: number }
+  // Text formatting (Parent → Iframe)
+  | { type: "CAMOX_FORMAT_TEXT"; formatKey: string };
 
 export function isOverlayMessage(data: unknown): data is OverlayMessage {
   return (

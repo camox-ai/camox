@@ -14,6 +14,7 @@ import { FloatingToolbar } from "./FloatingToolbar";
 import { Overlays } from "./Overlays";
 import { OverlayTracker } from "./OverlayTracker";
 import { useIsPreviewSheetOpen } from "./PreviewSideSheet";
+import { TextFormatToolbar } from "./TextFormatToolbar";
 
 /* -------------------------------------------------------------------------------------------------
  * Frame
@@ -219,6 +220,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
                 </PreviewFrame>
                 <Overlays iframeElement={iframeElement} />
               </div>
+              <TextFormatToolbar />
               <FloatingToolbar />
             </div>
           ) : (
@@ -227,6 +229,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
                 {children}
               </PreviewFrame>
               <Overlays iframeElement={iframeElement} />
+              <TextFormatToolbar />
               <FloatingToolbar />
             </>
           )}
