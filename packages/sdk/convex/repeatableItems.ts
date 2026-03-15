@@ -3,7 +3,8 @@ import { generateKeyBetween } from "fractional-indexing";
 
 import { generateObjectSummary } from "../src/lib/ai";
 import { internal } from "./_generated/api";
-import { mutation, internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internalAction, internalQuery } from "./_generated/server";
+import { internalMutation, mutation } from "./functions";
 import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 import { sortByPosition, assembleItemContent } from "./lib/contentAssembly";
 

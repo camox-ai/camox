@@ -5,13 +5,8 @@ import { generateObjectSummary, generatePageSeo as generatePageSeoAI } from "../
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
-import {
-  query,
-  mutation,
-  internalAction,
-  internalMutation,
-  internalQuery,
-} from "./_generated/server";
+import { query, internalAction, internalQuery } from "./_generated/server";
+import { internalMutation, mutation } from "./functions";
 import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 import {
   sortByPosition,

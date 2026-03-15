@@ -1,13 +1,13 @@
 import { generateNKeysBetween } from "fractional-indexing";
 
 import { plainTextToLexicalState } from "../src/core/lib/lexicalState";
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./functions";
 
 /**
  * Seed script to populate the database with initial homepage and blocks
  * Run this once to set up the initial data
  */
-export const seedWebsite = mutation({
+export const seedWebsite = internalMutation({
   args: {},
   handler: async (ctx) => {
     // Delete all pre-existing blocks, pages, repeatable items, and projects

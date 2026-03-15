@@ -3,8 +3,9 @@ import { v } from "convex/values";
 
 import { generateImageMetadata } from "../src/lib/ai";
 import { internal } from "./_generated/api";
-import { mutation, query, internalAction, internalMutation } from "./_generated/server";
+import { query, internalAction } from "./_generated/server";
 import { fs } from "./fs";
+import { internalMutation, mutation } from "./functions";
 import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 
 const FS_PREFIX = "/fs";

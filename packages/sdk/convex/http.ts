@@ -14,12 +14,11 @@ you have other routes here */
 // - GET /fs/blobs/{blobId} - Returns 302 redirect to signed CDN URL
 registerRoutes(http, components.fs, fs, {
   pathPrefix: "/fs",
-  uploadAuth: async () => {
-    // TODO: Add real auth check
-    return true;
+  uploadAuth: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    return identity !== null;
   },
   downloadAuth: async () => {
-    // TODO: Add real auth check
     return true;
   },
 });

@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { markdownToLexicalState, plainTextToLexicalState } from "../src/core/lib/lexicalState";
 import { generatePageDraft } from "../src/lib/ai";
 import { internal } from "./_generated/api";
-import { action } from "./_generated/server";
+import { action } from "./functions";
 
 const DEFAULT_HERO_BLOCK = {
   type: "hero",

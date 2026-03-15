@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { generateKeyBetween } from "fractional-indexing";
 
 import { internal } from "./_generated/api";
-import { internalMutation, mutation, query } from "./_generated/server";
+import { query } from "./_generated/server";
+import { internalMutation, mutation } from "./functions";
 import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 import {
   sortByPosition,

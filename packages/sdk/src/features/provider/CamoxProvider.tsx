@@ -1,5 +1,6 @@
-import { SignedIn, SignedOut, useClerk } from "@clerk/clerk-react";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { SignedIn, SignedOut, useAuth, useClerk } from "@clerk/clerk-react";
+import { ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import * as React from "react";
 
 import { Toaster } from "@/components/ui/toaster";
@@ -80,8 +81,8 @@ export function CamoxProvider({ children, camoxApp, convexUrl }: CamoxProviderPr
   const convexReactClient = React.useMemo(() => new ConvexReactClient(convexUrl), [convexUrl]);
 
   return (
-    <ConvexProvider client={convexReactClient}>
-      <AuthProvider>
+    <AuthProvider>
+      <ConvexProviderWithClerk client={convexReactClient} useAuth={useAuth}>
         <CamoxAppProvider app={camoxApp}>
           <SignedIn>
             <link rel="stylesheet" href={studioCssUrl} />
@@ -91,7 +92,7 @@ export function CamoxProvider({ children, camoxApp, convexUrl }: CamoxProviderPr
             <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>
           </SignedOut>
         </CamoxAppProvider>
-      </AuthProvider>
-    </ConvexProvider>
+      </ConvexProviderWithClerk>
+    </AuthProvider>
   );
 }
