@@ -20,7 +20,7 @@ export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) 
       data-asset-id={file._id}
       className={cn(
         "group flex flex-col gap-1.5 rounded-lg p-2 text-left border-2 border-transparent",
-        selected ? "bg-primary/20 border-2 border-primary" : "hover:bg-primary/20",
+        selected ? "bg-primary/20 border-2 border-primary" : "hover:bg-accent/75",
       )}
       onClick={(e) => {
         e.stopPropagation();

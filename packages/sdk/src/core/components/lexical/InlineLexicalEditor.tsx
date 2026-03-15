@@ -8,8 +8,8 @@ import * as React from "react";
 
 import { useFrame } from "../../../components/ui/frame";
 import { createEditorConfig, normalizeLexicalState } from "./editorConfig";
-import { FloatingToolbar } from "./FloatingToolbar";
 import { InlineContentEditable } from "./InlineContentEditable";
+import { SelectionBroadcaster } from "./SelectionBroadcaster";
 
 interface InlineLexicalEditorProps {
   initialState: string;
@@ -125,8 +125,6 @@ export function InlineLexicalEditor({
     };
   }, []);
 
-  const portalContainer = iframeWindow?.document.body ?? document.body;
-
   return (
     <LexicalComposer initialConfig={config}>
       <RichTextPlugin
@@ -137,9 +135,7 @@ export function InlineLexicalEditor({
       <ExternalStateSync externalState={externalState} />
       <EscapeHandler />
       <FocusBlurHandler onFocus={onFocus} onBlur={onBlur} />
-      {iframeWindow && (
-        <FloatingToolbar portalContainer={portalContainer} targetWindow={iframeWindow} />
-      )}
+      {iframeWindow && <SelectionBroadcaster targetWindow={iframeWindow} />}
     </LexicalComposer>
   );
 }
