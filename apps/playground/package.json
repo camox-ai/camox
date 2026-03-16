@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "playground",
   "private": true,
   "type": "module",
   "scripts": {
