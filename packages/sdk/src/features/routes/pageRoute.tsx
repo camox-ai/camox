@@ -1,7 +1,7 @@
 import { notFound } from "@tanstack/react-router";
 import { createMiddleware, createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { api } from "camox/_generated/api";
+import { api } from "camox/server/api";
 import { ConvexHttpClient } from "convex/browser";
 
 import type { CamoxApp } from "../../core/createApp";

@@ -1,7 +1,7 @@
 import { SignedIn, SignedOut, useAuth, useClerk } from "@clerk/clerk-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/_generated/api";
+import { api } from "camox/server/api";
 import { useQuery } from "convex/react";
 import * as React from "react";
 

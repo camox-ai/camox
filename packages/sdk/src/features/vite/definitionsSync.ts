@@ -1,7 +1,7 @@
 import path from "node:path";
 
-import { api } from "camox/_generated/api";
-import type { Id } from "camox/_generated/dataModel";
+import { api } from "camox/server/api";
+import type { Id } from "camox/server/dataModel";
 import { ConvexClient } from "convex/browser";
 import type { ViteDevServer } from "vite";
 
@@ -13,6 +13,8 @@ const SYNC_DEBOUNCE_DELAY_MS = 100;
 export interface DefinitionsSyncOptions {
   /** Path to the module that exports the camoxApp (relative to project root) */
   camoxAppPath?: string;
+  /** Convex URL to connect to for syncing definitions */
+  convexUrl?: string;
 }
 
 function getBlockIdFromFilePath(filePath: string): string {
@@ -27,9 +29,9 @@ export async function syncDefinitions(
   const camoxAppPath = options.camoxAppPath ?? "./src/camox/app.ts";
   const blocksDir = path.resolve(server.config.root, "src/camox/blocks");
 
-  const convexUrl = process.env.VITE_CONVEX_URL;
+  const convexUrl = options.convexUrl ?? process.env.VITE_CONVEX_URL;
   if (!convexUrl) {
-    server.config.logger.warn("[camox] VITE_CONVEX_URL not set, skipping block definitions sync", {
+    server.config.logger.warn("[camox] No Convex URL provided, skipping block definitions sync", {
       timestamp: true,
     });
     return;

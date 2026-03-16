@@ -4,7 +4,7 @@
  * Used by CreatePageSheet and EditPageSheet.
  * -----------------------------------------------------------------------------------------------*/
 
-import { Id, Doc } from "camox/_generated/dataModel";
+import { Id, Doc } from "camox/server/dataModel";
 
 import * as ControlGroup from "@/components/ui/control-group";
 import { Input } from "@/components/ui/input";

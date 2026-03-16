@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/_generated/api";
-import { Doc } from "camox/_generated/dataModel";
+import { api } from "camox/server/api";
+import { Doc } from "camox/server/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
 import * as React from "react";

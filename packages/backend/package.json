@@ -1,0 +1,30 @@
+{
+  "name": "@camox/backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./_generated/api": {
+      "types": "./convex/_generated/api.d.ts",
+      "default": "./convex/_generated/api.js"
+    },
+    "./_generated/dataModel": {
+      "types": "./convex/_generated/dataModel.d.ts",
+      "default": "./convex/_generated/dataModel.js"
+    },
+    "./lib/contentAssembly": {
+      "types": "./convex/lib/contentAssembly.ts"
+    }
+  },
+  "dependencies": {
+    "@openrouter/ai-sdk-provider": "^2.2.3",
+    "ai": "^6.0.105",
+    "convex": "^1.32.0",
+    "convex-fs": "^0.2.1",
+    "convex-helpers": "^0.1.104",
+    "fractional-indexing": "^3.2.0",
+    "outdent": "^0.8.0",
+    "zod": "^3.24.2"
+  }
+}

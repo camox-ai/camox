@@ -3,12 +3,8 @@ import { generateText, Output } from "ai";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-if (!process.env.OPEN_ROUTER_API_KEY) {
-  throw new Error("OPEN_ROUTER_API_KEY is not set");
-}
-
 export const openRouter = createOpenRouter({
-  apiKey: process.env.OPEN_ROUTER_API_KEY,
+  apiKey: process.env.OPEN_ROUTER_API_KEY!,
 });
 
 type BlockDefinition = {

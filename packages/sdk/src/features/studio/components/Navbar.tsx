@@ -1,6 +1,6 @@
 import type { LinkProps } from "@tanstack/react-router";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { api } from "camox/_generated/api";
+import { api } from "camox/server/api";
 import { useQuery } from "convex/react";
 import { Globe, SearchIcon, Database } from "lucide-react";
 import * as icons from "lucide-react";

@@ -1,4 +1,4 @@
-import { isLexicalState, lexicalStateToMarkdown } from "../../src/core/lib/lexicalState";
+import { isLexicalState, lexicalStateToMarkdown } from "./lexicalState";
 
 export function contentToMarkdown(
   toMarkdown: readonly string[],

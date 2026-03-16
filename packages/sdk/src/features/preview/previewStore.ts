@@ -1,5 +1,5 @@
 import { createStore } from "@xstate/store";
-import { Doc, Id } from "camox/_generated/dataModel";
+import { Doc, Id } from "camox/server/dataModel";
 
 import { toast } from "@/components/ui/toaster";
 import { Block } from "@/core/createBlock";

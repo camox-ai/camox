@@ -1,5 +1,5 @@
-import { api } from "camox/_generated/api";
-import type { Id } from "camox/_generated/dataModel";
+import { api } from "camox/server/api";
+import type { Id } from "camox/server/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { Check, Download, FileIcon, Link, Loader2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";

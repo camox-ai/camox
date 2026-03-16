@@ -1,5 +1,5 @@
 import { useSelector } from "@xstate/store/react";
-import type { Id } from "camox/_generated/dataModel";
+import type { Id } from "camox/server/dataModel";
 import * as React from "react";
 
 import type { Block } from "../../../core/createBlock";

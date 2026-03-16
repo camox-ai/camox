@@ -44,13 +44,13 @@
       "types": "./dist/features/vite/vite.d.ts",
       "import": "./dist/features/vite/vite.js"
     },
-    "./_generated/api": {
-      "types": "./convex/_generated/api.d.ts",
-      "default": "./convex/_generated/api.js"
+    "./server/api": {
+      "types": "./server/api.d.ts",
+      "default": "./server/api.js"
     },
-    "./_generated/dataModel": {
-      "types": "./convex/_generated/dataModel.d.ts",
-      "default": "./convex/_generated/dataModel.js"
+    "./server/dataModel": {
+      "types": "./server/dataModel.d.ts",
+      "default": "./server/dataModel.js"
     },
     "./_internal/pageRoute": {
       "source": "./src/features/routes/pageRoute.tsx",
@@ -72,6 +72,7 @@
     "check": "tsgo --noEmit && oxlint --fix"
   },
   "dependencies": {
+    "@camox/backend": "workspace:*",
     "@clerk/clerk-react": "^5.22.13",
     "@clerk/themes": "^2.4.21",
     "@dnd-kit/core": "^6.3.1",
@@ -81,7 +82,6 @@
     "@lexical/markdown": "^0.41.0",
     "@lexical/react": "^0.41.0",
     "@lexical/rich-text": "^0.41.0",
-    "@openrouter/ai-sdk-provider": "^2.2.3",
     "@radix-ui/primitive": "1.1.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -106,17 +106,13 @@
     "@tanstack/react-form": "^1.28.4",
     "@window-splitter/react": "^1.1.2",
     "@xstate/store": "^3.9.2",
-    "ai": "^6.0.105",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "convex": "^1.32.0",
-    "convex-fs": "^0.2.1",
-    "convex-helpers": "^0.1.104",
     "fractional-indexing": "^3.2.0",
     "lexical": "^0.41.0",
     "lucide-react": "^0.476.0",
-    "outdent": "^0.8.0",
     "radix-ui": "^1.4.3",
     "react": "19.3.0-canary-d6cae440-20260106",
     "react-dom": "19.3.0-canary-d6cae440-20260106",

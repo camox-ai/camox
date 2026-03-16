@@ -1,7 +1,7 @@
 import { generateNKeysBetween } from "fractional-indexing";
 
-import { plainTextToLexicalState } from "../src/core/lib/lexicalState";
 import { internalMutation } from "./functions";
+import { plainTextToLexicalState } from "./lib/lexicalState";
 
 /**
  * Seed script to populate the database with initial homepage and blocks

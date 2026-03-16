@@ -1,4 +1,4 @@
-import type { Id } from "camox/_generated/dataModel";
+import type { Id } from "camox/server/dataModel";
 import {
   Type as TypeIcon,
   List as ListIcon,

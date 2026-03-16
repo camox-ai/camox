@@ -38,6 +38,12 @@ CLAUDE.local.md
 # MCP servers
 .playwright-mcp
 
+# Camox local convex
+.camox/
+
+# Convex codegen (backend owns the real copy)
+packages/sdk/convex/
+
 # Nx
 .nx/cache
 .nx/workspace-data

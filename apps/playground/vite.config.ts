@@ -51,6 +51,10 @@ const config = defineConfig({
         find: "camox/_internal/ogRoute",
         replacement: resolve(__dirname, "../../packages/sdk/src/features/routes/ogRoute.ts"),
       },
+      {
+        find: /^camox\/_generated\/(.*)/,
+        replacement: resolve(__dirname, "../../packages/backend/convex/_generated/$1"),
+      },
     ],
   },
   plugins: [
@@ -58,10 +62,7 @@ const config = defineConfig({
       projects: ["./tsconfig.json", "../../packages/sdk/tsconfig.json"],
     }),
     tailwindcss(),
-    camox({
-      convexDeployKey: process.env.CONVEX_DEPLOY_KEY!,
-      convexUrl: process.env.VITE_CONVEX_URL!,
-    }),
+    camox(),
     tanstackStart(),
     viteReact({
       babel: {

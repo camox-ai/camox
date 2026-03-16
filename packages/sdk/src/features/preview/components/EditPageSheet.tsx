@@ -5,8 +5,8 @@
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/_generated/api";
-import { Doc, Id } from "camox/_generated/dataModel";
+import { api } from "camox/server/api";
+import { Doc, Id } from "camox/server/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { Globe, Info } from "lucide-react";
 import * as React from "react";

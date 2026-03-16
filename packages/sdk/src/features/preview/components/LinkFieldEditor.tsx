@@ -1,4 +1,4 @@
-import { api } from "camox/_generated/api";
+import { api } from "camox/server/api";
 import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import * as React from "react";

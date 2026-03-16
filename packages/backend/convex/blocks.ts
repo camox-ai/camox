@@ -1,12 +1,12 @@
 import { v } from "convex/values";
 import { generateKeyBetween } from "fractional-indexing";
 
-import { generateObjectSummary, generatePageSeo as generatePageSeoAI } from "../src/lib/ai";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { query, internalAction, internalQuery } from "./_generated/server";
 import { internalMutation, mutation } from "./functions";
+import { generateObjectSummary, generatePageSeo as generatePageSeoAI } from "./lib/ai";
 import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 import {
   sortByPosition,

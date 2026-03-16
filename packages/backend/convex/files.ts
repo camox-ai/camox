@@ -1,11 +1,11 @@
 import { buildDownloadUrl } from "convex-fs";
 import { v } from "convex/values";
 
-import { generateImageMetadata } from "../src/lib/ai";
 import { internal } from "./_generated/api";
 import { query, internalAction } from "./_generated/server";
 import { fs } from "./fs";
 import { internalMutation, mutation } from "./functions";
+import { generateImageMetadata } from "./lib/ai";
 import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 
 const FS_PREFIX = "/fs";

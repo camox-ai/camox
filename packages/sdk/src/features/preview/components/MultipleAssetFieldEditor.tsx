@@ -16,8 +16,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useLocation } from "@tanstack/react-router";
-import { api } from "camox/_generated/api";
-import type { Doc, Id } from "camox/_generated/dataModel";
+import { api } from "camox/server/api";
+import type { Doc, Id } from "camox/server/dataModel";
 import { useMutation } from "convex/react";
 import { generateKeyBetween } from "fractional-indexing";
 import { FileIcon, GripVertical } from "lucide-react";

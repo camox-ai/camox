@@ -17,8 +17,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/_generated/api";
-import { Doc, Id } from "camox/_generated/dataModel";
+import { api } from "camox/server/api";
+import { Doc, Id } from "camox/server/dataModel";
 import { useMutation } from "convex/react";
 import { generateKeyBetween } from "fractional-indexing";
 import { CircleMinus, CirclePlus, GripVertical } from "lucide-react";

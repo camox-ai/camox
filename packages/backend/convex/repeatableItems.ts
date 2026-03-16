@@ -1,10 +1,10 @@
 import { v } from "convex/values";
 import { generateKeyBetween } from "fractional-indexing";
 
-import { generateObjectSummary } from "../src/lib/ai";
 import { internal } from "./_generated/api";
 import { internalAction, internalQuery } from "./_generated/server";
 import { internalMutation, mutation } from "./functions";
+import { generateObjectSummary } from "./lib/ai";
 import { scheduleAiJob, clearAiJob } from "./lib/aiJobs";
 import { sortByPosition, assembleItemContent } from "./lib/contentAssembly";
 

@@ -4,16 +4,12 @@ import type { Plugin, ViteDevServer } from "vite";
 
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
-import { startConvexDev, stopConvexDev } from "./convexSync";
+import { LOCAL_CONVEX_URL, startConvexDev, stopConvexDev } from "./convexSync";
 import { syncDefinitions, type DefinitionsSyncOptions } from "./definitionsSync";
 import { generateRouteFiles, watchRouteFiles } from "./routeGeneration";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
 export interface CamoxPluginOptions {
-  /** Convex deploy key for non-interactive authentication (required) */
-  convexDeployKey: string;
-  /** Convex URL for the deployment (required) */
-  convexUrl: string;
   /** Disable the generation of boilerplate code when creating a blank file in the blocks directory (default: false) */
   disableBlockBoilerplateGeneration?: boolean;
   /** Disable automatic definitions sync on server start (default: false) */
@@ -22,13 +18,15 @@ export interface CamoxPluginOptions {
   definitionsSync?: DefinitionsSyncOptions;
 }
 
-export function camox(options: CamoxPluginOptions): Plugin {
+export function camox(options?: CamoxPluginOptions): Plugin {
+  const convexUrl = LOCAL_CONVEX_URL;
+
   return {
     name: "camox",
     configResolved(config) {
       const routesDir = resolve(config.root, "src/routes");
       generateAppFile(config.root);
-      generateRouteFiles(routesDir, options.convexUrl);
+      generateRouteFiles(routesDir, convexUrl);
       generateSkillFiles(config.root);
 
       const message =
@@ -41,24 +39,28 @@ export function camox(options: CamoxPluginOptions): Plugin {
     configureServer(server: ViteDevServer) {
       const routesDir = resolve(server.config.root, "src/routes");
       watchAppFile(server, server.config.root);
-      watchRouteFiles(server, routesDir, options.convexUrl);
+      watchRouteFiles(server, routesDir, convexUrl);
       watchSkillFiles(server, server.config.root);
 
-      if (!options.disableBlockBoilerplateGeneration) {
+      if (!options?.disableBlockBoilerplateGeneration) {
         watchNewBlockFiles(server);
       }
 
-      startConvexDev({
-        server,
-        deployKey: options.convexDeployKey,
-      });
+      // Start local Convex backend, then sync definitions once it's ready
+      server.httpServer?.once("listening", async () => {
+        await startConvexDev(server);
 
-      if (!options.disableDefinitionsSync) {
-        // Sync after the server is ready to ensure modules can be loaded
-        server.httpServer?.once("listening", () => {
-          syncDefinitions(server, options.definitionsSync);
-        });
-      }
+        // TODO: Set environment variables on the local deployment via
+        // POST http://127.0.0.1:3210/update_environment_variables
+        // so users don't have to manually run `npx convex env set` before the push succeeds.
+
+        if (!options?.disableDefinitionsSync) {
+          syncDefinitions(server, {
+            ...options?.definitionsSync,
+            convexUrl,
+          });
+        }
+      });
     },
 
     buildEnd() {

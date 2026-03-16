@@ -2,10 +2,10 @@
 
 import { v } from "convex/values";
 
-import { markdownToLexicalState, plainTextToLexicalState } from "../src/core/lib/lexicalState";
-import { generatePageDraft } from "../src/lib/ai";
 import { internal } from "./_generated/api";
 import { action } from "./functions";
+import { generatePageDraft } from "./lib/ai";
+import { markdownToLexicalState, plainTextToLexicalState } from "./lib/lexicalState";
 
 const DEFAULT_HERO_BLOCK = {
   type: "hero",

@@ -1,4 +1,4 @@
-import type { Doc, Id } from "camox/_generated/dataModel";
+import type { Doc, Id } from "camox/server/dataModel";
 import { FileIcon, Upload } from "lucide-react";
 import * as React from "react";
 

@@ -184,8 +184,38 @@ importers:
         specifier: ^4.2.4
         version: 4.2.4
 
+  packages/backend:
+    dependencies:
+      '@openrouter/ai-sdk-provider':
+        specifier: ^2.2.3
+        version: 2.2.3(ai@6.0.105(zod@3.25.76))(zod@3.25.76)
+      ai:
+        specifier: ^6.0.105
+        version: 6.0.105(zod@3.25.76)
+      convex:
+        specifier: ^1.32.0
+        version: 1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
+      convex-fs:
+        specifier: ^0.2.1
+        version: 0.2.1(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@3.25.76)
+      convex-helpers:
+        specifier: ^0.1.104
+        version: 0.1.113(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@3.25.76)
+      fractional-indexing:
+        specifier: ^3.2.0
+        version: 3.2.0
+      outdent:
+        specifier: ^0.8.0
+        version: 0.8.0
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+
   packages/sdk:
     dependencies:
+      '@camox/backend':
+        specifier: workspace:*
+        version: link:../backend
       '@clerk/clerk-react':
         specifier: ^5.22.13
         version: 5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
@@ -213,9 +243,6 @@ importers:
       '@lexical/rich-text':
         specifier: ^0.41.0
         version: 0.41.0
-      '@openrouter/ai-sdk-provider':
-        specifier: ^2.2.3
-        version: 2.2.3(ai@6.0.105(zod@3.25.76))(zod@3.25.76)
       '@radix-ui/primitive':
         specifier: 1.1.2
         version: 1.1.2
@@ -294,9 +321,6 @@ importers:
       '@xstate/store':
         specifier: ^3.9.2
         version: 3.9.2(react@19.3.0-canary-d6cae440-20260106)(solid-js@1.9.9)
-      ai:
-        specifier: ^6.0.105
-        version: 6.0.105(zod@3.25.76)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -309,12 +333,6 @@ importers:
       convex:
         specifier: ^1.32.0
         version: 1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
-      convex-fs:
-        specifier: ^0.2.1
-        version: 0.2.1(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@3.25.76)
-      convex-helpers:
-        specifier: ^0.1.104
-        version: 0.1.104(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@3.25.76)
       fractional-indexing:
         specifier: ^3.2.0
         version: 3.2.0
@@ -324,9 +342,6 @@ importers:
       lucide-react:
         specifier: ^0.476.0
         version: 0.476.0(react@19.3.0-canary-d6cae440-20260106)
-      outdent:
-        specifier: ^0.8.0
-        version: 0.8.0
       radix-ui:
         specifier: ^1.4.3
         version: 1.4.3(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
@@ -3780,28 +3795,6 @@ packages:
     peerDependencies:
       convex: ^1.29.3
       react: ^18.3.1 || ^19.0.0
-
-  convex-helpers@0.1.104:
-    resolution: {integrity: sha512-7CYvx7T3K6n+McDTK4ZQaQNNGBzq5aWezpjzsKbOxPXx7oNcTP9wrpef3JxeXWFzkByJv5hRCjseh9B7eNJ7Ig==}
-    hasBin: true
-    peerDependencies:
-      '@standard-schema/spec': ^1.0.0
-      convex: ^1.24.0
-      hono: ^4.0.5
-      react: ^17.0.2 || ^18.0.0 || ^19.0.0
-      typescript: ^5.5
-      zod: ^3.22.4 || ^4.0.15
-    peerDependenciesMeta:
-      '@standard-schema/spec':
-        optional: true
-      hono:
-        optional: true
-      react:
-        optional: true
-      typescript:
-        optional: true
-      zod:
-        optional: true
 
   convex-helpers@0.1.113:
     resolution: {integrity: sha512-IFLmgEbN2skC0w+M0MfXTYAITq/FeGxEe602Fij2/GI/WJ75G8/9aSDO0GddbwPDfvzUgQTbx5SbDtiegfwZBA==}
@@ -9733,10 +9726,10 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-fs@0.2.1(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@3.25.76):
+  convex-fs@0.2.1(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@3.25.76):
     dependencies:
-      convex: 1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
-      convex-helpers: 0.1.113(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@3.25.76)
+      convex: 1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
+      convex-helpers: 0.1.113(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@3.25.76)
       fast-json-stable-stringify: 2.1.0
       react: 19.3.0-canary-d6cae440-20260106
     transitivePeerDependencies:
@@ -9745,18 +9738,9 @@ snapshots:
       - typescript
       - zod
 
-  convex-helpers@0.1.104(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@3.25.76):
+  convex-helpers@0.1.113(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@3.25.76):
     dependencies:
-      convex: 1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
-    optionalDependencies:
-      '@standard-schema/spec': 1.1.0
-      react: 19.3.0-canary-d6cae440-20260106
-      typescript: 5.9.2
-      zod: 3.25.76
-
-  convex-helpers@0.1.113(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@3.25.76):
-    dependencies:
-      convex: 1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
+      convex: 1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
     optionalDependencies:
       '@standard-schema/spec': 1.1.0
       react: 19.3.0-canary-d6cae440-20260106

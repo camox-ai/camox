@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { Doc, Id } from "camox/_generated/dataModel";
+import { Doc, Id } from "camox/server/dataModel";
 import { Link2 as Link2Icon, Images as ImagesIcon, ImageIcon, FileIcon } from "lucide-react";
 import * as React from "react";
 

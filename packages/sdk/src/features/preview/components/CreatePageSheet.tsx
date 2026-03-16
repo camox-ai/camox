@@ -5,8 +5,8 @@
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/_generated/api";
-import { Id } from "camox/_generated/dataModel";
+import { api } from "camox/server/api";
+import { Id } from "camox/server/dataModel";
 import { useAction, useQuery } from "convex/react";
 import { useEffect } from "react";
 import { toast } from "sonner";

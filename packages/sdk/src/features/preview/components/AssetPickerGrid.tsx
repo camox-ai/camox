@@ -1,5 +1,5 @@
-import { api } from "camox/_generated/api";
-import type { Doc } from "camox/_generated/dataModel";
+import { api } from "camox/server/api";
+import type { Doc } from "camox/server/dataModel";
 import { useQuery } from "convex/react";
 import { ArrowLeft } from "lucide-react";
 import * as React from "react";

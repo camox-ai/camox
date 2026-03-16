@@ -1,4 +1,4 @@
-import type { Doc } from "camox/_generated/dataModel";
+import type { Doc } from "camox/server/dataModel";
 import { FileIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";

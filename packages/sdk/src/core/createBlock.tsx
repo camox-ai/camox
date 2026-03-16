@@ -1,8 +1,8 @@
 import { Slot } from "@radix-ui/react-slot";
 import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/_generated/api";
-import type { Id } from "camox/_generated/dataModel";
+import { api } from "camox/server/api";
+import type { Id } from "camox/server/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import * as React from "react";
 import { createPortal } from "react-dom";

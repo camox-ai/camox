@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "camox/_generated/api";
+import { api } from "camox/server/api";
 import { useMutation } from "convex/react";
 import { useCallback, useRef, useState } from "react";
 

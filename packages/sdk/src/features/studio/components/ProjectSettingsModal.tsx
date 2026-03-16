@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { api } from "camox/_generated/api";
+import { api } from "camox/server/api";
 import { useMutation, useQuery } from "convex/react";
 import * as React from "react";
 
