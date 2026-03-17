@@ -4,7 +4,12 @@ import type { Plugin, ViteDevServer } from "vite";
 
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
-import { LOCAL_CONVEX_URL, startConvexDev, stopConvexDev } from "./convexSync";
+import {
+  LOCAL_CONVEX_URL,
+  LOCAL_CONVEX_SITE_URL,
+  startConvexDev,
+  stopConvexDev,
+} from "./convexSync";
 import { syncDefinitions, type DefinitionsSyncOptions } from "./definitionsSync";
 import { generateRouteFiles, watchRouteFiles } from "./routeGeneration";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
@@ -23,6 +28,16 @@ export function camox(options?: CamoxPluginOptions): Plugin {
 
   return {
     name: "camox",
+    config(_config, env) {
+      if (env.command === "serve") {
+        return {
+          define: {
+            "import.meta.env.VITE_CONVEX_URL": JSON.stringify(convexUrl),
+            "import.meta.env.VITE_CONVEX_SITE_URL": JSON.stringify(LOCAL_CONVEX_SITE_URL),
+          },
+        };
+      }
+    },
     configResolved(config) {
       const routesDir = resolve(config.root, "src/routes");
       generateAppFile(config.root);

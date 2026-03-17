@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import type { ViteDevServer } from "vite";
 
 export const LOCAL_CONVEX_URL = "http://127.0.0.1:3210";
+export const LOCAL_CONVEX_SITE_URL = "http://127.0.0.1:3211";
 
 let convexProcess: ChildProcess | null = null;
 

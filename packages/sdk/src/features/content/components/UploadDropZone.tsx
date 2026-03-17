@@ -67,9 +67,9 @@ export function UploadDropZone({
       {children}
       {isDragging && (
         <div className="bg-background absolute inset-0 z-40 flex flex-col items-center justify-center gap-2 p-4">
-          <div className="border-accent-foreground flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border-3 border-dashed">
-            <Upload className="text-accent-foreground h-8 w-8" />
-            <p className="text-accent-foreground text-sm font-medium">{label}</p>
+          <div className="border-primary flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border-3 border-dashed">
+            <Upload className="text-primary-foreground h-8 w-8" />
+            <p className="text-primary-foreground text-sm font-medium">{label}</p>
           </div>
         </div>
       )}

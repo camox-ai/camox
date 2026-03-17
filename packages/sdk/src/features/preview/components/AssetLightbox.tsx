@@ -1,3 +1,4 @@
+import { useAuth } from "@clerk/clerk-react";
 import { api } from "camox/server/api";
 import type { Id } from "camox/server/dataModel";
 import { useMutation, useQuery } from "convex/react";
@@ -102,6 +103,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
   const replaceFile = useMutation(api.files.replaceFile);
   const setAiMetadata = useMutation(api.files.setAiMetadata);
   const commitFile = useMutation(api.files.commitFile);
+  const { getToken } = useAuth();
   const siteUrl = getSiteUrl();
 
   const handleReplaceDrop = useCallback(
@@ -116,6 +118,8 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
       });
 
       try {
+        const token = await getToken({ template: "convex" });
+
         const blobId = await new Promise<string>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.upload.addEventListener("progress", (e) => {
@@ -145,6 +149,9 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
           xhr.addEventListener("error", () => reject(new Error("Upload failed")));
           xhr.open("POST", `${siteUrl}${FS_PREFIX}/upload`);
           xhr.setRequestHeader("Content-Type", droppedFile.type);
+          if (token) {
+            xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+          }
           xhr.send(droppedFile);
         });
 
@@ -176,7 +183,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
         setTimeout(() => setUploadState(null), 3000);
       }
     },
-    [siteUrl, commitFile, replaceFile, fileId, onOpenChange],
+    [siteUrl, commitFile, replaceFile, fileId, onOpenChange, getToken],
   );
 
   const handleCopyUrl = async () => {

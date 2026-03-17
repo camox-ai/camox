@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@clerk/clerk-react";
 import { api } from "camox/server/api";
 import { useMutation } from "convex/react";
 import { useCallback, useRef, useState } from "react";
@@ -26,6 +27,7 @@ interface UseFileUploadOptions {
 export function useFileUpload(options?: UseFileUploadOptions) {
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const commitFile = useMutation(api.files.commitFile);
+  const { getToken } = useAuth();
   const siteUrl = getSiteUrl();
   const nextId = useRef(0);
   const onFileCommittedRef = useRef(options?.onFileCommitted);
@@ -33,6 +35,8 @@ export function useFileUpload(options?: UseFileUploadOptions) {
 
   const uploadSingleFile = useCallback(
     async (file: File, itemId: string) => {
+      const token = await getToken({ template: "convex" });
+
       // Upload blob with XHR for progress tracking
       const blobId = await new Promise<string>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -62,6 +66,9 @@ export function useFileUpload(options?: UseFileUploadOptions) {
 
         xhr.open("POST", `${siteUrl}${FS_PREFIX}/upload`);
         xhr.setRequestHeader("Content-Type", file.type);
+        if (token) {
+          xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        }
         xhr.send(file);
       });
 
@@ -91,7 +98,7 @@ export function useFileUpload(options?: UseFileUploadOptions) {
         setUploads((prev) => prev.filter((u) => u.id !== itemId));
       }, 2000);
     },
-    [siteUrl, commitFile],
+    [siteUrl, commitFile, getToken],
   );
 
   const uploadFiles = useCallback(
