@@ -2,6 +2,8 @@ import { ClerkProvider, useClerk } from "@clerk/clerk-react";
 import { shadcn } from "@clerk/themes";
 import * as React from "react";
 
+import { CLERK_PUBLISHABLE_KEY } from "@/lib/clerk";
+
 import { actionsStore } from "../actionsStore";
 
 interface AuthProviderProps {
@@ -11,7 +13,7 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   return (
     <ClerkProvider
-      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || CLERK_PUBLISHABLE_KEY}
       afterSignOutUrl="/"
       appearance={{ baseTheme: shadcn }}
     >
