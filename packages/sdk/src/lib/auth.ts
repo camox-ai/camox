@@ -117,7 +117,7 @@ export function useSignInRedirect() {
 
   return React.useCallback(() => {
     const redirect = encodeURIComponent(window.location.href);
-    window.location.href = `${managementUrl}/app/login?redirect=${redirect}`;
+    window.location.href = `${managementUrl}/login?redirect=${redirect}`;
   }, [managementUrl]);
 }
 
@@ -137,7 +137,7 @@ export function useAuthActions() {
           groupLabel: "Studio",
           checkIfAvailable: () => true,
           execute: () => {
-            window.open(`${managementUrl}/app/profile`, "_blank");
+            window.open(`${managementUrl}/profile`, "_blank");
           },
           icon: "User",
         },

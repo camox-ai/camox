@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/app/dashboard/")({
+export const Route = createFileRoute("/_app/_dashboard/dashboard")({
   component: DashboardHome,
 });
 

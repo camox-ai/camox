@@ -13,7 +13,7 @@ const getAuth = createServerFn({ method: "GET" }).handler(async () => {
   return await getToken();
 });
 
-export const Route = createFileRoute("/app")({
+export const Route = createFileRoute("/_app")({
   beforeLoad: async () => {
     const token = await getAuth();
     return { isAuthenticated: !!token, token };

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   component: RouteComponent,
@@ -7,8 +7,11 @@ export const Route = createFileRoute("/")({
 // Placeholder for a page that will be managed by Camox in the future
 function RouteComponent() {
   return (
-    <h1 className="text-primary fixed top-1/2 left-1/2 -translate-1/2 text-8xl font-extrabold tracking-tighter">
-      camox.ai
-    </h1>
+    <main className="flex h-screen w-full flex-col items-center justify-center gap-4">
+      <h1 className="text-center text-8xl font-extrabold tracking-tighter">camox.ai</h1>
+      <Link to="/dashboard" className="text-primary">
+        Dashboard
+      </Link>
+    </main>
   );
 }
