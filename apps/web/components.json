@@ -5,16 +5,16 @@
   "tsx": true,
   "tailwind": {
     "config": "",
-    "css": "src/styles.css",
+    "css": "../../packages/ui/src/styles/globals.css",
     "baseColor": "gray",
     "cssVariables": true,
     "prefix": ""
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "@ui/components",
-    "utils": "@ui/lib/utils",
-    "ui": "@ui/components",
+    "components": "@/components",
+    "utils": "@camox/ui/utils",
+    "ui": "@camox/ui",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },

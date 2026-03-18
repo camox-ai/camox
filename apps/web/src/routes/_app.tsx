@@ -14,6 +14,14 @@ const getAuth = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/_app")({
+  head: () => ({
+    links: [
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+      },
+    ],
+  }),
   beforeLoad: async () => {
     const token = await getAuth();
     return { isAuthenticated: !!token, token };
@@ -25,7 +33,9 @@ function AppLayout() {
   const { token } = Route.useRouteContext();
   return (
     <ConvexBetterAuthProvider client={convexClient} authClient={authClient} initialToken={token}>
-      <Outlet />
+      <div className="font-['Inter',sans-serif] antialiased">
+        <Outlet />
+      </div>
     </ConvexBetterAuthProvider>
   );
 }
