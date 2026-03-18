@@ -1,4 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@daveyplate/better-auth-ui/css";
 @import "../../../packages/ui/src/styles/globals.css";
 @source "../../../packages/ui/src";

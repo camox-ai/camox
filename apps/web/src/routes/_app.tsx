@@ -1,10 +1,13 @@
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { AuthUIProvider } from "@daveyplate/better-auth-ui";
+import { Link as RouterLink, Outlet, createFileRoute, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { ConvexReactClient } from "convex/react";
+import { type ComponentProps, useCallback } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { getToken } from "@/lib/auth-server";
+import { handleOttRedirect } from "@/lib/ott-redirect";
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL!;
 const convexClient = new ConvexReactClient(convexUrl);
@@ -29,13 +32,49 @@ export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
 
+function LinkAdapter({ href, ...props }: ComponentProps<"a"> & { href: string }) {
+  return <RouterLink to={href} {...props} />;
+}
+
 function AppLayout() {
   const { token } = Route.useRouteContext();
+  const router = useRouter();
+
+  const navigate = useCallback(
+    async (href: string) => {
+      if (await handleOttRedirect()) return;
+      router.navigate({ to: href });
+    },
+    [router],
+  );
+
+  const replace = useCallback(
+    async (href: string) => {
+      if (await handleOttRedirect()) return;
+      router.navigate({ to: href, replace: true });
+    },
+    [router],
+  );
+
   return (
     <ConvexBetterAuthProvider client={convexClient} authClient={authClient} initialToken={token}>
-      <div className="font-['Inter',sans-serif] antialiased">
-        <Outlet />
-      </div>
+      <AuthUIProvider
+        authClient={authClient}
+        navigate={navigate}
+        replace={replace}
+        Link={LinkAdapter}
+        basePath=""
+        viewPaths={{
+          SIGN_IN: "login",
+          SIGN_UP: "signup",
+          FORGOT_PASSWORD: "forgot-password",
+        }}
+        credentials={{ forgotPassword: true }}
+      >
+        <div className="font-['Inter',sans-serif] antialiased">
+          <Outlet />
+        </div>
+      </AuthUIProvider>
     </ConvexBetterAuthProvider>
   );
 }

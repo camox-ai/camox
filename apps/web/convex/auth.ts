@@ -20,6 +20,11 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
+      sendResetPassword: async ({ user, token }, request) => {
+        const origin = request?.headers.get("x-forwarded-origin") || siteUrl;
+        const resetUrl = `${origin}/reset-password?token=${token}`;
+        console.log(`[auth] Reset password link for ${user.email}: ${resetUrl}`);
+      },
     },
     plugins: [convex({ authConfig }), organization(), crossDomain({ siteUrl }), oneTimeToken()],
   });

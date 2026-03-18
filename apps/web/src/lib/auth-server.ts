@@ -34,6 +34,7 @@ const handler = async (request: Request) => {
     duplex: "half",
   } as RequestInit);
   proxied.headers.set("origin", convexSiteUrl);
+  proxied.headers.set("x-forwarded-origin", new URL(request.url).origin);
 
   const response = await rawHandler(proxied);
   const newResponse = new Response(response.body, response);
