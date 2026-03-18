@@ -6,7 +6,7 @@ export default defineSchema({
     name: v.string(),
     description: v.string(),
     domain: v.string(),
-    organizationId: v.optional(v.string()),
+    organizationId: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

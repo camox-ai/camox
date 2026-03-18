@@ -3,7 +3,7 @@ import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/app/dashboard")({
   beforeLoad: ({ context }) => {
     if (!context.isAuthenticated) {
-      throw redirect({ to: "/app/login" });
+      throw redirect({ to: "/app/login", search: { redirect: undefined } });
     }
   },
   component: DashboardLayout,

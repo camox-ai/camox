@@ -2,14 +2,27 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { signIn } from "@/lib/auth-client";
+import { authClient, signIn } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/app/login")({
   component: LoginPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
 });
+
+function isSafeRedirect(url: string) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,8 +41,23 @@ function LoginPage() {
       return;
     }
 
+    if (redirect && isSafeRedirect(redirect)) {
+      // Generate a one-time token so the SDK on the other domain can establish a session
+      const ottResult = await (authClient as any).oneTimeToken.generate();
+      const url = new URL(redirect);
+      if (ottResult?.data?.token) {
+        url.searchParams.set("ott", ottResult.data.token);
+      }
+      window.location.href = url.toString();
+      return;
+    }
+
     navigate({ to: "/app/dashboard" });
   };
+
+  const signupHref = redirect
+    ? `/app/signup?redirect=${encodeURIComponent(redirect)}`
+    : "/app/signup";
 
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -78,7 +106,7 @@ function LoginPage() {
 
         <p className="text-muted-foreground text-center text-sm">
           Don't have an account?{" "}
-          <a href="/app/signup" className="text-primary underline-offset-4 hover:underline">
+          <a href={signupHref} className="text-primary underline-offset-4 hover:underline">
             Sign up
           </a>
         </p>

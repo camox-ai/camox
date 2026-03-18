@@ -1,4 +1,3 @@
-import { useClerk } from "@clerk/clerk-react";
 import { api } from "camox/server/api";
 import { useQuery } from "convex/react";
 import { ChevronDown, Globe, Settings, Users } from "lucide-react";
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AuthContext } from "@/lib/auth";
 
 import { ProjectSettingsModal } from "./ProjectSettingsModal";
 
@@ -68,7 +68,7 @@ const Favicon = ({ size = 16 }: { size?: number }) => {
 export const ProjectMenu = () => {
   const [open, setOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
-  const { openOrganizationProfile } = useClerk();
+  const authCtx = React.useContext(AuthContext);
   const project = useQuery(api.projects.getFirstProject);
 
   if (!project) {
@@ -104,7 +104,9 @@ export const ProjectMenu = () => {
                 variant="ghost"
                 className="w-full justify-start"
                 onClick={() => {
-                  openOrganizationProfile();
+                  if (authCtx) {
+                    window.open(`${authCtx.managementUrl}/app/team`, "_blank");
+                  }
                   setOpen(false);
                 }}
               >

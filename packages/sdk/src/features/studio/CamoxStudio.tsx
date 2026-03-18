@@ -1,6 +1,8 @@
-import { useClerk, RedirectToSignIn } from "@clerk/clerk-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
+import { useConvexAuth } from "convex/react";
 import * as React from "react";
+
+import { useSignInRedirect } from "@/lib/auth";
 
 import { Navbar } from "./components/Navbar";
 
@@ -9,12 +11,14 @@ interface CamoxStudioProps {
 }
 
 const CamoxStudio = ({ children }: CamoxStudioProps) => {
-  const { isSignedIn } = useClerk();
+  const { isAuthenticated } = useConvexAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const signInRedirect = useSignInRedirect();
 
-  if (!isSignedIn) {
-    return <RedirectToSignIn redirectUrl="/" />;
+  if (!isAuthenticated) {
+    signInRedirect();
+    return null;
   }
 
   if (pathname === "cmx-studio") {

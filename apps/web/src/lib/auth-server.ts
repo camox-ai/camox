@@ -13,12 +13,38 @@ const {
   convexSiteUrl,
 });
 
+function corsHeaders(request: Request) {
+  return {
+    "Access-Control-Allow-Origin": request.headers.get("origin") || "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, better-auth-cookie",
+    "Access-Control-Expose-Headers": "Set-Better-Auth-Cookie",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
+
 // The library forwards the browser's Origin header to Convex, which causes
 // Better Auth to reject requests from arbitrary domains. Since this is a
 // server-side proxy, rewrite Origin to match the Convex site URL.
-const handler = (request: Request) => {
-  request.headers.set("origin", convexSiteUrl);
-  return rawHandler(request);
+const handler = async (request: Request) => {
+  const proxied = new Request(request.url, {
+    method: request.method,
+    headers: new Headers(request.headers),
+    body: request.body,
+    duplex: "half",
+  } as RequestInit);
+  proxied.headers.set("origin", convexSiteUrl);
+
+  const response = await rawHandler(proxied);
+  const newResponse = new Response(response.body, response);
+  for (const [key, value] of Object.entries(corsHeaders(request))) {
+    newResponse.headers.set(key, value);
+  }
+  return newResponse;
 };
 
-export { handler, getToken, fetchAuthQuery, fetchAuthMutation, fetchAuthAction };
+const handleOptions = (request: Request) => {
+  return new Response(null, { status: 204, headers: corsHeaders(request) });
+};
+
+export { handler, handleOptions, getToken, fetchAuthQuery, fetchAuthMutation, fetchAuthAction };

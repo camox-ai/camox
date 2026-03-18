@@ -382,12 +382,9 @@ importers:
       '@camox/backend':
         specifier: workspace:*
         version: link:../backend
-      '@clerk/clerk-react':
-        specifier: ^5.22.13
-        version: 5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
-      '@clerk/themes':
-        specifier: ^2.4.21
-        version: 2.4.21
+      '@convex-dev/better-auth':
+        specifier: ^0.11.2
+        version: 0.11.2(@standard-schema/spec@1.1.0)(better-auth@1.5.5(@tanstack/react-start@1.166.2(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(vite@8.0.0-beta.18(@types/node@24.6.2)(esbuild@0.27.3)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)))(mongodb@7.1.0)(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(solid-js@1.9.9)(vitest@3.2.4(@types/node@24.6.2)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.11.3(@types/node@24.6.2)(typescript@5.9.2))(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)))(convex@1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
@@ -487,6 +484,9 @@ importers:
       '@xstate/store':
         specifier: ^3.9.2
         version: 3.9.2(react@19.3.0-canary-d6cae440-20260106)(solid-js@1.9.9)
+      better-auth:
+        specifier: ^1.5.5
+        version: 1.5.5(@tanstack/react-start@1.166.2(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(vite@8.0.0-beta.18(@types/node@24.6.2)(esbuild@0.27.3)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)))(mongodb@7.1.0)(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(solid-js@1.9.9)(vitest@3.2.4(@types/node@24.6.2)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.11.3(@types/node@24.6.2)(typescript@5.9.2))(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1))
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -498,7 +498,7 @@ importers:
         version: 1.1.1(@types/react-dom@19.1.9(@types/react@19.1.13))(@types/react@19.1.13)(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
       convex:
         specifier: ^1.32.0
-        version: 1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
+        version: 1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
       fractional-indexing:
         specifier: ^3.2.0
         version: 3.2.0
@@ -872,14 +872,6 @@ packages:
   '@bundled-es-modules/statuses@1.0.1':
     resolution: {integrity: sha512-yn7BklA5acgcBr+7w064fGV+SGIFySjCKpqjcWgBAIfrAkY+4GQTJJHQMeT3V/sgz23VTEVV8TtOmkvJAhFVfg==}
 
-  '@clerk/clerk-react@5.47.0':
-    resolution: {integrity: sha512-of2Y6dg36eL7TwAP4DbGOMWW6DJpJSIuCn6g1jJqJkh4NGljHC7vz3H18OERRM5UQXmBG3twjC8CNAQxQrquRA==}
-    engines: {node: '>=18.17.0'}
-    deprecated: 'This package is no longer supported. Please use @clerk/react instead. See the upgrade guide for more info: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3'
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0 || ^19.0.0-0
-      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-0
-
   '@clerk/clerk-react@5.52.0':
     resolution: {integrity: sha512-iNYVTOLI4CKWtth762sP0Ktl/GpTFP3pYpRMuOsyz1i+2ek291vxpgmw6oMcaYSfU6cDwsRFH3maVzhZz5inqw==}
     engines: {node: '>=18.17.0'}
@@ -887,18 +879,6 @@ packages:
     peerDependencies:
       react: ^18.0.0 || ^19.0.0 || ^19.0.0-0
       react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-0
-
-  '@clerk/shared@3.25.0':
-    resolution: {integrity: sha512-2Vb6NQqBA+1g7kfGct/OlSFmzU54/s4BQp3qeHwDqW1FgaU4MuXbqfBClI6AatxOC8Ux8W16Rvf705ViwFSxlw==}
-    engines: {node: '>=18.17.0'}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0 || ^19.0.0-0
-      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-0
-    peerDependenciesMeta:
-      react:
-        optional: true
-      react-dom:
-        optional: true
 
   '@clerk/shared@3.47.2':
     resolution: {integrity: sha512-dwUT27DKq3Gr9vn9lAfc/LSe79P1rKIib8/mTWA7ZEzY7XX2Yq5UnDMCMznYrI8oVLdJrCT4ypFXRgnH306Oew==}
@@ -912,22 +892,8 @@ packages:
       react-dom:
         optional: true
 
-  '@clerk/themes@2.4.21':
-    resolution: {integrity: sha512-nvahR5uOF/bSn34SiK4Zub2n2zn5AJWy+AAzKy0uZYNSl1cjgcZcmQ8CsB078jEeTDmXxKqUa6OMLtYMimH27A==}
-    engines: {node: '>=18.17.0'}
-
   '@clerk/types@4.101.20':
     resolution: {integrity: sha512-MHvr1tGL5lwxD6zdzzixkHICbbZz/S1LChONKR52Qeu0yRGChZomPknsgqBMG9J3yNeyhaj0SWa5phQgQUk0lg==}
-    engines: {node: '>=18.17.0'}
-    deprecated: 'This package is no longer supported. Please import types from @clerk/shared/types instead. See the upgrade guide for more info: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3'
-
-  '@clerk/types@4.86.0':
-    resolution: {integrity: sha512-YFaOYIAZWbpXehAmtgUB0YNf1v5b/hlwePvdqxlD5vdwrNsap28RpupWZat0hp1+PTtb9uAwSa5AFCOxkYLUJQ==}
-    engines: {node: '>=18.17.0'}
-    deprecated: 'This package is no longer supported. Please import types from @clerk/shared/types instead. See the upgrade guide for more info: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3'
-
-  '@clerk/types@4.88.0':
-    resolution: {integrity: sha512-OAepuiszOrheIThdCtBRiRSq0A3grlD2yhUUO8kvMFv4Uys95gSzkzuvQjUWXZZ23yOdTl6eRUXjtjCGto116w==}
     engines: {node: '>=18.17.0'}
     deprecated: 'This package is no longer supported. Please import types from @clerk/shared/types instead. See the upgrade guide for more info: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3'
 
@@ -6532,9 +6498,6 @@ packages:
   std-env@3.10.0:
     resolution: {integrity: sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg==}
 
-  std-env@3.9.0:
-    resolution: {integrity: sha512-UGvjygr6F6tpH7o2qyqR6QYpwraIjKSdtzyBdyytFOHmPZY917kwdwLG0RbOjWOnKmnm3PeHjaoLLMie7kPLQw==}
-
   stdin-discarder@0.2.2:
     resolution: {integrity: sha512-UhDfHmA92YAlNnCfhmq0VeNL5bDbiZGg7sZ2IvPsXubGkiNa9EC+tUTsjBRsYUAz87btI6/1wf4XoVvQ3uRnmQ==}
     engines: {node: '>=18'}
@@ -7576,12 +7539,23 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@better-auth/core@1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.2.1)(kysely@0.28.12)(nanostores@1.2.0)':
+  '@better-auth/core@1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@3.25.76))(jose@6.2.1)(kysely@0.28.12)(nanostores@1.2.0)':
     dependencies:
       '@better-auth/utils': 0.3.1
       '@better-fetch/fetch': 1.1.21
       '@standard-schema/spec': 1.1.0
       better-call: 1.3.2(zod@3.25.76)
+      jose: 6.2.1
+      kysely: 0.28.12
+      nanostores: 1.2.0
+      zod: 4.3.6
+
+  '@better-auth/core@1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.2.1)(kysely@0.28.12)(nanostores@1.2.0)':
+    dependencies:
+      '@better-auth/utils': 0.3.1
+      '@better-fetch/fetch': 1.1.21
+      '@standard-schema/spec': 1.1.0
+      better-call: 1.3.2(zod@4.3.6)
       jose: 6.2.1
       kysely: 0.28.12
       nanostores: 1.2.0
@@ -7632,14 +7606,6 @@ snapshots:
     dependencies:
       statuses: 2.0.2
 
-  '@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)':
-    dependencies:
-      '@clerk/shared': 3.25.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
-      '@clerk/types': 4.86.0
-      react: 19.3.0-canary-d6cae440-20260106
-      react-dom: 19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106)
-      tslib: 2.8.1
-
   '@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)':
     dependencies:
       '@clerk/shared': 3.47.2(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
@@ -7648,18 +7614,6 @@ snapshots:
       react-dom: 19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106)
       tslib: 2.8.1
     optional: true
-
-  '@clerk/shared@3.25.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)':
-    dependencies:
-      '@clerk/types': 4.86.0
-      dequal: 2.0.3
-      glob-to-regexp: 0.4.1
-      js-cookie: 3.0.5
-      std-env: 3.9.0
-      swr: 2.3.4(react@19.3.0-canary-d6cae440-20260106)
-    optionalDependencies:
-      react: 19.3.0-canary-d6cae440-20260106
-      react-dom: 19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106)
 
   '@clerk/shared@3.47.2(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)':
     dependencies:
@@ -7674,11 +7628,6 @@ snapshots:
       react-dom: 19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106)
     optional: true
 
-  '@clerk/themes@2.4.21':
-    dependencies:
-      '@clerk/types': 4.88.0
-      tslib: 2.8.1
-
   '@clerk/types@4.101.20(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)':
     dependencies:
       '@clerk/shared': 3.47.2(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
@@ -7687,18 +7636,28 @@ snapshots:
       - react-dom
     optional: true
 
-  '@clerk/types@4.86.0':
-    dependencies:
-      csstype: 3.1.3
-
-  '@clerk/types@4.88.0':
-    dependencies:
-      csstype: 3.1.3
-
   '@convex-dev/better-auth@0.11.2(@standard-schema/spec@1.1.0)(better-auth@1.5.5(@tanstack/react-start@1.166.15(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(vite@8.0.0-beta.18(@types/node@24.6.2)(esbuild@0.27.3)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)))(mongodb@7.1.0)(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(solid-js@1.9.9)(vitest@3.2.4(@types/node@24.6.2)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.11.3(@types/node@24.6.2)(typescript@5.9.2))(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)))(convex@1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)':
     dependencies:
       '@better-fetch/fetch': 1.1.21
       better-auth: 1.5.5(@tanstack/react-start@1.166.15(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(vite@8.0.0-beta.18(@types/node@24.6.2)(esbuild@0.27.3)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)))(mongodb@7.1.0)(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(solid-js@1.9.9)(vitest@3.2.4(@types/node@24.6.2)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.11.3(@types/node@24.6.2)(typescript@5.9.2))(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1))
+      common-tags: 1.8.2
+      convex: 1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
+      convex-helpers: 0.1.113(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@4.3.6)
+      jose: 6.2.1
+      react: 19.3.0-canary-d6cae440-20260106
+      remeda: 2.33.6
+      semver: 7.7.4
+      type-fest: 4.41.0
+      zod: 4.3.6
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - typescript
+
+  '@convex-dev/better-auth@0.11.2(@standard-schema/spec@1.1.0)(better-auth@1.5.5(@tanstack/react-start@1.166.2(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(vite@8.0.0-beta.18(@types/node@24.6.2)(esbuild@0.27.3)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)))(mongodb@7.1.0)(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(solid-js@1.9.9)(vitest@3.2.4(@types/node@24.6.2)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.11.3(@types/node@24.6.2)(typescript@5.9.2))(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)))(convex@1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)':
+    dependencies:
+      '@better-fetch/fetch': 1.1.21
+      better-auth: 1.5.5(@tanstack/react-start@1.166.2(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(vite@8.0.0-beta.18(@types/node@24.6.2)(esbuild@0.27.3)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)))(mongodb@7.1.0)(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(solid-js@1.9.9)(vitest@3.2.4(@types/node@24.6.2)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.11.3(@types/node@24.6.2)(typescript@5.9.2))(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1))
       common-tags: 1.8.2
       convex: 1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
       convex-helpers: 0.1.113(@standard-schema/spec@1.1.0)(convex@1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(typescript@5.9.2)(zod@4.3.6)
@@ -11403,7 +11362,7 @@ snapshots:
       '@better-fetch/fetch': 1.1.21
       '@noble/ciphers': 2.1.1
       '@noble/hashes': 2.0.1
-      better-call: 1.3.2(zod@3.25.76)
+      better-call: 1.3.2(zod@4.3.6)
       defu: 6.1.4
       jose: 6.2.1
       kysely: 0.28.12
@@ -11411,6 +11370,35 @@ snapshots:
       zod: 4.3.6
     optionalDependencies:
       '@tanstack/react-start': 1.166.15(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(vite@8.0.0-beta.18(@types/node@24.6.2)(esbuild@0.27.3)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1))
+      mongodb: 7.1.0
+      react: 19.3.0-canary-d6cae440-20260106
+      react-dom: 19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106)
+      solid-js: 1.9.9
+      vitest: 3.2.4(@types/node@24.6.2)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.11.3(@types/node@24.6.2)(typescript@5.9.2))(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)
+    transitivePeerDependencies:
+      - '@cloudflare/workers-types'
+
+  better-auth@1.5.5(@tanstack/react-start@1.166.2(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(vite@8.0.0-beta.18(@types/node@24.6.2)(esbuild@0.27.3)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)))(mongodb@7.1.0)(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(solid-js@1.9.9)(vitest@3.2.4(@types/node@24.6.2)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.11.3(@types/node@24.6.2)(typescript@5.9.2))(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1)):
+    dependencies:
+      '@better-auth/core': 1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@3.25.76))(jose@6.2.1)(kysely@0.28.12)(nanostores@1.2.0)
+      '@better-auth/drizzle-adapter': 1.5.5(@better-auth/core@1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.2.1)(kysely@0.28.12)(nanostores@1.2.0))(@better-auth/utils@0.3.1)
+      '@better-auth/kysely-adapter': 1.5.5(@better-auth/core@1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.2.1)(kysely@0.28.12)(nanostores@1.2.0))(@better-auth/utils@0.3.1)(kysely@0.28.12)
+      '@better-auth/memory-adapter': 1.5.5(@better-auth/core@1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.2.1)(kysely@0.28.12)(nanostores@1.2.0))(@better-auth/utils@0.3.1)
+      '@better-auth/mongo-adapter': 1.5.5(@better-auth/core@1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.2.1)(kysely@0.28.12)(nanostores@1.2.0))(@better-auth/utils@0.3.1)(mongodb@7.1.0)
+      '@better-auth/prisma-adapter': 1.5.5(@better-auth/core@1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.2.1)(kysely@0.28.12)(nanostores@1.2.0))(@better-auth/utils@0.3.1)
+      '@better-auth/telemetry': 1.5.5(@better-auth/core@1.5.5(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.2.1)(kysely@0.28.12)(nanostores@1.2.0))
+      '@better-auth/utils': 0.3.1
+      '@better-fetch/fetch': 1.1.21
+      '@noble/ciphers': 2.1.1
+      '@noble/hashes': 2.0.1
+      better-call: 1.3.2(zod@3.25.76)
+      defu: 6.1.4
+      jose: 6.2.1
+      kysely: 0.28.12
+      nanostores: 1.2.0
+      zod: 4.3.6
+    optionalDependencies:
+      '@tanstack/react-start': 1.166.2(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)(vite@8.0.0-beta.18(@types/node@24.6.2)(esbuild@0.27.3)(jiti@2.6.1)(terser@5.44.0)(tsx@4.20.5)(yaml@2.8.1))
       mongodb: 7.1.0
       react: 19.3.0-canary-d6cae440-20260106
       react-dom: 19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106)
@@ -11427,6 +11415,15 @@ snapshots:
       set-cookie-parser: 3.0.1
     optionalDependencies:
       zod: 3.25.76
+
+  better-call@1.3.2(zod@4.3.6):
+    dependencies:
+      '@better-auth/utils': 0.3.1
+      '@better-fetch/fetch': 1.1.21
+      rou3: 0.7.12
+      set-cookie-parser: 3.0.1
+    optionalDependencies:
+      zod: 4.3.6
 
   big.js@6.2.2: {}
 
@@ -11699,18 +11696,6 @@ snapshots:
       react: 19.3.0-canary-d6cae440-20260106
       typescript: 5.9.2
       zod: 4.3.6
-
-  convex@1.32.0(@clerk/clerk-react@5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106):
-    dependencies:
-      esbuild: 0.27.0
-      prettier: 3.6.2
-      ws: 8.18.0
-    optionalDependencies:
-      '@clerk/clerk-react': 5.47.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106)
-      react: 19.3.0-canary-d6cae440-20260106
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
 
   convex@1.32.0(@clerk/clerk-react@5.52.0(react-dom@19.3.0-canary-d6cae440-20260106(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106))(react@19.3.0-canary-d6cae440-20260106):
     dependencies:
@@ -12275,7 +12260,8 @@ snapshots:
     dependencies:
       is-glob: 4.0.3
 
-  glob-to-regexp@0.4.1: {}
+  glob-to-regexp@0.4.1:
+    optional: true
 
   globrex@0.1.2: {}
 
@@ -12499,7 +12485,8 @@ snapshots:
 
   jose@6.2.1: {}
 
-  js-cookie@3.0.5: {}
+  js-cookie@3.0.5:
+    optional: true
 
   js-tokens@4.0.0: {}
 
@@ -13839,8 +13826,6 @@ snapshots:
 
   std-env@3.10.0: {}
 
-  std-env@3.9.0: {}
-
   stdin-discarder@0.2.2: {}
 
   strict-event-emitter@0.5.1: {}
@@ -13916,6 +13901,7 @@ snapshots:
       dequal: 2.0.3
       react: 19.3.0-canary-d6cae440-20260106
       use-sync-external-store: 1.6.0(react@19.3.0-canary-d6cae440-20260106)
+    optional: true
 
   symbol-tree@3.2.4: {}
 

@@ -1,15 +1,21 @@
-import { SignedIn, SignedOut, useAuth, useClerk } from "@clerk/clerk-react";
+import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { ConvexReactClient } from "convex/react";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
 import * as React from "react";
 
+import { AuthGate } from "@/components/AuthGate";
 import { Toaster } from "@/components/ui/toaster";
 import type { CamoxApp } from "@/core/createApp";
+import {
+  AuthContext,
+  createCamoxAuthClient,
+  useAuthActions,
+  useProcessOtt,
+  useSignInRedirect,
+} from "@/lib/auth";
 
 import { usePreviewPagesActions } from "../preview/CamoxPreview";
 import { useNavbarActions } from "../studio/components/Navbar";
 import { useThemeActions } from "../studio/useTheme";
-import { AuthProvider, useAuthActions } from "./components/AuthProvider";
 import { CamoxAppProvider } from "./components/CamoxAppContext";
 import { CommandPalette, useCommandPaletteActions } from "./components/CommandPalette";
 import { useAdminShortcuts } from "./useAdminShortcuts";
@@ -21,14 +27,8 @@ interface AuthenticatedCamoxProviderProps {
 }
 
 const AuthenticatedCamoxProvider = ({ children }: AuthenticatedCamoxProviderProps) => {
-  // Listen for shortcuts matching registered actions
   useAdminShortcuts();
 
-  /**
-   * Register the actions from various features in the app. Their definition is colocated with
-   * the logic of the features themselves, but they're registered here so that they are available
-   * regardless of which page/component is currently rendered.
-   */
   useCommandPaletteActions();
   useThemeActions();
   useAuthActions();
@@ -45,10 +45,8 @@ const AuthenticatedCamoxProvider = ({ children }: AuthenticatedCamoxProviderProp
 };
 
 const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode }) => {
-  const { openSignIn } = useClerk();
+  const signInRedirect = useSignInRedirect();
 
-  // This shortcut is intentionnally not registered in useAdminShortcuts and the actionsStore
-  // because it's the only one that's for unauthenticated users.
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const isMetaOrCtrl = event.metaKey || event.ctrlKey;
@@ -56,13 +54,13 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
       // Unauthenticated keyboard handler - Cmd+Escape opens sign in
       if (isMetaOrCtrl && event.key === "Escape") {
         event.preventDefault();
-        openSignIn();
+        signInRedirect();
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [openSignIn]);
+  }, [signInRedirect]);
 
   return (
     <>
@@ -75,24 +73,40 @@ interface CamoxProviderProps {
   children: React.ReactNode;
   camoxApp: CamoxApp;
   convexUrl: string;
+  managementUrl: string;
 }
 
-export function CamoxProvider({ children, camoxApp, convexUrl }: CamoxProviderProps) {
+export function CamoxProvider({
+  children,
+  camoxApp,
+  convexUrl,
+  managementUrl,
+}: CamoxProviderProps) {
   const convexReactClient = React.useMemo(() => new ConvexReactClient(convexUrl), [convexUrl]);
+  const authClient = React.useMemo(() => createCamoxAuthClient(managementUrl), [managementUrl]);
+
+  // Verify ?ott= one-time token before the provider mounts, so it doesn't
+  // attempt its own cross-domain verify (which needs a Convex-specific endpoint).
+  const ottReady = useProcessOtt(authClient);
+  if (!ottReady) return null;
 
   return (
-    <AuthProvider>
-      <ConvexProviderWithClerk client={convexReactClient} useAuth={useAuth}>
+    <AuthContext.Provider value={{ authClient, managementUrl }}>
+      <ConvexBetterAuthProvider client={convexReactClient} authClient={authClient}>
         <CamoxAppProvider app={camoxApp}>
-          <SignedIn>
-            <link rel="stylesheet" href={studioCssUrl} />
-            <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
-          </SignedIn>
-          <SignedOut>
-            <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>
-          </SignedOut>
+          <AuthGate
+            authenticated={
+              <>
+                <link rel="stylesheet" href={studioCssUrl} />
+                <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
+              </>
+            }
+            unauthenticated={
+              <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>
+            }
+          />
         </CamoxAppProvider>
-      </ConvexProviderWithClerk>
-    </AuthProvider>
+      </ConvexBetterAuthProvider>
+    </AuthContext.Provider>
   );
 }

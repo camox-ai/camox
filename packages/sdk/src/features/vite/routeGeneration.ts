@@ -14,7 +14,7 @@ const HEADER = `/* =============================================================
 
 `;
 
-function generateCamoxLayout(convexUrl: string): string {
+function generateCamoxLayout(convexUrl: string, managementUrl: string): string {
   return (
     HEADER +
     `import { Outlet, createFileRoute } from "@tanstack/react-router";
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_camox")({
 
 function CamoxPathlessLayout() {
   return (
-    <CamoxProvider camoxApp={camoxApp} convexUrl="${convexUrl}">
+    <CamoxProvider camoxApp={camoxApp} convexUrl="${convexUrl}" managementUrl="${managementUrl}">
       <Outlet />
     </CamoxProvider>
   );
@@ -165,10 +165,13 @@ function RouteComponent() {
   );
 }
 
-function getRouteFileEntries(routesDir: string, convexUrl: string) {
+function getRouteFileEntries(routesDir: string, convexUrl: string, managementUrl: string) {
   const camoxDir = resolve(routesDir, "_camox");
   return [
-    { path: resolve(routesDir, "_camox.tsx"), content: generateCamoxLayout(convexUrl) },
+    {
+      path: resolve(routesDir, "_camox.tsx"),
+      content: generateCamoxLayout(convexUrl, managementUrl),
+    },
     { path: resolve(camoxDir, "$.tsx"), content: generatePageRoute(convexUrl) },
     { path: resolve(camoxDir, "og.tsx"), content: generateOgRoute() },
     { path: resolve(camoxDir, "cmx.tsx"), content: generateCmxRedirect() },
@@ -178,17 +181,22 @@ function getRouteFileEntries(routesDir: string, convexUrl: string) {
   ];
 }
 
-export function generateRouteFiles(routesDir: string, convexUrl: string) {
+export function generateRouteFiles(routesDir: string, convexUrl: string, managementUrl: string) {
   const camoxDir = resolve(routesDir, "_camox");
   mkdirSync(camoxDir, { recursive: true });
 
-  for (const entry of getRouteFileEntries(routesDir, convexUrl)) {
+  for (const entry of getRouteFileEntries(routesDir, convexUrl, managementUrl)) {
     writeIfChanged(entry.path, entry.content);
   }
 }
 
-export function watchRouteFiles(server: ViteDevServer, routesDir: string, convexUrl: string) {
-  const entries = getRouteFileEntries(routesDir, convexUrl);
+export function watchRouteFiles(
+  server: ViteDevServer,
+  routesDir: string,
+  convexUrl: string,
+  managementUrl: string,
+) {
+  const entries = getRouteFileEntries(routesDir, convexUrl, managementUrl);
   const expectedByPath = new Map(entries.map((e) => [e.path, e.content]));
 
   server.watcher.on("change", (changedPath) => {

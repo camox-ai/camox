@@ -1,4 +1,3 @@
-import { useAuth } from "@clerk/clerk-react";
 import { api } from "camox/server/api";
 import type { Id } from "camox/server/dataModel";
 import { useMutation, useQuery } from "convex/react";
@@ -13,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
+import { useConvexToken } from "@/lib/auth";
 import { FS_PREFIX, getSiteUrl } from "@/lib/convex-site";
 
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
@@ -103,7 +103,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
   const replaceFile = useMutation(api.files.replaceFile);
   const setAiMetadata = useMutation(api.files.setAiMetadata);
   const commitFile = useMutation(api.files.commitFile);
-  const { getToken } = useAuth();
+  const getToken = useConvexToken();
   const siteUrl = getSiteUrl();
 
   const handleReplaceDrop = useCallback(
@@ -118,7 +118,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
       });
 
       try {
-        const token = await getToken({ template: "convex" });
+        const token = await getToken();
 
         const blobId = await new Promise<string>((resolve, reject) => {
           const xhr = new XMLHttpRequest();

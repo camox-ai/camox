@@ -1,10 +1,10 @@
 "use client";
 
-import { useAuth } from "@clerk/clerk-react";
 import { api } from "camox/server/api";
 import { useMutation } from "convex/react";
 import { useCallback, useRef, useState } from "react";
 
+import { useConvexToken } from "@/lib/auth";
 import { FS_PREFIX, getSiteUrl } from "@/lib/convex-site";
 
 export interface UploadItem {
@@ -27,7 +27,7 @@ interface UseFileUploadOptions {
 export function useFileUpload(options?: UseFileUploadOptions) {
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const commitFile = useMutation(api.files.commitFile);
-  const { getToken } = useAuth();
+  const getToken = useConvexToken();
   const siteUrl = getSiteUrl();
   const nextId = useRef(0);
   const onFileCommittedRef = useRef(options?.onFileCommitted);
@@ -35,7 +35,7 @@ export function useFileUpload(options?: UseFileUploadOptions) {
 
   const uploadSingleFile = useCallback(
     async (file: File, itemId: string) => {
-      const token = await getToken({ template: "convex" });
+      const token = await getToken();
 
       // Upload blob with XHR for progress tracking
       const blobId = await new Promise<string>((resolve, reject) => {

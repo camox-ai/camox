@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npx convex dev & vite dev --port 3001",
+    "dev": "npx convex dev & vite dev --port 3274",
     "start": "node .output/server/index.mjs",
     "build": "vite build",
     "serve": "vite preview",

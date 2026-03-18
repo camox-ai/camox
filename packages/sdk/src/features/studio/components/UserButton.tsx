@@ -1,5 +1,6 @@
-import { useClerk, useUser } from "@clerk/clerk-react";
+import { useConvexAuth } from "convex/react";
 import { LogOut, Monitor, Moon, Settings, Sun, User } from "lucide-react";
+import { useContext } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,21 +14,36 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AuthContext } from "@/lib/auth";
 
 import { useTheme } from "../useTheme";
 
 export const UserButton = () => {
-  const { user, isLoaded, isSignedIn } = useUser();
-  const { signOut, openUserProfile } = useClerk();
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const { setTheme } = useTheme();
 
-  if (!isLoaded || !isSignedIn) {
+  if (!isAuthenticated || isLoading) {
     return (
       <Button variant="outline" size="icon">
         <User className="h-4 w-4" />
       </Button>
     );
   }
+
+  return <AuthenticatedUserButton setTheme={setTheme} />;
+};
+
+function AuthenticatedUserButton({
+  setTheme,
+}: {
+  setTheme: (theme: "light" | "dark" | "system") => void;
+}) {
+  const authCtx = useContext(AuthContext);
+  const { data: session } = (authCtx!.authClient as any).useSession();
+  const managementUrl = authCtx!.managementUrl;
+
+  const userName = session?.user?.name || "User";
+  const userEmail = session?.user?.email;
 
   return (
     <DropdownMenu>
@@ -43,15 +59,13 @@ export const UserButton = () => {
               <User className="text-muted-foreground h-5 w-5" />
             </div>
             <div className="flex-1 space-y-0.5">
-              <p className="text-sm leading-none font-medium">{user.fullName || "User"}</p>
-              <p className="text-muted-foreground text-sm">
-                {user.primaryEmailAddress?.emailAddress}
-              </p>
+              <p className="text-sm leading-none font-medium">{userName}</p>
+              <p className="text-muted-foreground text-sm">{userEmail}</p>
             </div>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => openUserProfile()}>
+        <DropdownMenuItem onClick={() => window.open(`${managementUrl}/app/profile`, "_blank")}>
           <Settings className="h-4 w-4" />
           <span>Manage account</span>
         </DropdownMenuItem>
@@ -76,11 +90,11 @@ export const UserButton = () => {
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-        <DropdownMenuItem onClick={() => signOut()}>
+        <DropdownMenuItem onClick={() => (authCtx!.authClient as any).signOut()}>
           <LogOut className="h-4 w-4" />
           <span>Sign out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+}

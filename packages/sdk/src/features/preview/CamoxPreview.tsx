@@ -1,7 +1,7 @@
-import { SignedIn, SignedOut, useAuth, useClerk } from "@clerk/clerk-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import { api } from "camox/server/api";
+import { useConvexAuth } from "convex/react";
 import { useQuery } from "convex/react";
 import * as React from "react";
 
@@ -50,10 +50,10 @@ export function usePreviewedPage() {
    * Only live update the page data if the user is signed in (i.e. an admin)
    * to avoid unnecessary load on the backend and layout shifts for regular visitors.
    */
-  const { isSignedIn } = useAuth();
+  const { isAuthenticated } = useConvexAuth();
   const currentPage = useQuery(
     api.pages.getPage,
-    isSignedIn
+    isAuthenticated
       ? {
           fullPath: pagePathnameToFetch,
         }
@@ -212,7 +212,7 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
  * -----------------------------------------------------------------------------------------------*/
 
 export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
-  const { isSignedIn } = useClerk();
+  const { isAuthenticated } = useConvexAuth();
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
   const isSidebarOpen = useSelector(previewStore, (state) => state.context.isSidebarOpen);
 
@@ -222,7 +222,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         id: "enter-presentation-mode",
         label: "Enter presentation mode",
         groupLabel: "Preview",
-        checkIfAvailable: () => isSignedIn && !isPresentationMode,
+        checkIfAvailable: () => isAuthenticated && !isPresentationMode,
         execute: () => previewStore.send({ type: "enterPresentationMode" }),
         shortcut: { key: "Enter", withMeta: true },
         icon: "MonitorPlay",
@@ -231,7 +231,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         id: "exit-presentation-mode",
         label: "Exit presentation mode",
         groupLabel: "Preview",
-        checkIfAvailable: () => isSignedIn && isPresentationMode,
+        checkIfAvailable: () => isAuthenticated && isPresentationMode,
         execute: () => previewStore.send({ type: "exitPresentationMode" }),
         shortcut: { key: "Escape", withMeta: true },
         icon: "MonitorOff",
@@ -249,44 +249,43 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         ids: actions.map((a) => a.id),
       });
     };
-  }, [isPresentationMode, isSignedIn]);
+  }, [isPresentationMode, isAuthenticated]);
 
   if (isPresentationMode) {
     return <PreviewFrame className="h-screen w-full">{children}</PreviewFrame>;
   }
 
+  if (!isAuthenticated) {
+    return <>{children}</>;
+  }
+
   return (
-    <>
-      <SignedIn>
-        <div className="bg-background flex h-screen flex-col overflow-hidden">
-          <Navbar />
-          <div className="flex h-full flex-row items-stretch">
-            {isSidebarOpen && (
-              <div className="flex w-[300px] flex-col border-r-2">
-                <PanelHeader className="flew-row flex gap-2 px-2 py-2">
-                  <PagePicker />
-                </PanelHeader>
-                <PanelContent className="flex grow basis-0 flex-col gap-2 overflow-auto p-2">
-                  <PageTree />
-                </PanelContent>
-              </div>
-            )}
-            <PreviewPanel>
-              {children}
-              {!isPresentationMode && isSignedIn && (
-                <div style={{ height: "80px", background: "transparent" }} />
-              )}
-            </PreviewPanel>
+    <div className="bg-background flex h-screen flex-col overflow-hidden">
+      <Navbar />
+      <div className="flex h-full flex-row items-stretch">
+        {isSidebarOpen && (
+          <div className="flex w-[300px] flex-col border-r-2">
+            <PanelHeader className="flew-row flex gap-2 px-2 py-2">
+              <PagePicker />
+            </PanelHeader>
+            <PanelContent className="flex grow basis-0 flex-col gap-2 overflow-auto p-2">
+              <PageTree />
+            </PanelContent>
           </div>
-          <PageContentSheet />
-          <AddBlockSheet />
-          <AgentChatSheet />
-          <CreatePageSheet />
-          <EditPageSheet />
-        </div>
-      </SignedIn>
-      <SignedOut>{children}</SignedOut>
-    </>
+        )}
+        <PreviewPanel>
+          {children}
+          {!isPresentationMode && isAuthenticated && (
+            <div style={{ height: "80px", background: "transparent" }} />
+          )}
+        </PreviewPanel>
+      </div>
+      <PageContentSheet />
+      <AddBlockSheet />
+      <AgentChatSheet />
+      <CreatePageSheet />
+      <EditPageSheet />
+    </div>
   );
 };
 

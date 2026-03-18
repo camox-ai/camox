@@ -62,7 +62,9 @@ const config = defineConfig({
       projects: ["./tsconfig.json", "../../packages/sdk/tsconfig.json"],
     }),
     tailwindcss(),
-    camox(),
+    camox({
+      managementUrl: process.env.CAMOX_MANAGEMENT_URL,
+    }),
     tanstackStart(),
     viteReact({
       babel: {

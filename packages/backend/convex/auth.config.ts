@@ -15,10 +15,5 @@ export default {
       algorithm: "RS256",
       jwks: `${managementSiteUrl}/api/auth/convex/jwks`,
     },
-    // Clerk (used by packages/sdk during migration)
-    {
-      domain: process.env.CLERK_JWT_ISSUER_DOMAIN!,
-      applicationID: "convex",
-    },
   ],
 } satisfies AuthConfig;

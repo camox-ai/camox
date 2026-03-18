@@ -8,6 +8,7 @@ export const createProject = mutation({
     name: v.string(),
     description: v.string(),
     domain: v.string(),
+    organizationId: v.string(),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -16,6 +17,7 @@ export const createProject = mutation({
       name: args.name,
       description: args.description,
       domain: args.domain,
+      organizationId: args.organizationId,
       createdAt: now,
       updatedAt: now,
     });
