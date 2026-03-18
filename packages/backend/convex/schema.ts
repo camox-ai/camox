@@ -6,9 +6,12 @@ export default defineSchema({
     name: v.string(),
     description: v.string(),
     domain: v.string(),
+    organizationId: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_domain", ["domain"]),
+  })
+    .index("by_domain", ["domain"])
+    .index("by_organization", ["organizationId"]),
 
   pages: defineTable({
     projectId: v.id("projects"),
