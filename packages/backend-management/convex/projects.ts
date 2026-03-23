@@ -1,0 +1,104 @@
+import { v } from "convex/values";
+
+import { mutation, query } from "./functions";
+
+export const createProject = mutation({
+  args: {
+    slug: v.string(),
+    name: v.string(),
+    domain: v.string(),
+    organizationId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("projects")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+    if (existing) {
+      throw new Error(`A project with slug "${args.slug}" already exists`);
+    }
+
+    const now = Date.now();
+
+    const projectId = await ctx.db.insert("projects", {
+      slug: args.slug,
+      name: args.name,
+      domain: args.domain,
+      organizationId: args.organizationId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { projectId };
+  },
+});
+
+export const listProjects = query({
+  args: {
+    organizationId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+    return projects.sort((a, b) => a.name.localeCompare(b.name));
+  },
+});
+
+export const getProject = query({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.projectId);
+  },
+});
+
+export const getProjectBySlug = query({
+  args: {
+    slug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("projects")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+  },
+});
+
+export const updateProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+    name: v.string(),
+    domain: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.projectId);
+    if (!existing) {
+      throw new Error("Project not found");
+    }
+
+    await ctx.db.patch(args.projectId, {
+      name: args.name,
+      domain: args.domain,
+      updatedAt: Date.now(),
+    });
+
+    return { projectId: args.projectId };
+  },
+});
+
+export const deleteProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
+    await ctx.db.delete(args.projectId);
+  },
+});

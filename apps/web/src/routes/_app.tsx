@@ -1,16 +1,14 @@
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { AuthUIProvider } from "@daveyplate/better-auth-ui";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Link as RouterLink, Outlet, createFileRoute, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { ConvexReactClient } from "convex/react";
 import { type ComponentProps, useCallback, useEffect } from "react";
 
 import { authClient, useSession } from "@/lib/auth-client";
 import { getToken } from "@/lib/auth-server";
+import { convexClient, queryClient } from "@/lib/convex";
 import { handleOttRedirect } from "@/lib/ott-redirect";
-
-const convexUrl = import.meta.env.VITE_CONVEX_URL!;
-const convexClient = new ConvexReactClient(convexUrl);
 
 const getAuth = createServerFn({ method: "GET" }).handler(async () => {
   return await getToken();
@@ -68,26 +66,28 @@ function AppLayout() {
 
   return (
     <ConvexBetterAuthProvider client={convexClient} authClient={authClient} initialToken={token}>
-      <AuthUIProvider
-        authClient={authClient}
-        navigate={navigate}
-        replace={replace}
-        Link={LinkAdapter}
-        basePath=""
-        viewPaths={{
-          SIGN_IN: "login",
-          SIGN_UP: "signup",
-          FORGOT_PASSWORD: "forgot-password",
-        }}
-        account={{ basePath: "/dashboard", viewPaths: { SETTINGS: "profile" } }}
-        avatar
-        credentials={{ forgotPassword: true }}
-        social={{ providers: ["github", "google"] }}
-      >
-        <div className="font-['Inter',sans-serif] antialiased">
-          <Outlet />
-        </div>
-      </AuthUIProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthUIProvider
+          authClient={authClient}
+          navigate={navigate}
+          replace={replace}
+          Link={LinkAdapter}
+          basePath=""
+          viewPaths={{
+            SIGN_IN: "login",
+            SIGN_UP: "signup",
+            FORGOT_PASSWORD: "forgot-password",
+          }}
+          account={{ basePath: "/dashboard", viewPaths: { SETTINGS: "profile" } }}
+          avatar
+          credentials={{ forgotPassword: true }}
+          social={{ providers: ["github", "google"] }}
+        >
+          <div className="font-['Inter',sans-serif] antialiased">
+            <Outlet />
+          </div>
+        </AuthUIProvider>
+      </QueryClientProvider>
     </ConvexBetterAuthProvider>
   );
 }

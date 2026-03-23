@@ -10,6 +10,7 @@
     "test": "nx run-many -t test --all",
     "fmt": "oxfmt .",
     "check": "oxfmt . && nx run-many -t check --all --no-tui",
+    "seed": "pnpm -F @camox/backend-content exec convex run seed:seedWebsite && pnpm -F @camox/backend-management exec convex run seed:seedProjects",
     "prepare": "husky"
   },
   "devDependencies": {
