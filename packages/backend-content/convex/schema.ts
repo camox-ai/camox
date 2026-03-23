@@ -4,12 +4,14 @@ import { v } from "convex/values";
 export default defineSchema({
   projects: defineTable({
     name: v.string(),
+    slug: v.string(),
     description: v.string(),
     domain: v.string(),
     organizationId: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("by_slug", ["slug"])
     .index("by_domain", ["domain"])
     .index("by_organization", ["organizationId"]),
 

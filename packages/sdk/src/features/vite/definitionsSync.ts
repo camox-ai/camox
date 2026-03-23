@@ -11,6 +11,8 @@ import type { Block } from "@/core/createBlock";
 const SYNC_DEBOUNCE_DELAY_MS = 100;
 
 export interface DefinitionsSyncOptions {
+  /** Stable project slug used to resolve the project */
+  projectSlug?: string;
   /** Path to the module that exports the camoxApp (relative to project root) */
   camoxAppPath?: string;
   /** Convex URL to connect to for syncing definitions */
@@ -29,6 +31,14 @@ export async function syncDefinitions(
   const camoxAppPath = options.camoxAppPath ?? "./src/camox/app.ts";
   const blocksDir = path.resolve(server.config.root, "src/camox/blocks");
 
+  if (!options.projectSlug) {
+    server.config.logger.warn("[camox] No projectSlug provided, skipping block definitions sync", {
+      timestamp: true,
+    });
+    return;
+  }
+  const projectSlug: string = options.projectSlug;
+
   const convexUrl = options.convexUrl ?? process.env.VITE_CONVEX_URL;
   if (!convexUrl) {
     server.config.logger.warn("[camox] No Convex URL provided, skipping block definitions sync", {
@@ -40,11 +50,12 @@ export async function syncDefinitions(
   const client = new ConvexClient(convexUrl);
 
   async function getProjectId(): Promise<Id<"projects"> | null> {
-    const project = await client.query(api.projects.getFirstProject, {});
+    const project = await client.query(api.projects.getProjectBySlug, { slug: projectSlug });
     if (!project) {
-      server.config.logger.warn("[camox] No project found, skipping block definitions sync", {
-        timestamp: true,
-      });
+      server.config.logger.warn(
+        `[camox] No project found with slug "${projectSlug}", skipping block definitions sync`,
+        { timestamp: true },
+      );
       return null;
     }
     return project._id;

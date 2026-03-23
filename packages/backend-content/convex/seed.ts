@@ -51,6 +51,7 @@ export const seedWebsite = internalMutation({
     // Create project
     const projectId = await ctx.db.insert("projects", {
       name: "Camox Demo",
+      slug: "camox-demo-01",
       description: "Demo website showcasing Camox features",
       domain: "demo.camox.dev",
       organizationId: "seed",

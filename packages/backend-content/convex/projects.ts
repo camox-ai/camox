@@ -6,15 +6,25 @@ import { mutation } from "./functions";
 export const createProject = mutation({
   args: {
     name: v.string(),
+    slug: v.string(),
     description: v.string(),
     domain: v.string(),
     organizationId: v.string(),
   },
   handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("projects")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+    if (existing) {
+      throw new Error(`A project with slug "${args.slug}" already exists`);
+    }
+
     const now = Date.now();
 
     const projectId = await ctx.db.insert("projects", {
       name: args.name,
+      slug: args.slug,
       description: args.description,
       domain: args.domain,
       organizationId: args.organizationId,
@@ -41,6 +51,18 @@ export const getFirstProject = query({
   handler: async (ctx) => {
     const project = await ctx.db.query("projects").first();
     return project;
+  },
+});
+
+export const getProjectBySlug = query({
+  args: {
+    slug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("projects")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
   },
 });
 

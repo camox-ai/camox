@@ -18,6 +18,8 @@ import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 const DEFAULT_MANAGEMENT_URL = "https://camox.ai";
 
 export interface CamoxPluginOptions {
+  /** Stable, human-readable slug identifying this project (e.g. "prestigious-impala-84") */
+  projectSlug: string;
   /** Disable the generation of boilerplate code when creating a blank file in the blocks directory (default: false) */
   disableBlockBoilerplateGeneration?: boolean;
   /** Disable automatic definitions sync on server start (default: false) */
@@ -28,9 +30,9 @@ export interface CamoxPluginOptions {
   managementUrl?: string;
 }
 
-export function camox(options?: CamoxPluginOptions): Plugin {
+export function camox(options: CamoxPluginOptions): Plugin {
   const convexUrl = LOCAL_CONVEX_URL;
-  const managementUrl = options?.managementUrl ?? DEFAULT_MANAGEMENT_URL;
+  const managementUrl = options.managementUrl ?? DEFAULT_MANAGEMENT_URL;
 
   return {
     name: "camox",
@@ -63,7 +65,7 @@ export function camox(options?: CamoxPluginOptions): Plugin {
       watchRouteFiles(server, routesDir, convexUrl, managementUrl);
       watchSkillFiles(server, server.config.root);
 
-      if (!options?.disableBlockBoilerplateGeneration) {
+      if (!options.disableBlockBoilerplateGeneration) {
         watchNewBlockFiles(server);
       }
 
@@ -75,9 +77,10 @@ export function camox(options?: CamoxPluginOptions): Plugin {
         // POST http://127.0.0.1:3210/update_environment_variables
         // so users don't have to manually run `npx convex env set` before the push succeeds.
 
-        if (!options?.disableDefinitionsSync) {
+        if (!options.disableDefinitionsSync) {
           syncDefinitions(server, {
-            ...options?.definitionsSync,
+            ...options.definitionsSync,
+            projectSlug: options.projectSlug,
             convexUrl,
           });
         }
