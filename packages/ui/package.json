@@ -139,6 +139,14 @@
     "./tooltip": {
       "types": "./src/components/tooltip.tsx",
       "default": "./src/components/tooltip.tsx"
+    },
+    "./sidebar": {
+      "types": "./src/components/sidebar.tsx",
+      "default": "./src/components/sidebar.tsx"
+    },
+    "./use-mobile": {
+      "types": "./src/hooks/use-mobile.ts",
+      "default": "./src/hooks/use-mobile.ts"
     }
   },
   "dependencies": {

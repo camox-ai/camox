@@ -3,14 +3,13 @@ import type { Doc } from "@camox/backend-management/_generated/dataModel";
 import { Button } from "@camox/ui/button";
 import { Input } from "@camox/ui/input";
 import { Label } from "@camox/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { Spinner } from "@camox/ui/spinner";
 import { Textarea } from "@camox/ui/textarea";
 import { toast } from "@camox/ui/toaster";
 import { convexQuery } from "@convex-dev/react-query";
 import { useForm } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { z } from "zod";
 
@@ -41,33 +40,6 @@ export const Route = createFileRoute("/_app/dashboard/")({
   },
 });
 
-function ProjectSelector() {
-  const { project: selectedSlug } = Route.useSearch();
-  const navigate = useNavigate({ from: Route.fullPath });
-
-  const { data: projects } = useSuspenseQuery(
-    convexQuery(api.projects.listProjects, { organizationId: "seed" }),
-  );
-
-  return (
-    <Select
-      value={selectedSlug}
-      onValueChange={(slug) => navigate({ search: { project: slug }, replace: true })}
-    >
-      <SelectTrigger className="w-75">
-        <SelectValue placeholder="Select a project..." />
-      </SelectTrigger>
-      <SelectContent>
-        {projects.map((project) => (
-          <SelectItem key={project._id} value={project.slug}>
-            {project.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
 function ProjectSettingsFormInner({ project }: { project: Doc<"projects"> }) {
   const updateProject = useMutation(api.projects.updateProject);
 
@@ -94,7 +66,7 @@ function ProjectSettingsFormInner({ project }: { project: Doc<"projects"> }) {
   });
 
   return (
-    <div className="rounded-lg border p-6">
+    <div>
       <h2 className="text-lg font-semibold">Project settings</h2>
       <form
         onSubmit={(e) => {
@@ -202,8 +174,6 @@ function ProjectSettingsForm() {
 function DashboardHome() {
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
-      <ProjectSelector />
       <ProjectSettingsForm />
     </div>
   );
