@@ -66,11 +66,7 @@ const config = defineConfig({
       managementUrl: process.env.CAMOX_MANAGEMENT_URL,
     }),
     tanstackStart(),
-    viteReact({
-      babel: {
-        plugins: ["babel-plugin-react-compiler"],
-      },
-    }),
+    viteReact(),
   ],
   optimizeDeps: {
     exclude: ["camox"],
