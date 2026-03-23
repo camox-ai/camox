@@ -26,5 +26,11 @@
       "nx affected -t check"
     ]
   },
-  "packageManager": "pnpm@10.18.1"
+  "packageManager": "pnpm@10.18.1",
+  "pnpm": {
+    "overrides": {
+      "react": "19.3.0-canary-8b2e903a-20260320",
+      "react-dom": "19.3.0-canary-8b2e903a-20260320"
+    }
+  }
 }

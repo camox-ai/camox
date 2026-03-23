@@ -6,6 +6,7 @@ export const createProject = mutation({
   args: {
     slug: v.string(),
     name: v.string(),
+    description: v.optional(v.string()),
     domain: v.string(),
     organizationId: v.string(),
   },
@@ -23,6 +24,7 @@ export const createProject = mutation({
     const projectId = await ctx.db.insert("projects", {
       slug: args.slug,
       name: args.name,
+      description: args.description,
       domain: args.domain,
       organizationId: args.organizationId,
       createdAt: now,
@@ -71,6 +73,7 @@ export const updateProject = mutation({
   args: {
     projectId: v.id("projects"),
     name: v.string(),
+    description: v.optional(v.string()),
     domain: v.string(),
   },
   handler: async (ctx, args) => {
@@ -81,6 +84,7 @@ export const updateProject = mutation({
 
     await ctx.db.patch(args.projectId, {
       name: args.name,
+      description: args.description,
       domain: args.domain,
       updatedAt: Date.now(),
     });

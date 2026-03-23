@@ -1,3 +1,4 @@
+import { Toaster } from "@camox/ui/toaster";
 import { UserButton } from "@daveyplate/better-auth-ui";
 import { Link, Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
@@ -39,6 +40,7 @@ function AwaitAuth({ children }: { children: React.ReactNode }) {
 function DashboardLayout() {
   return (
     <div className="flex min-h-screen flex-col">
+      <Toaster />
       <header className="border-b">
         <div className="flex items-center justify-between px-6 py-2">
           <Link to="/dashboard" className="text-lg font-semibold tracking-tight">

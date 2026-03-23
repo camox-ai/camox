@@ -7,7 +7,6 @@ export const createProject = mutation({
   args: {
     name: v.string(),
     slug: v.string(),
-    description: v.string(),
     domain: v.string(),
     organizationId: v.string(),
   },
@@ -25,7 +24,6 @@ export const createProject = mutation({
     const projectId = await ctx.db.insert("projects", {
       name: args.name,
       slug: args.slug,
-      description: args.description,
       domain: args.domain,
       organizationId: args.organizationId,
       createdAt: now,
@@ -71,32 +69,6 @@ export const listProjects = query({
   handler: async (ctx) => {
     const projects = await ctx.db.query("projects").collect();
     return projects.sort((a, b) => a.name.localeCompare(b.name));
-  },
-});
-
-export const updateProject = mutation({
-  args: {
-    projectId: v.id("projects"),
-    name: v.string(),
-    description: v.string(),
-    domain: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-
-    const existingProject = await ctx.db.get(args.projectId);
-    if (!existingProject) {
-      throw new Error("Project not found");
-    }
-
-    await ctx.db.patch(args.projectId, {
-      name: args.name,
-      description: args.description,
-      domain: args.domain,
-      updatedAt: now,
-    });
-
-    return { projectId: args.projectId };
   },
 });
 

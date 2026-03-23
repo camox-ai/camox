@@ -9,8 +9,6 @@ import * as React from "react";
 
 import { AuthContext } from "@/lib/auth";
 
-import { ProjectSettingsModal } from "./ProjectSettingsModal";
-
 const Favicon = ({ size = 16 }: { size?: number }) => {
   const [faviconUrl, setFaviconUrl] = React.useState<string | null>(null);
   const [hasError, setHasError] = React.useState(false);
@@ -67,7 +65,6 @@ const Favicon = ({ size = 16 }: { size?: number }) => {
 
 export const ProjectMenu = () => {
   const [open, setOpen] = React.useState(false);
-  const [settingsOpen, setSettingsOpen] = React.useState(false);
   const authCtx = React.useContext(AuthContext);
   const project = useQuery(api.projects.getFirstProject);
 
@@ -96,7 +93,6 @@ export const ProjectMenu = () => {
           <div className="flex flex-col">
             <div className="flex flex-col gap-2 p-4">
               <h3 className="font-mono text-sm leading-none">{project.domain}</h3>
-              <p className="text-muted-foreground text-sm">{project.description}</p>
             </div>
             <Separator />
             <div className="flex flex-col gap-1 p-2">
@@ -117,7 +113,12 @@ export const ProjectMenu = () => {
                 variant="ghost"
                 className="w-full justify-start"
                 onClick={() => {
-                  setSettingsOpen(true);
+                  if (authCtx) {
+                    window.open(
+                      `${authCtx.managementUrl}/dashboard?project=${project.slug}`,
+                      "_blank",
+                    );
+                  }
                   setOpen(false);
                 }}
               >
@@ -128,7 +129,6 @@ export const ProjectMenu = () => {
           </div>
         </PopoverContent>
       </Popover>
-      <ProjectSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </>
   );
 };

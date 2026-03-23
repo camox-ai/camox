@@ -5,6 +5,7 @@ export default defineSchema({
   projects: defineTable({
     slug: v.string(),
     name: v.string(),
+    description: v.optional(v.string()),
     domain: v.string(),
     organizationId: v.string(),
     createdAt: v.number(),
