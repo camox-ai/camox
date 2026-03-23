@@ -1,22 +1,11 @@
 import { api } from "@camox/backend-management/_generated/api";
-import { Button } from "@camox/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@camox/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
-import { useState } from "react";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { cn } from "@/lib/utils";
+import { queryClient } from "@/lib/convex";
 
 export const Route = createFileRoute("/_app/dashboard/")({
   component: DashboardHome,
@@ -26,64 +15,47 @@ export const Route = createFileRoute("/_app/dashboard/")({
   validateSearch: z.object({
     project: z.string().optional(),
   }),
+  beforeLoad: async ({ search }) => {
+    if (search.project) return;
+
+    const projects = await queryClient.ensureQueryData(
+      convexQuery(api.projects.listProjects, { organizationId: "seed" }),
+    );
+    if (projects.length === 0) return;
+
+    const mostRecent = projects.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
+    throw redirect({
+      to: "/dashboard",
+      search: { project: mostRecent.slug },
+      replace: true,
+    });
+  },
 });
 
 function ProjectSelector() {
-  const [open, setOpen] = useState(false);
   const { project: selectedSlug } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
 
   const { data: projects } = useSuspenseQuery(
     convexQuery(api.projects.listProjects, { organizationId: "seed" }),
   );
-  const selectedProject = projects.find((p) => p.slug === selectedSlug);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-75 justify-between"
-        >
-          {selectedProject ? selectedProject.name : "Select a project..."}
-          <ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-75 p-0">
-        <Command>
-          <CommandInput placeholder="Search projects..." />
-          <CommandList>
-            <CommandEmpty>No project found.</CommandEmpty>
-            <CommandGroup>
-              {projects.map((project) => (
-                <CommandItem
-                  key={project._id}
-                  value={project.slug}
-                  keywords={[project.name, project.domain]}
-                  onSelect={(slug) => {
-                    navigate({ search: { project: slug }, replace: true });
-                    setOpen(false);
-                  }}
-                >
-                  <CheckIcon
-                    className={cn(
-                      "mr-2 size-4",
-                      selectedSlug === project.slug ? "opacity-100" : "opacity-0",
-                    )}
-                  />
-                  <div>
-                    <p className="font-medium">{project.name}</p>
-                    <p className="text-muted-foreground text-xs">{project.domain}</p>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <Select
+      value={selectedSlug}
+      onValueChange={(slug) => navigate({ search: { project: slug }, replace: true })}
+    >
+      <SelectTrigger className="w-75">
+        <SelectValue placeholder="Select a project..." />
+      </SelectTrigger>
+      <SelectContent>
+        {projects.map((project) => (
+          <SelectItem key={project._id} value={project.slug}>
+            {project.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
