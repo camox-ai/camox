@@ -12,7 +12,7 @@ let convexProcess: ChildProcess | null = null;
 
 function getBackendDir(): string {
   const require = createRequire(import.meta.url);
-  const backendPkg = require.resolve("@camox/backend/package.json");
+  const backendPkg = require.resolve("@camox/backend-content/package.json");
   return dirname(backendPkg);
 }
 

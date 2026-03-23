@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npx convex dev & vite dev --port 3274",
+    "dev": "vite dev --port 3274",
     "start": "node .output/server/index.mjs",
     "build": "vite build",
     "serve": "vite preview",
@@ -12,6 +12,7 @@
     "check": "tsgo --noEmit && oxlint --fix"
   },
   "dependencies": {
+    "@camox/backend-management": "workspace:*",
     "@camox/ui": "workspace:*",
     "@convex-dev/better-auth": "0.11.2",
     "@daveyplate/better-auth-ui": "^3.3.15",

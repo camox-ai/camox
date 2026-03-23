@@ -1,1 +1,1 @@
-export { api, internal } from "@camox/backend/_generated/api";
+export { api, internal } from "@camox/backend-content/_generated/api";

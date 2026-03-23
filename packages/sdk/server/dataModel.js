@@ -1,1 +1,1 @@
-export * from "@camox/backend/_generated/dataModel";
+export * from "@camox/backend-content/_generated/dataModel";

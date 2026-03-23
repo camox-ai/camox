@@ -2,11 +2,11 @@
 
 ## Goal
 
-Make the management backend (`apps/web/convex`) the source of truth for the project lifecycle — creation, listing, billing, deletion. The backend (`packages/backend/convex`) keeps its own `projects` table for content scoping, but management orchestrates.
+Make the management backend (`packages/backend-management/convex`) the source of truth for the project lifecycle — creation, listing, billing, deletion. The backend (`packages/backend-content/convex`) keeps its own `projects` table for content scoping, but management orchestrates.
 
 ## Management schema
 
-Add a `projects` table to `apps/web/convex/schema.ts`:
+Add a `projects` table to `packages/backend-management/convex/schema.ts`:
 
 - `slug` — the stable project slug (from plan 01)
 - `name`, `domain`

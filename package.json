@@ -5,7 +5,7 @@
   "author": "",
   "scripts": {
     "build": "nx run-many -t build --all",
-    "dev": "nx run-many -t dev --all --parallel",
+    "dev": "nx run-many -t dev --all --parallel=10",
     "lint": "nx run-many -t lint --all",
     "test": "nx run-many -t test --all",
     "fmt": "oxfmt .",

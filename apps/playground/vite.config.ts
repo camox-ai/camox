@@ -53,7 +53,7 @@ const config = defineConfig({
       },
       {
         find: /^camox\/_generated\/(.*)/,
-        replacement: resolve(__dirname, "../../packages/backend/convex/_generated/$1"),
+        replacement: resolve(__dirname, "../../packages/backend-content/convex/_generated/$1"),
       },
     ],
   },

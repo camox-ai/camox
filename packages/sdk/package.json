@@ -72,7 +72,7 @@
     "check": "tsgo --noEmit && oxlint --fix"
   },
   "dependencies": {
-    "@camox/backend": "workspace:*",
+    "@camox/backend-content": "workspace:*",
     "@camox/ui": "workspace:*",
     "@convex-dev/better-auth": "^0.11.2",
     "@dnd-kit/core": "^6.3.1",
