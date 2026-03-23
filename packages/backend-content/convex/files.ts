@@ -50,7 +50,7 @@ export const commitFile = mutation({
       type: "fileMetadata",
       delayMs: 0,
       fn: internal.files.generateFileMetadata,
-      fnArgs: { fileId, imageUrl: url, currentFilename: args.filename },
+      fnArgs: { fileId, imageUrl: url, blobId: args.blobId, currentFilename: args.filename },
     });
 
     return { fileId, url, filename: args.filename, mimeType: args.contentType };
@@ -217,10 +217,15 @@ export const generateFileMetadata = internalAction({
   args: {
     fileId: v.id("files"),
     imageUrl: v.string(),
+    blobId: v.optional(v.string()),
     currentFilename: v.string(),
   },
   handler: async (ctx, args) => {
-    const metadata = await generateImageMetadata(args.imageUrl, args.currentFilename);
+    // Fetch image bytes server-side — the AI provider can't reach localhost URLs
+    const response = await fetch(args.imageUrl);
+    const image = await response.arrayBuffer();
+
+    const metadata = await generateImageMetadata(image, args.currentFilename);
 
     const ext = args.currentFilename.includes(".")
       ? `.${args.currentFilename.split(".").pop()}`
@@ -356,6 +361,7 @@ export const setAiMetadata = mutation({
         fnArgs: {
           fileId: args.fileId,
           imageUrl: file.url,
+          blobId: file.blobId,
           currentFilename: file.filename,
         },
       });

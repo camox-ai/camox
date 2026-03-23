@@ -74,7 +74,7 @@ export async function generatePageDraft(options: {
   return JSON.parse(text) as GeneratedBlock[];
 }
 
-export async function generateImageMetadata(imageUrl: string, currentFilename: string) {
+export async function generateImageMetadata(image: string | ArrayBuffer, currentFilename: string) {
   const { output } = await generateText({
     model: openRouter.chat("google/gemini-2.5-flash-lite"),
     output: Output.object({
@@ -89,7 +89,7 @@ export async function generateImageMetadata(imageUrl: string, currentFilename: s
         content: [
           {
             type: "image",
-            image: new URL(imageUrl),
+            image: typeof image === "string" ? new URL(image) : image,
           },
           {
             type: "text",
