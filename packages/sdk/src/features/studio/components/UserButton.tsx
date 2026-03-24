@@ -74,7 +74,9 @@ function AuthenticatedUserButton({
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => window.open(`${managementUrl}/profile`, "_blank")}>
+        <DropdownMenuItem
+          onClick={() => window.open(`${managementUrl}/dashboard/profile`, "_blank")}
+        >
           <Settings className="h-4 w-4" />
           <span>Manage account</span>
         </DropdownMenuItem>

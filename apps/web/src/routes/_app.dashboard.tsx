@@ -1,18 +1,7 @@
-import { api } from "@camox/backend-management/_generated/api";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
+import { Button } from "@camox/ui/button";
 import { Toaster } from "@camox/ui/toaster";
-import { convexQuery } from "@convex-dev/react-query";
 import { UserButton } from "@daveyplate/better-auth-ui";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import {
-  Link,
-  Outlet,
-  createFileRoute,
-  redirect,
-  useMatchRoute,
-  useNavigate,
-  useParams,
-} from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
 import { Suspense } from "react";
 
@@ -49,87 +38,21 @@ function AwaitAuth({ children }: { children: React.ReactNode }) {
   return children;
 }
 
-function ProjectSelector() {
-  const { slug: selectedSlug } = useParams({ strict: false }) as { slug?: string };
-  const navigate = useNavigate();
-
-  const { data: projects } = useSuspenseQuery(
-    convexQuery(api.projects.listProjects, { organizationId: "seed" }),
-  );
-
-  return (
-    <Select
-      value={selectedSlug}
-      onValueChange={(slug) =>
-        navigate({ to: "/dashboard/$slug", params: { slug }, replace: true })
-      }
-    >
-      <SelectTrigger className="w-40">
-        <SelectValue placeholder="Select a project..." />
-      </SelectTrigger>
-      <SelectContent>
-        {projects.map((project) => (
-          <SelectItem key={project._id} value={project.slug}>
-            {project.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
 function DashboardNavbar() {
   return (
     <header className="border-b">
       <div className="flex h-14 items-center gap-4 px-6">
-        <Link to="/">
+        <Link to="/dashboard">
           <img src="/logo-shape.svg" alt="camox logo" className="h-8 py-1" />
         </Link>
-        <ProjectSelector />
-        <div className="ml-auto">
-          <UserButton size="icon" variant="ghost" />
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
+            <Link to="/">camox.ai</Link>
+          </Button>
+          <UserButton variant="outline" size="icon" />
         </div>
       </div>
     </header>
-  );
-}
-
-function DashboardTabs() {
-  const { slug: selectedSlug } = useParams({ strict: false }) as { slug?: string };
-  const matchRoute = useMatchRoute();
-
-  if (!selectedSlug) return null;
-
-  const tabs = [
-    { label: "Overview", to: "/dashboard/$slug" as const },
-    { label: "Usage", to: "/dashboard/$slug" as const },
-  ];
-
-  return (
-    <div className="border-b px-6">
-      <nav className="-mb-px flex gap-4">
-        {tabs.map((tab) => {
-          const isActive =
-            tab.label === "Overview" &&
-            !!matchRoute({ to: tab.to, params: { slug: selectedSlug } });
-
-          return (
-            <Link
-              key={tab.label}
-              to={tab.to}
-              params={{ slug: selectedSlug }}
-              className={`border-b-2 px-1 py-3 text-sm font-medium ${
-                isActive
-                  ? "border-foreground text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 border-transparent"
-              }`}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
   );
 }
 
@@ -146,8 +69,7 @@ function DashboardLayout() {
       >
         <AwaitAuth>
           <DashboardNavbar />
-          <DashboardTabs />
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto">
             <Outlet />
           </main>
         </AwaitAuth>

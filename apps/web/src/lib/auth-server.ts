@@ -41,6 +41,7 @@ const handler = async (request: Request) => {
   for (const [key, value] of Object.entries(corsHeaders(request))) {
     newResponse.headers.set(key, value);
   }
+
   return newResponse;
 };
 

@@ -3,7 +3,7 @@ import { AccountSettingsCards, SecuritySettingsCards } from "@daveyplate/better-
 import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
 
-export const Route = createFileRoute("/_app/profile")({
+export const Route = createFileRoute("/_app/dashboard/profile")({
   beforeLoad: ({ context }) => {
     if (!context.isAuthenticated) {
       throw redirect({ to: "/login", search: { redirect: undefined } });

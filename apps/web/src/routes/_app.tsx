@@ -11,8 +11,50 @@ import { convexClient, queryClient } from "@/lib/convex";
 import { handleOttRedirect } from "@/lib/ott-redirect";
 
 const getAuth = createServerFn({ method: "GET" }).handler(async () => {
-  return await getToken();
+  // First try the standard getToken() (works when real cookies exist, e.g. OAuth)
+  const token = await getToken();
+  if (token) return token;
+
+  // Fallback: read the plain convex_jwt cookie set by syncToken()
+  const { getRequestHeaders } = await import("@tanstack/react-start/server");
+  const cookies = getRequestHeaders().get("cookie") ?? "";
+  const match = cookies.match(/(?:^|;\s*)convex_jwt=([^;]+)/);
+  return match?.[1] ?? null;
 });
+
+/** Sync the convex_jwt to a real HTTP cookie via the API route */
+async function syncToken(token: string) {
+  await fetch("/api/sync-token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+}
+
+/**
+ * Read the convex_jwt from crossDomainClient's localStorage store.
+ * This works on the client where `beforeLoad` runs during SPA navigation.
+ * Falls back to the server function for SSR / full page loads (OAuth flows).
+ */
+function getClientToken(): string | null {
+  if (typeof window === "undefined") return null;
+
+  const raw = localStorage.getItem("better-auth_cookie");
+  if (!raw) return null;
+
+  try {
+    const stored = JSON.parse(raw) as Record<string, { value: string; expires: string | null }>;
+    const jwtKey = Object.keys(stored).find((k) => k.endsWith("convex_jwt"));
+    const jwt = jwtKey ? stored[jwtKey] : undefined;
+
+    if (!jwt?.value) return null;
+    if (jwt.expires && new Date(jwt.expires) < new Date()) return null;
+
+    return jwt.value;
+  } catch {
+    return null;
+  }
+}
 
 export const Route = createFileRoute("/_app")({
   head: () => ({
@@ -24,7 +66,9 @@ export const Route = createFileRoute("/_app")({
     ],
   }),
   beforeLoad: async () => {
-    const token = await getAuth();
+    // Try client-side first (works after crossDomain sign-in via localStorage),
+    // fall back to server function (works for OAuth flows that set real cookies).
+    const token = getClientToken() ?? (await getAuth());
     return { isAuthenticated: !!token, token };
   },
   component: AppLayout,
@@ -47,6 +91,14 @@ function AppLayout() {
       handleOttRedirect();
     }
   }, [session]);
+
+  const onSessionChange = useCallback(async () => {
+    const clientToken = getClientToken();
+    if (clientToken) {
+      await syncToken(clientToken);
+    }
+    await router.invalidate();
+  }, [router]);
 
   const navigate = useCallback(
     async (href: string) => {
@@ -71,6 +123,7 @@ function AppLayout() {
           authClient={authClient}
           navigate={navigate}
           replace={replace}
+          onSessionChange={onSessionChange}
           Link={LinkAdapter}
           basePath=""
           viewPaths={{
@@ -78,7 +131,7 @@ function AppLayout() {
             SIGN_UP: "signup",
             FORGOT_PASSWORD: "forgot-password",
           }}
-          account={{ basePath: "", viewPaths: { SETTINGS: "profile" } }}
+          account={{ basePath: "", viewPaths: { SETTINGS: "dashboard/profile" } }}
           avatar
           credentials={{ forgotPassword: true }}
           social={{ providers: ["github", "google"] }}
