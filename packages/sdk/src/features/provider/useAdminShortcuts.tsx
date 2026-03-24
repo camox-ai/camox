@@ -40,8 +40,14 @@ export function useAdminShortcuts() {
         if (!action.checkIfAvailable()) return false;
 
         const { key, withMeta, withAlt, withShift } = action.shortcut;
+        // On Mac, Option+letter produces special characters (e.g. Option+B → "∫"),
+        // so we match against the physical key code instead of the composed character.
+        const keyMatches =
+          withAlt && key.length === 1 && /[a-z]/i.test(key)
+            ? event.code === `Key${key.toUpperCase()}`
+            : key.toLowerCase() === event.key.toLowerCase();
         return (
-          key.toLowerCase() === event.key.toLowerCase() &&
+          keyMatches &&
           !!withMeta === (event.metaKey || event.ctrlKey) &&
           !!withAlt === event.altKey &&
           !!withShift === event.shiftKey

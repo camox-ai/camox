@@ -108,7 +108,7 @@ export const PreviewToolbar = () => {
         onClick={() => previewStore.send({ type: "openAgentChatSheet" })}
       >
         <span className="text-muted-foreground">Ask for changes...</span>
-        <Kbd className="ml-4">⌘ I</Kbd>
+        {getActionShortcut(actions, "open-agent-chat")}
       </Button>
     </FloatingToolbar>
   );
