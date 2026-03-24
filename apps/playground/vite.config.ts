@@ -4,12 +4,12 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import viteTsConfigPaths from "vite-tsconfig-paths";
 
 import { camox } from "../../packages/sdk/src/features/vite/vite";
 
 const config = defineConfig({
   resolve: {
+    tsconfigPaths: true,
     alias: [
       // Point to SDK source files directly instead of built output
       {
@@ -58,9 +58,6 @@ const config = defineConfig({
     ],
   },
   plugins: [
-    viteTsConfigPaths({
-      projects: ["./tsconfig.json", "../../packages/sdk/tsconfig.json"],
-    }),
     tailwindcss(),
     camox({
       projectSlug: "camox-demo-01",

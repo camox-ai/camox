@@ -3,11 +3,12 @@ import { resolve } from "node:path";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
-import tsconfigPaths from "vite-tsconfig-paths";
 
 const config = defineConfig({
+  resolve: {
+    tsconfigPaths: true,
+  },
   plugins: [
-    tsconfigPaths(),
     viteReact(),
     dts({
       tsconfigPath: "./tsconfig.json",
