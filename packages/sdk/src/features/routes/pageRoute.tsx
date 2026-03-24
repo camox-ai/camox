@@ -5,6 +5,7 @@ import { api } from "camox/server/api";
 import { ConvexHttpClient } from "convex/browser";
 
 import type { CamoxApp } from "../../core/createApp";
+import { trackEvent } from "../../lib/analytics";
 import { CamoxPreview, PageContent } from "../preview/CamoxPreview";
 
 /* -------------------------------------------------------------------------------------------------
@@ -58,6 +59,11 @@ export function createMarkdownMiddleware(convexUrl: string) {
           pageId: page.page._id,
         });
         if (markdown) {
+          trackEvent("markdown_served", {
+            pathname: url.pathname,
+            projectId: page.page.projectId,
+            projectName: page.projectName,
+          });
           throw new Response(markdown, {
             headers: { "Content-Type": "text/markdown; charset=utf-8" },
           });

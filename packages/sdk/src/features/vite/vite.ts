@@ -28,6 +28,8 @@ export interface CamoxPluginOptions {
   definitionsSync?: DefinitionsSyncOptions;
   /** URL of the Camox management web app, used for authentication redirects */
   managementUrl?: string;
+  /** Disable PostHog analytics collection (default: false) */
+  disableAnalytics?: boolean;
 }
 
 export function camox(options: CamoxPluginOptions): Plugin {
@@ -37,14 +39,15 @@ export function camox(options: CamoxPluginOptions): Plugin {
   return {
     name: "camox",
     config(_config, env) {
-      if (env.command === "serve") {
-        return {
-          define: {
+      return {
+        define: {
+          ...(env.command === "serve" && {
             "import.meta.env.VITE_CONVEX_URL": JSON.stringify(convexUrl),
             "import.meta.env.VITE_CONVEX_SITE_URL": JSON.stringify(LOCAL_CONVEX_SITE_URL),
-          },
-        };
-      }
+          }),
+          __CAMOX_ANALYTICS_DISABLED__: JSON.stringify(!!options.disableAnalytics),
+        },
+      };
     },
     configResolved(config) {
       const routesDir = resolve(config.root, "src/routes");

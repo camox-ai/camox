@@ -19,6 +19,7 @@ import { useMutation, useQuery } from "convex/react";
 import { Globe, Info } from "lucide-react";
 import * as React from "react";
 
+import { trackClientEvent } from "@/lib/analytics-client";
 import { formatPathSegment } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -86,6 +87,14 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
           });
         }
 
+        trackClientEvent("page_updated", {
+          projectId: page.projectId,
+          changes: {
+            path: values.value.pathSegment !== pageToEdit.pathSegment,
+            layout: values.value.layoutId !== pageToEdit.layoutId,
+            parent: values.value.parentPageId !== pageToEdit.parentPageId,
+          },
+        });
         const displayName = page.metaTitle ?? formatPathSegment(values.value.pathSegment);
         toast.success(`Updated ${displayName} page`);
         previewStore.send({ type: "closeEditPageSheet" });

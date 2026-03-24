@@ -26,6 +26,7 @@ import { useMutation } from "convex/react";
 import { Copy, Pen, Settings, Trash2 } from "lucide-react";
 import * as React from "react";
 
+import { trackClientEvent } from "@/lib/analytics-client";
 import { formatShortcut } from "@/lib/utils";
 
 import type { Action } from "../../provider/actionsStore";
@@ -64,6 +65,10 @@ const BlockActionsPopover = ({
   const handleDeleteBlock = async (block: Doc<"blocks">) => {
     try {
       await deleteBlockMutation({ blockId: block._id });
+      trackClientEvent("block_deleted", {
+        projectId: page?.page.projectId,
+        blockType: block.type,
+      });
       toast.success(`Deleted "${block.summary}" block`);
     } catch (error) {
       console.error("Failed to delete block:", error);
@@ -76,6 +81,10 @@ const BlockActionsPopover = ({
   const handleDuplicateBlock = async (block: Doc<"blocks">) => {
     try {
       await duplicateBlockMutation({ blockId: block._id });
+      trackClientEvent("block_duplicated", {
+        projectId: page?.page.projectId,
+        blockType: block.type,
+      });
       toast.success(`Duplicated "${block.summary}" block`);
     } catch (error) {
       console.error("Failed to duplicate block:", error);

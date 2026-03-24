@@ -75,8 +75,12 @@ const KeyDownForwarder = () => {
         }
 
         const { key, withMeta, withAlt, withShift } = action.shortcut;
+        const keyMatches =
+          withAlt && key.length === 1 && /[a-z]/i.test(key)
+            ? e.code === `Key${key.toUpperCase()}`
+            : key.toLowerCase() === e.key.toLowerCase();
         return (
-          key.toLowerCase() === e.key.toLowerCase() &&
+          keyMatches &&
           !!withMeta === (e.metaKey || e.ctrlKey) &&
           !!withAlt === e.altKey &&
           !!withShift === e.shiftKey
@@ -159,7 +163,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
         groupLabel: "Preview",
         checkIfAvailable: () => true,
         execute: () => previewStore.send({ type: "toggleSidebar" }),
-        shortcut: { key: "e", withMeta: true },
+        shortcut: { key: "b", withAlt: true },
         icon: "PanelRight",
       },
       {
@@ -185,7 +189,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
         groupLabel: "Preview",
         checkIfAvailable: () => !isAgentChatSheetOpen,
         execute: () => previewStore.send({ type: "openAgentChatSheet" }),
-        shortcut: { key: "i", withMeta: true },
+        shortcut: { key: "i", withAlt: true },
         icon: "MessageSquare",
       },
     ] satisfies Action[];

@@ -17,6 +17,8 @@ import { Id } from "camox/server/dataModel";
 import { useAction, useQuery } from "convex/react";
 import { useEffect } from "react";
 
+import { trackClientEvent } from "@/lib/analytics-client";
+
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { previewStore } from "../previewStore";
 import { PageLocationFieldset } from "./PageLocationFieldset";
@@ -59,6 +61,12 @@ const CreatePageSheet = () => {
         });
 
         const { fullPath } = await createPagePromise;
+        trackClientEvent("page_created", {
+          projectId: project._id,
+          pathSegment: values.value.pathSegment,
+          layoutId: values.value.layoutId,
+          hasContentDescription: !!values.value.contentDescription,
+        });
         previewStore.send({ type: "closeCreatePageSheet" });
         form.reset();
 

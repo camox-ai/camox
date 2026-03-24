@@ -14,6 +14,7 @@ import { InfoIcon } from "lucide-react";
 import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
+import { trackClientEvent } from "@/lib/analytics-client";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -58,6 +59,10 @@ const AddBlockSheet = () => {
       content: block.getInitialContent(),
       settings: block.getInitialSettings(),
       afterPosition,
+    });
+    trackClientEvent("block_added", {
+      projectId: page.page.projectId,
+      blockType: block.id,
     });
     previewStore.send({ type: "focusCreatedBlock", blockId });
     previewStore.send({ type: "exitPeekedBlock" });
