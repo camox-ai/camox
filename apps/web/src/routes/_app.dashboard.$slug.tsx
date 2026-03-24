@@ -76,7 +76,11 @@ function RouteComponent() {
           >
             Usage
           </Link>
-          <Link to="/dashboard/team" className={cn(tabClass, inactiveClass)}>
+          <Link
+            to="/dashboard/team"
+            search={{ tab: "members" }}
+            className={cn(tabClass, inactiveClass)}
+          >
             Team
           </Link>
         </nav>

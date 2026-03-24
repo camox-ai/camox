@@ -101,19 +101,6 @@ export const ProjectMenu = () => {
                 className="w-full justify-start"
                 onClick={() => {
                   if (authCtx) {
-                    window.open(`${authCtx.managementUrl}/dashboard/team`, "_blank");
-                  }
-                  setOpen(false);
-                }}
-              >
-                <Users className="text-muted-foreground size-4" />
-                Manage team
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => {
-                  if (authCtx) {
                     window.open(`${authCtx.managementUrl}/dashboard/${project.slug}`, "_blank");
                   }
                   setOpen(false);
@@ -121,6 +108,35 @@ export const ProjectMenu = () => {
               >
                 <Settings className="text-muted-foreground size-4" />
                 Project settings
+              </Button>
+            </div>
+            <Separator />
+            <div className="flex flex-col gap-1 p-2">
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => {
+                  if (authCtx) {
+                    window.open(`${authCtx.managementUrl}/dashboard/team?tab=members`, "_blank");
+                  }
+                  setOpen(false);
+                }}
+              >
+                <Users className="text-muted-foreground size-4" />
+                Team members
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => {
+                  if (authCtx) {
+                    window.open(`${authCtx.managementUrl}/dashboard/team?tab=settings`, "_blank");
+                  }
+                  setOpen(false);
+                }}
+              >
+                <Settings className="text-muted-foreground size-4" />
+                Team settings
               </Button>
             </div>
           </div>

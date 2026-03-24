@@ -137,7 +137,8 @@ function AppLayout() {
             basePath: "",
             logo: true,
             viewPaths: {
-              SETTINGS: "dashboard/team",
+              SETTINGS: "dashboard/team?tab=settings",
+              MEMBERS: "dashboard/team?tab=members",
             },
           }}
           avatar
