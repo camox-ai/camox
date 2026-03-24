@@ -1,0 +1,23 @@
+{
+  "name": "create-camox",
+  "version": "0.0.1",
+  "bin": {
+    "create-camox": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "template"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.10.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.2"
+  }
+}
