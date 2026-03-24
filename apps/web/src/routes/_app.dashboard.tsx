@@ -1,18 +1,5 @@
 import { api } from "@camox/backend-management/_generated/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-} from "@camox/ui/sidebar";
 import { Toaster } from "@camox/ui/toaster";
 import { convexQuery } from "@convex-dev/react-query";
 import { UserButton } from "@daveyplate/better-auth-ui";
@@ -24,10 +11,9 @@ import {
   redirect,
   useMatchRoute,
   useNavigate,
-  useSearch,
+  useParams,
 } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
-import { SettingsIcon } from "lucide-react";
 import { Suspense } from "react";
 
 export const Route = createFileRoute("/_app/dashboard")({
@@ -63,8 +49,8 @@ function AwaitAuth({ children }: { children: React.ReactNode }) {
   return children;
 }
 
-function SidebarProjectSelector() {
-  const { project: selectedSlug } = useSearch({ strict: false }) as { project?: string };
+function ProjectSelector() {
+  const { slug: selectedSlug } = useParams({ strict: false }) as { slug?: string };
   const navigate = useNavigate();
 
   const { data: projects } = useSuspenseQuery(
@@ -75,10 +61,10 @@ function SidebarProjectSelector() {
     <Select
       value={selectedSlug}
       onValueChange={(slug) =>
-        navigate({ to: "/dashboard", search: { project: slug }, replace: true })
+        navigate({ to: "/dashboard/$slug", params: { slug }, replace: true })
       }
     >
-      <SelectTrigger className="w-full">
+      <SelectTrigger className="w-40">
         <SelectValue placeholder="Select a project..." />
       </SelectTrigger>
       <SelectContent>
@@ -92,46 +78,64 @@ function SidebarProjectSelector() {
   );
 }
 
-function AppSidebar() {
+function DashboardNavbar() {
+  return (
+    <header className="border-b">
+      <div className="flex h-14 items-center gap-4 px-6">
+        <Link to="/">
+          <img src="/logo-shape.svg" alt="camox logo" className="h-8 py-1" />
+        </Link>
+        <ProjectSelector />
+        <div className="ml-auto">
+          <UserButton size="icon" variant="ghost" />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function DashboardTabs() {
+  const { slug: selectedSlug } = useParams({ strict: false }) as { slug?: string };
   const matchRoute = useMatchRoute();
 
+  if (!selectedSlug) return null;
+
+  const tabs = [
+    { label: "Overview", to: "/dashboard/$slug" as const },
+    { label: "Usage", to: "/dashboard/$slug" as const },
+  ];
+
   return (
-    <Sidebar collapsible="none" className="sticky top-0 h-svh border-r">
-      <SidebarHeader className="border-b">
-        <Link to="/">
-          <img src="/logo-long-dark.svg" alt="camox logo" className="h-10 py-2" />
-        </Link>
-      </SidebarHeader>
-      <SidebarContent>
-        <div className="px-2 pt-2">
-          <SidebarProjectSelector />
-        </div>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarGroupLabel>Project</SidebarGroupLabel>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={!!matchRoute({ to: "/dashboard" })}>
-                  <Link to="/dashboard">
-                    <SettingsIcon />
-                    <span>Overview</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter>
-        <UserButton size="sm" variant="ghost" />
-      </SidebarFooter>
-    </Sidebar>
+    <div className="border-b px-6">
+      <nav className="-mb-px flex gap-4">
+        {tabs.map((tab) => {
+          const isActive =
+            tab.label === "Overview" &&
+            !!matchRoute({ to: tab.to, params: { slug: selectedSlug } });
+
+          return (
+            <Link
+              key={tab.label}
+              to={tab.to}
+              params={{ slug: selectedSlug }}
+              className={`border-b-2 px-1 py-3 text-sm font-medium ${
+                isActive
+                  ? "border-foreground text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 border-transparent"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
 
 function DashboardLayout() {
   return (
-    <SidebarProvider>
+    <div className="flex min-h-svh flex-col">
       <Toaster />
       <Suspense
         fallback={
@@ -141,12 +145,13 @@ function DashboardLayout() {
         }
       >
         <AwaitAuth>
-          <AppSidebar />
+          <DashboardNavbar />
+          <DashboardTabs />
           <main className="flex-1 overflow-auto p-6">
             <Outlet />
           </main>
         </AwaitAuth>
       </Suspense>
-    </SidebarProvider>
+    </div>
   );
 }

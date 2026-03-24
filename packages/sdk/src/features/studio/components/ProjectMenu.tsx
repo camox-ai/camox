@@ -114,10 +114,7 @@ export const ProjectMenu = () => {
                 className="w-full justify-start"
                 onClick={() => {
                   if (authCtx) {
-                    window.open(
-                      `${authCtx.managementUrl}/dashboard?project=${project.slug}`,
-                      "_blank",
-                    );
+                    window.open(`${authCtx.managementUrl}/dashboard/${project.slug}`, "_blank");
                   }
                   setOpen(false);
                 }}
