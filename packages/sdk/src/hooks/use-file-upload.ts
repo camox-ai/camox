@@ -4,6 +4,7 @@ import { api } from "camox/server/api";
 import { useMutation } from "convex/react";
 import { useCallback, useRef, useState } from "react";
 
+import { trackClientEvent } from "@/lib/analytics-client";
 import { useConvexToken } from "@/lib/auth";
 import { FS_PREFIX, getSiteUrl } from "@/lib/convex-site";
 
@@ -86,6 +87,7 @@ export function useFileUpload(options?: UseFileUploadOptions) {
       });
 
       onFileCommittedRef.current?.(result);
+      trackClientEvent("file_uploaded", { mimeType: file.type });
 
       setUploads((prev) =>
         prev.map((u) =>

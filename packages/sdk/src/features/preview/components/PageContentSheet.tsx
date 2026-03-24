@@ -23,6 +23,7 @@ import { useMutation } from "convex/react";
 import * as React from "react";
 
 import { actionsStore, type Action } from "@/features/provider/actionsStore";
+import { trackClientEvent } from "@/lib/analytics-client";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -306,6 +307,16 @@ const PageContentSheet = () => {
       }
     }
   }, [blockDef, selectionBreadcrumbs, repeatableBreadcrumbs]);
+
+  // Track content sheet open
+  React.useEffect(() => {
+    if (isOpen && block) {
+      trackClientEvent("content_sheet_opened", {
+        projectId: page?.page.projectId,
+        blockType: block.type,
+      });
+    }
+  }, [isOpen, block, page?.page.projectId]);
 
   // Auto-focus selected field when sheet opens
   const selectedFieldName =
