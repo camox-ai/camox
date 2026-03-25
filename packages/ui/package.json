@@ -1,7 +1,9 @@
 {
   "name": "@camox/ui",
-  "version": "1.0.0",
-  "private": true,
+  "version": "0.1.0-alpha.0",
+  "files": [
+    "src"
+  ],
   "type": "module",
   "exports": {
     "./utils": {

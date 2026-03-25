@@ -1,0 +1,41 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "prerelease": true,
+  "prerelease-type": "alpha",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "perf", "section": "Performance Improvements" },
+    { "type": "refactor", "section": "Refactoring" },
+    { "type": "docs", "section": "Documentation" },
+    { "type": "chore", "section": "Miscellaneous" }
+  ],
+  "packages": {
+    "packages/sdk": {
+      "component": "camox",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/create-camox": {
+      "component": "create-camox",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/ui": {
+      "component": "@camox/ui",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/backend-content": {
+      "component": "@camox/backend-content",
+      "changelog-path": "CHANGELOG.md"
+    }
+  },
+  "plugins": [
+    {
+      "type": "linked-versions",
+      "groupName": "camox",
+      "components": ["camox", "create-camox", "@camox/ui", "@camox/backend-content"]
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      sdk_release_created: ${{ steps.release.outputs['packages/sdk--release_created'] }}
+      cli_release_created: ${{ steps.release.outputs['packages/create-camox--release_created'] }}
+      ui_release_created: ${{ steps.release.outputs['packages/ui--release_created'] }}
+      backend_release_created: ${{ steps.release.outputs['packages/backend-content--release_created'] }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.releases_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - name: Publish @camox/backend-content
+        if: ${{ needs.release-please.outputs.backend_release_created == 'true' }}
+        run: pnpm publish --no-git-checks --access public --tag alpha
+        working-directory: packages/backend-content
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @camox/ui
+        if: ${{ needs.release-please.outputs.ui_release_created == 'true' }}
+        run: pnpm publish --no-git-checks --access public --tag alpha
+        working-directory: packages/ui
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish camox
+        if: ${{ needs.release-please.outputs.sdk_release_created == 'true' }}
+        run: pnpm publish --no-git-checks --access public --tag alpha
+        working-directory: packages/sdk
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish create-camox
+        if: ${{ needs.release-please.outputs.cli_release_created == 'true' }}
+        run: pnpm publish --no-git-checks --access public --tag alpha
+        working-directory: packages/create-camox
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
