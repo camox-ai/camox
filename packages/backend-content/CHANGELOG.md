@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2-alpha.2](https://github.com/camox-ai/camox/compare/camox-v0.1.2-alpha.1...@camox/backend-content-v0.1.2-alpha.2) (2026-03-25)
+
+
+### Bug Fixes
+
+* playground css breaking build ([fbf28a5](https://github.com/camox-ai/camox/commit/fbf28a5063e693658773145857666f9536519cc1))
+
 ## [0.1.2-alpha.1](https://github.com/camox-ai/camox/compare/camox-v0.1.2-alpha.0...@camox/backend-content-v0.1.2-alpha.1) (2026-03-25)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.2-alpha.2](https://github.com/camox-ai/camox/compare/camox-v0.1.2-alpha.1...camox-v0.1.2-alpha.2) (2026-03-25)
+
+
+### Bug Fixes
+
+* playground css breaking build ([fbf28a5](https://github.com/camox-ai/camox/commit/fbf28a5063e693658773145857666f9536519cc1))
+
+
+### Miscellaneous
+
+* ignore generated files in linter and formatter ([a87ff5f](https://github.com/camox-ai/camox/commit/a87ff5f0a6f7ba1eba39a70956a81152c11617bf))
+
 ## [0.1.2-alpha.1](https://github.com/camox-ai/camox/compare/camox-v0.1.2-alpha.0...camox-v0.1.2-alpha.1) (2026-03-25)
 
 
