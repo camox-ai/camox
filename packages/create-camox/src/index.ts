@@ -128,18 +128,31 @@ async function main() {
 
   const targetDir = path.resolve(result.path);
 
+  // Authenticate with camox.ai
+  p.log.info("Please authenticate to create a Camox project.");
+  try {
+    const { authenticateUser } = await import("./auth.js");
+    await authenticateUser();
+  } catch {
+    p.log.warn("Continuing without authentication.");
+  }
+
   if (fs.existsSync(targetDir) && fs.readdirSync(targetDir).length > 0) {
     p.cancel(`Directory ${targetDir} is not empty.`);
     process.exit(1);
   }
 
-  // Git init prompt
+  // Git init prompt (skip if already inside a git repo)
   const alreadyInRepo = isInsideGitRepo();
-  const initGit = await p.confirm({
-    message: "Initialize a git repository?",
-    initialValue: !alreadyInRepo,
-  });
-  if (p.isCancel(initGit)) return onCancel();
+  let initGit = false;
+  if (!alreadyInRepo) {
+    const answer = await p.confirm({
+      message: "Initialize a git repository?",
+      initialValue: true,
+    });
+    if (p.isCancel(answer)) return onCancel();
+    initGit = answer;
+  }
 
   // Package manager
   const detected = detectPackageManager();
@@ -175,6 +188,13 @@ async function main() {
 
   s.stop("Project scaffolded!");
 
+  function dropIntoProject(): never {
+    const shell = process.env.SHELL || "/bin/bash";
+    p.log.info(`Dropping you into ${result.path}`);
+    spawnSync(shell, [], { cwd: targetDir, stdio: "inherit" });
+    process.exit(0);
+  }
+
   // Git init
   if (initGit) {
     try {
@@ -206,7 +226,7 @@ async function main() {
   } catch {
     s2.stop("Install failed.");
     p.log.error(`Failed to install dependencies. Run "${installCmd}" manually.`);
-    process.exit(1);
+    dropIntoProject();
   }
 
   // Initial commit
@@ -233,10 +253,7 @@ async function main() {
   });
 
   child.on("close", () => {
-    const shell = process.env.SHELL || "/bin/bash";
-    p.log.info(`Dropping you into ${result.path}`);
-    spawnSync(shell, [], { cwd: targetDir, stdio: "inherit" });
-    process.exit(0);
+    dropIntoProject();
   });
 }
 

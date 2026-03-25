@@ -17,11 +17,5 @@
 ## Quick start
 
 ```bash
-pnpm create camox
-# or
-bun create camox
-# or
-npm create camox
-# or
-yarn create camox
+npm create camox@latest
 ```
