@@ -54,7 +54,7 @@ const config = defineConfig({
         // Let the consuming app's camox() plugin handle the virtual CSS module
         if (id === "virtual:camox-studio-css") return true;
         // Keep our source files and CSS
-        if (id.startsWith(".") || id.startsWith("/")) return false;
+        if (id.startsWith(".") || id.startsWith("/") || id.startsWith("@/")) return false;
         if (id.endsWith(".css") || id.includes(".css?")) return false;
         // Everything else (npm packages) is external
         return true;

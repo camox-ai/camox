@@ -126,7 +126,7 @@ async function main() {
     { onCancel },
   );
 
-  const targetDir = path.resolve(result.path);
+  const targetDir = path.resolve(result.path as string);
 
   // Authenticate with camox.ai
   p.log.info("Please authenticate to create a Camox project.");
@@ -181,8 +181,8 @@ async function main() {
 
   const templateDir = path.resolve(__dirname, "..", "template");
   copyDir(templateDir, targetDir, {
-    "{{projectName}}": result.name,
-    "{{projectSlug}}": result.slug,
+    "{{projectName}}": result.name as string,
+    "{{projectSlug}}": result.slug as string,
     "{{camoxVersion}}": ownPkg.version,
   });
 

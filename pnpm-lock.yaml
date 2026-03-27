@@ -250,6 +250,15 @@ importers:
         specifier: ^0.10.0
         version: 0.10.1
     devDependencies:
+      '@types/node':
+        specifier: ^24.6.2
+        version: 24.6.2
+      '@typescript/native-preview':
+        specifier: ^7.0.0-dev
+        version: 7.0.0-dev.20260311.1
+      oxlint:
+        specifier: ^0.15.0
+        version: 0.15.15
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(@microsoft/api-extractor@7.57.7(@types/node@24.6.2))(jiti@2.6.1)(postcss@8.5.8)(tsx@4.20.5)(typescript@5.9.2)(yaml@2.8.1)
