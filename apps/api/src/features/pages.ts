@@ -46,7 +46,7 @@ export const pages = sqliteTable(
 type ContentRecord = Record<string, unknown>;
 
 function sortByPosition<T extends { position: string }>(items: T[]): T[] {
-  return items.sort((a, b) => (a.position < b.position ? -1 : a.position > b.position ? 1 : 0));
+  return items.sort((a, b) => a.position.localeCompare(b.position));
 }
 
 function collectFileIds(content: Record<string, unknown>, fileIds: Set<number>) {
