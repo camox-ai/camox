@@ -4,19 +4,24 @@ export const Route = createFileRoute("/_app/dashboard/$slug")({
   component: RouteComponent,
 });
 
-import { api } from "@camox/backend-management/_generated/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { cn } from "@camox/ui/utils";
-import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-function ProjectSelector({ organizationSlug }: { organizationSlug: string }) {
+import { api } from "@/lib/api";
+
+function ProjectSelector() {
   const { slug: selectedSlug } = useParams({ strict: false }) as { slug?: string };
   const navigate = useNavigate();
 
-  const { data: projects } = useSuspenseQuery(
-    convexQuery(api.projects.listProjects, { organizationSlug }),
-  );
+  const { data: projects } = useSuspenseQuery({
+    queryKey: ["projects", "list"],
+    queryFn: async () => {
+      const res = await api.projects.list.$get();
+      if (!res.ok) throw new Error("Failed to fetch projects");
+      return res.json();
+    },
+  });
 
   return (
     <Select
@@ -30,7 +35,7 @@ function ProjectSelector({ organizationSlug }: { organizationSlug: string }) {
       </SelectTrigger>
       <SelectContent>
         {projects.map((project) => (
-          <SelectItem key={project._id} value={project.slug}>
+          <SelectItem key={project.id} value={project.slug}>
             {project.name}
           </SelectItem>
         ))}
@@ -42,7 +47,14 @@ function ProjectSelector({ organizationSlug }: { organizationSlug: string }) {
 function RouteComponent() {
   const { slug } = Route.useParams();
 
-  const { data: project } = useSuspenseQuery(convexQuery(api.projects.getProjectBySlug, { slug }));
+  const { data: project } = useSuspenseQuery({
+    queryKey: ["projects", "getBySlug", slug],
+    queryFn: async () => {
+      const res = await api.projects.getBySlug.$get({ query: { slug } });
+      if (!res.ok) throw new Error("Project not found");
+      return res.json();
+    },
+  });
 
   const tabClass = "border-b-2 px-1 py-4 text-sm font-medium";
   const activeClass = "border-foreground text-foreground";
@@ -56,7 +68,7 @@ function RouteComponent() {
       <div className="border-b px-6">
         <nav className="-mb-px flex items-center gap-4">
           <div className="py-2">
-            <ProjectSelector organizationSlug={project.organizationSlug} />
+            <ProjectSelector />
           </div>
           <Link
             to="/dashboard/$slug/overview"

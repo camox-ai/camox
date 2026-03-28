@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 
 import { requireOrg } from "./authorization";
 import { createDb } from "./db";
@@ -20,6 +21,18 @@ const app = new Hono<AppEnv>()
     c.set("db", createDb(c.env.DB));
     await next();
   })
+  // CORS for all routes
+  .use(
+    "*",
+    cors({
+      origin: (origin) => origin,
+      allowHeaders: ["Content-Type", "Authorization"],
+      allowMethods: ["POST", "GET", "OPTIONS"],
+      exposeHeaders: ["Content-Length"],
+      maxAge: 600,
+      credentials: true,
+    }),
+  )
   // Auth routes (unauthenticated)
   .route("/api/auth", authRoutes)
   // Seed route (dev only, unauthenticated)

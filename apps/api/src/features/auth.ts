@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization } from "better-auth/plugins";
+import { oneTimeToken, organization } from "better-auth/plugins";
 import { int, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -131,7 +131,7 @@ export function createAuth(db: Database, env: Bindings) {
         clientSecret: env.GOOGLE_CLIENT_SECRET,
       },
     },
-    plugins: [organization()],
+    plugins: [organization(), oneTimeToken()],
     trustedOrigins: env.TRUSTED_ORIGINS ? env.TRUSTED_ORIGINS.split(",") : [],
   });
 }

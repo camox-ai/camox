@@ -1,9 +1,9 @@
-import { api } from "@camox/backend-management/_generated/api";
-import { convexQuery } from "@convex-dev/react-query";
 import { OrganizationSwitcher, useCurrentOrganization } from "@daveyplate/better-auth-ui";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRightIcon } from "lucide-react";
+
+import { api } from "@/lib/api";
 
 export const Route = createFileRoute("/_app/dashboard/")({
   head: () => ({
@@ -22,13 +22,20 @@ function DashboardIndex() {
         <OrganizationSwitcher variant="ghost" size="default" className="min-w-64" hidePersonal />
       </div>
 
-      {organization && <ProjectList organizationSlug={organization.slug} />}
+      {organization && <ProjectList />}
     </div>
   );
 }
 
-function ProjectList({ organizationSlug }: { organizationSlug: string }) {
-  const { data: projects } = useQuery(convexQuery(api.projects.listProjects, { organizationSlug }));
+function ProjectList() {
+  const { data: projects } = useQuery({
+    queryKey: ["projects", "list"],
+    queryFn: async () => {
+      const res = await api.projects.list.$get();
+      if (!res.ok) throw new Error("Failed to fetch projects");
+      return res.json();
+    },
+  });
 
   if (!projects) return null;
   if (projects.length === 0) {
@@ -41,7 +48,7 @@ function ProjectList({ organizationSlug }: { organizationSlug: string }) {
       <div className="grid gap-3">
         {projects.map((project) => (
           <Link
-            key={project._id}
+            key={project.id}
             to="/dashboard/$slug/overview"
             params={{ slug: project.slug }}
             className="border-border hover:border-foreground/20 flex items-center justify-between rounded-lg border p-4 transition-colors"

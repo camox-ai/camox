@@ -1,10 +1,11 @@
 import { AuthView } from "@daveyplate/better-auth-ui";
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
 
 export const Route = createFileRoute("/_app/_auth/login")({
   component: LoginPage,
-  validateSearch: (search: Record<string, unknown>) => ({
-    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  validateSearch: z.object({
+    redirect: z.string().optional(),
   }),
 });
 
