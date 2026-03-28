@@ -1,16 +1,14 @@
-import { api } from "@camox/backend-management/_generated/api";
-import type { Doc } from "@camox/backend-management/_generated/dataModel";
 import { Button } from "@camox/ui/button";
 import { Input } from "@camox/ui/input";
 import { Label } from "@camox/ui/label";
 import { Spinner } from "@camox/ui/spinner";
 import { Textarea } from "@camox/ui/textarea";
 import { toast } from "@camox/ui/toaster";
-import { convexQuery } from "@convex-dev/react-query";
 import { useForm } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
+
+import { api, type Project } from "@/lib/api";
 
 export const Route = createFileRoute("/_app/dashboard/$slug/overview")({
   component: ProjectSettingsPage,
@@ -19,9 +17,7 @@ export const Route = createFileRoute("/_app/dashboard/$slug/overview")({
   }),
 });
 
-function ProjectSettingsFormInner({ project }: { project: Doc<"projects"> }) {
-  const updateProject = useMutation(api.projects.updateProject);
-
+function ProjectSettingsFormInner({ project }: { project: Project }) {
   const form = useForm({
     defaultValues: {
       name: project.name,
@@ -30,12 +26,15 @@ function ProjectSettingsFormInner({ project }: { project: Doc<"projects"> }) {
     },
     onSubmit: async ({ value }) => {
       try {
-        await updateProject({
-          projectId: project._id,
-          name: value.name,
-          description: value.description,
-          domain: value.domain,
+        const res = await api.projects.update.$post({
+          json: {
+            id: project.id,
+            name: value.name,
+            description: value.description,
+            domain: value.domain,
+          },
         });
+        if (!res.ok) throw new Error("Update failed");
         toast.success("Project settings updated");
       } catch (error) {
         console.error("Failed to update project:", error);
@@ -141,13 +140,20 @@ function ProjectSettingsFormInner({ project }: { project: Doc<"projects"> }) {
 function ProjectSettingsPage() {
   const { slug } = Route.useParams();
 
-  const { data: project } = useSuspenseQuery(convexQuery(api.projects.getProjectBySlug, { slug }));
+  const { data: project } = useSuspenseQuery({
+    queryKey: ["projects", "getBySlug", slug],
+    queryFn: async () => {
+      const res = await api.projects.getBySlug.$get({ query: { slug } });
+      if (!res.ok) throw new Error("Project not found");
+      return res.json();
+    },
+  });
 
   if (!project) return null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <ProjectSettingsFormInner key={project._id} project={project} />
+      <ProjectSettingsFormInner key={project.id} project={project} />
     </div>
   );
 }

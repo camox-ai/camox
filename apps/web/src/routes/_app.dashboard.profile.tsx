@@ -4,18 +4,13 @@ import {
   SecuritySettingsCards,
   UserButton,
 } from "@daveyplate/better-auth-ui";
-import { Link, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 const tabs = ["account", "security"] as const;
 type Tab = (typeof tabs)[number];
 
 export const Route = createFileRoute("/_app/dashboard/profile")({
-  beforeLoad: ({ context }) => {
-    if (!context.isAuthenticated) {
-      throw redirect({ to: "/login", search: { redirect: undefined } });
-    }
-  },
   component: ProfilePage,
   validateSearch: (search: Record<string, unknown>) => ({
     tab: tabs.includes(search.tab as Tab) ? (search.tab as Tab) : undefined,
