@@ -49,10 +49,9 @@ const syncLayoutsSchema = z.object({
 });
 
 export const layoutRoutes = new Hono<AppEnv>()
-  .get("/", async (c) => {
+  .get("/list", zValidator("query", z.object({ projectId: z.coerce.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const projectId = Number(c.req.query("projectId"));
-    if (!projectId) return c.json({ error: "projectId required" }, 400);
+    const { projectId } = c.req.valid("query");
     const project = await getAuthorizedProject(c.var.db, projectId, orgSlug);
     if (!project) return c.json({ error: "Not found" }, 404);
     const result = await c.var.db.select().from(layouts).where(eq(layouts.projectId, projectId));

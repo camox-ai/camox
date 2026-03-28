@@ -46,15 +46,15 @@ const app = new Hono<AppEnv>()
   .use("/blocks/*", requireOrg)
   .use("/layouts/*", requireOrg)
   .use("/files/*", requireOrg)
-  .use("/repeatable-items/*", requireOrg)
-  .use("/block-definitions/*", requireOrg)
+  .use("/repeatableItems/*", requireOrg)
+  .use("/blockDefinitions/*", requireOrg)
   .route("/projects", projectRoutes)
   .route("/pages", pageRoutes)
   .route("/blocks", blockRoutes)
   .route("/layouts", layoutRoutes)
   .route("/files", fileRoutes)
-  .route("/repeatable-items", repeatableItemRoutes)
-  .route("/block-definitions", blockDefinitionRoutes);
+  .route("/repeatableItems", repeatableItemRoutes)
+  .route("/blockDefinitions", blockDefinitionRoutes);
 
 export type AppType = typeof app;
 export default app;

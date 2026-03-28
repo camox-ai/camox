@@ -59,10 +59,9 @@ const syncSchema = z.object({
 });
 
 export const blockDefinitionRoutes = new Hono<AppEnv>()
-  .get("/", async (c) => {
+  .get("/list", zValidator("query", z.object({ projectId: z.coerce.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const projectId = Number(c.req.query("projectId"));
-    if (!projectId) return c.json({ error: "projectId required" }, 400);
+    const { projectId } = c.req.valid("query");
     const project = await getAuthorizedProject(c.var.db, projectId, orgSlug);
     if (!project) return c.json({ error: "Not found" }, 404);
     const result = await c.var.db
@@ -125,7 +124,7 @@ export const blockDefinitionRoutes = new Hono<AppEnv>()
 
     return c.json(results);
   })
-  .put("/", zValidator("json", definitionSchema), async (c) => {
+  .post("/upsert", zValidator("json", definitionSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const body = c.req.valid("json");
     const project = await getAuthorizedProject(c.var.db, body.projectId, orgSlug);
@@ -173,17 +172,22 @@ export const blockDefinitionRoutes = new Hono<AppEnv>()
       .get();
     return c.json(result, 201);
   })
-  .delete("/:projectId{[0-9]+}/:blockId", async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const projectId = Number(c.req.param("projectId"));
-    const project = await getAuthorizedProject(c.var.db, projectId, orgSlug);
-    if (!project) return c.json({ error: "Not found" }, 404);
-    const blockId = c.req.param("blockId");
-    const result = await c.var.db
-      .delete(blockDefinitions)
-      .where(and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, blockId)))
-      .returning()
-      .get();
-    if (!result) return c.json({ error: "Not found" }, 404);
-    return c.json(result);
-  });
+  .post(
+    "/delete",
+    zValidator("json", z.object({ projectId: z.number(), blockId: z.string() })),
+    async (c) => {
+      const orgSlug = c.var.orgSlug!;
+      const { projectId, blockId } = c.req.valid("json");
+      const project = await getAuthorizedProject(c.var.db, projectId, orgSlug);
+      if (!project) return c.json({ error: "Not found" }, 404);
+      const result = await c.var.db
+        .delete(blockDefinitions)
+        .where(
+          and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, blockId)),
+        )
+        .returning()
+        .get();
+      if (!result) return c.json({ error: "Not found" }, 404);
+      return c.json(result);
+    },
+  );

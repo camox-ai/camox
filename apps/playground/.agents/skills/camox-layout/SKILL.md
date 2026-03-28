@@ -3,8 +3,10 @@ This file is managed by the Camox Vite plugin.
 Any manual edits will be automatically reverted by the dev server. -->
 
 ---
+
 name: camox-layout
 description: "How to create and edit Camox layout definition files. Use this skill whenever the user wants to create a new layout for their Camox website, modify an existing layout, wrap pages in shared structure (navbar + footer), customize meta titles or OG images, or asks about the layout definition API. Trigger on mentions of layouts, page wrappers, page templates, shared page structure, navbar/footer placement, or any request to define how pages are structured — even if they don't say 'layout' explicitly."
+
 ---
 
 # Creating Camox Layout Definitions

@@ -45,7 +45,7 @@ const updateProjectSchema = z.object({
 });
 
 export const projectRoutes = new Hono<AppEnv>()
-  .get("/", async (c) => {
+  .get("/list", async (c) => {
     const orgSlug = c.var.orgSlug!;
     const result = await c.var.db
       .select()
@@ -53,7 +53,7 @@ export const projectRoutes = new Hono<AppEnv>()
       .where(eq(projects.organizationSlug, orgSlug));
     return c.json(result);
   })
-  .get("/first", async (c) => {
+  .get("/getFirst", async (c) => {
     const orgSlug = c.var.orgSlug!;
     const result = await c.var.db
       .select()
@@ -64,19 +64,21 @@ export const projectRoutes = new Hono<AppEnv>()
     if (!result) return c.json({ error: "Not found" }, 404);
     return c.json(result);
   })
-  .get("/by-slug/:slug", async (c) => {
+  .get("/getBySlug", zValidator("query", z.object({ slug: z.string() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const result = await getAuthorizedProjectBySlug(c.var.db, c.req.param("slug"), orgSlug);
+    const { slug } = c.req.valid("query");
+    const result = await getAuthorizedProjectBySlug(c.var.db, slug, orgSlug);
     if (!result) return c.json({ error: "Not found" }, 404);
     return c.json(result);
   })
-  .get("/:id{[0-9]+}", async (c) => {
+  .get("/get", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const result = await getAuthorizedProject(c.var.db, Number(c.req.param("id")), orgSlug);
+    const { id } = c.req.valid("query");
+    const result = await getAuthorizedProject(c.var.db, id, orgSlug);
     if (!result) return c.json({ error: "Not found" }, 404);
     return c.json(result);
   })
-  .post("/", zValidator("json", createProjectSchema), async (c) => {
+  .post("/create", zValidator("json", createProjectSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const body = c.req.valid("json");
     if (body.organizationSlug !== orgSlug) {
@@ -90,23 +92,26 @@ export const projectRoutes = new Hono<AppEnv>()
       .get();
     return c.json(result, 201);
   })
-  .patch("/:id{[0-9]+}", zValidator("json", updateProjectSchema), async (c) => {
+  .post(
+    "/update",
+    zValidator("json", updateProjectSchema.extend({ id: z.number() })),
+    async (c) => {
+      const orgSlug = c.var.orgSlug!;
+      const { id, ...body } = c.req.valid("json");
+      const project = await getAuthorizedProject(c.var.db, id, orgSlug);
+      if (!project) return c.json({ error: "Not found" }, 404);
+      const result = await c.var.db
+        .update(projects)
+        .set({ ...body, updatedAt: Date.now() })
+        .where(eq(projects.id, id))
+        .returning()
+        .get();
+      return c.json(result);
+    },
+  )
+  .post("/delete", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const id = Number(c.req.param("id"));
-    const project = await getAuthorizedProject(c.var.db, id, orgSlug);
-    if (!project) return c.json({ error: "Not found" }, 404);
-    const body = c.req.valid("json");
-    const result = await c.var.db
-      .update(projects)
-      .set({ ...body, updatedAt: Date.now() })
-      .where(eq(projects.id, id))
-      .returning()
-      .get();
-    return c.json(result);
-  })
-  .delete("/:id{[0-9]+}", async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const id = Number(c.req.param("id"));
+    const { id } = c.req.valid("json");
     const project = await getAuthorizedProject(c.var.db, id, orgSlug);
     if (!project) return c.json({ error: "Not found" }, 404);
     const result = await c.var.db.delete(projects).where(eq(projects.id, id)).returning().get();
