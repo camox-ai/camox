@@ -1,5 +1,5 @@
 {
-  "name": "api",
+  "name": "@camox/api",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
+    "better-auth": "^1.5.6",
     "drizzle-orm": "^0.45.2",
     "fractional-indexing": "^3.2.0",
     "hono": "^4.12.9",
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260317.1",
+    "@libsql/client": "^0.17.2",
     "drizzle-kit": "^0.31.10",
     "wrangler": "^4.4.0"
   }

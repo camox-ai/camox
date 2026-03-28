@@ -1,6 +1,15 @@
 import { drizzle } from "drizzle-orm/d1";
 
 import { aiJobs } from "./features/ai-jobs";
+import {
+  account,
+  invitation,
+  member,
+  organizationTable,
+  session,
+  user,
+  verification,
+} from "./features/auth";
 import { blockDefinitions } from "./features/block-definitions";
 import { blocks } from "./features/blocks";
 import { files } from "./features/files";
@@ -18,6 +27,13 @@ const schema = {
   files,
   aiJobs,
   blockDefinitions,
+  user,
+  session,
+  account,
+  verification,
+  organization: organizationTable,
+  member,
+  invitation,
 };
 
 export function createDb(d1: D1Database) {
