@@ -93,7 +93,7 @@ const commitFileSchema = z.object({
 });
 
 export const fileRoutes = new Hono<AppEnv>()
-  .get("/", async (c) => {
+  .get("/list", async (c) => {
     const orgSlug = c.var.orgSlug!;
     const result = await c.var.db
       .select({ file: files })
@@ -102,17 +102,17 @@ export const fileRoutes = new Hono<AppEnv>()
       .where(eq(projects.organizationSlug, orgSlug));
     return c.json(result.map((r) => r.file));
   })
-  .get("/:id{[0-9]+}", async (c) => {
+  .get("/get", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const id = Number(c.req.param("id"));
+    const { id } = c.req.valid("query");
     const result = await assertFileAccess(c.var.db, id, orgSlug);
     if (!result) return c.json({ error: "Not found" }, 404);
     return c.json(result.file);
   })
-  .get("/:id{[0-9]+}/usage-count", async (c) => {
+  .get("/getUsageCount", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const fileId = Number(c.req.param("id"));
-    const access = await assertFileAccess(c.var.db, fileId, orgSlug);
+    const { id } = c.req.valid("query");
+    const access = await assertFileAccess(c.var.db, id, orgSlug);
     if (!access) return c.json({ error: "Not found" }, 404);
 
     // Count blocks that reference this file's URL in their JSON content
@@ -123,7 +123,7 @@ export const fileRoutes = new Hono<AppEnv>()
       .get();
     return c.json({ count: result?.count ?? 0 });
   })
-  .post("/", zValidator("json", commitFileSchema), async (c) => {
+  .post("/commit", zValidator("json", commitFileSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { projectId, blobId, filename, contentType, size, siteUrl } = c.req.valid("json");
     const project = await getAuthorizedProject(c.var.db, projectId, orgSlug);
@@ -157,13 +157,12 @@ export const fileRoutes = new Hono<AppEnv>()
 
     return c.json(result, 201);
   })
-  .patch("/:id{[0-9]+}/alt", zValidator("json", z.object({ alt: z.string() })), async (c) => {
+  .post("/setAlt", zValidator("json", z.object({ id: z.number(), alt: z.string() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const id = Number(c.req.param("id"));
+    const { id, alt } = c.req.valid("json");
     if (!(await assertFileAccess(c.var.db, id, orgSlug))) {
       return c.json({ error: "Not found" }, 404);
     }
-    const { alt } = c.req.valid("json");
     const result = await c.var.db
       .update(files)
       .set({ alt, updatedAt: Date.now() })
@@ -172,16 +171,15 @@ export const fileRoutes = new Hono<AppEnv>()
       .get();
     return c.json(result);
   })
-  .patch(
-    "/:id{[0-9]+}/filename",
-    zValidator("json", z.object({ filename: z.string() })),
+  .post(
+    "/setFilename",
+    zValidator("json", z.object({ id: z.number(), filename: z.string() })),
     async (c) => {
       const orgSlug = c.var.orgSlug!;
-      const id = Number(c.req.param("id"));
+      const { id, filename } = c.req.valid("json");
       if (!(await assertFileAccess(c.var.db, id, orgSlug))) {
         return c.json({ error: "Not found" }, 404);
       }
-      const { filename } = c.req.valid("json");
       const result = await c.var.db
         .update(files)
         .set({ filename, updatedAt: Date.now() })
@@ -191,9 +189,9 @@ export const fileRoutes = new Hono<AppEnv>()
       return c.json(result);
     },
   )
-  .delete("/:id{[0-9]+}", async (c) => {
+  .post("/delete", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const id = Number(c.req.param("id"));
+    const { id } = c.req.valid("json");
     if (!(await assertFileAccess(c.var.db, id, orgSlug))) {
       return c.json({ error: "Not found" }, 404);
     }
@@ -201,14 +199,13 @@ export const fileRoutes = new Hono<AppEnv>()
     return c.json(result);
   })
   .post(
-    "/:id{[0-9]+}/replace",
-    zValidator("json", z.object({ newFileId: z.number() })),
+    "/replace",
+    zValidator("json", z.object({ id: z.number(), newFileId: z.number() })),
     async (c) => {
       const orgSlug = c.var.orgSlug!;
-      const oldId = Number(c.req.param("id"));
-      const { newFileId } = c.req.valid("json");
+      const { id, newFileId } = c.req.valid("json");
 
-      const oldAccess = await assertFileAccess(c.var.db, oldId, orgSlug);
+      const oldAccess = await assertFileAccess(c.var.db, id, orgSlug);
       const newAccess = await assertFileAccess(c.var.db, newFileId, orgSlug);
       if (!oldAccess || !newAccess) return c.json({ error: "Not found" }, 404);
 
@@ -220,16 +217,15 @@ export const fileRoutes = new Hono<AppEnv>()
       return c.json({ replaced: true });
     },
   )
-  .patch(
-    "/:id{[0-9]+}/ai-metadata",
-    zValidator("json", z.object({ enabled: z.boolean() })),
+  .post(
+    "/setAiMetadata",
+    zValidator("json", z.object({ id: z.number(), enabled: z.boolean() })),
     async (c) => {
       const orgSlug = c.var.orgSlug!;
-      const id = Number(c.req.param("id"));
+      const { id, enabled } = c.req.valid("json");
       if (!(await assertFileAccess(c.var.db, id, orgSlug))) {
         return c.json({ error: "Not found" }, 404);
       }
-      const { enabled } = c.req.valid("json");
       const result = await c.var.db
         .update(files)
         .set({ aiMetadataEnabled: enabled, updatedAt: Date.now() })
@@ -239,9 +235,9 @@ export const fileRoutes = new Hono<AppEnv>()
       return c.json(result);
     },
   )
-  .post("/:id{[0-9]+}/generate-metadata", async (c) => {
+  .post("/generateMetadata", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const id = Number(c.req.param("id"));
+    const { id } = c.req.valid("json");
     if (!(await assertFileAccess(c.var.db, id, orgSlug))) {
       return c.json({ error: "Not found" }, 404);
     }

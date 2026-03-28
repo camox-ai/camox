@@ -147,7 +147,7 @@ const createItemSchema = z.object({
 });
 
 export const repeatableItemRoutes = new Hono<AppEnv>()
-  .post("/", zValidator("json", createItemSchema), async (c) => {
+  .post("/create", zValidator("json", createItemSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { blockId, fieldName, content, afterPosition } = c.req.valid("json");
     if (!(await assertBlockAccess(c.var.db, blockId, orgSlug))) {
@@ -178,16 +178,15 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
 
     return c.json(result, 201);
   })
-  .patch(
-    "/:id{[0-9]+}/content",
-    zValidator("json", z.object({ content: z.unknown() })),
+  .post(
+    "/updateContent",
+    zValidator("json", z.object({ id: z.number(), content: z.unknown() })),
     async (c) => {
       const orgSlug = c.var.orgSlug!;
-      const id = Number(c.req.param("id"));
+      const { id, content } = c.req.valid("json");
       if (!(await assertRepeatableItemAccess(c.var.db, id, orgSlug))) {
         return c.json({ error: "Not found" }, 404);
       }
-      const { content } = c.req.valid("json");
       const result = await c.var.db
         .update(repeatableItems)
         .set({ content, updatedAt: Date.now() })
@@ -205,22 +204,22 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
       return c.json(result);
     },
   )
-  .patch(
-    "/:id{[0-9]+}/position",
+  .post(
+    "/updatePosition",
     zValidator(
       "json",
       z.object({
+        id: z.number(),
         afterPosition: z.string().nullable().optional(),
         beforePosition: z.string().nullable().optional(),
       }),
     ),
     async (c) => {
       const orgSlug = c.var.orgSlug!;
-      const id = Number(c.req.param("id"));
+      const { id, afterPosition, beforePosition } = c.req.valid("json");
       if (!(await assertRepeatableItemAccess(c.var.db, id, orgSlug))) {
         return c.json({ error: "Not found" }, 404);
       }
-      const { afterPosition, beforePosition } = c.req.valid("json");
       const position = generateKeyBetween(afterPosition ?? null, beforePosition ?? null);
       const result = await c.var.db
         .update(repeatableItems)
@@ -231,9 +230,9 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
       return c.json(result);
     },
   )
-  .post("/:id{[0-9]+}/duplicate", async (c) => {
+  .post("/duplicate", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const id = Number(c.req.param("id"));
+    const { id } = c.req.valid("json");
     const access = await assertRepeatableItemAccess(c.var.db, id, orgSlug);
     if (!access) return c.json({ error: "Not found" }, 404);
     const original = access.item;
@@ -255,9 +254,9 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
       .get();
     return c.json(result, 201);
   })
-  .post("/:id{[0-9]+}/generate-summary", async (c) => {
+  .post("/generateSummary", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const id = Number(c.req.param("id"));
+    const { id } = c.req.valid("json");
     if (!(await assertRepeatableItemAccess(c.var.db, id, orgSlug))) {
       return c.json({ error: "Not found" }, 404);
     }
@@ -277,9 +276,9 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
       .get();
     return c.json(updated);
   })
-  .delete("/:id{[0-9]+}", async (c) => {
+  .post("/delete", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const id = Number(c.req.param("id"));
+    const { id } = c.req.valid("json");
     if (!(await assertRepeatableItemAccess(c.var.db, id, orgSlug))) {
       return c.json({ error: "Not found" }, 404);
     }
