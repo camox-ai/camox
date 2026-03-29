@@ -11,16 +11,15 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@camox/ui/dropdown-menu";
-import { useConvexAuth } from "convex/react";
 import { LogOut, Monitor, Moon, Settings, Sun, User } from "lucide-react";
 import { useContext } from "react";
 
-import { AuthContext } from "@/lib/auth";
+import { AuthContext, useAuthState } from "@/lib/auth";
 
 import { useTheme } from "../useTheme";
 
 export const UserButton = () => {
-  const { isAuthenticated, isLoading } = useConvexAuth();
+  const { isAuthenticated, isLoading } = useAuthState();
   const { setTheme } = useTheme();
 
   if (!isAuthenticated || isLoading) {

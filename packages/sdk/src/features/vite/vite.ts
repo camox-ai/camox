@@ -16,6 +16,8 @@ import {
   startConvexDev,
   stopConvexDev,
 } from "./convexSync";
+
+const LOCAL_API_URL = "http://localhost:8787";
 import { syncDefinitions, type DefinitionsSyncOptions } from "./definitionsSync";
 import { generateRouteFiles, watchRouteFiles } from "./routeGeneration";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
@@ -34,6 +36,8 @@ export interface CamoxPluginOptions {
   definitionsSync?: DefinitionsSyncOptions;
   /** URL of the Camox management web app, used for authentication redirects */
   managementUrl?: string;
+  /** URL of the Camox API backend, used for authentication and data fetching */
+  apiUrl?: string;
   /** Disable PostHog analytics collection (default: false) */
   disableAnalytics?: boolean;
 }
@@ -41,6 +45,7 @@ export interface CamoxPluginOptions {
 export function camox(options: CamoxPluginOptions): Plugin {
   const convexUrl = LOCAL_CONVEX_URL;
   const managementUrl = options.managementUrl ?? DEFAULT_MANAGEMENT_URL;
+  const apiUrl = options.apiUrl ?? LOCAL_API_URL;
   let isBuild = false;
 
   return {
@@ -74,7 +79,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
     configResolved(config) {
       const routesDir = resolve(config.root, "src/routes");
       generateAppFile(config.root);
-      generateRouteFiles(routesDir, convexUrl, managementUrl);
+      generateRouteFiles(routesDir, convexUrl, managementUrl, apiUrl);
       generateSkillFiles(config.root);
 
       const message =
@@ -87,7 +92,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
     configureServer(server: ViteDevServer) {
       const routesDir = resolve(server.config.root, "src/routes");
       watchAppFile(server, server.config.root);
-      watchRouteFiles(server, routesDir, convexUrl, managementUrl);
+      watchRouteFiles(server, routesDir, convexUrl, managementUrl, apiUrl);
       watchSkillFiles(server, server.config.root);
 
       if (!options.disableBlockBoilerplateGeneration) {

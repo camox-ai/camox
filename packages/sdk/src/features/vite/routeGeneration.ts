@@ -12,14 +12,21 @@ const HEADER = `/* =============================================================
  * Any manual edits will be automatically reverted by the dev server.
  * ============================================================================ */
 
+/* eslint-disable */
+
+// @ts-nocheck
+
 `;
 
-function generateCamoxLayout(convexUrl: string, managementUrl: string): string {
+function generateCamoxLayout(convexUrl: string, managementUrl: string, apiUrl: string): string {
   return (
     HEADER +
-    `import { Outlet, createFileRoute } from "@tanstack/react-router";
+    `import { QueryClient } from "@tanstack/react-query";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { CamoxProvider } from "camox/CamoxProvider";
 import { camoxApp } from "@/camox/app";
+
+const queryClient = new QueryClient();
 
 export const Route = createFileRoute("/_camox")({
   component: CamoxPathlessLayout,
@@ -27,7 +34,7 @@ export const Route = createFileRoute("/_camox")({
 
 function CamoxPathlessLayout() {
   return (
-    <CamoxProvider camoxApp={camoxApp} convexUrl="${convexUrl}" managementUrl="${managementUrl}">
+    <CamoxProvider camoxApp={camoxApp} convexUrl="${convexUrl}" managementUrl="${managementUrl}" apiUrl="${apiUrl}" queryClient={queryClient}>
       <Outlet />
     </CamoxProvider>
   );
@@ -165,12 +172,17 @@ function RouteComponent() {
   );
 }
 
-function getRouteFileEntries(routesDir: string, convexUrl: string, managementUrl: string) {
+function getRouteFileEntries(
+  routesDir: string,
+  convexUrl: string,
+  managementUrl: string,
+  apiUrl: string,
+) {
   const camoxDir = resolve(routesDir, "_camox");
   return [
     {
       path: resolve(routesDir, "_camox.tsx"),
-      content: generateCamoxLayout(convexUrl, managementUrl),
+      content: generateCamoxLayout(convexUrl, managementUrl, apiUrl),
     },
     { path: resolve(camoxDir, "$.tsx"), content: generatePageRoute(convexUrl) },
     { path: resolve(camoxDir, "og.tsx"), content: generateOgRoute() },
@@ -181,11 +193,16 @@ function getRouteFileEntries(routesDir: string, convexUrl: string, managementUrl
   ];
 }
 
-export function generateRouteFiles(routesDir: string, convexUrl: string, managementUrl: string) {
+export function generateRouteFiles(
+  routesDir: string,
+  convexUrl: string,
+  managementUrl: string,
+  apiUrl: string,
+) {
   const camoxDir = resolve(routesDir, "_camox");
   mkdirSync(camoxDir, { recursive: true });
 
-  for (const entry of getRouteFileEntries(routesDir, convexUrl, managementUrl)) {
+  for (const entry of getRouteFileEntries(routesDir, convexUrl, managementUrl, apiUrl)) {
     writeIfChanged(entry.path, entry.content);
   }
 }
@@ -195,8 +212,9 @@ export function watchRouteFiles(
   routesDir: string,
   convexUrl: string,
   managementUrl: string,
+  apiUrl: string,
 ) {
-  const entries = getRouteFileEntries(routesDir, convexUrl, managementUrl);
+  const entries = getRouteFileEntries(routesDir, convexUrl, managementUrl, apiUrl);
   const expectedByPath = new Map(entries.map((e) => [e.path, e.content]));
 
   server.watcher.on("change", (changedPath) => {

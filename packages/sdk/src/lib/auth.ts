@@ -1,7 +1,6 @@
-import { convexClient, crossDomainClient } from "@convex-dev/better-auth/client/plugins";
+import { crossDomainClient } from "@convex-dev/better-auth/client/plugins";
 import { oneTimeTokenClient, organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
-import { useConvexAuth } from "convex/react";
 import * as React from "react";
 
 import { actionsStore } from "@/features/provider/actionsStore";
@@ -12,17 +11,16 @@ import { actionsStore } from "@/features/provider/actionsStore";
 
 export type CamoxAuthClient = ReturnType<typeof createCamoxAuthClient>;
 
-export function createCamoxAuthClient(managementUrl: string) {
+export function createCamoxAuthClient(apiUrl: string) {
   return createAuthClient({
-    baseURL: `${managementUrl}/api/auth`,
-    plugins: [convexClient(), crossDomainClient(), organizationClient(), oneTimeTokenClient()],
+    baseURL: apiUrl,
+    plugins: [crossDomainClient(), organizationClient(), oneTimeTokenClient()],
   });
 }
 
 /**
- * Process a `?ott=` one-time token from the URL before the ConvexBetterAuthProvider
- * mounts. Uses the standard `/one-time-token/verify` endpoint, then strips the
- * param so the provider doesn't attempt its own (cross-domain) verify.
+ * Process a `?ott=` one-time token from the URL before the provider mounts.
+ * Verifies the token against the API backend and notifies the session store.
  *
  * Returns `true` once processing is complete (or if there was no OTT).
  */
@@ -42,23 +40,16 @@ export function useProcessOtt(authClient: CamoxAuthClient) {
       return;
     }
 
-    // Strip ?ott= immediately so the provider never sees it
+    // Strip ?ott= immediately so it's not processed again
     url.searchParams.delete("ott");
     window.history.replaceState({}, "", url);
 
     (async () => {
       try {
-        const result = await (authClient as any).oneTimeToken.verify({ token: ott });
-        const session = result?.data?.session;
-        if (session) {
-          // Refresh session state so crossDomainClient stores the cookie
-          await (authClient as any).getSession({
-            fetchOptions: {
-              headers: { Authorization: `Bearer ${session.token}` },
-            },
-          });
-          (authClient as any).updateSession?.();
-        }
+        await (authClient as any).oneTimeToken.verify({ token: ott });
+        // crossDomainClient's fetch plugin handles storing the session cookie
+        // in localStorage automatically. Just notify the session store.
+        (authClient as any).updateSession?.();
       } catch {
         // OTT verification failed — continue unauthenticated
       }
@@ -76,6 +67,7 @@ export function useProcessOtt(authClient: CamoxAuthClient) {
 interface AuthContextValue {
   authClient: CamoxAuthClient;
   managementUrl: string;
+  apiUrl: string;
 }
 
 export const AuthContext = React.createContext<AuthContextValue | null>(null);
@@ -90,26 +82,28 @@ function useAuthContext() {
  * Hooks
  * -----------------------------------------------------------------------------------------------*/
 
+export function useAuthState() {
+  const { authClient } = useAuthContext();
+  const { data: session, isPending } = (authClient as any).useSession();
+  return {
+    isAuthenticated: !!session,
+    isLoading: isPending,
+  };
+}
+
 export function useIsAuthenticated() {
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated } = useAuthState();
   return isAuthenticated;
 }
 
 /**
- * Returns a function that fetches a fresh Convex JWT from the management backend.
- * Use this for Authorization headers on file upload requests.
+ * Stub — previously returned a Convex JWT for file uploads.
+ * Returns null until file uploads are migrated to the new backend.
  */
 export function useConvexToken() {
-  const { authClient } = useAuthContext();
-  const { isAuthenticated } = useConvexAuth();
-
   return React.useCallback(async () => {
-    if (!isAuthenticated) return null;
-    const { data } = await (authClient as any).convex.token({
-      fetchOptions: { throw: false },
-    });
-    return (data?.token as string) ?? null;
-  }, [authClient, isAuthenticated]);
+    return null;
+  }, []);
 }
 
 export function useSignInRedirect() {

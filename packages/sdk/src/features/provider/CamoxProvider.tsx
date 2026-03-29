@@ -1,6 +1,6 @@
 import { Toaster } from "@camox/ui/toaster";
-import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
-import { ConvexReactClient } from "convex/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 import * as React from "react";
 import studioCssUrl from "virtual:camox-studio-css";
 
@@ -75,6 +75,8 @@ interface CamoxProviderProps {
   camoxApp: CamoxApp;
   convexUrl: string;
   managementUrl: string;
+  apiUrl: string;
+  queryClient: QueryClient;
 }
 
 export function CamoxProvider({
@@ -82,32 +84,35 @@ export function CamoxProvider({
   camoxApp,
   convexUrl,
   managementUrl,
+  apiUrl,
+  queryClient,
 }: CamoxProviderProps) {
   const convexReactClient = React.useMemo(() => new ConvexReactClient(convexUrl), [convexUrl]);
-  const authClient = React.useMemo(() => createCamoxAuthClient(managementUrl), [managementUrl]);
+  const authClient = React.useMemo(() => createCamoxAuthClient(apiUrl), [apiUrl]);
 
-  // Verify ?ott= one-time token before the provider mounts, so it doesn't
-  // attempt its own cross-domain verify (which needs a Convex-specific endpoint).
+  // Verify ?ott= one-time token before the provider tree renders
   const ottReady = useProcessOtt(authClient);
   if (!ottReady) return null;
 
   return (
-    <AuthContext.Provider value={{ authClient, managementUrl }}>
-      <ConvexBetterAuthProvider client={convexReactClient} authClient={authClient}>
+    <AuthContext.Provider value={{ authClient, managementUrl, apiUrl }}>
+      <ConvexProvider client={convexReactClient}>
         <CamoxAppProvider app={camoxApp}>
-          <AuthGate
-            authenticated={
-              <>
-                <link rel="stylesheet" href={studioCssUrl} />
-                <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
-              </>
-            }
-            unauthenticated={
-              <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>
-            }
-          />
+          <QueryClientProvider client={queryClient}>
+            <AuthGate
+              authenticated={
+                <>
+                  <link rel="stylesheet" href={studioCssUrl} />
+                  <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
+                </>
+              }
+              unauthenticated={
+                <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>
+              }
+            />
+          </QueryClientProvider>
         </CamoxAppProvider>
-      </ConvexBetterAuthProvider>
+      </ConvexProvider>
     </AuthContext.Provider>
   );
 }

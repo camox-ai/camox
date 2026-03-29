@@ -9,7 +9,7 @@ export type Bindings = {
   GITHUB_CLIENT_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
-  TRUSTED_ORIGINS: string;
+  SITE_URL: string;
   OPEN_ROUTER_API_KEY: string;
   AI_JOB_SCHEDULER: DurableObjectNamespace;
 };
