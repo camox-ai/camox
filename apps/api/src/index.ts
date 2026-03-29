@@ -21,14 +21,14 @@ const app = new Hono<AppEnv>()
     c.set("db", createDb(c.env.DB));
     await next();
   })
-  // CORS for all routes
+  // CORS for all routes — accepts any origin (Camox sites run on arbitrary domains)
   .use(
     "*",
     cors({
       origin: (origin) => origin,
-      allowHeaders: ["Content-Type", "Authorization"],
+      allowHeaders: ["Content-Type", "Authorization", "Better-Auth-Cookie"],
       allowMethods: ["POST", "GET", "OPTIONS"],
-      exposeHeaders: ["Content-Length"],
+      exposeHeaders: ["Content-Length", "Set-Better-Auth-Cookie"],
       maxAge: 600,
       credentials: true,
     }),

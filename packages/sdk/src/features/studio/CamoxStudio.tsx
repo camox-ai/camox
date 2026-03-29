@@ -1,8 +1,7 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { useConvexAuth } from "convex/react";
 import * as React from "react";
 
-import { useSignInRedirect } from "@/lib/auth";
+import { useIsAuthenticated, useSignInRedirect } from "@/lib/auth";
 
 import { Navbar } from "./components/Navbar";
 
@@ -11,7 +10,7 @@ interface CamoxStudioProps {
 }
 
 const CamoxStudio = ({ children }: CamoxStudioProps) => {
-  const { isAuthenticated } = useConvexAuth();
+  const isAuthenticated = useIsAuthenticated();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const signInRedirect = useSignInRedirect();

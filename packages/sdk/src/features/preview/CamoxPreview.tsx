@@ -2,10 +2,10 @@ import { PanelContent, PanelHeader } from "@camox/ui/panel";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import { api } from "camox/server/api";
-import { useConvexAuth } from "convex/react";
 import { useQuery } from "convex/react";
 import * as React from "react";
 
+import { useIsAuthenticated } from "@/lib/auth";
 import { formatPathSegment } from "@/lib/utils";
 
 import { type Action, actionsStore } from "../provider/actionsStore";
@@ -50,7 +50,7 @@ export function usePreviewedPage() {
    * Only live update the page data if the user is signed in (i.e. an admin)
    * to avoid unnecessary load on the backend and layout shifts for regular visitors.
    */
-  const { isAuthenticated } = useConvexAuth();
+  const isAuthenticated = useIsAuthenticated();
   const currentPage = useQuery(
     api.pages.getPage,
     isAuthenticated
@@ -212,7 +212,7 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
  * -----------------------------------------------------------------------------------------------*/
 
 export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useConvexAuth();
+  const isAuthenticated = useIsAuthenticated();
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
   const isSidebarOpen = useSelector(previewStore, (state) => state.context.isSidebarOpen);
 

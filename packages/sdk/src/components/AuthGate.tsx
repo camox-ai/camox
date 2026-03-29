@@ -1,4 +1,4 @@
-import { useConvexAuth } from "convex/react";
+import { useAuthState } from "@/lib/auth";
 
 interface AuthGateProps {
   authenticated: React.ReactNode;
@@ -6,7 +6,7 @@ interface AuthGateProps {
 }
 
 export function AuthGate({ authenticated, unauthenticated }: AuthGateProps) {
-  const { isAuthenticated, isLoading } = useConvexAuth();
+  const { isAuthenticated, isLoading } = useAuthState();
 
   if (isLoading) return null;
   return isAuthenticated ? authenticated : unauthenticated;

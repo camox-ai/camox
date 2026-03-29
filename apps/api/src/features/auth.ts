@@ -1,3 +1,4 @@
+import { crossDomain } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { oneTimeToken, organization } from "better-auth/plugins";
@@ -131,8 +132,9 @@ export function createAuth(db: Database, env: Bindings) {
         clientSecret: env.GOOGLE_CLIENT_SECRET,
       },
     },
-    plugins: [organization(), oneTimeToken()],
-    trustedOrigins: env.TRUSTED_ORIGINS ? env.TRUSTED_ORIGINS.split(",") : [],
+    // Accept requests from any origin — Camox sites run on arbitrary customer domains
+    trustedOrigins: ["*"],
+    plugins: [organization(), crossDomain({ siteUrl: env.SITE_URL }), oneTimeToken()],
   });
 }
 
