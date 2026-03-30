@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import { getAuthorizedProject } from "../authorization";
+import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import type { AppEnv } from "../types";
 import { projects } from "./projects";
 
@@ -95,6 +96,11 @@ export const layoutRoutes = new Hono<AppEnv>()
       }
       // TODO: sync layout blocks when block creation is wired up
     }
+
+    broadcastInvalidation(c.env.ProjectRoom, projectId, {
+      entity: "layout",
+      action: "updated",
+    });
 
     return c.json(results);
   });

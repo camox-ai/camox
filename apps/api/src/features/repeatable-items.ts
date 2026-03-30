@@ -10,6 +10,7 @@ import { z } from "zod";
 
 import { assertBlockAccess, assertRepeatableItemAccess } from "../authorization";
 import type { Database } from "../db";
+import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import type { AppEnv } from "../types";
 import { blocks } from "./blocks";
@@ -150,9 +151,9 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
   .post("/create", zValidator("json", createItemSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { blockId, fieldName, content, afterPosition } = c.req.valid("json");
-    if (!(await assertBlockAccess(c.var.db, blockId, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertBlockAccess(c.var.db, blockId, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     const now = Date.now();
     const position = generateKeyBetween(afterPosition ?? null, null);
     const result = await c.var.db
@@ -175,6 +176,12 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
       type: "summary",
       delayMs: 0,
     });
+    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+      entity: "repeatableItem",
+      action: "created",
+      entityId: result.id,
+      parentId: blockId,
+    });
 
     return c.json(result, 201);
   })
@@ -184,12 +191,17 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
     async (c) => {
       const orgSlug = c.var.orgSlug!;
       const { id, content } = c.req.valid("json");
-      if (!(await assertRepeatableItemAccess(c.var.db, id, orgSlug))) {
-        return c.json({ error: "Not found" }, 404);
-      }
+      const access = await assertRepeatableItemAccess(c.var.db, id, orgSlug);
+      if (!access) return c.json({ error: "Not found" }, 404);
+
+      // Merge partial content into existing content (frontend sends single-field patches)
+      const merged = {
+        ...(access.item.content as Record<string, unknown>),
+        ...(content as Record<string, unknown>),
+      };
       const result = await c.var.db
         .update(repeatableItems)
-        .set({ content, updatedAt: Date.now() })
+        .set({ content: merged, updatedAt: Date.now() })
         .where(eq(repeatableItems.id, id))
         .returning()
         .get();
@@ -199,6 +211,12 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
         entityId: id,
         type: "summary",
         delayMs: 5000,
+      });
+      broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+        entity: "repeatableItem",
+        action: "updated",
+        entityId: id,
+        parentId: access.item.blockId,
       });
 
       return c.json(result);
@@ -217,9 +235,9 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
     async (c) => {
       const orgSlug = c.var.orgSlug!;
       const { id, afterPosition, beforePosition } = c.req.valid("json");
-      if (!(await assertRepeatableItemAccess(c.var.db, id, orgSlug))) {
-        return c.json({ error: "Not found" }, 404);
-      }
+      const access = await assertRepeatableItemAccess(c.var.db, id, orgSlug);
+      if (!access) return c.json({ error: "Not found" }, 404);
+
       const position = generateKeyBetween(afterPosition ?? null, beforePosition ?? null);
       const result = await c.var.db
         .update(repeatableItems)
@@ -227,6 +245,12 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
         .where(eq(repeatableItems.id, id))
         .returning()
         .get();
+      broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+        entity: "repeatableItem",
+        action: "updated",
+        entityId: id,
+        parentId: access.item.blockId,
+      });
       return c.json(result);
     },
   )
@@ -252,14 +276,20 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
       })
       .returning()
       .get();
+    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+      entity: "repeatableItem",
+      action: "created",
+      entityId: result.id,
+      parentId: original.blockId,
+    });
     return c.json(result, 201);
   })
   .post("/generateSummary", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { id } = c.req.valid("json");
-    if (!(await assertRepeatableItemAccess(c.var.db, id, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertRepeatableItemAccess(c.var.db, id, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     const cascade = await executeRepeatableItemSummary(c.var.db, c.env.OPEN_ROUTER_API_KEY, id);
     if (cascade) {
       scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
@@ -269,6 +299,12 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
         delayMs: 5000,
       });
     }
+    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+      entity: "repeatableItem",
+      action: "updated",
+      entityId: id,
+      parentId: access.item.blockId,
+    });
     const updated = await c.var.db
       .select()
       .from(repeatableItems)
@@ -279,13 +315,19 @@ export const repeatableItemRoutes = new Hono<AppEnv>()
   .post("/delete", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { id } = c.req.valid("json");
-    if (!(await assertRepeatableItemAccess(c.var.db, id, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertRepeatableItemAccess(c.var.db, id, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     const result = await c.var.db
       .delete(repeatableItems)
       .where(eq(repeatableItems.id, id))
       .returning()
       .get();
+    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+      entity: "repeatableItem",
+      action: "deleted",
+      entityId: id,
+      parentId: access.item.blockId,
+    });
     return c.json(result);
   });

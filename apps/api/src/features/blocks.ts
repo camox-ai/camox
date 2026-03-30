@@ -10,6 +10,7 @@ import { z } from "zod";
 
 import { assertBlockAccess, assertPageAccess } from "../authorization";
 import type { Database } from "../db";
+import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { contentToMarkdown } from "../lib/content-markdown";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import type { AppEnv } from "../types";
@@ -344,9 +345,9 @@ export const blockRoutes = new Hono<AppEnv>()
   .post("/create", zValidator("json", createBlockSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { pageId, type, content, settings, afterPosition } = c.req.valid("json");
-    if (!(await assertPageAccess(c.var.db, pageId, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertPageAccess(c.var.db, pageId, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     const now = Date.now();
     const position = generateKeyBetween(afterPosition ?? null, null);
     const result = await c.var.db
@@ -370,6 +371,12 @@ export const blockRoutes = new Hono<AppEnv>()
       type: "summary",
       delayMs: 0,
     });
+    broadcastInvalidation(c.env.ProjectRoom, access.page.projectId, {
+      entity: "block",
+      action: "created",
+      entityId: result.id,
+      pageId,
+    });
 
     return c.json(result, 201);
   })
@@ -379,12 +386,17 @@ export const blockRoutes = new Hono<AppEnv>()
     async (c) => {
       const orgSlug = c.var.orgSlug!;
       const { id, content } = c.req.valid("json");
-      if (!(await assertBlockAccess(c.var.db, id, orgSlug))) {
-        return c.json({ error: "Not found" }, 404);
-      }
+      const access = await assertBlockAccess(c.var.db, id, orgSlug);
+      if (!access) return c.json({ error: "Not found" }, 404);
+
+      // Merge partial content into existing content (frontend sends single-field patches)
+      const merged = {
+        ...(access.block.content as Record<string, unknown>),
+        ...(content as Record<string, unknown>),
+      };
       const result = await c.var.db
         .update(blocks)
-        .set({ content, updatedAt: Date.now() })
+        .set({ content: merged, updatedAt: Date.now() })
         .where(eq(blocks.id, id))
         .returning()
         .get();
@@ -394,6 +406,12 @@ export const blockRoutes = new Hono<AppEnv>()
         entityId: id,
         type: "summary",
         delayMs: 5000,
+      });
+      broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+        entity: "block",
+        action: "updated",
+        entityId: id,
+        pageId: access.block.pageId ?? undefined,
       });
 
       return c.json(result);
@@ -405,15 +423,21 @@ export const blockRoutes = new Hono<AppEnv>()
     async (c) => {
       const orgSlug = c.var.orgSlug!;
       const { id, settings } = c.req.valid("json");
-      if (!(await assertBlockAccess(c.var.db, id, orgSlug))) {
-        return c.json({ error: "Not found" }, 404);
-      }
+      const access = await assertBlockAccess(c.var.db, id, orgSlug);
+      if (!access) return c.json({ error: "Not found" }, 404);
+
       const result = await c.var.db
         .update(blocks)
         .set({ settings, updatedAt: Date.now() })
         .where(eq(blocks.id, id))
         .returning()
         .get();
+      broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+        entity: "block",
+        action: "updated",
+        entityId: id,
+        pageId: access.block.pageId ?? undefined,
+      });
       return c.json(result);
     },
   )
@@ -430,9 +454,9 @@ export const blockRoutes = new Hono<AppEnv>()
     async (c) => {
       const orgSlug = c.var.orgSlug!;
       const { id, afterPosition, beforePosition } = c.req.valid("json");
-      if (!(await assertBlockAccess(c.var.db, id, orgSlug))) {
-        return c.json({ error: "Not found" }, 404);
-      }
+      const access = await assertBlockAccess(c.var.db, id, orgSlug);
+      if (!access) return c.json({ error: "Not found" }, 404);
+
       const position = generateKeyBetween(afterPosition ?? null, beforePosition ?? null);
       const result = await c.var.db
         .update(blocks)
@@ -440,16 +464,28 @@ export const blockRoutes = new Hono<AppEnv>()
         .where(eq(blocks.id, id))
         .returning()
         .get();
+      broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+        entity: "block",
+        action: "updated",
+        entityId: id,
+        pageId: access.block.pageId ?? undefined,
+      });
       return c.json(result);
     },
   )
   .post("/delete", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { id } = c.req.valid("json");
-    if (!(await assertBlockAccess(c.var.db, id, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertBlockAccess(c.var.db, id, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     const result = await c.var.db.delete(blocks).where(eq(blocks.id, id)).returning().get();
+    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+      entity: "block",
+      action: "deleted",
+      entityId: id,
+      pageId: access.block.pageId ?? undefined,
+    });
     return c.json(result);
   })
   .post(
@@ -461,7 +497,7 @@ export const blockRoutes = new Hono<AppEnv>()
       if (blockIds.length === 0) return c.json([]);
       // Verify all blocks belong to the user's org
       const authorizedBlocks = await c.var.db
-        .select({ id: blocks.id })
+        .select({ id: blocks.id, projectId: projects.id })
         .from(blocks)
         .leftJoin(pages, eq(blocks.pageId, pages.id))
         .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
@@ -474,15 +510,22 @@ export const blockRoutes = new Hono<AppEnv>()
         return c.json({ error: "Not found" }, 404);
       }
       const result = await c.var.db.delete(blocks).where(inArray(blocks.id, blockIds)).returning();
+      const projectId = authorizedBlocks[0]?.projectId;
+      if (projectId) {
+        broadcastInvalidation(c.env.ProjectRoom, projectId, {
+          entity: "block",
+          action: "deleted",
+        });
+      }
       return c.json(result);
     },
   )
   .post("/generateSummary", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { id } = c.req.valid("json");
-    if (!(await assertBlockAccess(c.var.db, id, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertBlockAccess(c.var.db, id, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     const seoStale = await executeBlockSummary(c.var.db, c.env.OPEN_ROUTER_API_KEY, id);
     if (seoStale) {
       scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
@@ -492,6 +535,12 @@ export const blockRoutes = new Hono<AppEnv>()
         delayMs: 15000,
       });
     }
+    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+      entity: "block",
+      action: "updated",
+      entityId: id,
+      pageId: access.block.pageId ?? undefined,
+    });
     const updated = await c.var.db.select().from(blocks).where(eq(blocks.id, id)).get();
     return c.json(updated);
   })
@@ -520,5 +569,11 @@ export const blockRoutes = new Hono<AppEnv>()
       })
       .returning()
       .get();
+    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+      entity: "block",
+      action: "created",
+      entityId: result.id,
+      pageId: original.pageId ?? undefined,
+    });
     return c.json(result, 201);
   });

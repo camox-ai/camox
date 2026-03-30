@@ -1,11 +1,11 @@
 import { Toaster } from "@camox/ui/toaster";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import * as React from "react";
 import studioCssUrl from "virtual:camox-studio-css";
 
 import { AuthGate } from "@/components/AuthGate";
 import type { CamoxApp } from "@/core/createApp";
-import { ApiClientContext, createApiClient } from "@/lib/api-client";
+import { ApiClientContext, createApiClient, useApiClient } from "@/lib/api-client";
 import {
   AuthContext,
   createCamoxAuthClient,
@@ -13,6 +13,8 @@ import {
   useProcessOtt,
   useSignInRedirect,
 } from "@/lib/auth";
+import { projectQueries } from "@/lib/queries";
+import { useProjectRoom } from "@/lib/use-project-room";
 
 import { usePreviewPagesActions } from "../preview/CamoxPreview";
 import { useNavbarActions } from "../studio/components/Navbar";
@@ -33,6 +35,12 @@ const AuthenticatedCamoxProvider = ({ children }: AuthenticatedCamoxProviderProp
   useAuthActions();
   useNavbarActions();
   usePreviewPagesActions();
+
+  // Real-time invalidation via WebSocket
+  const { apiUrl } = React.useContext(AuthContext)!;
+  const apiClient = useApiClient();
+  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
+  useProjectRoom(apiUrl, project?.id);
 
   const { theme } = useTheme();
 

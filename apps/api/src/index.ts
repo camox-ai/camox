@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { partyserverMiddleware } from "hono-party";
 import { cors } from "hono/cors";
 
 import { requireOrg } from "./authorization";
@@ -56,6 +57,21 @@ app.use("*", async (c, next) => {
   c.set("session", session.session);
   await next();
 });
+
+// PartyServer — intercepts WebSocket upgrade requests for real-time invalidation
+app.use(
+  "*",
+  partyserverMiddleware<AppEnv>({
+    options: {
+      onBeforeConnect: async (req, _lobby, c) => {
+        const db = createDb(c.env.DB);
+        const auth = createAuth(db, c.env);
+        const session = await auth.api.getSession({ headers: req.headers });
+        if (!session) return new Response("Unauthorized", { status: 401 });
+      },
+    },
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // Routes (chained for Hono RPC type inference)

@@ -1,10 +1,14 @@
 import { DurableObject } from "cloudflare:workers";
+import { eq, or } from "drizzle-orm";
 
 import { createDb } from "../db";
-import { executeBlockSummary } from "../features/blocks";
-import { executeFileMetadata } from "../features/files";
-import { executePageSeo } from "../features/pages";
-import { executeRepeatableItemSummary } from "../features/repeatable-items";
+import { blocks, executeBlockSummary } from "../features/blocks";
+import { files, executeFileMetadata } from "../features/files";
+import { layouts } from "../features/layouts";
+import { pages, executePageSeo } from "../features/pages";
+import { projects } from "../features/projects";
+import { repeatableItems, executeRepeatableItemSummary } from "../features/repeatable-items";
+import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import type { Bindings } from "../types";
 
 type JobParams = {
@@ -54,6 +58,16 @@ export class AiJobScheduler extends DurableObject<Bindings> {
           delayMs: 15000,
         });
       }
+
+      // Broadcast block summary update
+      const projectId = await this.getBlockProjectId(db, entityId);
+      if (projectId) {
+        broadcastInvalidation(this.env.ProjectRoom, projectId, {
+          entity: "block",
+          action: "updated",
+          entityId,
+        });
+      }
     } else if (entityTable === "repeatableItems" && type === "summary") {
       const cascade = await executeRepeatableItemSummary(db, apiKey, entityId);
       if (cascade) {
@@ -66,10 +80,61 @@ export class AiJobScheduler extends DurableObject<Bindings> {
           delayMs: 5000,
         });
       }
+
+      // Broadcast repeatable item summary update
+      const item = await db
+        .select()
+        .from(repeatableItems)
+        .where(eq(repeatableItems.id, entityId))
+        .get();
+      if (item) {
+        const projectId = await this.getBlockProjectId(db, item.blockId);
+        if (projectId) {
+          broadcastInvalidation(this.env.ProjectRoom, projectId, {
+            entity: "repeatableItem",
+            action: "updated",
+            entityId,
+            parentId: item.blockId,
+          });
+        }
+      }
     } else if (entityTable === "files" && type === "fileMetadata") {
       await executeFileMetadata(db, apiKey, entityId);
+
+      const file = await db.select().from(files).where(eq(files.id, entityId)).get();
+      if (file?.projectId) {
+        broadcastInvalidation(this.env.ProjectRoom, file.projectId, {
+          entity: "file",
+          action: "updated",
+          entityId,
+        });
+      }
     } else if (entityTable === "pages" && type === "seo") {
       await executePageSeo(db, apiKey, entityId);
+
+      const page = await db.select().from(pages).where(eq(pages.id, entityId)).get();
+      if (page) {
+        broadcastInvalidation(this.env.ProjectRoom, page.projectId, {
+          entity: "page",
+          action: "updated",
+          entityId,
+        });
+      }
     }
+  }
+
+  private async getBlockProjectId(
+    db: ReturnType<typeof createDb>,
+    blockId: number,
+  ): Promise<number | null> {
+    const result = await db
+      .select({ projectId: projects.id })
+      .from(blocks)
+      .leftJoin(pages, eq(blocks.pageId, pages.id))
+      .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
+      .innerJoin(projects, or(eq(projects.id, pages.projectId), eq(projects.id, layouts.projectId)))
+      .where(eq(blocks.id, blockId))
+      .get();
+    return result?.projectId ?? null;
   }
 }
