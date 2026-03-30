@@ -1,12 +1,12 @@
 import { PanelContent } from "@camox/ui/panel";
-import { api } from "camox/server/api";
-import type { Id } from "camox/server/dataModel";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 
 import { AssetLightbox } from "@/features/preview/components/AssetLightbox";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
+import { useApiClient } from "@/lib/api-client";
+import { fileQueries } from "@/lib/queries";
 
 import { AssetCard } from "./components/AssetCard";
 import { AssetCardSkeleton } from "./components/AssetCardSkeleton";
@@ -15,9 +15,10 @@ import { UploadDropZone } from "./components/UploadDropZone";
 import { UploadProgressDrawer } from "./components/UploadProgressDrawer";
 
 export const CamoxContent = () => {
-  const files = useQuery(api.files.listFiles);
+  const apiClient = useApiClient();
+  const { data: files } = useQuery(fileQueries.list(apiClient));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [lightboxFileId, setLightboxFileId] = useState<Id<"files"> | null>(null);
+  const [lightboxFileId, setLightboxFileId] = useState<number | null>(null);
   const { uploads, uploadFiles, clearAll } = useFileUpload();
   const containerRef = useRef<HTMLElement | null>(null);
   const { selectionRect, didDragRef, handlers } = useMarqueeSelection(
@@ -60,21 +61,21 @@ export const CamoxContent = () => {
               <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
                 {files.map((file) => (
                   <AssetCard
-                    key={file._id}
+                    key={file.id}
                     file={file}
-                    selected={selectedIds.has(file._id)}
+                    selected={selectedIds.has(String(file.id))}
                     onSelect={() => {
                       setSelectedIds((prev) => {
                         const next = new Set(prev);
-                        if (next.has(file._id)) {
-                          next.delete(file._id);
+                        if (next.has(String(file.id))) {
+                          next.delete(String(file.id));
                         } else {
-                          next.add(file._id);
+                          next.add(String(file.id));
                         }
                         return next;
                       });
                     }}
-                    onOpen={() => setLightboxFileId(file._id)}
+                    onOpen={() => setLightboxFileId(file.id)}
                   />
                 ))}
               </div>

@@ -43,7 +43,7 @@ function CamoxPathlessLayout() {
   );
 }
 
-function generatePageRoute(convexUrl: string): string {
+function generatePageRoute(apiUrl: string): string {
   return (
     HEADER +
     `import { createFileRoute } from "@tanstack/react-router";
@@ -55,8 +55,8 @@ import {
 } from "camox/_internal/pageRoute";
 import { camoxApp } from "@/camox/app";
 
-const markdownMiddleware = createMarkdownMiddleware("${convexUrl}");
-const loader = createPageLoader("${convexUrl}");
+const markdownMiddleware = createMarkdownMiddleware("${apiUrl}");
+const loader = createPageLoader("${apiUrl}");
 const head = createPageHead(camoxApp);
 
 export const Route = createFileRoute("/_camox/$")({
@@ -184,7 +184,7 @@ function getRouteFileEntries(
       path: resolve(routesDir, "_camox.tsx"),
       content: generateCamoxLayout(convexUrl, managementUrl, apiUrl),
     },
-    { path: resolve(camoxDir, "$.tsx"), content: generatePageRoute(convexUrl) },
+    { path: resolve(camoxDir, "$.tsx"), content: generatePageRoute(apiUrl) },
     { path: resolve(camoxDir, "og.tsx"), content: generateOgRoute() },
     { path: resolve(camoxDir, "cmx.tsx"), content: generateCmxRedirect() },
     { path: resolve(camoxDir, "cmx-studio.tsx"), content: generateCmxStudio() },

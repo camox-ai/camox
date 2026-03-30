@@ -6,14 +6,17 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from "@camox/u
 import { toast } from "@camox/ui/toaster";
 import { Slot } from "@radix-ui/react-slot";
 import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
+import { useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import { api } from "camox/server/api";
 import type { Id } from "camox/server/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import * as React from "react";
 import { createPortal } from "react-dom";
 
 import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet.tsx";
+import { useApiClient } from "@/lib/api-client";
+import { pageQueries } from "@/lib/queries";
 
 import {
   OVERLAY_WIDTHS,
@@ -51,10 +54,10 @@ const normalizeLinkValue = (value: Record<string, unknown>): LinkValue => {
 /** Resolve a LinkValue to an href string */
 const resolveLinkHref = (
   link: LinkValue,
-  pages: Array<{ _id: string; fullPath: string }> | undefined,
+  pages: Array<{ id: number; fullPath: string }> | undefined,
 ): string => {
   if (link.type === "page") {
-    const page = pages?.find((p) => p._id === link.pageId);
+    const page = pages?.find((p) => String(p.id) === link.pageId);
     return page?.fullPath ?? "#";
   }
   return link.href;
@@ -735,7 +738,8 @@ export function createBlock<
       ? (repeaterContext.itemContent[name] as LinkValue)
       : (content[name] as LinkValue);
     const fieldValue = normalizeLinkValue(rawFieldValue as unknown as Record<string, unknown>);
-    const pages = useQuery(api.pages.listPages);
+    const apiClient = useApiClient();
+    const { data: pages } = useQuery(pageQueries.list(apiClient));
     const resolvedHref = resolveLinkHref(fieldValue, pages);
 
     const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));

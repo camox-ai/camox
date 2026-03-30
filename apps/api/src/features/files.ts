@@ -93,37 +93,32 @@ const commitFileSchema = z.object({
 });
 
 export const fileRoutes = new Hono<AppEnv>()
-  .use(requireOrg)
+  // Public routes (no auth required)
   .get("/list", async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const result = await c.var.db
-      .select({ file: files })
-      .from(files)
-      .innerJoin(projects, eq(projects.id, files.projectId))
-      .where(eq(projects.organizationSlug, orgSlug));
-    return c.json(result.map((r) => r.file));
+    const result = await c.var.db.select().from(files);
+    return c.json(result);
   })
   .get("/get", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
     const { id } = c.req.valid("query");
-    const result = await assertFileAccess(c.var.db, id, orgSlug);
+    const result = await c.var.db.select().from(files).where(eq(files.id, id)).get();
     if (!result) return c.json({ error: "Not found" }, 404);
-    return c.json(result.file);
+    return c.json(result);
   })
   .get("/getUsageCount", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
     const { id } = c.req.valid("query");
-    const access = await assertFileAccess(c.var.db, id, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
+    const file = await c.var.db.select().from(files).where(eq(files.id, id)).get();
+    if (!file) return c.json({ error: "Not found" }, 404);
 
     // Count blocks that reference this file's URL in their JSON content
     const result = await c.var.db
       .select({ count: sql<number>`count(*)` })
       .from(blocks)
-      .where(sql`json_extract(${blocks.content}, '$') LIKE ${"%" + access.file.url + "%"}`)
+      .where(sql`json_extract(${blocks.content}, '$') LIKE ${"%" + file.url + "%"}`)
       .get();
     return c.json({ count: result?.count ?? 0 });
   })
+  // Protected routes
+  .use(requireOrg)
   .post("/commit", zValidator("json", commitFileSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { projectId, blobId, filename, contentType, size, siteUrl } = c.req.valid("json");

@@ -196,9 +196,9 @@ const PageContentSheet = () => {
   // Look up the actual block document from page data
   const page = usePreviewedPage();
   const block = blockId
-    ? (page?.blocks.find((b) => b._id === blockId) ??
-      page?.layout?.beforeBlocks?.find((b) => b._id === blockId) ??
-      page?.layout?.afterBlocks?.find((b) => b._id === blockId) ??
+    ? (page?.blocks.find((b) => String(b.id) === blockId) ??
+      page?.layout?.beforeBlocks?.find((b) => String(b.id) === blockId) ??
+      page?.layout?.afterBlocks?.find((b) => String(b.id) === blockId) ??
       null)
     : null;
 
@@ -363,7 +363,7 @@ const PageContentSheet = () => {
     (fieldName: string, value: unknown) => {
       if (!block) return;
       updateBlockContent({
-        blockId: block._id,
+        blockId: block.id,
         content: { [fieldName]: value },
       });
     },
@@ -421,15 +421,15 @@ const PageContentSheet = () => {
     if (open) return;
     if (block && selectedFieldName) {
       const fieldId = currentItemId
-        ? `${block._id}__${currentItemId}__${selectedFieldName}`
-        : `${block._id}__${selectedFieldName}`;
+        ? `${String(block.id)}__${currentItemId}__${selectedFieldName}`
+        : `${String(block.id)}__${selectedFieldName}`;
       postToIframe({ type: "CAMOX_FOCUS_FIELD_END", fieldId });
     }
     // Clear any lingering hover/focus overlays for the current item
     if (block && currentItemId) {
       postToIframe({
         type: "CAMOX_HOVER_REPEATER_ITEM_END",
-        blockId: block._id,
+        blockId: String(block.id),
         itemId: currentItemId,
       });
     }
@@ -612,7 +612,7 @@ const PageContentSheet = () => {
             fieldName={assetFieldName}
             assetType={assetType}
             currentData={currentData}
-            blockId={block._id}
+            blockId={String(block.id)}
           />
         )}
         {isViewingAsset && assetFieldName && !isMultipleAsset && (
@@ -646,7 +646,7 @@ const PageContentSheet = () => {
           <ItemFieldsEditor
             schema={currentSchema}
             data={currentData}
-            blockId={block._id}
+            blockId={String(block.id)}
             itemId={currentItemId}
             parentItemId={currentDepthResult?.parentItemId}
             parentFieldName={currentDepthResult?.parentFieldName}
@@ -674,7 +674,7 @@ const PageContentSheet = () => {
                       value={value}
                       onValueChange={(newValue) => {
                         updateBlockSettings({
-                          blockId: block._id,
+                          blockId: block.id,
                           settings: { [field.name]: newValue },
                         });
                       }}
@@ -708,7 +708,7 @@ const PageContentSheet = () => {
                       checked={checked}
                       onCheckedChange={(newValue) => {
                         updateBlockSettings({
-                          blockId: block._id,
+                          blockId: block.id,
                           settings: { [field.name]: newValue },
                         });
                       }}

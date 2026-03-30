@@ -107,7 +107,7 @@ const fieldTypesDictionary = {
     isScalar: false,
     isContentEditable: false,
     getIcon: () => (props: LucideProps) => <Link2Icon {...props} />,
-    getLabel: (value: unknown) => (value as { text: string }).text,
+    getLabel: (value: unknown) => (value as { text: string } | undefined)?.text ?? "",
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
       previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "Link" });
       previewStore.send({ type: "openBlockContentSheet", blockId });

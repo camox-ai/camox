@@ -26,6 +26,7 @@ import * as React from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { useFileUpload } from "@/hooks/use-file-upload";
+import type { File } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import { AssetActionButtons } from "./AssetFieldEditor";
@@ -112,7 +113,7 @@ const SortableAssetItem = ({
         </button>
 
         <UnlinkAssetButton
-          fileId={asset?._fileId as Id<"files"> | undefined}
+          fileId={asset?._fileId != null ? Number(asset._fileId) : undefined}
           onUnlink={() => onRemove(item._id)}
           className="hidden group-focus-within:flex group-hover:flex"
         />
@@ -276,7 +277,7 @@ const MultipleAssetFieldEditor = ({
     setLightboxItem(item);
   };
 
-  const handleSelectMultiple = async (files: Doc<"files">[]) => {
+  const handleSelectMultiple = async (files: File[]) => {
     for (const file of files) {
       await createItemMutation({
         blockId,
@@ -287,7 +288,7 @@ const MultipleAssetFieldEditor = ({
             alt: file.alt,
             filename: file.filename,
             mimeType: file.mimeType,
-            _fileId: file._id,
+            _fileId: file.id,
           },
         },
       });
@@ -353,7 +354,7 @@ const MultipleAssetFieldEditor = ({
             onOpenChange={(open) => {
               if (!open) setLightboxItem(null);
             }}
-            fileId={asset._fileId as Id<"files">}
+            fileId={Number(asset._fileId)}
           />
         );
       })()}

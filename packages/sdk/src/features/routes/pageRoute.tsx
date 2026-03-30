@@ -1,11 +1,10 @@
 import { notFound } from "@tanstack/react-router";
 import { createMiddleware, createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { api } from "camox/server/api";
-import { ConvexHttpClient } from "convex/browser";
 
 import type { CamoxApp } from "../../core/createApp";
 import { trackEvent } from "../../lib/analytics";
+import type { PageWithBlocks } from "../../lib/queries";
 import { CamoxPreview, PageContent } from "../preview/CamoxPreview";
 
 /* -------------------------------------------------------------------------------------------------
@@ -45,28 +44,31 @@ export const getOrigin = createServerFn({ method: "GET" }).handler(async () => {
  * Factories
  * -----------------------------------------------------------------------------------------------*/
 
-export function createMarkdownMiddleware(convexUrl: string) {
+export function createMarkdownMiddleware(apiUrl: string) {
   return createMiddleware().server(async ({ next, request }) => {
     const accept = request.headers.get("Accept") ?? "";
     if (prefersMarkdown(accept)) {
       const url = new URL(request.url);
-      const client = new ConvexHttpClient(convexUrl);
-      const page = await client.query(api.pages.getPage, {
-        fullPath: url.pathname,
-      });
-      if (page) {
-        const markdown = await client.query(api.blocks.getPageMarkdown, {
-          pageId: page.page._id,
-        });
-        if (markdown) {
-          trackEvent("markdown_served", {
-            pathname: url.pathname,
-            projectId: page.page.projectId,
-            projectName: page.projectName,
-          });
-          throw new Response(markdown, {
-            headers: { "Content-Type": "text/markdown; charset=utf-8" },
-          });
+      const pageRes = await fetch(
+        `${apiUrl}/pages/getByPath?${new URLSearchParams({ path: url.pathname })}`,
+      );
+      if (pageRes.ok) {
+        const page = (await pageRes.json()) as PageWithBlocks;
+        const mdRes = await fetch(
+          `${apiUrl}/blocks/getPageMarkdown?${new URLSearchParams({ pageId: String(page.page.id) })}`,
+        );
+        if (mdRes.ok) {
+          const { markdown } = (await mdRes.json()) as { markdown: string };
+          if (markdown) {
+            trackEvent("markdown_served", {
+              pathname: url.pathname,
+              projectId: page.page.projectId,
+              projectName: page.projectName,
+            });
+            throw new Response(markdown, {
+              headers: { "Content-Type": "text/markdown; charset=utf-8" },
+            });
+          }
         }
       }
     }
@@ -74,19 +76,18 @@ export function createMarkdownMiddleware(convexUrl: string) {
   });
 }
 
-export function createPageLoader(convexUrl: string) {
-  const convexHttpClient = new ConvexHttpClient(convexUrl);
+export function createPageLoader(apiUrl: string) {
   return async ({ location }: { location: { pathname: string } }) => {
-    const [page, origin] = await Promise.all([
-      convexHttpClient.query(api.pages.getPage, {
-        fullPath: location.pathname,
-      }),
+    const [pageRes, origin] = await Promise.all([
+      fetch(`${apiUrl}/pages/getByPath?${new URLSearchParams({ path: location.pathname })}`),
       getOrigin(),
     ]);
 
-    if (!page) {
+    if (!pageRes.ok) {
       throw notFound();
     }
+
+    const page = (await pageRes.json()) as PageWithBlocks;
 
     return { page, origin };
   };
@@ -97,7 +98,7 @@ export function createPageHead(camoxApp: CamoxApp) {
     loaderData,
   }: {
     loaderData?: {
-      page: NonNullable<typeof api.pages.getPage._returnType>;
+      page: PageWithBlocks;
       origin: string;
     };
   }) => {
@@ -159,11 +160,7 @@ export function createPageHead(camoxApp: CamoxApp) {
  * Component
  * -----------------------------------------------------------------------------------------------*/
 
-export const PageRouteComponent = ({
-  page,
-}: {
-  page: NonNullable<typeof api.pages.getPage._returnType>;
-}) => {
+export const PageRouteComponent = ({ page }: { page: PageWithBlocks }) => {
   return (
     <CamoxPreview>
       <PageContent page={page} />

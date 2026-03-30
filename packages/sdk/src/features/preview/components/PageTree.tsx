@@ -21,13 +21,14 @@ import * as Accordion from "@radix-ui/react-accordion";
 import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import { api } from "camox/server/api";
-import { Doc, Id } from "camox/server/dataModel";
+import type { Id } from "camox/server/dataModel";
 import { useMutation } from "convex/react";
 import { generateKeyBetween } from "fractional-indexing";
 import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react";
 import * as React from "react";
 
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
+import type { PageWithBlocks } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -126,7 +127,7 @@ const FieldItem = ({
  * -----------------------------------------------------------------------------------------------*/
 
 type BlockFieldsProps = {
-  block: Doc<"blocks">;
+  block: PageWithBlocks["blocks"][number];
 };
 
 const BlockFields = ({ block }: BlockFieldsProps) => {
@@ -142,14 +143,14 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
 
   // Check if a field is selected (breadcrumbs has block + field)
   const selectedFieldName =
-    selectionBreadcrumbs.length === 2 && selectionBreadcrumbs[0]?.id === block._id
+    selectionBreadcrumbs.length === 2 && selectionBreadcrumbs[0]?.id === String(block.id)
       ? selectionBreadcrumbs[1]?.id
       : null;
 
   const handleFieldClick = (fieldName: string, fieldType: string) => {
     previewStore.send({
       type: "setSelectedField",
-      blockId: block._id,
+      blockId: String(block.id),
       fieldName,
       fieldType: fieldType as "String" | "RepeatableObject",
     });
@@ -157,7 +158,7 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
 
   const handleFieldDoubleClick = (fieldName: string, fieldType: string) => {
     const fieldDef = fieldTypesDictionary[fieldType as keyof typeof fieldTypesDictionary];
-    fieldDef.onTreeDoubleClick({ blockId: block._id, fieldName });
+    fieldDef.onTreeDoubleClick({ blockId: String(block.id), fieldName });
   };
 
   const handleFieldMouseEnter = (fieldName: string, isRepeatable: boolean) => {
@@ -165,12 +166,12 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
     if (isRepeatable) {
       const message: OverlayMessage = {
         type: "CAMOX_HOVER_REPEATER",
-        blockId: block._id,
+        blockId: String(block.id),
         fieldName,
       };
       iframeElement.contentWindow.postMessage(message, "*");
     } else {
-      const fieldId = `${block._id}__${fieldName}`;
+      const fieldId = `${String(block.id)}__${fieldName}`;
       const message: OverlayMessage = {
         type: "CAMOX_HOVER_FIELD",
         fieldId,
@@ -184,12 +185,12 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
     if (isRepeatable) {
       const message: OverlayMessage = {
         type: "CAMOX_HOVER_REPEATER_END",
-        blockId: block._id,
+        blockId: String(block.id),
         fieldName,
       };
       iframeElement.contentWindow.postMessage(message, "*");
     } else {
-      const fieldId = `${block._id}__${fieldName}`;
+      const fieldId = `${String(block.id)}__${fieldName}`;
       const message: OverlayMessage = {
         type: "CAMOX_HOVER_FIELD_END",
         fieldId,
@@ -230,14 +231,18 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
  * useBlockTreeItem
  * -----------------------------------------------------------------------------------------------*/
 
-function useBlockTreeItem(block: Doc<"blocks">, isSelected: boolean, isDragging = false) {
+function useBlockTreeItem(
+  block: PageWithBlocks["blocks"][number],
+  isSelected: boolean,
+  isDragging = false,
+) {
   const [ellipsisPopoverOpen, setEllipsisPopoverOpen] = React.useState(false);
   const selectionBreadcrumbs = useSelector(
     previewStore,
     (state) => state.context.selectionBreadcrumbs,
   );
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
-  const isParentOfSelection = selectionBreadcrumbs.at(-2)?.id === block._id;
+  const isParentOfSelection = selectionBreadcrumbs.at(-2)?.id === String(block.id);
   const shouldShowHover = !isDragging && !isSelected;
   const shouldShowActive = isDragging || (isSelected && !isParentOfSelection);
 
@@ -245,7 +250,7 @@ function useBlockTreeItem(block: Doc<"blocks">, isSelected: boolean, isDragging 
     if (!iframeElement?.contentWindow) return;
     const message: OverlayMessage = {
       type: "CAMOX_HOVER_BLOCK",
-      blockId: block._id,
+      blockId: String(block.id),
     };
     iframeElement.contentWindow.postMessage(message, "*");
   };
@@ -254,7 +259,7 @@ function useBlockTreeItem(block: Doc<"blocks">, isSelected: boolean, isDragging 
     if (!iframeElement?.contentWindow) return;
     const message: OverlayMessage = {
       type: "CAMOX_HOVER_BLOCK_END",
-      blockId: block._id,
+      blockId: String(block.id),
     };
     iframeElement.contentWindow.postMessage(message, "*");
   };
@@ -265,7 +270,7 @@ function useBlockTreeItem(block: Doc<"blocks">, isSelected: boolean, isDragging 
     } else {
       previewStore.send({
         type: "setFocusedBlock",
-        blockId: block._id,
+        blockId: String(block.id),
       });
     }
   };
@@ -357,7 +362,7 @@ const BlockTreeItemEllipsis = ({
   </Button>
 );
 
-const BlockTreeItemContent = ({ block }: { block: Doc<"blocks"> }) => (
+const BlockTreeItemContent = ({ block }: { block: PageWithBlocks["blocks"][number] }) => (
   <Accordion.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down text-muted-foreground data-[state=open]:bg-accent/25 overflow-hidden rounded-b-lg text-sm">
     <BlockFields block={block} />
   </Accordion.Content>
@@ -368,14 +373,14 @@ const BlockTreeItemContent = ({ block }: { block: Doc<"blocks"> }) => (
  * -----------------------------------------------------------------------------------------------*/
 
 interface SortableBlockProps {
-  block: Doc<"blocks">;
+  block: PageWithBlocks["blocks"][number];
   isSelected: boolean;
 }
 
 const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
   const [gripPopoverOpen, setGripPopoverOpen] = React.useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: block._id,
+    id: String(block.id),
   });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -385,9 +390,9 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
   const ctx = useBlockTreeItem(block, isSelected, isDragging);
 
   return (
-    <Accordion.Root type="single" collapsible value={isSelected ? block._id : ""}>
+    <Accordion.Root type="single" collapsible value={isSelected ? String(block.id) : ""}>
       <Accordion.Item
-        value={block._id}
+        value={String(block.id)}
         ref={setNodeRef}
         style={style}
         className="group"
@@ -437,7 +442,7 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
  * -----------------------------------------------------------------------------------------------*/
 
 interface LayoutBlockItemProps {
-  block: Doc<"blocks">;
+  block: PageWithBlocks["blocks"][number];
   isSelected: boolean;
   layoutName: string;
 }
@@ -449,9 +454,9 @@ const LayoutBlockItem = ({ block, isSelected, layoutName }: LayoutBlockItemProps
   const displayText = blockDef?.title ?? block.type;
 
   return (
-    <Accordion.Root type="single" collapsible value={isSelected ? block._id : ""}>
+    <Accordion.Root type="single" collapsible value={isSelected ? String(block.id) : ""}>
       <Accordion.Item
-        value={block._id}
+        value={String(block.id)}
         className="group"
         onMouseEnter={ctx.handleBlockMouseEnter}
         onMouseLeave={ctx.handleBlockMouseLeave}
@@ -573,8 +578,8 @@ const PageTree = () => {
     }
 
     // Find the old and new indices
-    const oldIndex = page.blocks.findIndex((block) => block._id === active.id);
-    const newIndex = page.blocks.findIndex((block) => block._id === over.id);
+    const oldIndex = page.blocks.findIndex((block) => String(block.id) === active.id);
+    const newIndex = page.blocks.findIndex((block) => String(block.id) === over.id);
 
     if (oldIndex === -1 || newIndex === -1) {
       return;
@@ -617,9 +622,9 @@ const PageTree = () => {
       <div className="flex flex-col gap-0.5">
         {beforeBlocks.map((block) => (
           <LayoutBlockItem
-            key={block._id}
+            key={String(block.id)}
             block={block}
-            isSelected={focusedBlockId === block._id}
+            isSelected={focusedBlockId === String(block.id)}
             layoutName={layout?.title ?? "Unknown"}
           />
         ))}
@@ -630,23 +635,23 @@ const PageTree = () => {
           modifiers={[restrictToVerticalAxis]}
         >
           <SortableContext
-            items={page.blocks.map((block) => block._id)}
+            items={page.blocks.map((block) => String(block.id))}
             strategy={verticalListSortingStrategy}
           >
             {page.blocks.map((block) => (
               <SortableBlock
-                key={block._id}
+                key={String(block.id)}
                 block={block}
-                isSelected={focusedBlockId === block._id}
+                isSelected={focusedBlockId === String(block.id)}
               />
             ))}
           </SortableContext>
         </DndContext>
         {afterBlocks.map((block) => (
           <LayoutBlockItem
-            key={block._id}
+            key={String(block.id)}
             block={block}
-            isSelected={focusedBlockId === block._id}
+            isSelected={focusedBlockId === String(block.id)}
             layoutName={layout?.title ?? "Unknown"}
           />
         ))}

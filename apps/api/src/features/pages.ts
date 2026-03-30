@@ -472,7 +472,7 @@ const createPageSchema = z.object({
 });
 
 export const pageRoutes = new Hono<AppEnv>()
-  // Public routes (no auth required — used by SSR loaders)
+  // Public routes (no auth required)
   .get("/getByPath", zValidator("query", z.object({ path: z.string() })), async (c) => {
     const { path: fullPath } = c.req.valid("query");
 
@@ -506,47 +506,47 @@ export const pageRoutes = new Hono<AppEnv>()
 
     // Assemble layout
     const layout = await db.select().from(layouts).where(eq(layouts.id, page.layoutId)).get();
-    if (!layout) {
-      return c.json({ page, projectName: project.name, blocks: assembledBlocks });
+
+    let layoutData: {
+      id: number;
+      layoutId: string;
+      blocks: Awaited<ReturnType<typeof assembleBlocks>>;
+      beforeBlocks: Awaited<ReturnType<typeof assembleBlocks>>;
+      afterBlocks: Awaited<ReturnType<typeof assembleBlocks>>;
+    } | null = null;
+
+    if (layout) {
+      const layoutBlocks = await db.select().from(blocks).where(eq(blocks.layoutId, layout.id));
+      const assembledLayoutBlocks = await assembleBlocks(db, layoutBlocks, fieldOrderByType);
+
+      layoutData = {
+        id: layout.id,
+        layoutId: layout.layoutId,
+        blocks: assembledLayoutBlocks,
+        beforeBlocks: assembledLayoutBlocks.filter((b) => b.placement === "before"),
+        afterBlocks: assembledLayoutBlocks.filter((b) => b.placement === "after"),
+      };
     }
-
-    const layoutBlocks = await db.select().from(blocks).where(eq(blocks.layoutId, layout.id));
-    const assembledLayoutBlocks = await assembleBlocks(db, layoutBlocks, fieldOrderByType);
-
-    const beforeBlocks = assembledLayoutBlocks.filter((b) => b.placement === "before");
-    const afterBlocks = assembledLayoutBlocks.filter((b) => b.placement === "after");
 
     return c.json({
       page,
       projectName: project.name,
       blocks: assembledBlocks,
-      layout: {
-        id: layout.id,
-        layoutId: layout.layoutId,
-        blocks: assembledLayoutBlocks,
-        beforeBlocks,
-        afterBlocks,
-      },
+      layout: layoutData,
     });
+  })
+  .get("/list", async (c) => {
+    const result = await c.var.db.select().from(pages);
+    return c.json(result);
+  })
+  .get("/get", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
+    const { id } = c.req.valid("query");
+    const result = await c.var.db.select().from(pages).where(eq(pages.id, id)).get();
+    if (!result) return c.json({ error: "Not found" }, 404);
+    return c.json(result);
   })
   // Protected routes
   .use(requireOrg)
-  .get("/list", async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const result = await c.var.db
-      .select({ page: pages })
-      .from(pages)
-      .innerJoin(projects, eq(projects.id, pages.projectId))
-      .where(eq(projects.organizationSlug, orgSlug));
-    return c.json(result.map((r) => r.page));
-  })
-  .get("/get", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id } = c.req.valid("query");
-    const result = await assertPageAccess(c.var.db, id, orgSlug);
-    if (!result) return c.json({ error: "Not found" }, 404);
-    return c.json(result.page);
-  })
   .post("/create", zValidator("json", createPageSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { projectId, pathSegment, parentPageId, layoutId, contentDescription } =

@@ -1,11 +1,13 @@
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/server/api";
-import { useQuery } from "convex/react";
 import * as React from "react";
 
+import { useApiClient } from "@/lib/api-client";
 import { useIsAuthenticated } from "@/lib/auth";
+import type { PageWithBlocks } from "@/lib/queries";
+import { pageQueries } from "@/lib/queries";
 import { formatPathSegment } from "@/lib/utils";
 
 import { type Action, actionsStore } from "../provider/actionsStore";
@@ -47,36 +49,22 @@ export function usePreviewedPage() {
   }, [pathname]);
 
   /**
-   * Only live update the page data if the user is signed in (i.e. an admin)
+   * Only fetch the page data if the user is signed in (i.e. an admin)
    * to avoid unnecessary load on the backend and layout shifts for regular visitors.
    */
   const isAuthenticated = useIsAuthenticated();
-  const currentPage = useQuery(
-    api.pages.getPage,
-    isAuthenticated
-      ? {
-          fullPath: pagePathnameToFetch,
-        }
-      : "skip",
-  );
+  const apiClient = useApiClient();
+  const { data: currentPage } = useQuery({
+    ...pageQueries.getByPath(apiClient, pagePathnameToFetch),
+    enabled: isAuthenticated,
+    placeholderData: keepPreviousData,
+  });
 
-  /**
-   * Store the previous page data to avoid returning undefined when switching
-   * between peeked pages, which would cause a visual glitch.
-   */
-  const previousPageRef = React.useRef(currentPage);
-
-  React.useEffect(() => {
-    if (currentPage !== undefined) {
-      previousPageRef.current = currentPage;
-    }
-  }, [currentPage]);
-
-  return currentPage ?? previousPageRef.current;
+  return currentPage;
 }
 
 interface PageContentProps {
-  page: NonNullable<typeof api.pages.getPage._returnType>;
+  page: PageWithBlocks;
 }
 
 export const PageContent = ({ page: initialPageData }: PageContentProps) => {
@@ -144,10 +132,10 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
     > = {};
     for (const block of pageData.layout.blocks) {
       blocks[block.type] = {
-        _id: block._id,
+        _id: String(block.id),
         type: block.type,
-        content: block.content,
-        settings: block.settings,
+        content: block.content as Record<string, unknown>,
+        settings: block.settings as Record<string, unknown> | undefined,
         position: String(block.position),
       };
     }
@@ -168,13 +156,13 @@ export const PageContent = ({ page: initialPageData }: PageContentProps) => {
         }
 
         return (
-          <React.Fragment key={blockData._id}>
+          <React.Fragment key={blockData.id}>
             <block.Component
               blockData={{
-                _id: blockData._id,
+                _id: String(blockData.id) as any,
                 type: blockData.type,
-                content: blockData.content,
-                settings: blockData.settings,
+                content: blockData.content as Record<string, unknown>,
+                settings: blockData.settings as Record<string, unknown> | undefined,
                 position: String(blockData.position),
               }}
               mode="site"
@@ -292,7 +280,8 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
 export function usePreviewPagesActions() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const pages = useQuery(api.pages.listPages);
+  const apiClient = useApiClient();
+  const { data: pages } = useQuery(pageQueries.list(apiClient));
 
   React.useEffect(() => {
     const GO_TO_PAGE_ID = "go-to-page";
@@ -335,7 +324,7 @@ export function usePreviewPagesActions() {
         ? pages.map(
             (page) =>
               ({
-                id: `go-to-page-${page._id}`,
+                id: `go-to-page-${page.id}`,
                 parentActionId: GO_TO_PAGE_ID,
                 label: `Go to "${page.metaTitle ?? formatPathSegment(page.pathSegment)}"`,
                 groupLabel: "Preview",

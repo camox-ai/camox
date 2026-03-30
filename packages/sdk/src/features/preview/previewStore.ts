@@ -1,9 +1,9 @@
 import { toast } from "@camox/ui/toaster";
 import { createStore } from "@xstate/store";
-import { Doc, Id } from "camox/server/dataModel";
 
 import { Block } from "@/core/createBlock";
 import type { FieldType } from "@/core/lib/fieldTypes";
+import type { Page } from "@/lib/queries";
 
 export type SelectionBreadcrumb = {
   type: FieldType | "Block";
@@ -18,7 +18,7 @@ interface PreviewContext {
   isAddBlockSheetOpen: boolean;
   isAgentChatSheetOpen: boolean;
   isCreatePageSheetOpen: boolean;
-  editingPage: Doc<"pages"> | null;
+  editingPage: Page | null;
   isContentLocked: boolean;
   isMobileMode: boolean;
   peekedBlock: Block | null;
@@ -141,7 +141,7 @@ export const previewStore = createStore({
         selectionBreadcrumbs: event.breadcrumbs,
       };
     },
-    setFocusedBlock: (context, event: { blockId: Id<"blocks"> }) => {
+    setFocusedBlock: (context, event: { blockId: string }) => {
       return {
         ...context,
         selectionBreadcrumbs: [{ type: "Block" as const, id: event.blockId }],
@@ -153,8 +153,8 @@ export const previewStore = createStore({
     setSelectedRepeatableItem: (
       context,
       event: {
-        blockId: Id<"blocks">;
-        itemId: Id<"repeatableItems">;
+        blockId: string;
+        itemId: string;
         fieldName?: string;
       },
     ) => {
@@ -230,7 +230,7 @@ export const previewStore = createStore({
     },
     setSelectedField: (
       context,
-      event: { blockId: Id<"blocks">; fieldName: string; fieldType: FieldType },
+      event: { blockId: string; fieldName: string; fieldType: FieldType },
     ) => {
       return {
         ...context,
@@ -292,7 +292,7 @@ export const previewStore = createStore({
         peekedBlockPosition: null,
       };
     },
-    focusCreatedBlock: (context, event: { blockId: Id<"blocks"> }) => {
+    focusCreatedBlock: (context, event: { blockId: string }) => {
       return {
         ...context,
         selectionBreadcrumbs: [{ type: "Block" as const, id: event.blockId }],
@@ -314,7 +314,7 @@ export const previewStore = createStore({
         isPageContentSheetOpen: !context.isPageContentSheetOpen,
       };
     },
-    openBlockContentSheet: (context, event: { blockId: Id<"blocks"> }) => {
+    openBlockContentSheet: (context, event: { blockId: string }) => {
       const currentBlockMatches = context.selectionBreadcrumbs[0]?.id === event.blockId;
       return {
         ...context,
@@ -360,7 +360,7 @@ export const previewStore = createStore({
         isCreatePageSheetOpen: false,
       };
     },
-    openEditPageSheet: (context, event: { page: Doc<"pages"> }) => {
+    openEditPageSheet: (context, event: { page: Page }) => {
       return {
         ...context,
         editingPage: event.page,

@@ -10,14 +10,16 @@ import { Spinner } from "@camox/ui/spinner";
 import { Textarea } from "@camox/ui/textarea";
 import { toast } from "@camox/ui/toaster";
 import { useForm } from "@tanstack/react-form";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import { api } from "camox/server/api";
-import { Id } from "camox/server/dataModel";
-import { useAction, useQuery } from "convex/react";
+import { useAction } from "convex/react";
 import { useEffect } from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
+import { useApiClient } from "@/lib/api-client";
+import { layoutQueries, pageQueries, projectQueries } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { previewStore } from "../previewStore";
@@ -25,16 +27,20 @@ import { PageLocationFieldset } from "./PageLocationFieldset";
 
 const CreatePageSheet = () => {
   const open = useSelector(previewStore, (state) => state.context.isCreatePageSheetOpen);
-  const pages = useQuery(api.pages.listPages);
-  const project = useQuery(api.projects.getFirstProject);
-  const layouts = useQuery(api.layouts.listLayouts, project ? { projectId: project._id } : "skip");
+  const apiClient = useApiClient();
+  const { data: pages } = useQuery(pageQueries.list(apiClient));
+  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
+  const { data: layouts } = useQuery({
+    ...layoutQueries.list(apiClient, project?.id ?? 0),
+    enabled: !!project,
+  });
   const camoxApp = useCamoxApp();
   const createPage = useAction(api.pageActions.createPage);
   const navigate = useNavigate();
 
   const form = useForm({
     defaultValues: {
-      parentPageId: undefined as Id<"pages"> | undefined,
+      parentPageId: undefined as number | undefined,
       pathSegment: "",
       layoutId: "" as string,
       contentDescription: "",
@@ -47,10 +53,10 @@ const CreatePageSheet = () => {
         }
 
         const createPagePromise = createPage({
-          projectId: project._id,
+          projectId: project.id,
           pathSegment: values.value.pathSegment,
           parentPageId: values.value.parentPageId,
-          layoutId: values.value.layoutId as Id<"layouts">,
+          layoutId: values.value.layoutId,
           contentDescription: values.value.contentDescription || undefined,
         });
 
@@ -62,7 +68,7 @@ const CreatePageSheet = () => {
 
         const { fullPath } = await createPagePromise;
         trackClientEvent("page_created", {
-          projectId: project._id,
+          projectId: project.id,
           pathSegment: values.value.pathSegment,
           layoutId: values.value.layoutId,
           hasContentDescription: !!values.value.contentDescription,
@@ -82,7 +88,7 @@ const CreatePageSheet = () => {
 
   useEffect(() => {
     if (layouts && layouts.length > 0 && !form.getFieldValue("layoutId")) {
-      form.setFieldValue("layoutId", layouts[0]._id);
+      form.setFieldValue("layoutId", String(layouts[0].id));
     }
   }, [layouts, form]);
 
@@ -137,7 +143,7 @@ const CreatePageSheet = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {layouts?.map((t) => (
-                      <SelectItem key={t._id} value={t._id}>
+                      <SelectItem key={t.id} value={String(t.id)}>
                         {camoxApp.getLayoutById(t.layoutId)?.title ?? t.layoutId}
                       </SelectItem>
                     ))}

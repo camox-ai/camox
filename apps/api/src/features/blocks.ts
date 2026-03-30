@@ -219,22 +219,129 @@ const createBlockSchema = z.object({
 });
 
 export const blockRoutes = new Hono<AppEnv>()
-  .use(requireOrg)
+  // Public routes (no auth required)
+  .get(
+    "/getPageMarkdown",
+    zValidator("query", z.object({ pageId: z.coerce.number() })),
+    async (c) => {
+      const { pageId } = c.req.valid("query");
+
+      const page = await c.var.db.select().from(pages).where(eq(pages.id, pageId)).get();
+      if (!page) return c.json({ error: "Not found" }, 404);
+
+      // Get block definitions for content schemas and toMarkdown templates
+      const defs = await c.var.db
+        .select()
+        .from(blockDefinitions)
+        .where(eq(blockDefinitions.projectId, page.projectId));
+      const schemaByType = new Map<
+        string,
+        { properties: Record<string, any>; toMarkdown?: readonly string[] }
+      >();
+      for (const def of defs) {
+        const schema = def.contentSchema as Record<string, unknown> | null;
+        if (schema?.properties) {
+          schemaByType.set(def.blockId, {
+            properties: schema.properties as Record<string, any>,
+            toMarkdown: schema.toMarkdown as readonly string[] | undefined,
+          });
+        }
+      }
+
+      // Get page blocks sorted by position
+      const pageBlocks = await c.var.db.select().from(blocks).where(eq(blocks.pageId, pageId));
+      const sorted = pageBlocks.sort((a, b) => a.position.localeCompare(b.position));
+
+      // Fetch all repeatable items for these blocks
+      const blockIds = sorted.map((b) => b.id);
+      const allItems =
+        blockIds.length > 0
+          ? await c.var.db
+              .select()
+              .from(repeatableItems)
+              .where(inArray(repeatableItems.blockId, blockIds))
+          : [];
+      const itemsByBlock = new Map<number, typeof allItems>();
+      for (const item of allItems) {
+        const list = itemsByBlock.get(item.blockId) ?? [];
+        list.push(item);
+        itemsByBlock.set(item.blockId, list);
+      }
+
+      // Also fetch layout blocks if page has a layout
+      let beforeMarkdown = "";
+      let afterMarkdown = "";
+      if (page.layoutId) {
+        const layoutBlocks = await c.var.db
+          .select()
+          .from(blocks)
+          .where(eq(blocks.layoutId, page.layoutId));
+        const sortedLayout = layoutBlocks.sort((a, b) => a.position.localeCompare(b.position));
+        const layoutBlockIds = sortedLayout.map((b) => b.id);
+        const layoutItems =
+          layoutBlockIds.length > 0
+            ? await c.var.db
+                .select()
+                .from(repeatableItems)
+                .where(inArray(repeatableItems.blockId, layoutBlockIds))
+            : [];
+        const layoutItemsByBlock = new Map<number, typeof layoutItems>();
+        for (const item of layoutItems) {
+          const list = layoutItemsByBlock.get(item.blockId) ?? [];
+          list.push(item);
+          layoutItemsByBlock.set(item.blockId, list);
+        }
+
+        const beforeParts: string[] = [];
+        const afterParts: string[] = [];
+        for (const block of sortedLayout) {
+          const schema = schemaByType.get(block.type);
+          if (!schema?.toMarkdown) continue;
+          const content = { ...(block.content as Record<string, unknown>) };
+          const items = layoutItemsByBlock.get(block.id) ?? [];
+          for (const item of items) {
+            const arr = (content[item.fieldName] as unknown[]) ?? [];
+            arr.push(item);
+            content[item.fieldName] = arr;
+          }
+          const md = contentToMarkdown(schema.toMarkdown, schema.properties, content);
+          if (block.placement === "before") beforeParts.push(md);
+          else afterParts.push(md);
+        }
+        beforeMarkdown = beforeParts.join("\n\n");
+        afterMarkdown = afterParts.join("\n\n");
+      }
+
+      // Convert page blocks to markdown
+      const pageParts = sorted.map((block) => {
+        const schema = schemaByType.get(block.type);
+        if (!schema?.toMarkdown) return JSON.stringify(block.content);
+        const content = { ...(block.content as Record<string, unknown>) };
+        const items = itemsByBlock.get(block.id) ?? [];
+        for (const item of items) {
+          const arr = (content[item.fieldName] as unknown[]) ?? [];
+          arr.push(item);
+          content[item.fieldName] = arr;
+        }
+        return contentToMarkdown(schema.toMarkdown, schema.properties, content);
+      });
+
+      const parts = [beforeMarkdown, ...pageParts, afterMarkdown].filter(Boolean);
+      return c.json({ markdown: parts.join("\n\n") });
+    },
+  )
   .get("/getUsageCounts", async (c) => {
-    const orgSlug = c.var.orgSlug!;
     const result = await c.var.db
       .select({
         type: blocks.type,
         count: sql<number>`count(*)`,
       })
       .from(blocks)
-      .leftJoin(pages, eq(blocks.pageId, pages.id))
-      .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
-      .innerJoin(projects, or(eq(projects.id, pages.projectId), eq(projects.id, layouts.projectId)))
-      .where(eq(projects.organizationSlug, orgSlug))
       .groupBy(blocks.type);
     return c.json(result);
   })
+  // Protected routes
+  .use(requireOrg)
   .post("/create", zValidator("json", createBlockSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { pageId, type, content, settings, afterPosition } = c.req.valid("json");
