@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import { assertFileAccess, getAuthorizedProject } from "../authorization";
 import type { Database } from "../db";
+import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import type { AppEnv } from "../types";
 import { blocks } from "./blocks";
@@ -170,21 +171,31 @@ export const fileRoutes = new Hono<AppEnv>()
       type: "fileMetadata",
       delayMs: 0,
     });
+    broadcastInvalidation(c.env.ProjectRoom, projectId, {
+      entity: "file",
+      action: "created",
+      entityId: result.id,
+    });
 
     return c.json(result, 201);
   })
   .post("/setAlt", zValidator("json", z.object({ id: z.number(), alt: z.string() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { id, alt } = c.req.valid("json");
-    if (!(await assertFileAccess(c.var.db, id, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertFileAccess(c.var.db, id, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     const result = await c.var.db
       .update(files)
       .set({ alt, updatedAt: Date.now() })
       .where(eq(files.id, id))
       .returning()
       .get();
+    broadcastInvalidation(c.env.ProjectRoom, access.file.projectId!, {
+      entity: "file",
+      action: "updated",
+      entityId: id,
+    });
     return c.json(result);
   })
   .post(
@@ -193,25 +204,35 @@ export const fileRoutes = new Hono<AppEnv>()
     async (c) => {
       const orgSlug = c.var.orgSlug!;
       const { id, filename } = c.req.valid("json");
-      if (!(await assertFileAccess(c.var.db, id, orgSlug))) {
-        return c.json({ error: "Not found" }, 404);
-      }
+      const access = await assertFileAccess(c.var.db, id, orgSlug);
+      if (!access) return c.json({ error: "Not found" }, 404);
+
       const result = await c.var.db
         .update(files)
         .set({ filename, updatedAt: Date.now() })
         .where(eq(files.id, id))
         .returning()
         .get();
+      broadcastInvalidation(c.env.ProjectRoom, access.file.projectId!, {
+        entity: "file",
+        action: "updated",
+        entityId: id,
+      });
       return c.json(result);
     },
   )
   .post("/delete", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { id } = c.req.valid("json");
-    if (!(await assertFileAccess(c.var.db, id, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertFileAccess(c.var.db, id, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     const result = await c.var.db.delete(files).where(eq(files.id, id)).returning().get();
+    broadcastInvalidation(c.env.ProjectRoom, access.file.projectId!, {
+      entity: "file",
+      action: "deleted",
+      entityId: id,
+    });
     return c.json(result);
   })
   .post(
@@ -230,6 +251,11 @@ export const fileRoutes = new Hono<AppEnv>()
         sql`UPDATE ${blocks} SET ${blocks.content} = REPLACE(CAST(${blocks.content} AS TEXT), ${oldAccess.file.url}, ${newAccess.file.url}), ${blocks.updatedAt} = ${Date.now()} WHERE INSTR(${blocks.content}, ${oldAccess.file.url}) > 0`,
       );
 
+      broadcastInvalidation(c.env.ProjectRoom, oldAccess.file.projectId!, {
+        entity: "file",
+        action: "updated",
+        entityId: id,
+      });
       return c.json({ replaced: true });
     },
   )
@@ -239,25 +265,35 @@ export const fileRoutes = new Hono<AppEnv>()
     async (c) => {
       const orgSlug = c.var.orgSlug!;
       const { id, enabled } = c.req.valid("json");
-      if (!(await assertFileAccess(c.var.db, id, orgSlug))) {
-        return c.json({ error: "Not found" }, 404);
-      }
+      const access = await assertFileAccess(c.var.db, id, orgSlug);
+      if (!access) return c.json({ error: "Not found" }, 404);
+
       const result = await c.var.db
         .update(files)
         .set({ aiMetadataEnabled: enabled, updatedAt: Date.now() })
         .where(eq(files.id, id))
         .returning()
         .get();
+      broadcastInvalidation(c.env.ProjectRoom, access.file.projectId!, {
+        entity: "file",
+        action: "updated",
+        entityId: id,
+      });
       return c.json(result);
     },
   )
   .post("/generateMetadata", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { id } = c.req.valid("json");
-    if (!(await assertFileAccess(c.var.db, id, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertFileAccess(c.var.db, id, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     await executeFileMetadata(c.var.db, c.env.OPEN_ROUTER_API_KEY, id);
+    broadcastInvalidation(c.env.ProjectRoom, access.file.projectId!, {
+      entity: "file",
+      action: "updated",
+      entityId: id,
+    });
     const updated = await c.var.db.select().from(files).where(eq(files.id, id)).get();
     return c.json(updated);
   });

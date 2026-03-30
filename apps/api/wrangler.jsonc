@@ -24,7 +24,14 @@
         "name": "AI_JOB_SCHEDULER",
         "class_name": "AiJobScheduler",
       },
+      {
+        "name": "ProjectRoom",
+        "class_name": "ProjectRoom",
+      },
     ],
   },
-  "migrations": [{ "tag": "v1", "new_classes": ["AiJobScheduler"] }],
+  "migrations": [
+    { "tag": "v1", "new_classes": ["AiJobScheduler"] },
+    { "tag": "v2", "new_classes": ["ProjectRoom"] },
+  ],
 }

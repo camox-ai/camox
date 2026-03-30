@@ -10,6 +10,7 @@ import { z } from "zod";
 
 import { assertPageAccess, getAuthorizedProject } from "../authorization";
 import type { Database } from "../db";
+import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { contentToMarkdown } from "../lib/content-markdown";
 import { markdownToLexicalState, plainTextToLexicalState } from "../lib/lexical-state";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
@@ -683,29 +684,45 @@ export const pageRoutes = new Hono<AppEnv>()
       });
     }
 
+    broadcastInvalidation(c.env.ProjectRoom, projectId, {
+      entity: "page",
+      action: "created",
+      entityId: page.id,
+    });
+
     return c.json({ page, fullPath: page.fullPath }, 201);
   })
   .post("/update", zValidator("json", updatePageSchema.extend({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { id, ...body } = c.req.valid("json");
-    if (!(await assertPageAccess(c.var.db, id, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertPageAccess(c.var.db, id, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     const result = await c.var.db
       .update(pages)
       .set({ ...body, updatedAt: Date.now() })
       .where(eq(pages.id, id))
       .returning()
       .get();
+    broadcastInvalidation(c.env.ProjectRoom, access.page.projectId, {
+      entity: "page",
+      action: "updated",
+      entityId: id,
+    });
     return c.json(result);
   })
   .post("/delete", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { id } = c.req.valid("json");
-    if (!(await assertPageAccess(c.var.db, id, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertPageAccess(c.var.db, id, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     const result = await c.var.db.delete(pages).where(eq(pages.id, id)).returning().get();
+    broadcastInvalidation(c.env.ProjectRoom, access.page.projectId, {
+      entity: "page",
+      action: "deleted",
+      entityId: id,
+    });
     return c.json(result);
   })
   .post(
@@ -714,15 +731,20 @@ export const pageRoutes = new Hono<AppEnv>()
     async (c) => {
       const orgSlug = c.var.orgSlug!;
       const { id, enabled } = c.req.valid("json");
-      if (!(await assertPageAccess(c.var.db, id, orgSlug))) {
-        return c.json({ error: "Not found" }, 404);
-      }
+      const access = await assertPageAccess(c.var.db, id, orgSlug);
+      if (!access) return c.json({ error: "Not found" }, 404);
+
       const result = await c.var.db
         .update(pages)
         .set({ aiSeoEnabled: enabled, updatedAt: Date.now() })
         .where(eq(pages.id, id))
         .returning()
         .get();
+      broadcastInvalidation(c.env.ProjectRoom, access.page.projectId, {
+        entity: "page",
+        action: "updated",
+        entityId: id,
+      });
       return c.json(result);
     },
   )
@@ -732,15 +754,20 @@ export const pageRoutes = new Hono<AppEnv>()
     async (c) => {
       const orgSlug = c.var.orgSlug!;
       const { id, metaTitle } = c.req.valid("json");
-      if (!(await assertPageAccess(c.var.db, id, orgSlug))) {
-        return c.json({ error: "Not found" }, 404);
-      }
+      const access = await assertPageAccess(c.var.db, id, orgSlug);
+      if (!access) return c.json({ error: "Not found" }, 404);
+
       const result = await c.var.db
         .update(pages)
         .set({ metaTitle, updatedAt: Date.now() })
         .where(eq(pages.id, id))
         .returning()
         .get();
+      broadcastInvalidation(c.env.ProjectRoom, access.page.projectId, {
+        entity: "page",
+        action: "updated",
+        entityId: id,
+      });
       return c.json(result);
     },
   )
@@ -750,15 +777,20 @@ export const pageRoutes = new Hono<AppEnv>()
     async (c) => {
       const orgSlug = c.var.orgSlug!;
       const { id, metaDescription } = c.req.valid("json");
-      if (!(await assertPageAccess(c.var.db, id, orgSlug))) {
-        return c.json({ error: "Not found" }, 404);
-      }
+      const access = await assertPageAccess(c.var.db, id, orgSlug);
+      if (!access) return c.json({ error: "Not found" }, 404);
+
       const result = await c.var.db
         .update(pages)
         .set({ metaDescription, updatedAt: Date.now() })
         .where(eq(pages.id, id))
         .returning()
         .get();
+      broadcastInvalidation(c.env.ProjectRoom, access.page.projectId, {
+        entity: "page",
+        action: "updated",
+        entityId: id,
+      });
       return c.json(result);
     },
   )
@@ -768,25 +800,35 @@ export const pageRoutes = new Hono<AppEnv>()
     async (c) => {
       const orgSlug = c.var.orgSlug!;
       const { id, layoutId } = c.req.valid("json");
-      if (!(await assertPageAccess(c.var.db, id, orgSlug))) {
-        return c.json({ error: "Not found" }, 404);
-      }
+      const access = await assertPageAccess(c.var.db, id, orgSlug);
+      if (!access) return c.json({ error: "Not found" }, 404);
+
       const result = await c.var.db
         .update(pages)
         .set({ layoutId, updatedAt: Date.now() })
         .where(eq(pages.id, id))
         .returning()
         .get();
+      broadcastInvalidation(c.env.ProjectRoom, access.page.projectId, {
+        entity: "page",
+        action: "updated",
+        entityId: id,
+      });
       return c.json(result);
     },
   )
   .post("/generateSeo", zValidator("json", z.object({ id: z.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { id } = c.req.valid("json");
-    if (!(await assertPageAccess(c.var.db, id, orgSlug))) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    const access = await assertPageAccess(c.var.db, id, orgSlug);
+    if (!access) return c.json({ error: "Not found" }, 404);
+
     await executePageSeo(c.var.db, c.env.OPEN_ROUTER_API_KEY, id);
+    broadcastInvalidation(c.env.ProjectRoom, access.page.projectId, {
+      entity: "page",
+      action: "updated",
+      entityId: id,
+    });
     const updated = await c.var.db.select().from(pages).where(eq(pages.id, id)).get();
     return c.json(updated);
   });
