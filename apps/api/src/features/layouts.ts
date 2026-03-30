@@ -4,7 +4,7 @@ import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { getAuthorizedProject } from "../authorization";
+import { getAuthorizedProject, requireOrg } from "../authorization";
 import type { AppEnv } from "../types";
 import { projects } from "./projects";
 
@@ -49,6 +49,7 @@ const syncLayoutsSchema = z.object({
 });
 
 export const layoutRoutes = new Hono<AppEnv>()
+  .use(requireOrg)
   .get("/list", zValidator("query", z.object({ projectId: z.coerce.number() })), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { projectId } = c.req.valid("query");

@@ -4,7 +4,7 @@ import { int, sqliteTable, text, index, uniqueIndex } from "drizzle-orm/sqlite-c
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { getAuthorizedProject, getAuthorizedProjectBySlug } from "../authorization";
+import { getAuthorizedProject, getAuthorizedProjectBySlug, requireOrg } from "../authorization";
 import type { AppEnv } from "../types";
 
 // --- Schema ---
@@ -45,6 +45,7 @@ const updateProjectSchema = z.object({
 });
 
 export const projectRoutes = new Hono<AppEnv>()
+  .use(requireOrg)
   .get("/list", async (c) => {
     const orgSlug = c.var.orgSlug!;
     const result = await c.var.db
