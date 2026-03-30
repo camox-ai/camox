@@ -1,19 +1,18 @@
 import type { AppType } from "@camox/api";
 import { hc } from "hono/client";
-import * as React from "react";
 
 export type ApiClient = ReturnType<typeof hc<AppType>>;
 
-export function createApiClient(apiUrl: string): ApiClient {
-  return hc<AppType>(apiUrl, {
+let _client: ApiClient | null = null;
+
+export function initApiClient(apiUrl: string): ApiClient {
+  _client = hc<AppType>(apiUrl, {
     init: { credentials: "include" },
   });
+  return _client;
 }
 
-export const ApiClientContext = React.createContext<ApiClient | null>(null);
-
-export function useApiClient(): ApiClient {
-  const client = React.useContext(ApiClientContext);
-  if (!client) throw new Error("Missing CamoxProvider");
-  return client;
+export function getApiClient(): ApiClient {
+  if (!_client) throw new Error("API client not initialized — call initApiClient first");
+  return _client;
 }

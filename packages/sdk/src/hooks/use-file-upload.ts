@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 
 export interface UploadItem {
   id: string;
@@ -25,7 +25,7 @@ interface UseFileUploadOptions {
 
 export function useFileUpload(options?: UseFileUploadOptions) {
   const [uploads, setUploads] = useState<UploadItem[]>([]);
-  const apiClient = useApiClient();
+  const apiClient = getApiClient();
   const nextId = useRef(0);
   const projectIdRef = useRef(options?.projectId);
   projectIdRef.current = options?.projectId;

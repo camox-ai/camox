@@ -5,7 +5,6 @@ import { ArrowLeft } from "lucide-react";
 import * as React from "react";
 
 import { AssetCard } from "@/features/content/components/AssetCard";
-import { useApiClient } from "@/lib/api-client";
 import type { File } from "@/lib/queries";
 import { fileQueries } from "@/lib/queries";
 
@@ -26,8 +25,7 @@ const AssetPickerGrid = ({
   onSelectMultiple,
   onClose,
 }: AssetPickerGridProps) => {
-  const apiClient = useApiClient();
-  const { data: allFiles } = useQuery(fileQueries.list(apiClient));
+  const { data: allFiles } = useQuery(fileQueries.list());
   const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set());
   const [lightboxFile, setLightboxFile] = React.useState<File | null>(null);
 

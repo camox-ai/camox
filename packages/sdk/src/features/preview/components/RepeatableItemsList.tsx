@@ -20,7 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useSelector } from "@xstate/store/react";
 import { CircleMinus, CirclePlus, GripVertical } from "lucide-react";
 
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 import type { OverlayMessage } from "../overlayMessages";
@@ -327,7 +327,7 @@ const RepeatableItemsList = ({
   parentItemId,
 }: RepeatableItemsListProps) => {
   const isInline = !!parentItemId;
-  const apiClient = useApiClient();
+  const apiClient = getApiClient();
 
   const canAdd = maxItems === undefined || items.length < maxItems;
   const canRemove = minItems === undefined || items.length > minItems;

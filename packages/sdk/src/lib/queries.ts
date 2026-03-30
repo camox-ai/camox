@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
 
-import type { ApiClient } from "./api-client";
+import { type ApiClient, getApiClient } from "./api-client";
 
 // --- Inferred API response types ---
 
@@ -18,33 +18,33 @@ declare const _api: ApiClient;
 // --- Query factories ---
 
 export const pageQueries = {
-  list: (api: ApiClient) =>
+  list: () =>
     queryOptions({
       queryKey: ["pages", "list"],
       queryFn: async () => {
-        const res = await api.pages.list.$get();
+        const res = await getApiClient().pages.list.$get();
         if (!res.ok) throw new Error("Failed to fetch pages");
         return res.json();
       },
       staleTime: Infinity,
     }),
 
-  getByPath: (api: ApiClient, fullPath: string) =>
+  getByPath: (fullPath: string) =>
     queryOptions({
       queryKey: ["pages", "getByPath", fullPath],
       queryFn: async (): Promise<PageWithBlocks> => {
-        const res = await api.pages.getByPath.$get({ query: { path: fullPath } });
+        const res = await getApiClient().pages.getByPath.$get({ query: { path: fullPath } });
         if (!res.ok) throw new Error("Failed to fetch page");
         return res.json() as Promise<PageWithBlocks>;
       },
       staleTime: Infinity,
     }),
 
-  getById: (api: ApiClient, id: number) =>
+  getById: (id: number) =>
     queryOptions({
       queryKey: ["pages", "get", id],
       queryFn: async () => {
-        const res = await api.pages.get.$get({ query: { id: id.toString() } });
+        const res = await getApiClient().pages.get.$get({ query: { id: id.toString() } });
         if (!res.ok) throw new Error("Failed to fetch page");
         return res.json();
       },
@@ -53,33 +53,33 @@ export const pageQueries = {
 };
 
 export const fileQueries = {
-  list: (api: ApiClient) =>
+  list: () =>
     queryOptions({
       queryKey: ["files", "list"],
       queryFn: async () => {
-        const res = await api.files.list.$get();
+        const res = await getApiClient().files.list.$get();
         if (!res.ok) throw new Error("Failed to fetch files");
         return res.json();
       },
       staleTime: Infinity,
     }),
 
-  get: (api: ApiClient, id: number) =>
+  get: (id: number) =>
     queryOptions({
       queryKey: ["files", "get", id],
       queryFn: async () => {
-        const res = await api.files.get.$get({ query: { id: id.toString() } });
+        const res = await getApiClient().files.get.$get({ query: { id: id.toString() } });
         if (!res.ok) throw new Error("Failed to fetch file");
         return res.json();
       },
       staleTime: Infinity,
     }),
 
-  getUsageCount: (api: ApiClient, id: number) =>
+  getUsageCount: (id: number) =>
     queryOptions({
       queryKey: ["files", "getUsageCount", id],
       queryFn: async () => {
-        const res = await api.files.getUsageCount.$get({ query: { id: id.toString() } });
+        const res = await getApiClient().files.getUsageCount.$get({ query: { id: id.toString() } });
         if (!res.ok) throw new Error("Failed to fetch file usage count");
         const data = await res.json();
         return data.count;
@@ -89,11 +89,11 @@ export const fileQueries = {
 };
 
 export const projectQueries = {
-  getFirst: (api: ApiClient) =>
+  getFirst: () =>
     queryOptions({
       queryKey: ["projects", "getFirst"],
       queryFn: async () => {
-        const res = await api.projects.getFirst.$get();
+        const res = await getApiClient().projects.getFirst.$get();
         if (!res.ok) throw new Error("Failed to fetch project");
         return res.json();
       },
@@ -102,11 +102,11 @@ export const projectQueries = {
 };
 
 export const layoutQueries = {
-  list: (api: ApiClient, projectId: number) =>
+  list: (projectId: number) =>
     queryOptions({
       queryKey: ["layouts", "list", projectId],
       queryFn: async () => {
-        const res = await api.layouts.list.$get({
+        const res = await getApiClient().layouts.list.$get({
           query: { projectId: projectId.toString() },
         });
         if (!res.ok) throw new Error("Failed to fetch layouts");
@@ -117,11 +117,11 @@ export const layoutQueries = {
 };
 
 export const blockQueries = {
-  getUsageCounts: (api: ApiClient) =>
+  getUsageCounts: () =>
     queryOptions({
       queryKey: ["blocks", "getUsageCounts"],
       queryFn: async () => {
-        const res = await api.blocks.getUsageCounts.$get();
+        const res = await getApiClient().blocks.getUsageCounts.$get();
         if (!res.ok) throw new Error("Failed to fetch block usage counts");
         const data = await res.json();
         const counts: Record<string, number> = {};
@@ -133,11 +133,11 @@ export const blockQueries = {
       staleTime: Infinity,
     }),
 
-  getPageMarkdown: (api: ApiClient, pageId: number) =>
+  getPageMarkdown: (pageId: number) =>
     queryOptions({
       queryKey: ["blocks", "getPageMarkdown", pageId],
       queryFn: async () => {
-        const res = await api.blocks.getPageMarkdown.$get({
+        const res = await getApiClient().blocks.getPageMarkdown.$get({
           query: { pageId: pageId.toString() },
         });
         if (!res.ok) throw new Error("Failed to fetch page markdown");

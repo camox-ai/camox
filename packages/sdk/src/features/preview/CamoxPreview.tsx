@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
-import { useApiClient } from "@/lib/api-client";
 import { useIsAuthenticated } from "@/lib/auth";
 import type { PageWithBlocks } from "@/lib/queries";
 import { pageQueries } from "@/lib/queries";
@@ -53,9 +52,8 @@ export function usePreviewedPage() {
    * to avoid unnecessary load on the backend and layout shifts for regular visitors.
    */
   const isAuthenticated = useIsAuthenticated();
-  const apiClient = useApiClient();
   const { data: currentPage } = useQuery({
-    ...pageQueries.getByPath(apiClient, pagePathnameToFetch),
+    ...pageQueries.getByPath(pagePathnameToFetch),
     enabled: isAuthenticated,
     placeholderData: keepPreviousData,
   });
@@ -280,8 +278,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
 export function usePreviewPagesActions() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const apiClient = useApiClient();
-  const { data: pages } = useQuery(pageQueries.list(apiClient));
+  const { data: pages } = useQuery(pageQueries.list());
 
   React.useEffect(() => {
     const GO_TO_PAGE_ID = "go-to-page";
