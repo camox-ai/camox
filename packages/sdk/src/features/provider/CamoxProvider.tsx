@@ -5,7 +5,7 @@ import studioCssUrl from "virtual:camox-studio-css";
 
 import { AuthGate } from "@/components/AuthGate";
 import type { CamoxApp } from "@/core/createApp";
-import { ApiClientContext, createApiClient, useApiClient } from "@/lib/api-client";
+import { initApiClient } from "@/lib/api-client";
 import {
   AuthContext,
   createCamoxAuthClient,
@@ -38,8 +38,7 @@ const AuthenticatedCamoxProvider = ({ children }: AuthenticatedCamoxProviderProp
 
   // Real-time invalidation via WebSocket
   const { apiUrl } = React.useContext(AuthContext)!;
-  const apiClient = useApiClient();
-  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
+  const { data: project } = useQuery(projectQueries.getFirst());
   useProjectRoom(apiUrl, project?.id);
 
   const { theme } = useTheme();
@@ -95,7 +94,7 @@ export function CamoxProvider({
   queryClient,
 }: CamoxProviderProps) {
   const authClient = React.useMemo(() => createCamoxAuthClient(apiUrl), [apiUrl]);
-  const apiClient = React.useMemo(() => createApiClient(apiUrl), [apiUrl]);
+  React.useMemo(() => initApiClient(apiUrl), [apiUrl]);
 
   // Verify ?ott= one-time token before the provider tree renders
   const ottReady = useProcessOtt(authClient);
@@ -103,23 +102,21 @@ export function CamoxProvider({
 
   return (
     <AuthContext.Provider value={{ authClient, managementUrl, apiUrl }}>
-      <ApiClientContext.Provider value={apiClient}>
-        <CamoxAppProvider app={camoxApp}>
-          <QueryClientProvider client={queryClient}>
-            <AuthGate
-              authenticated={
-                <>
-                  <link rel="stylesheet" href={studioCssUrl} />
-                  <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
-                </>
-              }
-              unauthenticated={
-                <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>
-              }
-            />
-          </QueryClientProvider>
-        </CamoxAppProvider>
-      </ApiClientContext.Provider>
+      <CamoxAppProvider app={camoxApp}>
+        <QueryClientProvider client={queryClient}>
+          <AuthGate
+            authenticated={
+              <>
+                <link rel="stylesheet" href={studioCssUrl} />
+                <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
+              </>
+            }
+            unauthenticated={
+              <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>
+            }
+          />
+        </QueryClientProvider>
+      </CamoxAppProvider>
     </AuthContext.Provider>
   );
 }

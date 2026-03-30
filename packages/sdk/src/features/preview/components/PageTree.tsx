@@ -23,7 +23,7 @@ import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react
 import * as React from "react";
 
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 import type { PageWithBlocks } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -507,7 +507,7 @@ const PageTree = () => {
   const page = usePreviewedPage();
   const camoxApp = useCamoxApp();
 
-  const apiClient = useApiClient();
+  const apiClient = getApiClient();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

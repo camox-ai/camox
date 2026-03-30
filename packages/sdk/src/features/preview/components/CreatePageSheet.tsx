@@ -16,7 +16,7 @@ import { useSelector } from "@xstate/store/react";
 import { useEffect } from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 import { layoutQueries, pageQueries, projectQueries } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -25,11 +25,11 @@ import { PageLocationFieldset } from "./PageLocationFieldset";
 
 const CreatePageSheet = () => {
   const open = useSelector(previewStore, (state) => state.context.isCreatePageSheetOpen);
-  const apiClient = useApiClient();
-  const { data: pages } = useQuery(pageQueries.list(apiClient));
-  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
+  const apiClient = getApiClient();
+  const { data: pages } = useQuery(pageQueries.list());
+  const { data: project } = useQuery(projectQueries.getFirst());
   const { data: layouts } = useQuery({
-    ...layoutQueries.list(apiClient, project?.id ?? 0),
+    ...layoutQueries.list(project?.id ?? 0),
     enabled: !!project,
   });
   const camoxApp = useCamoxApp();

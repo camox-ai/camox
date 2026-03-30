@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useState } from "react";
 
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 import { fileQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -25,9 +25,9 @@ interface UnlinkAssetButtonProps {
 
 const UnlinkAssetButton = ({ fileId, onUnlink, className }: UnlinkAssetButtonProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const apiClient = useApiClient();
+  const apiClient = getApiClient();
   const { data: usageCount } = useQuery({
-    ...fileQueries.getUsageCount(apiClient, fileId!),
+    ...fileQueries.getUsageCount(fileId!),
     enabled: !!fileId,
   });
   const handleClick = (e: React.MouseEvent) => {

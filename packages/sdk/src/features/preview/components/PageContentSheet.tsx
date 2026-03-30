@@ -21,7 +21,7 @@ import * as React from "react";
 
 import { actionsStore, type Action } from "@/features/provider/actionsStore";
 import { trackClientEvent } from "@/lib/analytics-client";
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -163,7 +163,7 @@ function findItemById(
 
 const PageContentSheet = () => {
   const camoxApp = useCamoxApp();
-  const apiClient = useApiClient();
+  const apiClient = getApiClient();
   // Get state from store
   const isOpen = useSelector(previewStore, (state) => state.context.isPageContentSheetOpen);
   const selectionBreadcrumbs = useSelector(

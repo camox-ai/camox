@@ -12,7 +12,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 
 import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet.tsx";
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 import { pageQueries } from "@/lib/queries";
 
 import {
@@ -426,7 +426,7 @@ export function createBlock<
       setIsHovered(isHoveredFromSidebar);
     }, [isHoveredFromSidebar]);
 
-    const apiClient = useApiClient();
+    const apiClient = getApiClient();
 
     const handleChange = React.useCallback(
       (newValue: string) => {
@@ -564,7 +564,7 @@ export function createBlock<
       setIsHovered(isHoveredFromSidebar);
     }, [isHoveredFromSidebar]);
 
-    const apiClient = useApiClient();
+    const apiClient = getApiClient();
 
     // Sync urlValue with fieldValue when popover is closed
     React.useEffect(() => {
@@ -724,8 +724,8 @@ export function createBlock<
       ? (repeaterContext.itemContent[name] as LinkValue)
       : (content[name] as LinkValue);
     const fieldValue = normalizeLinkValue(rawFieldValue as unknown as Record<string, unknown>);
-    const apiClient = useApiClient();
-    const { data: pages } = useQuery(pageQueries.list(apiClient));
+    const apiClient = getApiClient();
+    const { data: pages } = useQuery(pageQueries.list());
     const resolvedHref = resolveLinkHref(fieldValue, pages);
 
     const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));

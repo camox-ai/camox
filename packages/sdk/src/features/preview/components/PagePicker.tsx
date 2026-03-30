@@ -27,7 +27,7 @@ import { useSelector } from "@xstate/store/react";
 import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
 import * as React from "react";
 
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 import type { Page } from "@/lib/queries";
 import { pageQueries } from "@/lib/queries";
 import { cn, formatPathSegment } from "@/lib/utils";
@@ -45,8 +45,8 @@ const PagePicker = () => {
   const [pageToDelete, setPageToDelete] = React.useState<Page | null>(null);
   const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
 
-  const apiClient = useApiClient();
-  const { data: pages } = useQuery(pageQueries.list(apiClient));
+  const apiClient = getApiClient();
+  const { data: pages } = useQuery(pageQueries.list());
   const { pathname } = useLocation();
   const navigate = useNavigate();
 

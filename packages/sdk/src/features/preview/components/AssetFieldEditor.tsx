@@ -6,7 +6,6 @@ import * as React from "react";
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { UploadItemRow } from "@/features/content/components/UploadProgressDrawer";
 import { type UploadItem, useFileUpload } from "@/hooks/use-file-upload";
-import { useApiClient } from "@/lib/api-client";
 import { type File, projectQueries } from "@/lib/queries";
 
 import { AssetLightbox } from "./AssetLightbox";
@@ -101,8 +100,7 @@ const SingleAssetFieldEditor = ({
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const isImage = assetType === "Image";
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const apiClient = useApiClient();
-  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
+  const { data: project } = useQuery(projectQueries.getFirst());
 
   const { uploads, uploadFiles } = useFileUpload({
     projectId: project?.id,

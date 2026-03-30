@@ -24,7 +24,7 @@ import { Copy, Pen, Settings, Trash2 } from "lucide-react";
 import * as React from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 import type { PageWithBlocks } from "@/lib/queries";
 import { formatShortcut } from "@/lib/utils";
 
@@ -59,7 +59,7 @@ const BlockActionsPopover = ({
 
   const camoxApp = useCamoxApp();
   const page = usePreviewedPage();
-  const apiClient = useApiClient();
+  const apiClient = getApiClient();
 
   const handleDeleteBlock = async (block: PageWithBlocks["blocks"][number]) => {
     try {
@@ -393,7 +393,7 @@ function useBlockActionsShortcuts() {
     (state) => state.context.selectionBreadcrumbs,
   );
 
-  const apiClient = useApiClient();
+  const apiClient = getApiClient();
 
   React.useEffect(() => {
     const actions = [

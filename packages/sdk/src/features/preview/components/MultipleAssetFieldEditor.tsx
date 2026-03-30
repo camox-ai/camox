@@ -22,7 +22,7 @@ import * as React from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { useFileUpload } from "@/hooks/use-file-upload";
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 import { type File, projectQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -146,8 +146,8 @@ const MultipleAssetFieldEditor = ({
   const contentKey = assetType === "Image" ? "image" : "file";
   const isImage = assetType === "Image";
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const apiClient = useApiClient();
-  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
+  const apiClient = getApiClient();
+  const { data: project } = useQuery(projectQueries.getFirst());
 
   const { uploads, uploadFiles } = useFileUpload({
     projectId: project?.id,

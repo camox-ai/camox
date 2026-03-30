@@ -14,7 +14,7 @@ import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
 import { trackClientEvent } from "@/lib/analytics-client";
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 import { blockQueries } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -24,12 +24,12 @@ import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
 
 const AddBlockSheet = () => {
   const [highlightedValue, setHighlightedValue] = React.useState<string>("");
-  const apiClient = useApiClient();
+  const apiClient = getApiClient();
   const availableBlocks = useCamoxApp()
     .getBlocks()
     .filter((b) => !b.layoutOnly);
   const page = usePreviewedPage();
-  const { data: totalCounts = {} } = useQuery(blockQueries.getUsageCounts(apiClient));
+  const { data: totalCounts = {} } = useQuery(blockQueries.getUsageCounts());
 
   const pageCounts = React.useMemo(() => {
     const counts: Record<string, number> = {};

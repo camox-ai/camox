@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Globe, Settings, Users } from "lucide-react";
 import * as React from "react";
 
-import { useApiClient } from "@/lib/api-client";
 import { AuthContext } from "@/lib/auth";
 import { projectQueries } from "@/lib/queries";
 
@@ -67,8 +66,7 @@ const Favicon = ({ size = 16 }: { size?: number }) => {
 export const ProjectMenu = () => {
   const [open, setOpen] = React.useState(false);
   const authCtx = React.useContext(AuthContext);
-  const apiClient = useApiClient();
-  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
+  const { data: project } = useQuery(projectQueries.getFirst());
 
   if (!project) {
     return (

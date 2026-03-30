@@ -10,7 +10,7 @@ import { Check, Download, FileIcon, Link, Loader2, Trash2, X } from "lucide-reac
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 import { fileQueries } from "@/lib/queries";
 
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
@@ -59,9 +59,9 @@ interface AssetLightboxProps {
 }
 
 const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
-  const apiClient = useApiClient();
-  const { data: file } = useQuery(fileQueries.get(apiClient, fileId));
-  const { data: usageCount } = useQuery(fileQueries.getUsageCount(apiClient, fileId));
+  const apiClient = getApiClient();
+  const { data: file } = useQuery(fileQueries.get(fileId));
+  const { data: usageCount } = useQuery(fileQueries.getUsageCount(fileId));
   const [uploadState, setUploadState] = useState<{
     status: "uploading" | "committing" | "complete" | "error";
     progress: number;

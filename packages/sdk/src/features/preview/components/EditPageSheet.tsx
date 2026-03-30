@@ -18,7 +18,7 @@ import { Globe, Info } from "lucide-react";
 import * as React from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
-import { useApiClient } from "@/lib/api-client";
+import { getApiClient } from "@/lib/api-client";
 import type { Page } from "@/lib/queries";
 import { blockQueries, layoutQueries, pageQueries, projectQueries } from "@/lib/queries";
 import { formatPathSegment } from "@/lib/utils";
@@ -38,14 +38,14 @@ const EditPageSheet = () => {
 };
 
 const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
-  const apiClient = useApiClient();
-  const { data: livePage } = useQuery(pageQueries.getById(apiClient, pageToEdit.id));
+  const apiClient = getApiClient();
+  const { data: livePage } = useQuery(pageQueries.getById(pageToEdit.id));
   const page = livePage ?? pageToEdit;
   const isRootPage = page.fullPath === "/";
-  const { data: pages } = useQuery(pageQueries.list(apiClient));
-  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
+  const { data: pages } = useQuery(pageQueries.list());
+  const { data: project } = useQuery(projectQueries.getFirst());
   const { data: layouts } = useQuery({
-    ...layoutQueries.list(apiClient, project?.id ?? 0),
+    ...layoutQueries.list(project?.id ?? 0),
     enabled: !!project,
   });
   const camoxApp = useCamoxApp();
@@ -396,8 +396,7 @@ const PageMarkdownPreview = ({
   metaTitle: string;
   metaDescription: string;
 }) => {
-  const apiClient = useApiClient();
-  const { data: markdown } = useQuery(blockQueries.getPageMarkdown(apiClient, pageId));
+  const { data: markdown } = useQuery(blockQueries.getPageMarkdown(pageId));
   if (markdown === undefined) {
     return (
       <div className="text-muted-foreground flex items-center gap-2 py-2 text-sm">
