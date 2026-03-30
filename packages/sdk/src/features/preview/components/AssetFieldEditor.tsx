@@ -1,11 +1,13 @@
 import { Button } from "@camox/ui/button";
+import { useQuery } from "@tanstack/react-query";
 import { FileIcon, Upload } from "lucide-react";
 import * as React from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { UploadItemRow } from "@/features/content/components/UploadProgressDrawer";
 import { type UploadItem, useFileUpload } from "@/hooks/use-file-upload";
-import type { File } from "@/lib/queries";
+import { useApiClient } from "@/lib/api-client";
+import { type File, projectQueries } from "@/lib/queries";
 
 import { AssetLightbox } from "./AssetLightbox";
 import { AssetPickerGrid } from "./AssetPickerGrid";
@@ -99,8 +101,11 @@ const SingleAssetFieldEditor = ({
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const isImage = assetType === "Image";
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const apiClient = useApiClient();
+  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
 
   const { uploads, uploadFiles } = useFileUpload({
+    projectId: project?.id,
     onFileCommitted: (result) => {
       onFieldChange(fieldName, {
         url: result.url,

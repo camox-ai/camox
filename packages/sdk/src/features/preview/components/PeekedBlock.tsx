@@ -1,5 +1,4 @@
 import { useSelector } from "@xstate/store/react";
-import type { Id } from "camox/server/dataModel";
 import * as React from "react";
 
 import type { Block } from "../../../core/createBlock";
@@ -119,7 +118,7 @@ export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
         {/*<div style={{ opacity: 0.5, background: "var(--background)" }}>*/}
         <displayedBlock.Component
           blockData={{
-            _id: "__preview__" as Id<"blocks">,
+            _id: "__preview__",
             type: displayedBlock.id,
             content: normalizedContent,
             settings: displayedBlock.getInitialSettings(),

@@ -1,4 +1,3 @@
-import type { Id } from "camox/server/dataModel";
 import {
   Type as TypeIcon,
   List as ListIcon,
@@ -23,7 +22,7 @@ type FieldLabelMeta = {
 };
 
 type TreeDoubleClickParams = {
-  blockId: Id<"blocks">;
+  blockId: string;
   fieldName: string;
 };
 

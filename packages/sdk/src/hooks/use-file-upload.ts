@@ -1,22 +1,20 @@
 "use client";
 
-import { api } from "camox/server/api";
-import { useMutation } from "convex/react";
 import { useCallback, useRef, useState } from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
-import { useConvexToken } from "@/lib/auth";
-import { FS_PREFIX, getSiteUrl } from "@/lib/convex-site";
+import { useApiClient } from "@/lib/api-client";
 
 export interface UploadItem {
   id: string;
   filename: string;
   progress: number;
-  status: "uploading" | "committing" | "complete" | "error";
+  status: "uploading" | "complete" | "error";
   error?: string;
 }
 
 interface UseFileUploadOptions {
+  projectId?: number;
   onFileCommitted?: (result: {
     fileId: string;
     url: string;
@@ -27,19 +25,22 @@ interface UseFileUploadOptions {
 
 export function useFileUpload(options?: UseFileUploadOptions) {
   const [uploads, setUploads] = useState<UploadItem[]>([]);
-  const commitFile = useMutation(api.files.commitFile);
-  const getToken = useConvexToken();
-  const siteUrl = getSiteUrl();
+  const apiClient = useApiClient();
   const nextId = useRef(0);
+  const projectIdRef = useRef(options?.projectId);
+  projectIdRef.current = options?.projectId;
   const onFileCommittedRef = useRef(options?.onFileCommitted);
   onFileCommittedRef.current = options?.onFileCommitted;
 
   const uploadSingleFile = useCallback(
     async (file: File, itemId: string) => {
-      const token = await getToken();
-
-      // Upload blob with XHR for progress tracking
-      const blobId = await new Promise<string>((resolve, reject) => {
+      // Upload via XHR for progress tracking
+      const result = await new Promise<{
+        id: number;
+        url: string;
+        filename: string;
+        mimeType: string;
+      }>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
 
         xhr.upload.addEventListener("progress", (event) => {
@@ -51,8 +52,7 @@ export function useFileUpload(options?: UseFileUploadOptions) {
         xhr.addEventListener("load", () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
-              const response = JSON.parse(xhr.responseText);
-              resolve(response.blobId);
+              resolve(JSON.parse(xhr.responseText));
             } catch {
               reject(new Error("Invalid response from upload"));
             }
@@ -65,28 +65,22 @@ export function useFileUpload(options?: UseFileUploadOptions) {
           reject(new Error("Upload failed"));
         });
 
-        xhr.open("POST", `${siteUrl}${FS_PREFIX}/upload`);
-        xhr.setRequestHeader("Content-Type", file.type);
-        if (token) {
-          xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-        }
-        xhr.send(file);
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("projectId", String(projectIdRef.current ?? 0));
+
+        const uploadUrl = apiClient.files.upload.$url().toString();
+        xhr.open("POST", uploadUrl);
+        xhr.withCredentials = true;
+        xhr.send(formData);
       });
 
-      // Commit file record
-      setUploads((prev) =>
-        prev.map((u) => (u.id === itemId ? { ...u, status: "committing" as const } : u)),
-      );
-
-      const result = await commitFile({
-        blobId,
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-        siteUrl,
+      onFileCommittedRef.current?.({
+        fileId: String(result.id),
+        url: result.url,
+        filename: result.filename,
+        mimeType: result.mimeType,
       });
-
-      onFileCommittedRef.current?.(result);
       trackClientEvent("file_uploaded", { mimeType: file.type });
 
       setUploads((prev) =>
@@ -100,7 +94,7 @@ export function useFileUpload(options?: UseFileUploadOptions) {
         setUploads((prev) => prev.filter((u) => u.id !== itemId));
       }, 2000);
     },
-    [siteUrl, commitFile, getToken],
+    [apiClient],
   );
 
   const uploadFiles = useCallback(

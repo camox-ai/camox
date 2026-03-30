@@ -18,16 +18,12 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import * as Accordion from "@radix-ui/react-accordion";
-import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/server/api";
-import type { Id } from "camox/server/dataModel";
-import { useMutation } from "convex/react";
-import { generateKeyBetween } from "fractional-indexing";
 import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react";
 import * as React from "react";
 
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
+import { useApiClient } from "@/lib/api-client";
 import type { PageWithBlocks } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -508,54 +504,10 @@ const PageTree = () => {
   );
   // Get the block ID from breadcrumbs for selection state
   const focusedBlockId = selectionBreadcrumbs[0]?.id ?? null;
-  const { pathname } = useLocation();
   const page = usePreviewedPage();
   const camoxApp = useCamoxApp();
 
-  const updatePositionMutation = useMutation(api.blocks.updateBlockPosition).withOptimisticUpdate(
-    (localStore, args) => {
-      // Get the current page data
-      const currentPage = localStore.getQuery(api.pages.getPage, {
-        fullPath: pathname,
-      });
-
-      if (!currentPage) return;
-
-      // Find the block being moved
-      const blockIndex = currentPage.blocks.findIndex((block) => block._id === args.blockId);
-
-      if (blockIndex === -1) return;
-
-      const block = currentPage.blocks[blockIndex];
-
-      // Calculate the new position
-      const newPosition = generateKeyBetween(
-        args.afterPosition ?? null,
-        args.beforePosition ?? null,
-      );
-
-      // Update the block's position
-      const updatedBlock = { ...block, position: newPosition };
-
-      // Create new array with updated block
-      const newBlocks = [...currentPage.blocks];
-      newBlocks[blockIndex] = updatedBlock;
-
-      // Re-sort the blocks by position
-      newBlocks.sort((a, b) => {
-        if (a.position < b.position) return -1;
-        if (a.position > b.position) return 1;
-        return 0;
-      });
-
-      // Update the page in the local store
-      localStore.setQuery(
-        api.pages.getPage,
-        { fullPath: pathname },
-        { ...currentPage, blocks: newBlocks },
-      );
-    },
-  );
+  const apiClient = useApiClient();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -602,10 +554,12 @@ const PageTree = () => {
       beforePosition = page.blocks[newIndex].position;
     }
 
-    await updatePositionMutation({
-      blockId: active.id as Id<"blocks">,
-      afterPosition,
-      beforePosition,
+    await apiClient.blocks.updatePosition.$post({
+      json: {
+        id: Number(active.id),
+        afterPosition,
+        beforePosition,
+      },
     });
   };
 

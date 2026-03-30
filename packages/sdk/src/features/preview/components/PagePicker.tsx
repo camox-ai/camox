@@ -24,8 +24,6 @@ import { toast } from "@camox/ui/toaster";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/server/api";
-import { useMutation } from "convex/react";
 import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
 import * as React from "react";
 
@@ -49,14 +47,14 @@ const PagePicker = () => {
 
   const apiClient = useApiClient();
   const { data: pages } = useQuery(pageQueries.list(apiClient));
-  const deletePage = useMutation(api.pages.deletePage);
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
   const handleDeletePage = async (page: Page) => {
     const displayName = page.metaTitle ?? formatPathSegment(page.pathSegment);
     try {
-      await deletePage({ pageId: page.id });
+      const res = await apiClient.pages.delete.$post({ json: { id: page.id } });
+      if (!res.ok) throw new Error("Failed to delete page");
       toast.success(`Deleted ${displayName} page`);
 
       if (pathname === page.fullPath) {

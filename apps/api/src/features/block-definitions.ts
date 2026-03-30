@@ -4,7 +4,7 @@ import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { getAuthorizedProject, requireOrg } from "../authorization";
+import { getAuthorizedProject } from "../authorization";
 import type { AppEnv } from "../types";
 import { projects } from "./projects";
 
@@ -69,7 +69,6 @@ export const blockDefinitionRoutes = new Hono<AppEnv>()
     return c.json(result);
   })
   // Protected routes
-  .use(requireOrg)
   .post("/sync", zValidator("json", syncSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { projectId, definitions } = c.req.valid("json");

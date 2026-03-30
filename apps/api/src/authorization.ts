@@ -18,17 +18,22 @@ export const requireOrg = createMiddleware<AppEnv>(async (c, next) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
+  // Try activeOrganizationId first, fall back to the user's sole membership
   const activeOrgId = c.var.session?.activeOrganizationId;
-  if (!activeOrgId) {
-    return c.json({ error: "No active organization" }, 403);
-  }
 
-  const result = await c.var.db
-    .select({ slug: organizationTable.slug })
-    .from(member)
-    .innerJoin(organizationTable, eq(organizationTable.id, member.organizationId))
-    .where(and(eq(member.organizationId, activeOrgId), eq(member.userId, c.var.user.id)))
-    .get();
+  const result = activeOrgId
+    ? await c.var.db
+        .select({ slug: organizationTable.slug })
+        .from(member)
+        .innerJoin(organizationTable, eq(organizationTable.id, member.organizationId))
+        .where(and(eq(member.organizationId, activeOrgId), eq(member.userId, c.var.user.id)))
+        .get()
+    : await c.var.db
+        .select({ slug: organizationTable.slug })
+        .from(member)
+        .innerJoin(organizationTable, eq(organizationTable.id, member.organizationId))
+        .where(eq(member.userId, c.var.user.id))
+        .get();
 
   if (!result?.slug) {
     return c.json({ error: "Forbidden" }, 403);
