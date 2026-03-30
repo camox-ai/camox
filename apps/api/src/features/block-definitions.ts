@@ -1,11 +1,10 @@
-import { zValidator } from "@hono/zod-validator";
+import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
-import { Hono } from "hono";
 import { z } from "zod";
 
 import { getAuthorizedProject } from "../authorization";
-import type { AppEnv } from "../types";
+import { authed, pub } from "../orpc";
 import { projects } from "./projects";
 
 // --- Schema ---
@@ -32,7 +31,7 @@ export const blockDefinitions = sqliteTable(
   ],
 );
 
-// --- Routes ---
+// --- Procedures ---
 
 const definitionSchema = z.object({
   projectId: z.number(),
@@ -58,135 +57,128 @@ const syncSchema = z.object({
   ),
 });
 
-export const blockDefinitionRoutes = new Hono<AppEnv>()
-  // Public routes (no auth required)
-  .get("/list", zValidator("query", z.object({ projectId: z.coerce.number() })), async (c) => {
-    const { projectId } = c.req.valid("query");
-    const result = await c.var.db
-      .select()
-      .from(blockDefinitions)
-      .where(eq(blockDefinitions.projectId, projectId));
-    return c.json(result);
-  })
-  // Protected routes
-  .post("/sync", zValidator("json", syncSchema), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { projectId, definitions } = c.req.valid("json");
-    const project = await getAuthorizedProject(c.var.db, projectId, orgSlug);
-    if (!project) return c.json({ error: "Not found" }, 404);
-    const now = Date.now();
-    const results = [];
+const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ context, input }) => {
+  const result = await context.db
+    .select()
+    .from(blockDefinitions)
+    .where(eq(blockDefinitions.projectId, input.projectId));
+  return result;
+});
 
-    for (const def of definitions) {
-      const existing = await c.var.db
-        .select()
-        .from(blockDefinitions)
-        .where(
-          and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, def.blockId)),
-        )
-        .get();
+const sync = authed.input(syncSchema).handler(async ({ context, input }) => {
+  const { projectId, definitions } = input;
+  const project = await getAuthorizedProject(context.db, projectId, context.orgSlug);
+  if (!project) throw new ORPCError("NOT_FOUND");
+  const now = Date.now();
+  const results = [];
 
-      if (existing) {
-        const updated = await c.var.db
-          .update(blockDefinitions)
-          .set({
-            title: def.title,
-            description: def.description,
-            contentSchema: def.contentSchema,
-            settingsSchema: def.settingsSchema ?? null,
-            layoutOnly: def.layoutOnly ?? null,
-            updatedAt: now,
-          })
-          .where(eq(blockDefinitions.id, existing.id))
-          .returning()
-          .get();
-        results.push(updated);
-      } else {
-        const created = await c.var.db
-          .insert(blockDefinitions)
-          .values({
-            projectId,
-            blockId: def.blockId,
-            title: def.title,
-            description: def.description,
-            contentSchema: def.contentSchema,
-            settingsSchema: def.settingsSchema ?? null,
-            layoutOnly: def.layoutOnly ?? null,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .returning()
-          .get();
-        results.push(created);
-      }
-    }
-
-    return c.json(results);
-  })
-  .post("/upsert", zValidator("json", definitionSchema), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const body = c.req.valid("json");
-    const project = await getAuthorizedProject(c.var.db, body.projectId, orgSlug);
-    if (!project) return c.json({ error: "Not found" }, 404);
-    const now = Date.now();
-
-    const existing = await c.var.db
+  for (const def of definitions) {
+    const existing = await context.db
       .select()
       .from(blockDefinitions)
       .where(
-        and(
-          eq(blockDefinitions.projectId, body.projectId),
-          eq(blockDefinitions.blockId, body.blockId),
-        ),
+        and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, def.blockId)),
       )
       .get();
 
     if (existing) {
-      const result = await c.var.db
+      const updated = await context.db
         .update(blockDefinitions)
         .set({
-          title: body.title,
-          description: body.description,
-          contentSchema: body.contentSchema,
-          settingsSchema: body.settingsSchema ?? null,
-          layoutOnly: body.layoutOnly ?? null,
+          title: def.title,
+          description: def.description,
+          contentSchema: def.contentSchema,
+          settingsSchema: def.settingsSchema ?? null,
+          layoutOnly: def.layoutOnly ?? null,
           updatedAt: now,
         })
         .where(eq(blockDefinitions.id, existing.id))
         .returning()
         .get();
-      return c.json(result);
-    }
-
-    const result = await c.var.db
-      .insert(blockDefinitions)
-      .values({
-        ...body,
-        settingsSchema: body.settingsSchema ?? null,
-        layoutOnly: body.layoutOnly ?? null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning()
-      .get();
-    return c.json(result, 201);
-  })
-  .post(
-    "/delete",
-    zValidator("json", z.object({ projectId: z.number(), blockId: z.string() })),
-    async (c) => {
-      const orgSlug = c.var.orgSlug!;
-      const { projectId, blockId } = c.req.valid("json");
-      const project = await getAuthorizedProject(c.var.db, projectId, orgSlug);
-      if (!project) return c.json({ error: "Not found" }, 404);
-      const result = await c.var.db
-        .delete(blockDefinitions)
-        .where(
-          and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, blockId)),
-        )
+      results.push(updated);
+    } else {
+      const created = await context.db
+        .insert(blockDefinitions)
+        .values({
+          projectId,
+          blockId: def.blockId,
+          title: def.title,
+          description: def.description,
+          contentSchema: def.contentSchema,
+          settingsSchema: def.settingsSchema ?? null,
+          layoutOnly: def.layoutOnly ?? null,
+          createdAt: now,
+          updatedAt: now,
+        })
         .returning()
         .get();
-      if (!result) return c.json({ error: "Not found" }, 404);
-      return c.json(result);
-    },
-  );
+      results.push(created);
+    }
+  }
+
+  return results;
+});
+
+const upsert = authed.input(definitionSchema).handler(async ({ context, input }) => {
+  const project = await getAuthorizedProject(context.db, input.projectId, context.orgSlug);
+  if (!project) throw new ORPCError("NOT_FOUND");
+  const now = Date.now();
+
+  const existing = await context.db
+    .select()
+    .from(blockDefinitions)
+    .where(
+      and(
+        eq(blockDefinitions.projectId, input.projectId),
+        eq(blockDefinitions.blockId, input.blockId),
+      ),
+    )
+    .get();
+
+  if (existing) {
+    const result = await context.db
+      .update(blockDefinitions)
+      .set({
+        title: input.title,
+        description: input.description,
+        contentSchema: input.contentSchema,
+        settingsSchema: input.settingsSchema ?? null,
+        layoutOnly: input.layoutOnly ?? null,
+        updatedAt: now,
+      })
+      .where(eq(blockDefinitions.id, existing.id))
+      .returning()
+      .get();
+    return result;
+  }
+
+  const result = await context.db
+    .insert(blockDefinitions)
+    .values({
+      ...input,
+      settingsSchema: input.settingsSchema ?? null,
+      layoutOnly: input.layoutOnly ?? null,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+    .get();
+  return result;
+});
+
+const deleteFn = authed
+  .input(z.object({ projectId: z.number(), blockId: z.string() }))
+  .handler(async ({ context, input }) => {
+    const { projectId, blockId } = input;
+    const project = await getAuthorizedProject(context.db, projectId, context.orgSlug);
+    if (!project) throw new ORPCError("NOT_FOUND");
+    const result = await context.db
+      .delete(blockDefinitions)
+      .where(and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, blockId)))
+      .returning()
+      .get();
+    if (!result) throw new ORPCError("NOT_FOUND");
+    return result;
+  });
+
+export const blockDefinitionProcedures = { list, sync, upsert, delete: deleteFn };

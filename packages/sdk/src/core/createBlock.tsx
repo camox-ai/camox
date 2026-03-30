@@ -13,7 +13,7 @@ import { createPortal } from "react-dom";
 
 import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet.tsx";
 import { getApiClient } from "@/lib/api-client";
-import { pageQueries } from "@/lib/queries";
+import { type Page, pageQueries } from "@/lib/queries";
 
 import {
   OVERLAY_WIDTHS,
@@ -433,13 +433,15 @@ export function createBlock<
         if (repeaterContext) {
           const { itemId } = repeaterContext;
           if (itemId) {
-            apiClient.repeatableItems.updateContent.$post({
-              json: { id: Number(itemId), content: { [name]: newValue } },
+            apiClient.repeatableItems.updateContent({
+              id: Number(itemId),
+              content: { [name]: newValue },
             });
           }
         } else {
-          apiClient.blocks.updateContent.$post({
-            json: { id: Number(blockId), content: { [name]: newValue } },
+          apiClient.blocks.updateContent({
+            id: Number(blockId),
+            content: { [name]: newValue },
           });
         }
       },
@@ -599,16 +601,19 @@ export function createBlock<
             ...nestedArray[nestedIndex],
             [name]: newValue,
           };
-          apiClient.repeatableItems.updateContent.$post({
-            json: { id: Number(parentItemId), content: { [nestedFieldName]: nestedArray } },
+          apiClient.repeatableItems.updateContent({
+            id: Number(parentItemId),
+            content: { [nestedFieldName]: nestedArray },
           });
         } else if (repeaterContext?.itemId) {
-          apiClient.repeatableItems.updateContent.$post({
-            json: { id: Number(repeaterContext.itemId), content: { [name]: newValue } },
+          apiClient.repeatableItems.updateContent({
+            id: Number(repeaterContext.itemId),
+            content: { [name]: newValue },
           });
         } else {
-          apiClient.blocks.updateContent.$post({
-            json: { id: Number(blockId), content: { [name]: newValue } },
+          apiClient.blocks.updateContent({
+            id: Number(blockId),
+            content: { [name]: newValue },
           });
         }
       }, 500);
@@ -726,7 +731,7 @@ export function createBlock<
     const fieldValue = normalizeLinkValue(rawFieldValue as unknown as Record<string, unknown>);
     const apiClient = getApiClient();
     const { data: pages } = useQuery(pageQueries.list());
-    const resolvedHref = resolveLinkHref(fieldValue, pages);
+    const resolvedHref = resolveLinkHref(fieldValue, pages as Page[] | undefined);
 
     const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));
 
@@ -773,16 +778,19 @@ export function createBlock<
           ...nestedArray[nestedIndex],
           [name]: newLinkValue,
         };
-        apiClient.repeatableItems.updateContent.$post({
-          json: { id: Number(parentItemId), content: { [nestedFieldName]: nestedArray } },
+        apiClient.repeatableItems.updateContent({
+          id: Number(parentItemId),
+          content: { [nestedFieldName]: nestedArray },
         });
       } else if (repeaterContext?.itemId) {
-        apiClient.repeatableItems.updateContent.$post({
-          json: { id: Number(repeaterContext.itemId), content: { [name]: newLinkValue } },
+        apiClient.repeatableItems.updateContent({
+          id: Number(repeaterContext.itemId),
+          content: { [name]: newLinkValue },
         });
       } else {
-        apiClient.blocks.updateContent.$post({
-          json: { id: Number(blockId), content: { [name]: newLinkValue } },
+        apiClient.blocks.updateContent({
+          id: Number(blockId),
+          content: { [name]: newLinkValue },
         });
       }
     };

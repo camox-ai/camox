@@ -1,11 +1,10 @@
-import { zValidator } from "@hono/zod-validator";
+import { ORPCError } from "@orpc/server";
 import { eq } from "drizzle-orm";
 import { int, sqliteTable, text, index, uniqueIndex } from "drizzle-orm/sqlite-core";
-import { Hono } from "hono";
 import { z } from "zod";
 
 import { getAuthorizedProject } from "../authorization";
-import type { AppEnv } from "../types";
+import { authed, pub } from "../orpc";
 
 // --- Schema ---
 
@@ -28,7 +27,7 @@ export const projects = sqliteTable(
   ],
 );
 
-// --- Routes ---
+// --- Procedures ---
 
 const createProjectSchema = z.object({
   slug: z.string(),
@@ -44,66 +43,78 @@ const updateProjectSchema = z.object({
   domain: z.string(),
 });
 
-export const projectRoutes = new Hono<AppEnv>()
-  // Public routes (no auth required)
-  .get("/list", async (c) => {
-    const result = await c.var.db.select().from(projects);
-    return c.json(result);
-  })
-  .get("/getFirst", async (c) => {
-    const result = await c.var.db.select().from(projects).limit(1).get();
-    if (!result) return c.json({ error: "Not found" }, 404);
-    return c.json(result);
-  })
-  .get("/getBySlug", zValidator("query", z.object({ slug: z.string() })), async (c) => {
-    const { slug } = c.req.valid("query");
-    const result = await c.var.db.select().from(projects).where(eq(projects.slug, slug)).get();
-    if (!result) return c.json({ error: "Not found" }, 404);
-    return c.json(result);
-  })
-  .get("/get", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
-    const { id } = c.req.valid("query");
-    const result = await c.var.db.select().from(projects).where(eq(projects.id, id)).get();
-    if (!result) return c.json({ error: "Not found" }, 404);
-    return c.json(result);
-  })
-  // Protected routes
-  .post("/create", zValidator("json", createProjectSchema), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const body = c.req.valid("json");
-    if (body.organizationSlug !== orgSlug) {
-      return c.json({ error: "Not found" }, 404);
-    }
-    const now = Date.now();
-    const result = await c.var.db
-      .insert(projects)
-      .values({ ...body, createdAt: now, updatedAt: now })
+const list = pub.handler(async ({ context }) => {
+  const result = await context.db.select().from(projects);
+  return result;
+});
+
+const getFirst = pub.handler(async ({ context }) => {
+  const result = await context.db.select().from(projects).limit(1).get();
+  if (!result) throw new ORPCError("NOT_FOUND");
+  return result;
+});
+
+const getBySlug = pub.input(z.object({ slug: z.string() })).handler(async ({ context, input }) => {
+  const result = await context.db
+    .select()
+    .from(projects)
+    .where(eq(projects.slug, input.slug))
+    .get();
+  if (!result) throw new ORPCError("NOT_FOUND");
+  return result;
+});
+
+const get = pub.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
+  const result = await context.db.select().from(projects).where(eq(projects.id, input.id)).get();
+  if (!result) throw new ORPCError("NOT_FOUND");
+  return result;
+});
+
+const create = authed.input(createProjectSchema).handler(async ({ context, input }) => {
+  if (input.organizationSlug !== context.orgSlug) {
+    throw new ORPCError("NOT_FOUND");
+  }
+  const now = Date.now();
+  const result = await context.db
+    .insert(projects)
+    .values({ ...input, createdAt: now, updatedAt: now })
+    .returning()
+    .get();
+  return result;
+});
+
+const update = authed
+  .input(updateProjectSchema.extend({ id: z.number() }))
+  .handler(async ({ context, input }) => {
+    const { id, ...body } = input;
+    const project = await getAuthorizedProject(context.db, id, context.orgSlug);
+    if (!project) throw new ORPCError("NOT_FOUND");
+    const result = await context.db
+      .update(projects)
+      .set({ ...body, updatedAt: Date.now() })
+      .where(eq(projects.id, id))
       .returning()
       .get();
-    return c.json(result, 201);
-  })
-  .post(
-    "/update",
-    zValidator("json", updateProjectSchema.extend({ id: z.number() })),
-    async (c) => {
-      const orgSlug = c.var.orgSlug!;
-      const { id, ...body } = c.req.valid("json");
-      const project = await getAuthorizedProject(c.var.db, id, orgSlug);
-      if (!project) return c.json({ error: "Not found" }, 404);
-      const result = await c.var.db
-        .update(projects)
-        .set({ ...body, updatedAt: Date.now() })
-        .where(eq(projects.id, id))
-        .returning()
-        .get();
-      return c.json(result);
-    },
-  )
-  .post("/delete", zValidator("json", z.object({ id: z.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id } = c.req.valid("json");
-    const project = await getAuthorizedProject(c.var.db, id, orgSlug);
-    if (!project) return c.json({ error: "Not found" }, 404);
-    const result = await c.var.db.delete(projects).where(eq(projects.id, id)).returning().get();
-    return c.json(result);
+    return result;
   });
+
+const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
+  const project = await getAuthorizedProject(context.db, input.id, context.orgSlug);
+  if (!project) throw new ORPCError("NOT_FOUND");
+  const result = await context.db
+    .delete(projects)
+    .where(eq(projects.id, input.id))
+    .returning()
+    .get();
+  return result;
+});
+
+export const projectProcedures = {
+  list,
+  getFirst,
+  getBySlug,
+  get,
+  create,
+  update,
+  delete: deleteFn,
+};

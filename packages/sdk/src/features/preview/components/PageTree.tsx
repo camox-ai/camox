@@ -554,12 +554,10 @@ const PageTree = () => {
       beforePosition = page.blocks[newIndex].position;
     }
 
-    await apiClient.blocks.updatePosition.$post({
-      json: {
-        id: Number(active.id),
-        afterPosition,
-        beforePosition,
-      },
+    await apiClient.blocks.updatePosition({
+      id: Number(active.id),
+      afterPosition,
+      beforePosition,
     });
   };
 

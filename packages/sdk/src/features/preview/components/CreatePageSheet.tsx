@@ -49,14 +49,12 @@ const CreatePageSheet = () => {
           return;
         }
 
-        const createPagePromise = apiClient.pages.create.$post({
-          json: {
-            projectId: project.id,
-            pathSegment: values.value.pathSegment,
-            parentPageId: values.value.parentPageId,
-            layoutId: Number(values.value.layoutId),
-            contentDescription: values.value.contentDescription || undefined,
-          },
+        const createPagePromise = apiClient.pages.create({
+          projectId: project.id,
+          pathSegment: values.value.pathSegment,
+          parentPageId: values.value.parentPageId,
+          layoutId: Number(values.value.layoutId),
+          contentDescription: values.value.contentDescription || undefined,
         });
 
         toast.promise(createPagePromise, {
@@ -65,9 +63,7 @@ const CreatePageSheet = () => {
           error: "Failed to create page",
         });
 
-        const res = await createPagePromise;
-        if (!res.ok) throw new Error("Failed to create page");
-        const { fullPath } = await res.json();
+        const { fullPath } = await createPagePromise;
         trackClientEvent("page_created", {
           projectId: project.id,
           pathSegment: values.value.pathSegment,

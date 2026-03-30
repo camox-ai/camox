@@ -152,18 +152,16 @@ const MultipleAssetFieldEditor = ({
   const { uploads, uploadFiles } = useFileUpload({
     projectId: project?.id,
     onFileCommitted: (result) => {
-      apiClient.repeatableItems.create.$post({
-        json: {
-          blockId: Number(blockId),
-          fieldName,
-          content: {
-            [contentKey]: {
-              url: result.url,
-              alt: "",
-              filename: result.filename,
-              mimeType: result.mimeType,
-              _fileId: result.fileId,
-            },
+      apiClient.repeatableItems.create({
+        blockId: Number(blockId),
+        fieldName,
+        content: {
+          [contentKey]: {
+            url: result.url,
+            alt: "",
+            filename: result.filename,
+            mimeType: result.mimeType,
+            _fileId: result.fileId,
           },
         },
       });
@@ -207,13 +205,15 @@ const MultipleAssetFieldEditor = ({
       beforePosition = dbItems[newIndex].position;
     }
 
-    await apiClient.repeatableItems.updatePosition.$post({
-      json: { id: Number(active.id), afterPosition, beforePosition },
+    await apiClient.repeatableItems.updatePosition({
+      id: Number(active.id),
+      afterPosition,
+      beforePosition,
     });
   };
 
   const handleRemove = (itemId: string) => {
-    apiClient.repeatableItems.delete.$post({ json: { id: Number(itemId) } });
+    apiClient.repeatableItems.delete({ id: Number(itemId) });
   };
 
   const handleAssetOpen = (item: RepeatableItem) => {
@@ -222,18 +222,16 @@ const MultipleAssetFieldEditor = ({
 
   const handleSelectMultiple = async (files: File[]) => {
     for (const file of files) {
-      await apiClient.repeatableItems.create.$post({
-        json: {
-          blockId: Number(blockId),
-          fieldName,
-          content: {
-            [contentKey]: {
-              url: file.url,
-              alt: file.alt,
-              filename: file.filename,
-              mimeType: file.mimeType,
-              _fileId: file.id,
-            },
+      await apiClient.repeatableItems.create({
+        blockId: Number(blockId),
+        fieldName,
+        content: {
+          [contentKey]: {
+            url: file.url,
+            alt: file.alt,
+            filename: file.filename,
+            mimeType: file.mimeType,
+            _fileId: file.id,
           },
         },
       });

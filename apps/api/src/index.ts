@@ -1,23 +1,19 @@
+import { RPCHandler } from "@orpc/server/fetch";
 import { Hono } from "hono";
 import { partyserverMiddleware } from "hono-party";
 import { cors } from "hono/cors";
 
-import { requireOrg } from "./authorization";
 import { createDb } from "./db";
 import { authRoutes, createAuth } from "./features/auth";
-import { blockDefinitionRoutes } from "./features/block-definitions";
-import { blockRoutes } from "./features/blocks";
-import { fileRoutes } from "./features/files";
-import { layoutRoutes } from "./features/layouts";
-import { pageRoutes } from "./features/pages";
-import { projectRoutes } from "./features/projects";
-import { repeatableItemRoutes } from "./features/repeatable-items";
+import { fileHonoRoutes } from "./features/files";
 import { seedRoutes } from "./features/seed";
+import { router } from "./router";
 import type { AppEnv } from "./types";
 
+export type { Router } from "./router";
+
 // ---------------------------------------------------------------------------
-// Middleware (registered via app.use, not chained, to keep .route() chain
-// clean for RPC type inference)
+// Hono app + global middleware
 // ---------------------------------------------------------------------------
 
 const app = new Hono<AppEnv>();
@@ -74,30 +70,35 @@ app.use(
 );
 
 // ---------------------------------------------------------------------------
-// Routes (chained for Hono RPC type inference)
+// Hono routes (auth, seed, file upload/serve)
 // ---------------------------------------------------------------------------
 
-// Org auth for all POST routes except auth/seed (applied here instead of
-// inside sub-routers — createMiddleware as inline route middleware causes
-// 404s in workerd)
-const UNPROTECTED = ["/api/auth/", "/seed"];
-app.use("*", async (c, next) => {
-  if (c.req.method !== "POST") return next();
-  if (UNPROTECTED.some((p) => c.req.path.startsWith(p))) return next();
-  return requireOrg(c, next);
+app.route("/api/auth", authRoutes);
+app.route("/seed", seedRoutes);
+app.route("/files", fileHonoRoutes);
+
+// ---------------------------------------------------------------------------
+// oRPC handler (all other API procedures)
+// ---------------------------------------------------------------------------
+
+const rpcHandler = new RPCHandler(router);
+
+app.all("/rpc/*", async (c) => {
+  const { matched, response } = await rpcHandler.handle(c.req.raw, {
+    prefix: "/rpc",
+    context: {
+      db: c.var.db,
+      user: c.var.user,
+      session: c.var.session,
+      env: c.env,
+    },
+  });
+
+  if (matched) {
+    return new Response(response.body, response);
+  }
+
+  return c.notFound();
 });
 
-// Mount all sub-routes onto app via .route()
-const routes = app
-  .route("/api/auth", authRoutes)
-  .route("/seed", seedRoutes)
-  .route("/projects", projectRoutes)
-  .route("/pages", pageRoutes)
-  .route("/blocks", blockRoutes)
-  .route("/layouts", layoutRoutes)
-  .route("/files", fileRoutes)
-  .route("/repeatableItems", repeatableItemRoutes)
-  .route("/blockDefinitions", blockDefinitionRoutes);
-
-export type AppType = typeof routes;
 export default app;

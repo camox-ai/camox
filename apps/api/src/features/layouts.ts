@@ -1,12 +1,11 @@
-import { zValidator } from "@hono/zod-validator";
+import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
-import { Hono } from "hono";
 import { z } from "zod";
 
 import { getAuthorizedProject } from "../authorization";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
-import type { AppEnv } from "../types";
+import { authed, pub } from "../orpc";
 import { projects } from "./projects";
 
 // --- Schema ---
@@ -29,7 +28,7 @@ export const layouts = sqliteTable(
   ],
 );
 
-// --- Routes ---
+// --- Procedures ---
 
 const syncLayoutsSchema = z.object({
   projectId: z.number(),
@@ -49,58 +48,61 @@ const syncLayoutsSchema = z.object({
   ),
 });
 
-export const layoutRoutes = new Hono<AppEnv>()
-  // Public routes (no auth required)
-  .get("/list", zValidator("query", z.object({ projectId: z.coerce.number() })), async (c) => {
-    const { projectId } = c.req.valid("query");
-    const result = await c.var.db.select().from(layouts).where(eq(layouts.projectId, projectId));
-    return c.json(result);
-  })
-  // Protected routes
-  .post("/sync", zValidator("json", syncLayoutsSchema), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { projectId, layouts: layoutDefs } = c.req.valid("json");
-    const project = await getAuthorizedProject(c.var.db, projectId, orgSlug);
-    if (!project) return c.json({ error: "Not found" }, 404);
-    const now = Date.now();
-    const results = [];
+const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ context, input }) => {
+  const { projectId } = input;
+  return context.db.select().from(layouts).where(eq(layouts.projectId, projectId));
+});
 
-    for (const def of layoutDefs) {
-      const existing = await c.var.db
-        .select()
-        .from(layouts)
-        .where(and(eq(layouts.projectId, projectId), eq(layouts.layoutId, def.layoutId)))
+const sync = authed.input(syncLayoutsSchema).handler(async ({ context, input }) => {
+  const orgSlug = context.orgSlug;
+  const { projectId, layouts: layoutDefs } = input;
+  const project = await getAuthorizedProject(context.db, projectId, orgSlug);
+
+  if (!project) {
+    throw new ORPCError("NOT_FOUND");
+  }
+
+  const now = Date.now();
+  const results = [];
+
+  for (const def of layoutDefs) {
+    const existing = await context.db
+      .select()
+      .from(layouts)
+      .where(and(eq(layouts.projectId, projectId), eq(layouts.layoutId, def.layoutId)))
+      .get();
+
+    if (existing) {
+      const updated = await context.db
+        .update(layouts)
+        .set({ description: def.description, updatedAt: now })
+        .where(eq(layouts.id, existing.id))
+        .returning()
         .get();
-
-      if (existing) {
-        const updated = await c.var.db
-          .update(layouts)
-          .set({ description: def.description, updatedAt: now })
-          .where(eq(layouts.id, existing.id))
-          .returning()
-          .get();
-        results.push(updated);
-      } else {
-        const created = await c.var.db
-          .insert(layouts)
-          .values({
-            projectId,
-            layoutId: def.layoutId,
-            description: def.description,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .returning()
-          .get();
-        results.push(created);
-      }
-      // TODO: sync layout blocks when block creation is wired up
+      results.push(updated);
+    } else {
+      const created = await context.db
+        .insert(layouts)
+        .values({
+          projectId,
+          layoutId: def.layoutId,
+          description: def.description,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning()
+        .get();
+      results.push(created);
     }
+    // TODO: sync layout blocks when block creation is wired up
+  }
 
-    broadcastInvalidation(c.env.ProjectRoom, projectId, {
-      entity: "layout",
-      action: "updated",
-    });
-
-    return c.json(results);
+  broadcastInvalidation(context.env.ProjectRoom, projectId, {
+    entity: "layout",
+    action: "updated",
   });
+
+  return results;
+});
+
+export const layoutProcedures = { list, sync };

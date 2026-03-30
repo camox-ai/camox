@@ -16,11 +16,7 @@ function ProjectSelector() {
 
   const { data: projects } = useSuspenseQuery({
     queryKey: ["projects", "list"],
-    queryFn: async () => {
-      const res = await api.projects.list.$get();
-      if (!res.ok) throw new Error("Failed to fetch projects");
-      return res.json();
-    },
+    queryFn: () => api.projects.list(),
   });
 
   return (
@@ -49,11 +45,7 @@ function RouteComponent() {
 
   const { data: project } = useSuspenseQuery({
     queryKey: ["projects", "getBySlug", slug],
-    queryFn: async () => {
-      const res = await api.projects.getBySlug.$get({ query: { slug } });
-      if (!res.ok) throw new Error("Project not found");
-      return res.json();
-    },
+    queryFn: () => api.projects.getBySlug({ slug }),
   });
 
   const tabClass = "border-b-2 px-1 py-4 text-sm font-medium";

@@ -344,13 +344,15 @@ const RepeatableItemsList = ({
         }
       }
     }
-    apiClient.repeatableItems.create.$post({
-      json: { blockId: Number(blockId), fieldName, content: defaultContent },
+    apiClient.repeatableItems.create({
+      blockId: Number(blockId),
+      fieldName,
+      content: defaultContent,
     });
   };
 
   const handleRemoveItem = (itemId: string) => {
-    apiClient.repeatableItems.delete.$post({ json: { id: Number(itemId) } });
+    apiClient.repeatableItems.delete({ id: Number(itemId) });
   };
 
   const handleAddInlineItem = () => {
@@ -367,22 +369,18 @@ const RepeatableItemsList = ({
       }
     }
     const currentItems = items as Record<string, unknown>[];
-    apiClient.repeatableItems.updateContent.$post({
-      json: {
-        id: Number(parentItemId),
-        content: { [fieldName]: [...currentItems, defaultContent] },
-      },
+    apiClient.repeatableItems.updateContent({
+      id: Number(parentItemId),
+      content: { [fieldName]: [...currentItems, defaultContent] },
     });
   };
 
   const handleRemoveInlineItem = (index: number) => {
     if (!parentItemId) return;
     const currentItems = items as Record<string, unknown>[];
-    apiClient.repeatableItems.updateContent.$post({
-      json: {
-        id: Number(parentItemId),
-        content: { [fieldName]: currentItems.filter((_, i) => i !== index) },
-      },
+    apiClient.repeatableItems.updateContent({
+      id: Number(parentItemId),
+      content: { [fieldName]: currentItems.filter((_, i) => i !== index) },
     });
   };
 
@@ -398,8 +396,9 @@ const RepeatableItemsList = ({
     const [moved] = currentItems.splice(oldIndex, 1);
     currentItems.splice(newIndex, 0, moved);
 
-    apiClient.repeatableItems.updateContent.$post({
-      json: { id: Number(parentItemId), content: { [fieldName]: currentItems } },
+    apiClient.repeatableItems.updateContent({
+      id: Number(parentItemId),
+      content: { [fieldName]: currentItems },
     });
   };
 
@@ -443,8 +442,10 @@ const RepeatableItemsList = ({
       beforePosition = dbItems[newIndex].position;
     }
 
-    await apiClient.repeatableItems.updatePosition.$post({
-      json: { id: Number(active.id), afterPosition, beforePosition },
+    await apiClient.repeatableItems.updatePosition({
+      id: Number(active.id),
+      afterPosition,
+      beforePosition,
     });
   };
 

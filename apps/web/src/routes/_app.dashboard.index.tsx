@@ -30,11 +30,7 @@ function DashboardIndex() {
 function ProjectList() {
   const { data: projects } = useQuery({
     queryKey: ["projects", "list"],
-    queryFn: async () => {
-      const res = await api.projects.list.$get();
-      if (!res.ok) throw new Error("Failed to fetch projects");
-      return res.json();
-    },
+    queryFn: () => api.projects.list(),
   });
 
   if (!projects) return null;

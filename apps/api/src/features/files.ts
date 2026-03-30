@@ -1,4 +1,4 @@
-import { zValidator } from "@hono/zod-validator";
+import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { eq, sql } from "drizzle-orm";
@@ -7,10 +7,11 @@ import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { assertFileAccess, getAuthorizedProject } from "../authorization";
+import { assertFileAccess, getAuthorizedProject, requireOrg } from "../authorization";
 import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
+import { pub, authed } from "../orpc";
 import type { AppEnv } from "../types";
 import { blocks } from "./blocks";
 import { projects } from "./projects";
@@ -82,10 +83,156 @@ export async function executeFileMetadata(db: Database, apiKey: string, fileId: 
     .where(eq(files.id, fileId));
 }
 
-// --- Routes ---
+// --- oRPC Procedures ---
 
-export const fileRoutes = new Hono<AppEnv>()
-  // File serving (public, no auth — files must be accessible on published sites)
+const list = pub.handler(async ({ context }) => {
+  return context.db.select().from(files);
+});
+
+const get = pub.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
+  const result = await context.db.select().from(files).where(eq(files.id, input.id)).get();
+  if (!result) throw new ORPCError("NOT_FOUND");
+  return result;
+});
+
+const getUsageCount = pub
+  .input(z.object({ id: z.number() }))
+  .handler(async ({ context, input }) => {
+    const file = await context.db.select().from(files).where(eq(files.id, input.id)).get();
+    if (!file) throw new ORPCError("NOT_FOUND");
+
+    const result = await context.db
+      .select({ count: sql<number>`count(*)` })
+      .from(blocks)
+      .where(sql`INSTR(${blocks.content}, ${file.url}) > 0`)
+      .get();
+    return { count: result?.count ?? 0 };
+  });
+
+const setAlt = authed
+  .input(z.object({ id: z.number(), alt: z.string() }))
+  .handler(async ({ context, input }) => {
+    const access = await assertFileAccess(context.db, input.id, context.orgSlug);
+    if (!access) throw new ORPCError("NOT_FOUND");
+
+    const result = await context.db
+      .update(files)
+      .set({ alt: input.alt, updatedAt: Date.now() })
+      .where(eq(files.id, input.id))
+      .returning()
+      .get();
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, {
+      entity: "file",
+      action: "updated",
+      entityId: input.id,
+    });
+    return result;
+  });
+
+const setFilename = authed
+  .input(z.object({ id: z.number(), filename: z.string() }))
+  .handler(async ({ context, input }) => {
+    const access = await assertFileAccess(context.db, input.id, context.orgSlug);
+    if (!access) throw new ORPCError("NOT_FOUND");
+
+    const result = await context.db
+      .update(files)
+      .set({ filename: input.filename, updatedAt: Date.now() })
+      .where(eq(files.id, input.id))
+      .returning()
+      .get();
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, {
+      entity: "file",
+      action: "updated",
+      entityId: input.id,
+    });
+    return result;
+  });
+
+const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
+  const access = await assertFileAccess(context.db, input.id, context.orgSlug);
+  if (!access) throw new ORPCError("NOT_FOUND");
+
+  const result = await context.db.delete(files).where(eq(files.id, input.id)).returning().get();
+  broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, {
+    entity: "file",
+    action: "deleted",
+    entityId: input.id,
+  });
+  return result;
+});
+
+const replace = authed
+  .input(z.object({ id: z.number(), newFileId: z.number() }))
+  .handler(async ({ context, input }) => {
+    const oldAccess = await assertFileAccess(context.db, input.id, context.orgSlug);
+    const newAccess = await assertFileAccess(context.db, input.newFileId, context.orgSlug);
+    if (!oldAccess || !newAccess) throw new ORPCError("NOT_FOUND");
+
+    // Update all blocks that reference the old file URL
+    await context.db.run(
+      sql`UPDATE ${blocks} SET ${blocks.content} = REPLACE(CAST(${blocks.content} AS TEXT), ${oldAccess.file.url}, ${newAccess.file.url}), ${blocks.updatedAt} = ${Date.now()} WHERE INSTR(${blocks.content}, ${oldAccess.file.url}) > 0`,
+    );
+
+    broadcastInvalidation(context.env.ProjectRoom, oldAccess.file.projectId!, {
+      entity: "file",
+      action: "updated",
+      entityId: input.id,
+    });
+    return { replaced: true };
+  });
+
+const setAiMetadata = authed
+  .input(z.object({ id: z.number(), enabled: z.boolean() }))
+  .handler(async ({ context, input }) => {
+    const access = await assertFileAccess(context.db, input.id, context.orgSlug);
+    if (!access) throw new ORPCError("NOT_FOUND");
+
+    const result = await context.db
+      .update(files)
+      .set({ aiMetadataEnabled: input.enabled, updatedAt: Date.now() })
+      .where(eq(files.id, input.id))
+      .returning()
+      .get();
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, {
+      entity: "file",
+      action: "updated",
+      entityId: input.id,
+    });
+    return result;
+  });
+
+const generateMetadata = authed
+  .input(z.object({ id: z.number() }))
+  .handler(async ({ context, input }) => {
+    const access = await assertFileAccess(context.db, input.id, context.orgSlug);
+    if (!access) throw new ORPCError("NOT_FOUND");
+
+    await executeFileMetadata(context.db, context.env.OPEN_ROUTER_API_KEY, input.id);
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, {
+      entity: "file",
+      action: "updated",
+      entityId: input.id,
+    });
+    const updated = await context.db.select().from(files).where(eq(files.id, input.id)).get();
+    return updated;
+  });
+
+export const fileProcedures = {
+  list,
+  get,
+  getUsageCount,
+  setAlt,
+  setFilename,
+  delete: deleteFn,
+  replace,
+  setAiMetadata,
+  generateMetadata,
+};
+
+// --- Hono routes (binary serving + multipart upload) ---
+
+export const fileHonoRoutes = new Hono<AppEnv>()
   .get("/serve/*", async (c) => {
     const key = c.req.path.replace(/^\/files\/serve\//, "");
     if (!key) return c.json({ error: "Missing file key" }, 400);
@@ -101,32 +248,7 @@ export const fileRoutes = new Hono<AppEnv>()
       },
     });
   })
-  // Public routes (no auth required)
-  .get("/list", async (c) => {
-    const result = await c.var.db.select().from(files);
-    return c.json(result);
-  })
-  .get("/get", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
-    const { id } = c.req.valid("query");
-    const result = await c.var.db.select().from(files).where(eq(files.id, id)).get();
-    if (!result) return c.json({ error: "Not found" }, 404);
-    return c.json(result);
-  })
-  .get("/getUsageCount", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
-    const { id } = c.req.valid("query");
-    const file = await c.var.db.select().from(files).where(eq(files.id, id)).get();
-    if (!file) return c.json({ error: "Not found" }, 404);
-
-    // Count blocks that reference this file's URL in their JSON content
-    const result = await c.var.db
-      .select({ count: sql<number>`count(*)` })
-      .from(blocks)
-      .where(sql`INSTR(${blocks.content}, ${file.url}) > 0`)
-      .get();
-    return c.json({ count: result?.count ?? 0 });
-  })
-  // Protected routes
-  .post("/upload", async (c) => {
+  .post("/upload", requireOrg, async (c) => {
     const orgSlug = c.var.orgSlug!;
     const body = await c.req.parseBody();
     const file = body["file"];
@@ -178,122 +300,4 @@ export const fileRoutes = new Hono<AppEnv>()
     });
 
     return c.json(result, 201);
-  })
-  .post("/setAlt", zValidator("json", z.object({ id: z.number(), alt: z.string() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id, alt } = c.req.valid("json");
-    const access = await assertFileAccess(c.var.db, id, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
-
-    const result = await c.var.db
-      .update(files)
-      .set({ alt, updatedAt: Date.now() })
-      .where(eq(files.id, id))
-      .returning()
-      .get();
-    broadcastInvalidation(c.env.ProjectRoom, access.file.projectId!, {
-      entity: "file",
-      action: "updated",
-      entityId: id,
-    });
-    return c.json(result);
-  })
-  .post(
-    "/setFilename",
-    zValidator("json", z.object({ id: z.number(), filename: z.string() })),
-    async (c) => {
-      const orgSlug = c.var.orgSlug!;
-      const { id, filename } = c.req.valid("json");
-      const access = await assertFileAccess(c.var.db, id, orgSlug);
-      if (!access) return c.json({ error: "Not found" }, 404);
-
-      const result = await c.var.db
-        .update(files)
-        .set({ filename, updatedAt: Date.now() })
-        .where(eq(files.id, id))
-        .returning()
-        .get();
-      broadcastInvalidation(c.env.ProjectRoom, access.file.projectId!, {
-        entity: "file",
-        action: "updated",
-        entityId: id,
-      });
-      return c.json(result);
-    },
-  )
-  .post("/delete", zValidator("json", z.object({ id: z.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id } = c.req.valid("json");
-    const access = await assertFileAccess(c.var.db, id, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
-
-    const result = await c.var.db.delete(files).where(eq(files.id, id)).returning().get();
-    broadcastInvalidation(c.env.ProjectRoom, access.file.projectId!, {
-      entity: "file",
-      action: "deleted",
-      entityId: id,
-    });
-    return c.json(result);
-  })
-  .post(
-    "/replace",
-    zValidator("json", z.object({ id: z.number(), newFileId: z.number() })),
-    async (c) => {
-      const orgSlug = c.var.orgSlug!;
-      const { id, newFileId } = c.req.valid("json");
-
-      const oldAccess = await assertFileAccess(c.var.db, id, orgSlug);
-      const newAccess = await assertFileAccess(c.var.db, newFileId, orgSlug);
-      if (!oldAccess || !newAccess) return c.json({ error: "Not found" }, 404);
-
-      // Update all blocks that reference the old file URL
-      await c.var.db.run(
-        sql`UPDATE ${blocks} SET ${blocks.content} = REPLACE(CAST(${blocks.content} AS TEXT), ${oldAccess.file.url}, ${newAccess.file.url}), ${blocks.updatedAt} = ${Date.now()} WHERE INSTR(${blocks.content}, ${oldAccess.file.url}) > 0`,
-      );
-
-      broadcastInvalidation(c.env.ProjectRoom, oldAccess.file.projectId!, {
-        entity: "file",
-        action: "updated",
-        entityId: id,
-      });
-      return c.json({ replaced: true });
-    },
-  )
-  .post(
-    "/setAiMetadata",
-    zValidator("json", z.object({ id: z.number(), enabled: z.boolean() })),
-    async (c) => {
-      const orgSlug = c.var.orgSlug!;
-      const { id, enabled } = c.req.valid("json");
-      const access = await assertFileAccess(c.var.db, id, orgSlug);
-      if (!access) return c.json({ error: "Not found" }, 404);
-
-      const result = await c.var.db
-        .update(files)
-        .set({ aiMetadataEnabled: enabled, updatedAt: Date.now() })
-        .where(eq(files.id, id))
-        .returning()
-        .get();
-      broadcastInvalidation(c.env.ProjectRoom, access.file.projectId!, {
-        entity: "file",
-        action: "updated",
-        entityId: id,
-      });
-      return c.json(result);
-    },
-  )
-  .post("/generateMetadata", zValidator("json", z.object({ id: z.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id } = c.req.valid("json");
-    const access = await assertFileAccess(c.var.db, id, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
-
-    await executeFileMetadata(c.var.db, c.env.OPEN_ROUTER_API_KEY, id);
-    broadcastInvalidation(c.env.ProjectRoom, access.file.projectId!, {
-      entity: "file",
-      action: "updated",
-      entityId: id,
-    });
-    const updated = await c.var.db.select().from(files).where(eq(files.id, id)).get();
-    return c.json(updated);
   });

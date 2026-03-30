@@ -63,8 +63,7 @@ const BlockActionsPopover = ({
 
   const handleDeleteBlock = async (block: PageWithBlocks["blocks"][number]) => {
     try {
-      const res = await apiClient.blocks.delete.$post({ json: { id: block.id } });
-      if (!res.ok) throw new Error("Failed to delete block");
+      await apiClient.blocks.delete({ id: block.id });
       trackClientEvent("block_deleted", {
         projectId: page?.page.projectId,
         blockType: block.type,
@@ -80,8 +79,7 @@ const BlockActionsPopover = ({
 
   const handleDuplicateBlock = async (block: PageWithBlocks["blocks"][number]) => {
     try {
-      const res = await apiClient.blocks.duplicate.$post({ json: { id: block.id } });
-      if (!res.ok) throw new Error("Failed to duplicate block");
+      await apiClient.blocks.duplicate({ id: block.id });
       trackClientEvent("block_duplicated", {
         projectId: page?.page.projectId,
         blockType: block.type,
@@ -129,10 +127,7 @@ const BlockActionsPopover = ({
     if (blocksAbove.length === 0) return;
 
     try {
-      const res = await apiClient.blocks.deleteMany.$post({
-        json: { blockIds: blocksAbove.map((b) => b.id) },
-      });
-      if (!res.ok) throw new Error("Failed to delete blocks");
+      await apiClient.blocks.deleteMany({ blockIds: blocksAbove.map((b) => b.id) });
       toast.success(`Deleted ${blocksAbove.length} block${blocksAbove.length === 1 ? "" : "s"}`);
     } catch (error) {
       console.error("Failed to delete blocks above:", error);
@@ -145,10 +140,7 @@ const BlockActionsPopover = ({
     if (blocksBelow.length === 0) return;
 
     try {
-      const res = await apiClient.blocks.deleteMany.$post({
-        json: { blockIds: blocksBelow.map((b) => b.id) },
-      });
-      if (!res.ok) throw new Error("Failed to delete blocks");
+      await apiClient.blocks.deleteMany({ blockIds: blocksBelow.map((b) => b.id) });
       toast.success(`Deleted ${blocksBelow.length} block${blocksBelow.length === 1 ? "" : "s"}`);
     } catch (error) {
       console.error("Failed to delete blocks below:", error);
@@ -434,7 +426,7 @@ function useBlockActionsShortcuts() {
           if (!target) return;
 
           if (target.type === "RepeatableObject") {
-            apiClient.repeatableItems.delete.$post({ json: { id: Number(target.id) } }).then(
+            apiClient.repeatableItems.delete({ id: Number(target.id) }).then(
               () => toast.success("Deleted item"),
               () => toast.error("Could not delete item"),
             );
@@ -443,7 +435,7 @@ function useBlockActionsShortcuts() {
           }
 
           const block = page?.blocks.find((b) => String(b.id) === target.id);
-          apiClient.blocks.delete.$post({ json: { id: Number(target.id) } }).then(
+          apiClient.blocks.delete({ id: Number(target.id) }).then(
             () => toast.success(`Deleted "${block?.summary}" block`),
             () => toast.error("Could not delete block"),
           );
@@ -469,7 +461,7 @@ function useBlockActionsShortcuts() {
           if (!target) return;
 
           if (target.type === "RepeatableObject") {
-            apiClient.repeatableItems.duplicate.$post({ json: { id: Number(target.id) } }).then(
+            apiClient.repeatableItems.duplicate({ id: Number(target.id) }).then(
               () => toast.success("Duplicated item"),
               () => toast.error("Could not duplicate item"),
             );
@@ -477,7 +469,7 @@ function useBlockActionsShortcuts() {
           }
 
           const block = page?.blocks.find((b) => String(b.id) === target.id);
-          apiClient.blocks.duplicate.$post({ json: { id: Number(target.id) } }).then(
+          apiClient.blocks.duplicate({ id: Number(target.id) }).then(
             () => toast.success(`Duplicated "${block?.summary}" block`),
             () => toast.error("Could not duplicate block"),
           );
@@ -509,10 +501,8 @@ function useBlockActionsShortcuts() {
           const afterPosition = index > 1 ? page.blocks[index - 2].position : undefined;
           const beforePosition = page.blocks[index - 1].position;
 
-          apiClient.blocks.updatePosition
-            .$post({
-              json: { id: Number(blockCrumb.id), afterPosition, beforePosition },
-            })
+          apiClient.blocks
+            .updatePosition({ id: Number(blockCrumb.id), afterPosition, beforePosition })
             .then(
               () => {},
               () => toast.error("Could not move block"),
@@ -546,10 +536,8 @@ function useBlockActionsShortcuts() {
           const beforePosition =
             index + 2 < page.blocks.length ? page.blocks[index + 2].position : undefined;
 
-          apiClient.blocks.updatePosition
-            .$post({
-              json: { id: Number(blockCrumb.id), afterPosition, beforePosition },
-            })
+          apiClient.blocks
+            .updatePosition({ id: Number(blockCrumb.id), afterPosition, beforePosition })
             .then(
               () => {},
               () => toast.error("Could not move block"),

@@ -1,10 +1,9 @@
-import { zValidator } from "@hono/zod-validator";
+import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { and, eq, or, sql, inArray } from "drizzle-orm";
 import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { generateKeyBetween } from "fractional-indexing";
-import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
@@ -13,7 +12,7 @@ import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { contentToMarkdown } from "../lib/content-markdown";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
-import type { AppEnv } from "../types";
+import { pub, authed } from "../orpc";
 import { blockDefinitions } from "./block-definitions";
 import { layouts } from "./layouts";
 import { pages } from "./pages";
@@ -209,7 +208,7 @@ export async function executeBlockSummary(
   return null;
 }
 
-// --- Routes ---
+// --- Procedures ---
 
 const createBlockSchema = z.object({
   pageId: z.number(),
@@ -219,361 +218,369 @@ const createBlockSchema = z.object({
   afterPosition: z.string().nullable().optional(),
 });
 
-export const blockRoutes = new Hono<AppEnv>()
-  // Public routes (no auth required)
-  .get(
-    "/getPageMarkdown",
-    zValidator("query", z.object({ pageId: z.coerce.number() })),
-    async (c) => {
-      const { pageId } = c.req.valid("query");
+const getPageMarkdown = pub
+  .input(z.object({ pageId: z.number() }))
+  .handler(async ({ context, input }) => {
+    const { pageId } = input;
 
-      const page = await c.var.db.select().from(pages).where(eq(pages.id, pageId)).get();
-      if (!page) return c.json({ error: "Not found" }, 404);
+    const page = await context.db.select().from(pages).where(eq(pages.id, pageId)).get();
+    if (!page) throw new ORPCError("NOT_FOUND");
 
-      // Get block definitions for content schemas and toMarkdown templates
-      const defs = await c.var.db
-        .select()
-        .from(blockDefinitions)
-        .where(eq(blockDefinitions.projectId, page.projectId));
-      const schemaByType = new Map<
-        string,
-        { properties: Record<string, any>; toMarkdown?: readonly string[] }
-      >();
-      for (const def of defs) {
-        const schema = def.contentSchema as Record<string, unknown> | null;
-        if (schema?.properties) {
-          schemaByType.set(def.blockId, {
-            properties: schema.properties as Record<string, any>,
-            toMarkdown: schema.toMarkdown as readonly string[] | undefined,
-          });
-        }
+    // Get block definitions for content schemas and toMarkdown templates
+    const defs = await context.db
+      .select()
+      .from(blockDefinitions)
+      .where(eq(blockDefinitions.projectId, page.projectId));
+    const schemaByType = new Map<
+      string,
+      { properties: Record<string, any>; toMarkdown?: readonly string[] }
+    >();
+    for (const def of defs) {
+      const schema = def.contentSchema as Record<string, unknown> | null;
+      if (schema?.properties) {
+        schemaByType.set(def.blockId, {
+          properties: schema.properties as Record<string, any>,
+          toMarkdown: schema.toMarkdown as readonly string[] | undefined,
+        });
       }
+    }
 
-      // Get page blocks sorted by position
-      const pageBlocks = await c.var.db.select().from(blocks).where(eq(blocks.pageId, pageId));
-      const sorted = pageBlocks.sort((a, b) => a.position.localeCompare(b.position));
+    // Get page blocks sorted by position
+    const pageBlocks = await context.db.select().from(blocks).where(eq(blocks.pageId, pageId));
+    const sorted = pageBlocks.sort((a, b) => a.position.localeCompare(b.position));
 
-      // Fetch all repeatable items for these blocks
-      const blockIds = sorted.map((b) => b.id);
-      const allItems =
-        blockIds.length > 0
-          ? await c.var.db
+    // Fetch all repeatable items for these blocks
+    const blockIds = sorted.map((b) => b.id);
+    const allItems =
+      blockIds.length > 0
+        ? await context.db
+            .select()
+            .from(repeatableItems)
+            .where(inArray(repeatableItems.blockId, blockIds))
+        : [];
+    const itemsByBlock = new Map<number, typeof allItems>();
+    for (const item of allItems) {
+      const list = itemsByBlock.get(item.blockId) ?? [];
+      list.push(item);
+      itemsByBlock.set(item.blockId, list);
+    }
+
+    // Also fetch layout blocks if page has a layout
+    let beforeMarkdown = "";
+    let afterMarkdown = "";
+    if (page.layoutId) {
+      const layoutBlocks = await context.db
+        .select()
+        .from(blocks)
+        .where(eq(blocks.layoutId, page.layoutId));
+      const sortedLayout = layoutBlocks.sort((a, b) => a.position.localeCompare(b.position));
+      const layoutBlockIds = sortedLayout.map((b) => b.id);
+      const layoutItems =
+        layoutBlockIds.length > 0
+          ? await context.db
               .select()
               .from(repeatableItems)
-              .where(inArray(repeatableItems.blockId, blockIds))
+              .where(inArray(repeatableItems.blockId, layoutBlockIds))
           : [];
-      const itemsByBlock = new Map<number, typeof allItems>();
-      for (const item of allItems) {
-        const list = itemsByBlock.get(item.blockId) ?? [];
+      const layoutItemsByBlock = new Map<number, typeof layoutItems>();
+      for (const item of layoutItems) {
+        const list = layoutItemsByBlock.get(item.blockId) ?? [];
         list.push(item);
-        itemsByBlock.set(item.blockId, list);
+        layoutItemsByBlock.set(item.blockId, list);
       }
 
-      // Also fetch layout blocks if page has a layout
-      let beforeMarkdown = "";
-      let afterMarkdown = "";
-      if (page.layoutId) {
-        const layoutBlocks = await c.var.db
-          .select()
-          .from(blocks)
-          .where(eq(blocks.layoutId, page.layoutId));
-        const sortedLayout = layoutBlocks.sort((a, b) => a.position.localeCompare(b.position));
-        const layoutBlockIds = sortedLayout.map((b) => b.id);
-        const layoutItems =
-          layoutBlockIds.length > 0
-            ? await c.var.db
-                .select()
-                .from(repeatableItems)
-                .where(inArray(repeatableItems.blockId, layoutBlockIds))
-            : [];
-        const layoutItemsByBlock = new Map<number, typeof layoutItems>();
-        for (const item of layoutItems) {
-          const list = layoutItemsByBlock.get(item.blockId) ?? [];
-          list.push(item);
-          layoutItemsByBlock.set(item.blockId, list);
-        }
-
-        const beforeParts: string[] = [];
-        const afterParts: string[] = [];
-        for (const block of sortedLayout) {
-          const schema = schemaByType.get(block.type);
-          if (!schema?.toMarkdown) continue;
-          const content = { ...(block.content as Record<string, unknown>) };
-          const items = layoutItemsByBlock.get(block.id) ?? [];
-          for (const item of items) {
-            const arr = (content[item.fieldName] as unknown[]) ?? [];
-            arr.push(item);
-            content[item.fieldName] = arr;
-          }
-          const md = contentToMarkdown(schema.toMarkdown, schema.properties, content);
-          if (block.placement === "before") beforeParts.push(md);
-          else afterParts.push(md);
-        }
-        beforeMarkdown = beforeParts.join("\n\n");
-        afterMarkdown = afterParts.join("\n\n");
-      }
-
-      // Convert page blocks to markdown
-      const pageParts = sorted.map((block) => {
+      const beforeParts: string[] = [];
+      const afterParts: string[] = [];
+      for (const block of sortedLayout) {
         const schema = schemaByType.get(block.type);
-        if (!schema?.toMarkdown) return JSON.stringify(block.content);
+        if (!schema?.toMarkdown) continue;
         const content = { ...(block.content as Record<string, unknown>) };
-        const items = itemsByBlock.get(block.id) ?? [];
+        const items = layoutItemsByBlock.get(block.id) ?? [];
         for (const item of items) {
           const arr = (content[item.fieldName] as unknown[]) ?? [];
           arr.push(item);
           content[item.fieldName] = arr;
         }
-        return contentToMarkdown(schema.toMarkdown, schema.properties, content);
-      });
+        const md = contentToMarkdown(schema.toMarkdown, schema.properties, content);
+        if (block.placement === "before") beforeParts.push(md);
+        else afterParts.push(md);
+      }
+      beforeMarkdown = beforeParts.join("\n\n");
+      afterMarkdown = afterParts.join("\n\n");
+    }
 
-      const parts = [beforeMarkdown, ...pageParts, afterMarkdown].filter(Boolean);
-      return c.json({ markdown: parts.join("\n\n") });
-    },
-  )
-  .get("/getUsageCounts", async (c) => {
-    const result = await c.var.db
-      .select({
-        type: blocks.type,
-        count: sql<number>`count(*)`,
-      })
-      .from(blocks)
-      .groupBy(blocks.type);
-    return c.json(result);
-  })
-  // Protected routes
-  .post("/create", zValidator("json", createBlockSchema), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { pageId, type, content, settings, afterPosition } = c.req.valid("json");
-    const access = await assertPageAccess(c.var.db, pageId, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
+    // Convert page blocks to markdown
+    const pageParts = sorted.map((block) => {
+      const schema = schemaByType.get(block.type);
+      if (!schema?.toMarkdown) return JSON.stringify(block.content);
+      const content = { ...(block.content as Record<string, unknown>) };
+      const items = itemsByBlock.get(block.id) ?? [];
+      for (const item of items) {
+        const arr = (content[item.fieldName] as unknown[]) ?? [];
+        arr.push(item);
+        content[item.fieldName] = arr;
+      }
+      return contentToMarkdown(schema.toMarkdown, schema.properties, content);
+    });
 
-    const now = Date.now();
-    const position = generateKeyBetween(afterPosition ?? null, null);
-    const result = await c.var.db
-      .insert(blocks)
-      .values({
-        pageId,
-        type,
-        content,
-        settings: settings ?? null,
-        position,
-        summary: "",
-        createdAt: now,
-        updatedAt: now,
-      })
+    const parts = [beforeMarkdown, ...pageParts, afterMarkdown].filter(Boolean);
+    return { markdown: parts.join("\n\n") };
+  });
+
+const getUsageCounts = pub.handler(async ({ context }) => {
+  const result = await context.db
+    .select({
+      type: blocks.type,
+      count: sql<number>`count(*)`,
+    })
+    .from(blocks)
+    .groupBy(blocks.type);
+  return result;
+});
+
+const create = authed.input(createBlockSchema).handler(async ({ context, input }) => {
+  const orgSlug = context.orgSlug;
+  const { pageId, type, content, settings, afterPosition } = input;
+  const access = await assertPageAccess(context.db, pageId, orgSlug);
+  if (!access) throw new ORPCError("NOT_FOUND");
+
+  const now = Date.now();
+  const position = generateKeyBetween(afterPosition ?? null, null);
+  const result = await context.db
+    .insert(blocks)
+    .values({
+      pageId,
+      type,
+      content,
+      settings: settings ?? null,
+      position,
+      summary: "",
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+    .get();
+
+  scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+    entityTable: "blocks",
+    entityId: result.id,
+    type: "summary",
+    delayMs: 0,
+  });
+  broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, {
+    entity: "block",
+    action: "created",
+    entityId: result.id,
+    pageId,
+  });
+
+  return result;
+});
+
+const updateContent = authed
+  .input(z.object({ id: z.number(), content: z.unknown() }))
+  .handler(async ({ context, input }) => {
+    const orgSlug = context.orgSlug;
+    const { id, content } = input;
+    const access = await assertBlockAccess(context.db, id, orgSlug);
+    if (!access) throw new ORPCError("NOT_FOUND");
+
+    // Merge partial content into existing content (frontend sends single-field patches)
+    const merged = {
+      ...(access.block.content as Record<string, unknown>),
+      ...(content as Record<string, unknown>),
+    };
+    const result = await context.db
+      .update(blocks)
+      .set({ content: merged, updatedAt: Date.now() })
+      .where(eq(blocks.id, id))
       .returning()
       .get();
 
-    scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
+    scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
       entityTable: "blocks",
-      entityId: result.id,
+      entityId: id,
       type: "summary",
-      delayMs: 0,
+      delayMs: 5000,
     });
-    broadcastInvalidation(c.env.ProjectRoom, access.page.projectId, {
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
       entity: "block",
-      action: "created",
-      entityId: result.id,
-      pageId,
-    });
-
-    return c.json(result, 201);
-  })
-  .post(
-    "/updateContent",
-    zValidator("json", z.object({ id: z.number(), content: z.unknown() })),
-    async (c) => {
-      const orgSlug = c.var.orgSlug!;
-      const { id, content } = c.req.valid("json");
-      const access = await assertBlockAccess(c.var.db, id, orgSlug);
-      if (!access) return c.json({ error: "Not found" }, 404);
-
-      // Merge partial content into existing content (frontend sends single-field patches)
-      const merged = {
-        ...(access.block.content as Record<string, unknown>),
-        ...(content as Record<string, unknown>),
-      };
-      const result = await c.var.db
-        .update(blocks)
-        .set({ content: merged, updatedAt: Date.now() })
-        .where(eq(blocks.id, id))
-        .returning()
-        .get();
-
-      scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
-        entityTable: "blocks",
-        entityId: id,
-        type: "summary",
-        delayMs: 5000,
-      });
-      broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
-        entity: "block",
-        action: "updated",
-        entityId: id,
-        pageId: access.block.pageId ?? undefined,
-      });
-
-      return c.json(result);
-    },
-  )
-  .post(
-    "/updateSettings",
-    zValidator("json", z.object({ id: z.number(), settings: z.unknown() })),
-    async (c) => {
-      const orgSlug = c.var.orgSlug!;
-      const { id, settings } = c.req.valid("json");
-      const access = await assertBlockAccess(c.var.db, id, orgSlug);
-      if (!access) return c.json({ error: "Not found" }, 404);
-
-      const result = await c.var.db
-        .update(blocks)
-        .set({ settings, updatedAt: Date.now() })
-        .where(eq(blocks.id, id))
-        .returning()
-        .get();
-      broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
-        entity: "block",
-        action: "updated",
-        entityId: id,
-        pageId: access.block.pageId ?? undefined,
-      });
-      return c.json(result);
-    },
-  )
-  .post(
-    "/updatePosition",
-    zValidator(
-      "json",
-      z.object({
-        id: z.number(),
-        afterPosition: z.string().nullable().optional(),
-        beforePosition: z.string().nullable().optional(),
-      }),
-    ),
-    async (c) => {
-      const orgSlug = c.var.orgSlug!;
-      const { id, afterPosition, beforePosition } = c.req.valid("json");
-      const access = await assertBlockAccess(c.var.db, id, orgSlug);
-      if (!access) return c.json({ error: "Not found" }, 404);
-
-      const position = generateKeyBetween(afterPosition ?? null, beforePosition ?? null);
-      const result = await c.var.db
-        .update(blocks)
-        .set({ position, updatedAt: Date.now() })
-        .where(eq(blocks.id, id))
-        .returning()
-        .get();
-      broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
-        entity: "block",
-        action: "updated",
-        entityId: id,
-        pageId: access.block.pageId ?? undefined,
-      });
-      return c.json(result);
-    },
-  )
-  .post("/delete", zValidator("json", z.object({ id: z.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id } = c.req.valid("json");
-    const access = await assertBlockAccess(c.var.db, id, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
-
-    const result = await c.var.db.delete(blocks).where(eq(blocks.id, id)).returning().get();
-    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
-      entity: "block",
-      action: "deleted",
+      action: "updated",
       entityId: id,
       pageId: access.block.pageId ?? undefined,
     });
-    return c.json(result);
-  })
-  .post(
-    "/deleteMany",
-    zValidator("json", z.object({ blockIds: z.array(z.number()) })),
-    async (c) => {
-      const orgSlug = c.var.orgSlug!;
-      const { blockIds } = c.req.valid("json");
-      if (blockIds.length === 0) return c.json([]);
-      // Verify all blocks belong to the user's org
-      const authorizedBlocks = await c.var.db
-        .select({ id: blocks.id, projectId: projects.id })
-        .from(blocks)
-        .leftJoin(pages, eq(blocks.pageId, pages.id))
-        .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
-        .innerJoin(
-          projects,
-          or(eq(projects.id, pages.projectId), eq(projects.id, layouts.projectId)),
-        )
-        .where(and(inArray(blocks.id, blockIds), eq(projects.organizationSlug, orgSlug)));
-      if (authorizedBlocks.length !== blockIds.length) {
-        return c.json({ error: "Not found" }, 404);
-      }
-      const result = await c.var.db.delete(blocks).where(inArray(blocks.id, blockIds)).returning();
-      const projectId = authorizedBlocks[0]?.projectId;
-      if (projectId) {
-        broadcastInvalidation(c.env.ProjectRoom, projectId, {
-          entity: "block",
-          action: "deleted",
-        });
-      }
-      return c.json(result);
-    },
-  )
-  .post("/generateSummary", zValidator("json", z.object({ id: z.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id } = c.req.valid("json");
-    const access = await assertBlockAccess(c.var.db, id, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
 
-    const seoStale = await executeBlockSummary(c.var.db, c.env.OPEN_ROUTER_API_KEY, id);
+    return result;
+  });
+
+const updateSettings = authed
+  .input(z.object({ id: z.number(), settings: z.unknown() }))
+  .handler(async ({ context, input }) => {
+    const orgSlug = context.orgSlug;
+    const { id, settings } = input;
+    const access = await assertBlockAccess(context.db, id, orgSlug);
+    if (!access) throw new ORPCError("NOT_FOUND");
+
+    const result = await context.db
+      .update(blocks)
+      .set({ settings, updatedAt: Date.now() })
+      .where(eq(blocks.id, id))
+      .returning()
+      .get();
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
+      entity: "block",
+      action: "updated",
+      entityId: id,
+      pageId: access.block.pageId ?? undefined,
+    });
+    return result;
+  });
+
+const updatePosition = authed
+  .input(
+    z.object({
+      id: z.number(),
+      afterPosition: z.string().nullable().optional(),
+      beforePosition: z.string().nullable().optional(),
+    }),
+  )
+  .handler(async ({ context, input }) => {
+    const orgSlug = context.orgSlug;
+    const { id, afterPosition, beforePosition } = input;
+    const access = await assertBlockAccess(context.db, id, orgSlug);
+    if (!access) throw new ORPCError("NOT_FOUND");
+
+    const position = generateKeyBetween(afterPosition ?? null, beforePosition ?? null);
+    const result = await context.db
+      .update(blocks)
+      .set({ position, updatedAt: Date.now() })
+      .where(eq(blocks.id, id))
+      .returning()
+      .get();
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
+      entity: "block",
+      action: "updated",
+      entityId: id,
+      pageId: access.block.pageId ?? undefined,
+    });
+    return result;
+  });
+
+const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
+  const orgSlug = context.orgSlug;
+  const { id } = input;
+  const access = await assertBlockAccess(context.db, id, orgSlug);
+  if (!access) throw new ORPCError("NOT_FOUND");
+
+  const result = await context.db.delete(blocks).where(eq(blocks.id, id)).returning().get();
+  broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
+    entity: "block",
+    action: "deleted",
+    entityId: id,
+    pageId: access.block.pageId ?? undefined,
+  });
+  return result;
+});
+
+const deleteMany = authed
+  .input(z.object({ blockIds: z.array(z.number()) }))
+  .handler(async ({ context, input }) => {
+    const orgSlug = context.orgSlug;
+    const { blockIds } = input;
+    if (blockIds.length === 0) return [];
+
+    // Verify all blocks belong to the user's org
+    const authorizedBlocks = await context.db
+      .select({ id: blocks.id, projectId: projects.id })
+      .from(blocks)
+      .leftJoin(pages, eq(blocks.pageId, pages.id))
+      .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
+      .innerJoin(projects, or(eq(projects.id, pages.projectId), eq(projects.id, layouts.projectId)))
+      .where(and(inArray(blocks.id, blockIds), eq(projects.organizationSlug, orgSlug)));
+    if (authorizedBlocks.length !== blockIds.length) {
+      throw new ORPCError("NOT_FOUND");
+    }
+    const result = await context.db.delete(blocks).where(inArray(blocks.id, blockIds)).returning();
+    const projectId = authorizedBlocks[0]?.projectId;
+    if (projectId) {
+      broadcastInvalidation(context.env.ProjectRoom, projectId, {
+        entity: "block",
+        action: "deleted",
+      });
+    }
+    return result;
+  });
+
+const generateSummary = authed
+  .input(z.object({ id: z.number() }))
+  .handler(async ({ context, input }) => {
+    const orgSlug = context.orgSlug;
+    const { id } = input;
+    const access = await assertBlockAccess(context.db, id, orgSlug);
+    if (!access) throw new ORPCError("NOT_FOUND");
+
+    const seoStale = await executeBlockSummary(context.db, context.env.OPEN_ROUTER_API_KEY, id);
     if (seoStale) {
-      scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
+      scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
         entityTable: "pages",
         entityId: seoStale.pageId,
         type: "seo",
         delayMs: 15000,
       });
     }
-    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
       entity: "block",
       action: "updated",
       entityId: id,
       pageId: access.block.pageId ?? undefined,
     });
-    const updated = await c.var.db.select().from(blocks).where(eq(blocks.id, id)).get();
-    return c.json(updated);
-  })
-  .post("/duplicate", zValidator("json", z.object({ id: z.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id } = c.req.valid("json");
-    const access = await assertBlockAccess(c.var.db, id, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
-    const original = access.block;
-
-    const now = Date.now();
-    const position = generateKeyBetween(original.position, null);
-    const result = await c.var.db
-      .insert(blocks)
-      .values({
-        pageId: original.pageId,
-        layoutId: original.layoutId,
-        type: original.type,
-        content: original.content,
-        settings: original.settings,
-        placement: original.placement,
-        summary: original.summary,
-        position,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning()
-      .get();
-    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
-      entity: "block",
-      action: "created",
-      entityId: result.id,
-      pageId: original.pageId ?? undefined,
-    });
-    return c.json(result, 201);
+    const updated = await context.db.select().from(blocks).where(eq(blocks.id, id)).get();
+    return updated;
   });
+
+const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
+  const orgSlug = context.orgSlug;
+  const { id } = input;
+  const access = await assertBlockAccess(context.db, id, orgSlug);
+  if (!access) throw new ORPCError("NOT_FOUND");
+  const original = access.block;
+
+  const now = Date.now();
+  const position = generateKeyBetween(original.position, null);
+  const result = await context.db
+    .insert(blocks)
+    .values({
+      pageId: original.pageId,
+      layoutId: original.layoutId,
+      type: original.type,
+      content: original.content,
+      settings: original.settings,
+      placement: original.placement,
+      summary: original.summary,
+      position,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+    .get();
+  broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
+    entity: "block",
+    action: "created",
+    entityId: result.id,
+    pageId: original.pageId ?? undefined,
+  });
+  return result;
+});
+
+export const blockProcedures = {
+  getPageMarkdown,
+  getUsageCounts,
+  create,
+  updateContent,
+  updateSettings,
+  updatePosition,
+  delete: deleteFn,
+  deleteMany,
+  generateSummary,
+  duplicate,
+};

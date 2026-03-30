@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
-import { getApiClient } from "@/lib/api-client";
+import { getApiUrl } from "@/lib/api-client";
 
 export interface UploadItem {
   id: string;
@@ -25,7 +25,7 @@ interface UseFileUploadOptions {
 
 export function useFileUpload(options?: UseFileUploadOptions) {
   const [uploads, setUploads] = useState<UploadItem[]>([]);
-  const apiClient = getApiClient();
+  const apiUrl = getApiUrl();
   const nextId = useRef(0);
   const projectIdRef = useRef(options?.projectId);
   projectIdRef.current = options?.projectId;
@@ -69,7 +69,7 @@ export function useFileUpload(options?: UseFileUploadOptions) {
         formData.append("file", file);
         formData.append("projectId", String(projectIdRef.current ?? 0));
 
-        const uploadUrl = apiClient.files.upload.$url().toString();
+        const uploadUrl = `${apiUrl}/files/upload`;
         xhr.open("POST", uploadUrl);
         xhr.withCredentials = true;
         xhr.send(formData);
@@ -94,7 +94,7 @@ export function useFileUpload(options?: UseFileUploadOptions) {
         setUploads((prev) => prev.filter((u) => u.id !== itemId));
       }, 2000);
     },
-    [apiClient],
+    [apiUrl],
   );
 
   const uploadFiles = useCallback(
