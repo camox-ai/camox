@@ -7,7 +7,7 @@ import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { assertFileAccess, getAuthorizedProject, requireOrg } from "../authorization";
+import { assertFileAccess, getAuthorizedProject } from "../authorization";
 import type { Database } from "../db";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import type { AppEnv } from "../types";
@@ -120,12 +120,11 @@ export const fileRoutes = new Hono<AppEnv>()
     const result = await c.var.db
       .select({ count: sql<number>`count(*)` })
       .from(blocks)
-      .where(sql`json_extract(${blocks.content}, '$') LIKE ${"%" + file.url + "%"}`)
+      .where(sql`INSTR(${blocks.content}, ${file.url}) > 0`)
       .get();
     return c.json({ count: result?.count ?? 0 });
   })
   // Protected routes
-  .use(requireOrg)
   .post("/upload", async (c) => {
     const orgSlug = c.var.orgSlug!;
     const body = await c.req.parseBody();
@@ -228,7 +227,7 @@ export const fileRoutes = new Hono<AppEnv>()
 
       // Update all blocks that reference the old file URL
       await c.var.db.run(
-        sql`UPDATE ${blocks} SET ${blocks.content} = REPLACE(CAST(${blocks.content} AS TEXT), ${oldAccess.file.url}, ${newAccess.file.url}), ${blocks.updatedAt} = ${Date.now()} WHERE CAST(${blocks.content} AS TEXT) LIKE ${"%" + oldAccess.file.url + "%"}`,
+        sql`UPDATE ${blocks} SET ${blocks.content} = REPLACE(CAST(${blocks.content} AS TEXT), ${oldAccess.file.url}, ${newAccess.file.url}), ${blocks.updatedAt} = ${Date.now()} WHERE INSTR(${blocks.content}, ${oldAccess.file.url}) > 0`,
       );
 
       return c.json({ replaced: true });

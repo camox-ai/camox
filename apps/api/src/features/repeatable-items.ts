@@ -8,7 +8,7 @@ import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { assertBlockAccess, assertRepeatableItemAccess, requireOrg } from "../authorization";
+import { assertBlockAccess, assertRepeatableItemAccess } from "../authorization";
 import type { Database } from "../db";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import type { AppEnv } from "../types";
@@ -147,7 +147,6 @@ const createItemSchema = z.object({
 });
 
 export const repeatableItemRoutes = new Hono<AppEnv>()
-  .use(requireOrg)
   .post("/create", zValidator("json", createItemSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { blockId, fieldName, content, afterPosition } = c.req.valid("json");

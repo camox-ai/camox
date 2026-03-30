@@ -8,7 +8,7 @@ import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { assertPageAccess, getAuthorizedProject, requireOrg } from "../authorization";
+import { assertPageAccess, getAuthorizedProject } from "../authorization";
 import type { Database } from "../db";
 import { contentToMarkdown } from "../lib/content-markdown";
 import { markdownToLexicalState, plainTextToLexicalState } from "../lib/lexical-state";
@@ -546,7 +546,6 @@ export const pageRoutes = new Hono<AppEnv>()
     return c.json(result);
   })
   // Protected routes
-  .use(requireOrg)
   .post("/create", zValidator("json", createPageSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { projectId, pathSegment, parentPageId, layoutId, contentDescription } =

@@ -16,17 +16,14 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useLocation } from "@tanstack/react-router";
-import { api } from "camox/server/api";
-import type { Doc, Id } from "camox/server/dataModel";
-import { useMutation } from "convex/react";
-import { generateKeyBetween } from "fractional-indexing";
+import { useQuery } from "@tanstack/react-query";
 import { FileIcon, GripVertical } from "lucide-react";
 import * as React from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { useFileUpload } from "@/hooks/use-file-upload";
-import type { File } from "@/lib/queries";
+import { useApiClient } from "@/lib/api-client";
+import { type File, projectQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import { AssetActionButtons } from "./AssetFieldEditor";
@@ -38,12 +35,19 @@ import { UnlinkAssetButton } from "./UnlinkAssetButton";
  * SortableAssetItem
  * -----------------------------------------------------------------------------------------------*/
 
+type RepeatableItem = {
+  _id: string;
+  summary: string;
+  position: string;
+  content: Record<string, unknown>;
+};
+
 interface SortableAssetItemProps {
-  item: Doc<"repeatableItems">;
+  item: RepeatableItem;
   assetType: "Image" | "File";
   contentKey: "image" | "file";
-  onRemove: (itemId: Id<"repeatableItems">) => void;
-  onAssetOpen: (item: Doc<"repeatableItems">) => void;
+  onRemove: (itemId: string) => void;
+  onAssetOpen: (item: RepeatableItem) => void;
 }
 
 const SortableAssetItem = ({
@@ -130,7 +134,7 @@ interface MultipleAssetFieldEditorProps {
   fieldName: string;
   assetType: "Image" | "File";
   currentData: Record<string, unknown>;
-  blockId: Id<"blocks">;
+  blockId: string;
 }
 
 const MultipleAssetFieldEditor = ({
@@ -139,100 +143,41 @@ const MultipleAssetFieldEditor = ({
   currentData,
   blockId,
 }: MultipleAssetFieldEditorProps) => {
-  const { pathname } = useLocation();
   const contentKey = assetType === "Image" ? "image" : "file";
   const isImage = assetType === "Image";
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const createItemMutation = useMutation(api.repeatableItems.createRepeatableItem);
-  const deleteItemMutation = useMutation(api.repeatableItems.deleteRepeatableItem);
-  const updatePositionMutation = useMutation(
-    api.repeatableItems.updateRepeatableItemPosition,
-  ).withOptimisticUpdate((localStore, args) => {
-    const currentPage = localStore.getQuery(api.pages.getPage, {
-      fullPath: pathname,
-    });
-
-    if (!currentPage) return;
-
-    const updatedBlocks = currentPage.blocks.map((block) => {
-      const hasItemInAnyField = Object.entries(block.content).some(([_, value]) => {
-        if (Array.isArray(value)) {
-          return value.some((item) => item._id === args.itemId);
-        }
-        return false;
-      });
-
-      if (!hasItemInAnyField) return block;
-
-      const updatedContent = { ...block.content };
-
-      for (const [fieldName, fieldValue] of Object.entries(block.content)) {
-        if (!Array.isArray(fieldValue)) continue;
-
-        const items = fieldValue as Doc<"repeatableItems">[];
-        const itemIndex = items.findIndex((item) => item._id === args.itemId);
-
-        if (itemIndex === -1) continue;
-
-        const item = items[itemIndex];
-        const newPosition = generateKeyBetween(
-          args.afterPosition ?? null,
-          args.beforePosition ?? null,
-        );
-
-        const updatedItem = { ...item, position: newPosition };
-        const newItems = [...items];
-        newItems[itemIndex] = updatedItem;
-
-        newItems.sort((a, b) => {
-          if (a.position < b.position) return -1;
-          if (a.position > b.position) return 1;
-          return 0;
-        });
-
-        updatedContent[fieldName] = newItems;
-      }
-
-      return {
-        ...block,
-        content: updatedContent,
-      };
-    });
-
-    localStore.setQuery(
-      api.pages.getPage,
-      { fullPath: pathname },
-      { ...currentPage, blocks: updatedBlocks },
-    );
-  });
+  const apiClient = useApiClient();
+  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
 
   const { uploads, uploadFiles } = useFileUpload({
+    projectId: project?.id,
     onFileCommitted: (result) => {
-      createItemMutation({
-        blockId,
-        fieldName,
-        content: {
-          [contentKey]: {
-            url: result.url,
-            alt: "",
-            filename: result.filename,
-            mimeType: result.mimeType,
-            _fileId: result.fileId,
+      apiClient.repeatableItems.create.$post({
+        json: {
+          blockId: Number(blockId),
+          fieldName,
+          content: {
+            [contentKey]: {
+              url: result.url,
+              alt: "",
+              filename: result.filename,
+              mimeType: result.mimeType,
+              _fileId: result.fileId,
+            },
           },
         },
       });
     },
   });
 
-  const items = ((currentData[fieldName] ?? []) as Doc<"repeatableItems">[]).filter((item) => {
+  const items = ((currentData[fieldName] ?? []) as RepeatableItem[]).filter((item) => {
     const asset = item.content?.[contentKey] as { url?: string } | undefined;
     return !!asset?.url;
   });
 
   // Picker & lightbox state
   const [pickerOpen, setPickerOpen] = React.useState(false);
-  const [lightboxItem, setLightboxItem] = React.useState<Doc<"repeatableItems"> | null>(null);
+  const [lightboxItem, setLightboxItem] = React.useState<RepeatableItem | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -262,33 +207,33 @@ const MultipleAssetFieldEditor = ({
       beforePosition = dbItems[newIndex].position;
     }
 
-    await updatePositionMutation({
-      itemId: active.id as Id<"repeatableItems">,
-      afterPosition,
-      beforePosition,
+    await apiClient.repeatableItems.updatePosition.$post({
+      json: { id: Number(active.id), afterPosition, beforePosition },
     });
   };
 
-  const handleRemove = (itemId: Id<"repeatableItems">) => {
-    deleteItemMutation({ itemId });
+  const handleRemove = (itemId: string) => {
+    apiClient.repeatableItems.delete.$post({ json: { id: Number(itemId) } });
   };
 
-  const handleAssetOpen = (item: Doc<"repeatableItems">) => {
+  const handleAssetOpen = (item: RepeatableItem) => {
     setLightboxItem(item);
   };
 
   const handleSelectMultiple = async (files: File[]) => {
     for (const file of files) {
-      await createItemMutation({
-        blockId,
-        fieldName,
-        content: {
-          [contentKey]: {
-            url: file.url,
-            alt: file.alt,
-            filename: file.filename,
-            mimeType: file.mimeType,
-            _fileId: file.id,
+      await apiClient.repeatableItems.create.$post({
+        json: {
+          blockId: Number(blockId),
+          fieldName,
+          content: {
+            [contentKey]: {
+              url: file.url,
+              alt: file.alt,
+              filename: file.filename,
+              mimeType: file.mimeType,
+              _fileId: file.id,
+            },
           },
         },
       });

@@ -9,8 +9,6 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/server/api";
-import { useMutation } from "convex/react";
 import { InfoIcon } from "lucide-react";
 import * as React from "react";
 
@@ -26,12 +24,11 @@ import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
 
 const AddBlockSheet = () => {
   const [highlightedValue, setHighlightedValue] = React.useState<string>("");
-  const createBlockMutation = useMutation(api.blocks.createBlock);
+  const apiClient = useApiClient();
   const availableBlocks = useCamoxApp()
     .getBlocks()
     .filter((b) => !b.layoutOnly);
   const page = usePreviewedPage();
-  const apiClient = useApiClient();
   const { data: totalCounts = {} } = useQuery(blockQueries.getUsageCounts(apiClient));
 
   const pageCounts = React.useMemo(() => {
@@ -57,18 +54,22 @@ const AddBlockSheet = () => {
         ? ""
         : (peekedBlockPosition ?? page.blocks[page.blocks.length - 1]?.position);
 
-    const blockId = await createBlockMutation({
-      pageId: page.page.id,
-      type: block.id,
-      content: block.getInitialContent(),
-      settings: block.getInitialSettings(),
-      afterPosition,
+    const res = await apiClient.blocks.create.$post({
+      json: {
+        pageId: page.page.id,
+        type: block.id,
+        content: block.getInitialContent(),
+        settings: block.getInitialSettings(),
+        afterPosition,
+      },
     });
+    if (!res.ok) throw new Error("Failed to create block");
+    const { id: blockId } = await res.json();
     trackClientEvent("block_added", {
       projectId: page.page.projectId,
       blockType: block.id,
     });
-    previewStore.send({ type: "focusCreatedBlock", blockId });
+    previewStore.send({ type: "focusCreatedBlock", blockId: String(blockId) });
     previewStore.send({ type: "exitPeekedBlock" });
   };
 

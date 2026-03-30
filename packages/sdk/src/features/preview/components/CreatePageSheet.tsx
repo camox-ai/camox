@@ -13,8 +13,6 @@ import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/server/api";
-import { useAction } from "convex/react";
 import { useEffect } from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
@@ -35,7 +33,6 @@ const CreatePageSheet = () => {
     enabled: !!project,
   });
   const camoxApp = useCamoxApp();
-  const createPage = useAction(api.pageActions.createPage);
   const navigate = useNavigate();
 
   const form = useForm({
@@ -52,12 +49,14 @@ const CreatePageSheet = () => {
           return;
         }
 
-        const createPagePromise = createPage({
-          projectId: project.id,
-          pathSegment: values.value.pathSegment,
-          parentPageId: values.value.parentPageId,
-          layoutId: values.value.layoutId,
-          contentDescription: values.value.contentDescription || undefined,
+        const createPagePromise = apiClient.pages.create.$post({
+          json: {
+            projectId: project.id,
+            pathSegment: values.value.pathSegment,
+            parentPageId: values.value.parentPageId,
+            layoutId: Number(values.value.layoutId),
+            contentDescription: values.value.contentDescription || undefined,
+          },
         });
 
         toast.promise(createPagePromise, {
@@ -66,7 +65,9 @@ const CreatePageSheet = () => {
           error: "Failed to create page",
         });
 
-        const { fullPath } = await createPagePromise;
+        const res = await createPagePromise;
+        if (!res.ok) throw new Error("Failed to create page");
+        const { fullPath } = await res.json();
         trackClientEvent("page_created", {
           projectId: project.id,
           pathSegment: values.value.pathSegment,

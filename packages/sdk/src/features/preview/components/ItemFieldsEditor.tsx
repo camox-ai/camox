@@ -1,7 +1,6 @@
 import { Input } from "@camox/ui/input";
 import { Label } from "@camox/ui/label";
 import { useForm } from "@tanstack/react-form";
-import { Doc, Id } from "camox/server/dataModel";
 import { Link2 as Link2Icon, Images as ImagesIcon, ImageIcon, FileIcon } from "lucide-react";
 import * as React from "react";
 
@@ -67,7 +66,7 @@ const getSchemaFieldsInOrder = (schema: unknown): SchemaField[] => {
 interface ItemFieldsEditorProps {
   schema: unknown;
   data: Record<string, unknown>;
-  blockId: Id<"blocks">;
+  blockId: string;
   /** When editing a repeatable item's fields, pass its ID for correct overlay targeting */
   itemId?: string;
   /** For nested inline items, the parent DB document's ID */
@@ -456,9 +455,7 @@ const ItemFieldsEditor = ({
         }
 
         if (field.fieldType === "RepeatableObject") {
-          const items = (data[field.name] ?? []) as
-            | Doc<"repeatableItems">[]
-            | Record<string, unknown>[];
+          const items = (data[field.name] ?? []) as Record<string, unknown>[];
           const fieldSchema = (schema as any)?.properties?.[field.name];
 
           return (
@@ -471,7 +468,7 @@ const ItemFieldsEditor = ({
                 minItems={field.minItems}
                 maxItems={field.maxItems}
                 schema={fieldSchema}
-                parentItemId={itemId as Id<"repeatableItems">}
+                parentItemId={itemId}
               />
             </div>
           );

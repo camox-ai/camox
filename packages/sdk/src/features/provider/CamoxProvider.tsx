@@ -1,6 +1,5 @@
 import { Toaster } from "@camox/ui/toaster";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
 import * as React from "react";
 import studioCssUrl from "virtual:camox-studio-css";
 
@@ -74,7 +73,7 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
 interface CamoxProviderProps {
   children: React.ReactNode;
   camoxApp: CamoxApp;
-  convexUrl: string;
+  convexUrl?: string;
   managementUrl: string;
   apiUrl: string;
   queryClient: QueryClient;
@@ -83,12 +82,10 @@ interface CamoxProviderProps {
 export function CamoxProvider({
   children,
   camoxApp,
-  convexUrl,
   managementUrl,
   apiUrl,
   queryClient,
 }: CamoxProviderProps) {
-  const convexReactClient = React.useMemo(() => new ConvexReactClient(convexUrl), [convexUrl]);
   const authClient = React.useMemo(() => createCamoxAuthClient(apiUrl), [apiUrl]);
   const apiClient = React.useMemo(() => createApiClient(apiUrl), [apiUrl]);
 
@@ -99,23 +96,21 @@ export function CamoxProvider({
   return (
     <AuthContext.Provider value={{ authClient, managementUrl, apiUrl }}>
       <ApiClientContext.Provider value={apiClient}>
-        <ConvexProvider client={convexReactClient}>
-          <CamoxAppProvider app={camoxApp}>
-            <QueryClientProvider client={queryClient}>
-              <AuthGate
-                authenticated={
-                  <>
-                    <link rel="stylesheet" href={studioCssUrl} />
-                    <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
-                  </>
-                }
-                unauthenticated={
-                  <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>
-                }
-              />
-            </QueryClientProvider>
-          </CamoxAppProvider>
-        </ConvexProvider>
+        <CamoxAppProvider app={camoxApp}>
+          <QueryClientProvider client={queryClient}>
+            <AuthGate
+              authenticated={
+                <>
+                  <link rel="stylesheet" href={studioCssUrl} />
+                  <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
+                </>
+              }
+              unauthenticated={
+                <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>
+              }
+            />
+          </QueryClientProvider>
+        </CamoxAppProvider>
       </ApiClientContext.Provider>
     </AuthContext.Provider>
   );

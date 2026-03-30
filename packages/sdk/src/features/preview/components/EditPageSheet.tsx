@@ -14,8 +14,6 @@ import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/server/api";
-import { useMutation } from "convex/react";
 import { Globe, Info } from "lucide-react";
 import * as React from "react";
 
@@ -51,11 +49,6 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
     enabled: !!project,
   });
   const camoxApp = useCamoxApp();
-  const updatePage = useMutation(api.pages.updatePage);
-  const setPageLayout = useMutation(api.pages.setPageLayout);
-  const setAiSeo = useMutation(api.pages.setAiSeo);
-  const updatePageMetaTitle = useMutation(api.pages.updatePageMetaTitle);
-  const updatePageMetaDescription = useMutation(api.pages.updatePageMetaDescription);
   const navigate = useNavigate();
 
   const pageLayoutRecord = layouts?.find((l) => l.id === page.layoutId);
@@ -79,16 +72,19 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
     },
     onSubmit: async (values) => {
       try {
-        const { fullPath } = await updatePage({
-          pageId: pageToEdit.id,
-          pathSegment: values.value.pathSegment,
-          parentPageId: values.value.parentPageId,
+        const res = await apiClient.pages.update.$post({
+          json: {
+            id: pageToEdit.id,
+            pathSegment: values.value.pathSegment,
+            parentPageId: values.value.parentPageId,
+          },
         });
+        if (!res.ok) throw new Error("Failed to update page");
+        const { fullPath } = await res.json();
 
         if (values.value.layoutId) {
-          await setPageLayout({
-            pageId: pageToEdit.id,
-            layoutId: values.value.layoutId,
+          await apiClient.pages.setLayout.$post({
+            json: { id: pageToEdit.id, layoutId: values.value.layoutId },
           });
         }
 
@@ -224,7 +220,9 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
                 <Switch
                   id="ai-seo"
                   checked={page.aiSeoEnabled !== false}
-                  onCheckedChange={(checked) => setAiSeo({ pageId: page.id, enabled: checked })}
+                  onCheckedChange={(checked) =>
+                    apiClient.pages.setAiSeo.$post({ json: { id: page.id, enabled: checked } })
+                  }
                 />
                 <Label htmlFor="ai-seo">AI metadata</Label>
               </div>
@@ -233,7 +231,9 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
                 placeholder="Page title..."
                 initialValue={page.metaTitle ?? ""}
                 disabled={page.aiSeoEnabled !== false}
-                onSave={(value) => updatePageMetaTitle({ pageId: page.id, metaTitle: value })}
+                onSave={(value) =>
+                  apiClient.pages.setMetaTitle.$post({ json: { id: page.id, metaTitle: value } })
+                }
               />
               <DebouncedFieldEditor
                 label="Page description"
@@ -242,9 +242,8 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
                 disabled={page.aiSeoEnabled !== false}
                 rows={2}
                 onSave={(value) =>
-                  updatePageMetaDescription({
-                    pageId: page.id,
-                    metaDescription: value,
+                  apiClient.pages.setMetaDescription.$post({
+                    json: { id: page.id, metaDescription: value },
                   })
                 }
               />

@@ -10,8 +10,6 @@ import {
 import { Button } from "@camox/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "camox/server/api";
-import { useMutation } from "convex/react";
 import { X } from "lucide-react";
 import { useState } from "react";
 
@@ -32,8 +30,6 @@ const UnlinkAssetButton = ({ fileId, onUnlink, className }: UnlinkAssetButtonPro
     ...fileQueries.getUsageCount(apiClient, fileId!),
     enabled: !!fileId,
   });
-  const deleteFile = useMutation(api.files.deleteFile);
-
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!fileId || usageCount === undefined || usageCount > 1) {
@@ -76,7 +72,7 @@ const UnlinkAssetButton = ({ fileId, onUnlink, className }: UnlinkAssetButtonPro
             <AlertDialogAction
               onClick={() => {
                 onUnlink();
-                if (fileId) deleteFile({ fileId });
+                if (fileId) apiClient.files.delete.$post({ json: { id: fileId } });
               }}
               asChild
             >

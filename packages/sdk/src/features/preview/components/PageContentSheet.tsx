@@ -17,13 +17,11 @@ import { Label } from "@camox/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { Switch } from "@camox/ui/switch";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/server/api";
-import { Doc, Id } from "camox/server/dataModel";
-import { useMutation } from "convex/react";
 import * as React from "react";
 
 import { actionsStore, type Action } from "@/features/provider/actionsStore";
 import { trackClientEvent } from "@/lib/analytics-client";
+import { useApiClient } from "@/lib/api-client";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -139,7 +137,7 @@ function findItemById(
   blockContent: Record<string, unknown>,
   breadcrumbs: SelectionBreadcrumb[],
   targetId: string,
-): Doc<"repeatableItems"> | null {
+): { summary?: string } | null {
   let currentData: Record<string, unknown> = blockContent;
 
   for (const crumb of breadcrumbs) {
@@ -151,7 +149,7 @@ function findItemById(
     const item = items.find((i) => i._id === crumb.id);
     if (!item) return null;
 
-    if (crumb.id === targetId) return item as Doc<"repeatableItems">;
+    if (crumb.id === targetId) return item as { summary?: string };
 
     currentData = item.content as Record<string, unknown>;
   }
@@ -165,9 +163,7 @@ function findItemById(
 
 const PageContentSheet = () => {
   const camoxApp = useCamoxApp();
-  const updateBlockContent = useMutation(api.blocks.updateBlockContent);
-  const updateBlockSettings = useMutation(api.blocks.updateBlockSettings);
-  const updateRepeatableItemContent = useMutation(api.repeatableItems.updateRepeatableItemContent);
+  const apiClient = useApiClient();
   // Get state from store
   const isOpen = useSelector(previewStore, (state) => state.context.isPageContentSheetOpen);
   const selectionBreadcrumbs = useSelector(
@@ -187,7 +183,7 @@ const PageContentSheet = () => {
   // Find the Block breadcrumb (always the first one)
   const blockBreadcrumb =
     selectionBreadcrumbs[0]?.type === "Block" ? selectionBreadcrumbs[0] : null;
-  const blockId = blockBreadcrumb?.id as Id<"blocks"> | undefined;
+  const blockId = blockBreadcrumb?.id;
 
   // RepeatableObject breadcrumbs (everything after the block)
   const repeatableBreadcrumbs = selectionBreadcrumbs.filter((b) => b.type === "RepeatableObject");
@@ -223,7 +219,7 @@ const PageContentSheet = () => {
   const currentData: Record<string, unknown> =
     depth === 0 ? (block?.content ?? {}) : (currentDepthResult?.data ?? {});
 
-  const currentItemId = currentDepthResult?.itemId as Id<"repeatableItems"> | undefined;
+  const currentItemId = currentDepthResult?.itemId;
 
   // Detect if the last breadcrumb is a Link drill-in
   const lastBreadcrumb = selectionBreadcrumbs[selectionBreadcrumbs.length - 1];
@@ -362,23 +358,21 @@ const PageContentSheet = () => {
   const handleBlockFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
       if (!block) return;
-      updateBlockContent({
-        blockId: block.id,
-        content: { [fieldName]: value },
+      apiClient.blocks.updateContent.$post({
+        json: { id: block.id, content: { [fieldName]: value } },
       });
     },
-    [block, updateBlockContent],
+    [block, apiClient],
   );
 
   const handleItemFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
       if (!currentItemId) return;
-      updateRepeatableItemContent({
-        itemId: currentItemId,
-        content: { [fieldName]: value },
+      apiClient.repeatableItems.updateContent.$post({
+        json: { id: Number(currentItemId), content: { [fieldName]: value } },
       });
     },
-    [currentItemId, updateRepeatableItemContent],
+    [currentItemId, apiClient],
   );
 
   const isNestedInlineItem = !!currentDepthResult?.parentItemId;
@@ -400,12 +394,14 @@ const PageContentSheet = () => {
       ];
       parentArray[idx] = { ...parentArray[idx], [fieldName]: value };
 
-      updateRepeatableItemContent({
-        itemId: currentDepthResult.parentItemId as Id<"repeatableItems">,
-        content: { [currentDepthResult.parentFieldName]: parentArray },
+      apiClient.repeatableItems.updateContent.$post({
+        json: {
+          id: Number(currentDepthResult.parentItemId),
+          content: { [currentDepthResult.parentFieldName]: parentArray },
+        },
       });
     },
-    [block, currentDepthResult, repeatableBreadcrumbs, updateRepeatableItemContent],
+    [block, currentDepthResult, repeatableBreadcrumbs, apiClient],
   );
 
   let activeFieldChangeHandler: typeof handleNestedItemFieldChange;
@@ -673,9 +669,8 @@ const PageContentSheet = () => {
                     <Select
                       value={value}
                       onValueChange={(newValue) => {
-                        updateBlockSettings({
-                          blockId: block.id,
-                          settings: { [field.name]: newValue },
+                        apiClient.blocks.updateSettings.$post({
+                          json: { id: block.id, settings: { [field.name]: newValue } },
                         });
                       }}
                     >
@@ -707,9 +702,8 @@ const PageContentSheet = () => {
                       id={`setting-${field.name}`}
                       checked={checked}
                       onCheckedChange={(newValue) => {
-                        updateBlockSettings({
-                          blockId: block.id,
-                          settings: { [field.name]: newValue },
+                        apiClient.blocks.updateSettings.$post({
+                          json: { id: block.id, settings: { [field.name]: newValue } },
                         });
                       }}
                     />

@@ -51,7 +51,7 @@ export function UploadItemRow({ item }: { item: UploadItem }) {
       <File className="text-muted-foreground h-4 w-4 shrink-0" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm">{item.filename}</p>
-        {(item.status === "uploading" || item.status === "committing") && (
+        {item.status === "uploading" && (
           <div className="bg-muted mt-1 h-1.5 overflow-hidden rounded-full">
             <div
               className="bg-primary h-full transition-all duration-200"
@@ -65,7 +65,6 @@ export function UploadItemRow({ item }: { item: UploadItem }) {
         {item.status === "uploading" && (
           <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
         )}
-        {item.status === "committing" && <Loader2 className="text-primary h-4 w-4 animate-spin" />}
         {item.status === "complete" && <Check className="h-4 w-4 text-green-500" />}
         {item.status === "error" && <AlertCircle className="text-destructive h-4 w-4" />}
       </div>

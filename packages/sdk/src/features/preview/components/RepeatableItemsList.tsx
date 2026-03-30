@@ -17,14 +17,10 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/server/api";
-import { Doc, Id } from "camox/server/dataModel";
-import { useMutation } from "convex/react";
-import { generateKeyBetween } from "fractional-indexing";
 import { CircleMinus, CirclePlus, GripVertical } from "lucide-react";
 
+import { useApiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 import type { OverlayMessage } from "../overlayMessages";
@@ -34,12 +30,19 @@ import { previewStore } from "../previewStore";
  * SortableRepeatableItem
  * -----------------------------------------------------------------------------------------------*/
 
+type RepeatableItem = {
+  _id: string;
+  summary: string;
+  position: string;
+  content: Record<string, unknown>;
+};
+
 interface SortableRepeatableItemProps {
-  item: Doc<"repeatableItems">;
-  blockId: Id<"blocks">;
+  item: RepeatableItem;
+  blockId: string;
   fieldName: string;
   canRemove: boolean;
-  onRemove: (itemId: Id<"repeatableItems">) => void;
+  onRemove: (itemId: string) => void;
 }
 
 const SortableRepeatableItem = ({
@@ -183,8 +186,8 @@ const getInlineItemLabel = (item: Record<string, unknown>, index: number): strin
 interface SortableInlineRepeatableItemProps {
   item: Record<string, unknown>;
   index: number;
-  blockId: Id<"blocks">;
-  parentItemId: Id<"repeatableItems">;
+  blockId: string;
+  parentItemId: string;
   fieldName: string;
   canRemove: boolean;
   onRemove: (index: number) => void;
@@ -304,14 +307,14 @@ const SortableInlineRepeatableItem = ({
  * -----------------------------------------------------------------------------------------------*/
 
 interface RepeatableItemsListProps {
-  items: Doc<"repeatableItems">[] | Record<string, unknown>[];
-  blockId: Id<"blocks">;
+  items: RepeatableItem[] | Record<string, unknown>[];
+  blockId: string;
   fieldName: string;
   minItems?: number;
   maxItems?: number;
   schema: unknown;
   /** When set, items are inline objects managed through the parent item's content */
-  parentItemId?: Id<"repeatableItems">;
+  parentItemId?: string;
 }
 
 const RepeatableItemsList = ({
@@ -324,83 +327,7 @@ const RepeatableItemsList = ({
   parentItemId,
 }: RepeatableItemsListProps) => {
   const isInline = !!parentItemId;
-  const { pathname } = useLocation();
-  const updateRepeatableItemContent = useMutation(api.repeatableItems.updateRepeatableItemContent);
-  const updatePositionMutation = useMutation(
-    api.repeatableItems.updateRepeatableItemPosition,
-  ).withOptimisticUpdate((localStore, args) => {
-    // Get the current page data
-    const currentPage = localStore.getQuery(api.pages.getPage, {
-      fullPath: pathname,
-    });
-
-    if (!currentPage) return;
-
-    // Find the block containing this item
-    const updatedBlocks = currentPage.blocks.map((block) => {
-      // Check if this block contains the item being moved
-      const hasItemInAnyField = Object.entries(block.content).some(([_, value]) => {
-        if (Array.isArray(value)) {
-          return value.some((item) => item._id === args.itemId);
-        }
-        return false;
-      });
-
-      if (!hasItemInAnyField) return block;
-
-      // Update the block's content
-      const updatedContent = { ...block.content };
-
-      for (const [fieldName, fieldValue] of Object.entries(block.content)) {
-        if (!Array.isArray(fieldValue)) continue;
-
-        const items = fieldValue as Doc<"repeatableItems">[];
-        const itemIndex = items.findIndex((item) => item._id === args.itemId);
-
-        if (itemIndex === -1) continue;
-
-        // Found the field with the item - reorder it
-        const item = items[itemIndex];
-
-        // Calculate the new position
-        const newPosition = generateKeyBetween(
-          args.afterPosition ?? null,
-          args.beforePosition ?? null,
-        );
-
-        // Update the item's position
-        const updatedItem = { ...item, position: newPosition };
-
-        // Create new array with updated item
-        const newItems = [...items];
-        newItems[itemIndex] = updatedItem;
-
-        // Re-sort the items by position
-        newItems.sort((a, b) => {
-          if (a.position < b.position) return -1;
-          if (a.position > b.position) return 1;
-          return 0;
-        });
-
-        updatedContent[fieldName] = newItems;
-      }
-
-      return {
-        ...block,
-        content: updatedContent,
-      };
-    });
-
-    // Update the page in the local store
-    localStore.setQuery(
-      api.pages.getPage,
-      { fullPath: pathname },
-      { ...currentPage, blocks: updatedBlocks },
-    );
-  });
-
-  const createItemMutation = useMutation(api.repeatableItems.createRepeatableItem);
-  const deleteItemMutation = useMutation(api.repeatableItems.deleteRepeatableItem);
+  const apiClient = useApiClient();
 
   const canAdd = maxItems === undefined || items.length < maxItems;
   const canRemove = minItems === undefined || items.length > minItems;
@@ -417,11 +344,13 @@ const RepeatableItemsList = ({
         }
       }
     }
-    createItemMutation({ blockId, fieldName, content: defaultContent });
+    apiClient.repeatableItems.create.$post({
+      json: { blockId: Number(blockId), fieldName, content: defaultContent },
+    });
   };
 
-  const handleRemoveItem = (itemId: Id<"repeatableItems">) => {
-    deleteItemMutation({ itemId });
+  const handleRemoveItem = (itemId: string) => {
+    apiClient.repeatableItems.delete.$post({ json: { id: Number(itemId) } });
   };
 
   const handleAddInlineItem = () => {
@@ -438,18 +367,22 @@ const RepeatableItemsList = ({
       }
     }
     const currentItems = items as Record<string, unknown>[];
-    updateRepeatableItemContent({
-      itemId: parentItemId,
-      content: { [fieldName]: [...currentItems, defaultContent] },
+    apiClient.repeatableItems.updateContent.$post({
+      json: {
+        id: Number(parentItemId),
+        content: { [fieldName]: [...currentItems, defaultContent] },
+      },
     });
   };
 
   const handleRemoveInlineItem = (index: number) => {
     if (!parentItemId) return;
     const currentItems = items as Record<string, unknown>[];
-    updateRepeatableItemContent({
-      itemId: parentItemId,
-      content: { [fieldName]: currentItems.filter((_, i) => i !== index) },
+    apiClient.repeatableItems.updateContent.$post({
+      json: {
+        id: Number(parentItemId),
+        content: { [fieldName]: currentItems.filter((_, i) => i !== index) },
+      },
     });
   };
 
@@ -465,9 +398,8 @@ const RepeatableItemsList = ({
     const [moved] = currentItems.splice(oldIndex, 1);
     currentItems.splice(newIndex, 0, moved);
 
-    updateRepeatableItemContent({
-      itemId: parentItemId,
-      content: { [fieldName]: currentItems },
+    apiClient.repeatableItems.updateContent.$post({
+      json: { id: Number(parentItemId), content: { [fieldName]: currentItems } },
     });
   };
 
@@ -485,7 +417,7 @@ const RepeatableItemsList = ({
       return;
     }
 
-    const dbItems = items as Doc<"repeatableItems">[];
+    const dbItems = items as RepeatableItem[];
 
     // Find the old and new indices
     const oldIndex = dbItems.findIndex((item) => item._id === active.id);
@@ -511,10 +443,8 @@ const RepeatableItemsList = ({
       beforePosition = dbItems[newIndex].position;
     }
 
-    await updatePositionMutation({
-      itemId: active.id as Id<"repeatableItems">,
-      afterPosition,
-      beforePosition,
+    await apiClient.repeatableItems.updatePosition.$post({
+      json: { id: Number(active.id), afterPosition, beforePosition },
     });
   };
 
@@ -557,11 +487,11 @@ const RepeatableItemsList = ({
               modifiers={[restrictToVerticalAxis]}
             >
               <SortableContext
-                items={(items as Doc<"repeatableItems">[]).map((item) => item._id)}
+                items={(items as RepeatableItem[]).map((item) => item._id)}
                 strategy={verticalListSortingStrategy}
               >
                 <ul className="flex flex-col gap-1">
-                  {(items as Doc<"repeatableItems">[]).map((item) => (
+                  {(items as RepeatableItem[]).map((item) => (
                     <SortableRepeatableItem
                       key={item._id}
                       item={item}

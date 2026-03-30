@@ -8,9 +8,6 @@ import { Slot } from "@radix-ui/react-slot";
 import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
 import { useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/server/api";
-import type { Id } from "camox/server/dataModel";
-import { useMutation } from "convex/react";
 import * as React from "react";
 import { createPortal } from "react-dom";
 
@@ -139,7 +136,7 @@ interface CreateBlockOptions<
 }
 
 interface BlockData<TContent> {
-  _id: Id<"blocks">;
+  _id: string;
   type: string;
   content: TContent;
   settings?: Record<string, unknown>;
@@ -233,7 +230,7 @@ export function createBlock<
       : Static<ReturnType<typeof TypeBoxType.Object<TSettingsShape>>>;
 
   type BlockContextValue = {
-    blockId: Id<"blocks">;
+    blockId: string;
     content: TContent;
     settings: TSettings;
     isHovered: boolean;
@@ -244,9 +241,9 @@ export function createBlock<
     arrayFieldName: string;
     itemIndex: number;
     itemContent: any;
-    itemId?: Id<"repeatableItems">;
+    itemId?: string;
     nested?: {
-      parentItemId: Id<"repeatableItems">;
+      parentItemId: string;
       parentContent: any;
       parentArrayFieldName: string;
       nestedFieldName: string;
@@ -267,7 +264,7 @@ export function createBlock<
    * Nested item fields:   blockId__parentItemId:nestedFieldName:index__fieldName
    */
   const getOverlayFieldId = (
-    blockId: Id<"blocks">,
+    blockId: string,
     repeaterContext: RepeaterItemContextValue | null,
     fieldName: string,
   ): string => {
@@ -429,29 +426,24 @@ export function createBlock<
       setIsHovered(isHoveredFromSidebar);
     }, [isHoveredFromSidebar]);
 
-    const updateBlockContent = useMutation(api.blocks.updateBlockContent);
-    const updateRepeatableItemContent = useMutation(
-      api.repeatableItems.updateRepeatableItemContent,
-    );
+    const apiClient = useApiClient();
 
     const handleChange = React.useCallback(
       (newValue: string) => {
         if (repeaterContext) {
           const { itemId } = repeaterContext;
           if (itemId) {
-            updateRepeatableItemContent({
-              itemId: itemId,
-              content: { [name]: newValue },
+            apiClient.repeatableItems.updateContent.$post({
+              json: { id: Number(itemId), content: { [name]: newValue } },
             });
           }
         } else {
-          updateBlockContent({
-            blockId,
-            content: { [name]: newValue },
+          apiClient.blocks.updateContent.$post({
+            json: { id: Number(blockId), content: { [name]: newValue } },
           });
         }
       },
-      [blockId, name, repeaterContext, updateRepeatableItemContent, updateBlockContent],
+      [blockId, name, repeaterContext, apiClient],
     );
 
     const handleFocus = React.useCallback(() => {
@@ -572,10 +564,7 @@ export function createBlock<
       setIsHovered(isHoveredFromSidebar);
     }, [isHoveredFromSidebar]);
 
-    const updateBlockContent = useMutation(api.blocks.updateBlockContent);
-    const updateRepeatableItemContent = useMutation(
-      api.repeatableItems.updateRepeatableItemContent,
-    );
+    const apiClient = useApiClient();
 
     // Sync urlValue with fieldValue when popover is closed
     React.useEffect(() => {
@@ -610,19 +599,16 @@ export function createBlock<
             ...nestedArray[nestedIndex],
             [name]: newValue,
           };
-          updateRepeatableItemContent({
-            itemId: parentItemId,
-            content: { [nestedFieldName]: nestedArray },
+          apiClient.repeatableItems.updateContent.$post({
+            json: { id: Number(parentItemId), content: { [nestedFieldName]: nestedArray } },
           });
         } else if (repeaterContext?.itemId) {
-          updateRepeatableItemContent({
-            itemId: repeaterContext.itemId,
-            content: { [name]: newValue },
+          apiClient.repeatableItems.updateContent.$post({
+            json: { id: Number(repeaterContext.itemId), content: { [name]: newValue } },
           });
         } else {
-          updateBlockContent({
-            blockId,
-            content: { [name]: newValue },
+          apiClient.blocks.updateContent.$post({
+            json: { id: Number(blockId), content: { [name]: newValue } },
           });
         }
       }, 500);
@@ -778,11 +764,6 @@ export function createBlock<
       setIsHovered(isHoveredFromSidebar);
     }, [isHoveredFromSidebar]);
 
-    const updateBlockContent = useMutation(api.blocks.updateBlockContent);
-    const updateRepeatableItemContent = useMutation(
-      api.repeatableItems.updateRepeatableItemContent,
-    );
-
     const saveLinkValue = (newLinkValue: Record<string, unknown>) => {
       if (repeaterContext?.nested) {
         const { parentItemId, parentContent, nestedFieldName, nestedIndex } =
@@ -792,19 +773,16 @@ export function createBlock<
           ...nestedArray[nestedIndex],
           [name]: newLinkValue,
         };
-        updateRepeatableItemContent({
-          itemId: parentItemId,
-          content: { [nestedFieldName]: nestedArray },
+        apiClient.repeatableItems.updateContent.$post({
+          json: { id: Number(parentItemId), content: { [nestedFieldName]: nestedArray } },
         });
       } else if (repeaterContext?.itemId) {
-        updateRepeatableItemContent({
-          itemId: repeaterContext.itemId,
-          content: { [name]: newLinkValue },
+        apiClient.repeatableItems.updateContent.$post({
+          json: { id: Number(repeaterContext.itemId), content: { [name]: newLinkValue } },
         });
       } else {
-        updateBlockContent({
-          blockId,
-          content: { [name]: newLinkValue },
+        apiClient.blocks.updateContent.$post({
+          json: { id: Number(blockId), content: { [name]: newLinkValue } },
         });
       }
     };
@@ -1072,7 +1050,7 @@ export function createBlock<
     children,
   }: {
     itemId: string | undefined;
-    blockId: Id<"blocks">;
+    blockId: string;
     mode: "site" | "peek" | "layout";
     children: React.ReactNode;
   }) => {
@@ -1120,7 +1098,7 @@ export function createBlock<
     fieldName,
     children,
   }: {
-    blockId: Id<"blocks">;
+    blockId: string;
     fieldName: string;
     children: React.ReactNode;
   }) => {
@@ -1346,7 +1324,7 @@ export function createBlock<
             ...repeatableItemDefaults[fieldName],
             ...item.content,
           } as TItem;
-          const itemId = item._id as Id<"repeatableItems"> | undefined;
+          const itemId = item._id as string | undefined;
 
           return (
             <RepeaterItemContext.Provider

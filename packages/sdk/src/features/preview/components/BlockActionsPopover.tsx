@@ -20,13 +20,11 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { toast } from "@camox/ui/toaster";
 import { useSelector } from "@xstate/store/react";
-import { api } from "camox/server/api";
-import { Id } from "camox/server/dataModel";
-import { useMutation } from "convex/react";
 import { Copy, Pen, Settings, Trash2 } from "lucide-react";
 import * as React from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
+import { useApiClient } from "@/lib/api-client";
 import type { PageWithBlocks } from "@/lib/queries";
 import { formatShortcut } from "@/lib/utils";
 
@@ -61,13 +59,12 @@ const BlockActionsPopover = ({
 
   const camoxApp = useCamoxApp();
   const page = usePreviewedPage();
-  const deleteBlockMutation = useMutation(api.blocks.deleteBlock);
-  const deleteBlocksMutation = useMutation(api.blocks.deleteBlocks);
-  const duplicateBlockMutation = useMutation(api.blocks.duplicateBlock);
+  const apiClient = useApiClient();
 
   const handleDeleteBlock = async (block: PageWithBlocks["blocks"][number]) => {
     try {
-      await deleteBlockMutation({ blockId: block.id });
+      const res = await apiClient.blocks.delete.$post({ json: { id: block.id } });
+      if (!res.ok) throw new Error("Failed to delete block");
       trackClientEvent("block_deleted", {
         projectId: page?.page.projectId,
         blockType: block.type,
@@ -83,7 +80,8 @@ const BlockActionsPopover = ({
 
   const handleDuplicateBlock = async (block: PageWithBlocks["blocks"][number]) => {
     try {
-      await duplicateBlockMutation({ blockId: block.id });
+      const res = await apiClient.blocks.duplicate.$post({ json: { id: block.id } });
+      if (!res.ok) throw new Error("Failed to duplicate block");
       trackClientEvent("block_duplicated", {
         projectId: page?.page.projectId,
         blockType: block.type,
@@ -131,7 +129,10 @@ const BlockActionsPopover = ({
     if (blocksAbove.length === 0) return;
 
     try {
-      await deleteBlocksMutation({ blockIds: blocksAbove.map((b) => b.id) });
+      const res = await apiClient.blocks.deleteMany.$post({
+        json: { blockIds: blocksAbove.map((b) => b.id) },
+      });
+      if (!res.ok) throw new Error("Failed to delete blocks");
       toast.success(`Deleted ${blocksAbove.length} block${blocksAbove.length === 1 ? "" : "s"}`);
     } catch (error) {
       console.error("Failed to delete blocks above:", error);
@@ -144,7 +145,10 @@ const BlockActionsPopover = ({
     if (blocksBelow.length === 0) return;
 
     try {
-      await deleteBlocksMutation({ blockIds: blocksBelow.map((b) => b.id) });
+      const res = await apiClient.blocks.deleteMany.$post({
+        json: { blockIds: blocksBelow.map((b) => b.id) },
+      });
+      if (!res.ok) throw new Error("Failed to delete blocks");
       toast.success(`Deleted ${blocksBelow.length} block${blocksBelow.length === 1 ? "" : "s"}`);
     } catch (error) {
       console.error("Failed to delete blocks below:", error);
@@ -389,11 +393,7 @@ function useBlockActionsShortcuts() {
     (state) => state.context.selectionBreadcrumbs,
   );
 
-  const deleteBlockMutation = useMutation(api.blocks.deleteBlock);
-  const duplicateBlockMutation = useMutation(api.blocks.duplicateBlock);
-  const updateBlockPositionMutation = useMutation(api.blocks.updateBlockPosition);
-  const deleteRepeatableItemMutation = useMutation(api.repeatableItems.deleteRepeatableItem);
-  const duplicateRepeatableItemMutation = useMutation(api.repeatableItems.duplicateRepeatableItem);
+  const apiClient = useApiClient();
 
   React.useEffect(() => {
     const actions = [
@@ -434,8 +434,7 @@ function useBlockActionsShortcuts() {
           if (!target) return;
 
           if (target.type === "RepeatableObject") {
-            const itemId = target.id as Id<"repeatableItems">;
-            deleteRepeatableItemMutation({ itemId }).then(
+            apiClient.repeatableItems.delete.$post({ json: { id: Number(target.id) } }).then(
               () => toast.success("Deleted item"),
               () => toast.error("Could not delete item"),
             );
@@ -443,9 +442,8 @@ function useBlockActionsShortcuts() {
             return;
           }
 
-          const blockId = target.id as Id<"blocks">;
-          const block = page?.blocks.find((b) => String(b.id) === blockId);
-          deleteBlockMutation({ blockId }).then(
+          const block = page?.blocks.find((b) => String(b.id) === target.id);
+          apiClient.blocks.delete.$post({ json: { id: Number(target.id) } }).then(
             () => toast.success(`Deleted "${block?.summary}" block`),
             () => toast.error("Could not delete block"),
           );
@@ -471,17 +469,15 @@ function useBlockActionsShortcuts() {
           if (!target) return;
 
           if (target.type === "RepeatableObject") {
-            const itemId = target.id as Id<"repeatableItems">;
-            duplicateRepeatableItemMutation({ itemId }).then(
+            apiClient.repeatableItems.duplicate.$post({ json: { id: Number(target.id) } }).then(
               () => toast.success("Duplicated item"),
               () => toast.error("Could not duplicate item"),
             );
             return;
           }
 
-          const blockId = target.id as Id<"blocks">;
-          const block = page?.blocks.find((b) => String(b.id) === blockId);
-          duplicateBlockMutation({ blockId }).then(
+          const block = page?.blocks.find((b) => String(b.id) === target.id);
+          apiClient.blocks.duplicate.$post({ json: { id: Number(target.id) } }).then(
             () => toast.success(`Duplicated "${block?.summary}" block`),
             () => toast.error("Could not duplicate block"),
           );
@@ -507,21 +503,20 @@ function useBlockActionsShortcuts() {
             .getSnapshot()
             .context.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return;
-          const blockId = blockCrumb.id as Id<"blocks">;
-          const index = page.blocks.findIndex((b) => String(b.id) === blockId);
+          const index = page.blocks.findIndex((b) => String(b.id) === blockCrumb.id);
           if (index <= 0) return;
 
           const afterPosition = index > 1 ? page.blocks[index - 2].position : undefined;
           const beforePosition = page.blocks[index - 1].position;
 
-          updateBlockPositionMutation({
-            blockId,
-            afterPosition,
-            beforePosition,
-          }).then(
-            () => {},
-            () => toast.error("Could not move block"),
-          );
+          apiClient.blocks.updatePosition
+            .$post({
+              json: { id: Number(blockCrumb.id), afterPosition, beforePosition },
+            })
+            .then(
+              () => {},
+              () => toast.error("Could not move block"),
+            );
         },
       },
       {
@@ -544,22 +539,21 @@ function useBlockActionsShortcuts() {
             .getSnapshot()
             .context.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return;
-          const blockId = blockCrumb.id as Id<"blocks">;
-          const index = page.blocks.findIndex((b) => String(b.id) === blockId);
+          const index = page.blocks.findIndex((b) => String(b.id) === blockCrumb.id);
           if (index === -1 || index >= page.blocks.length - 1) return;
 
           const afterPosition = page.blocks[index + 1].position;
           const beforePosition =
             index + 2 < page.blocks.length ? page.blocks[index + 2].position : undefined;
 
-          updateBlockPositionMutation({
-            blockId,
-            afterPosition,
-            beforePosition,
-          }).then(
-            () => {},
-            () => toast.error("Could not move block"),
-          );
+          apiClient.blocks.updatePosition
+            .$post({
+              json: { id: Number(blockCrumb.id), afterPosition, beforePosition },
+            })
+            .then(
+              () => {},
+              () => toast.error("Could not move block"),
+            );
         },
       },
       {
@@ -622,16 +616,7 @@ function useBlockActionsShortcuts() {
         ids: actions.map((a) => a.id),
       });
     };
-  }, [
-    selectionBreadcrumbs,
-    page,
-    camoxApp,
-    deleteBlockMutation,
-    duplicateBlockMutation,
-    updateBlockPositionMutation,
-    deleteRepeatableItemMutation,
-    duplicateRepeatableItemMutation,
-  ]);
+  }, [selectionBreadcrumbs, page, camoxApp, apiClient]);
 }
 
 export { BlockActionsPopover, useBlockActionsShortcuts };

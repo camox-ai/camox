@@ -6,7 +6,7 @@ import { AssetLightbox } from "@/features/preview/components/AssetLightbox";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
 import { useApiClient } from "@/lib/api-client";
-import { fileQueries } from "@/lib/queries";
+import { fileQueries, projectQueries } from "@/lib/queries";
 
 import { AssetCard } from "./components/AssetCard";
 import { AssetCardSkeleton } from "./components/AssetCardSkeleton";
@@ -17,9 +17,10 @@ import { UploadProgressDrawer } from "./components/UploadProgressDrawer";
 export const CamoxContent = () => {
   const apiClient = useApiClient();
   const { data: files } = useQuery(fileQueries.list(apiClient));
+  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lightboxFileId, setLightboxFileId] = useState<number | null>(null);
-  const { uploads, uploadFiles, clearAll } = useFileUpload();
+  const { uploads, uploadFiles, clearAll } = useFileUpload({ projectId: project?.id });
   const containerRef = useRef<HTMLElement | null>(null);
   const { selectionRect, didDragRef, handlers } = useMarqueeSelection(
     containerRef,

@@ -6,16 +6,11 @@ import { Switch } from "@camox/ui/switch";
 import { toast } from "@camox/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "camox/server/api";
-import type { Id } from "camox/server/dataModel";
-import { useMutation } from "convex/react";
 import { Check, Download, FileIcon, Link, Loader2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { useApiClient } from "@/lib/api-client";
-import { useConvexToken } from "@/lib/auth";
-import { FS_PREFIX, getSiteUrl } from "@/lib/convex-site";
 import { fileQueries } from "@/lib/queries";
 
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
@@ -101,15 +96,6 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
     });
   }, [zoomed, zoomedWidth]);
 
-  const updateFileFilename = useMutation(api.files.updateFileFilename);
-  const updateFileAlt = useMutation(api.files.updateFileAlt);
-  const deleteFile = useMutation(api.files.deleteFile);
-  const replaceFile = useMutation(api.files.replaceFile);
-  const setAiMetadata = useMutation(api.files.setAiMetadata);
-  const commitFile = useMutation(api.files.commitFile);
-  const getToken = useConvexToken();
-  const siteUrl = getSiteUrl();
-
   const handleReplaceDrop = useCallback(
     async (files: FileList) => {
       const droppedFile = files[0];
@@ -122,56 +108,25 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
       });
 
       try {
-        const token = await getToken();
+        // Upload via API — we need the project ID from the current file
+        const formData = new FormData();
+        formData.append("file", droppedFile);
+        formData.append("projectId", String(file?.projectId ?? 0));
 
-        const blobId = await new Promise<string>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.upload.addEventListener("progress", (e) => {
-            if (e.lengthComputable) {
-              setUploadState((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      progress: Math.round((e.loaded / e.total) * 100),
-                    }
-                  : prev,
-              );
-            }
-          });
-          xhr.addEventListener("load", () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const response = JSON.parse(xhr.responseText);
-                resolve(response.blobId);
-              } catch {
-                reject(new Error("Invalid response from upload"));
-              }
-            } else {
-              reject(new Error(`Upload failed: ${xhr.status}`));
-            }
-          });
-          xhr.addEventListener("error", () => reject(new Error("Upload failed")));
-          xhr.open("POST", `${siteUrl}${FS_PREFIX}/upload`);
-          xhr.setRequestHeader("Content-Type", droppedFile.type);
-          if (token) {
-            xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-          }
-          xhr.send(droppedFile);
+        const uploadRes = await fetch(`${apiClient.files.upload.$url()}`, {
+          method: "POST",
+          body: formData,
+          credentials: "include",
         });
+
+        if (!uploadRes.ok) throw new Error(`Upload failed: ${uploadRes.status}`);
 
         setUploadState((prev) => (prev ? { ...prev, status: "committing", progress: 100 } : prev));
 
-        const { fileId: newFileId } = await commitFile({
-          blobId,
-          filename: droppedFile.name,
-          contentType: droppedFile.type,
-          size: droppedFile.size,
-          siteUrl,
-        });
+        const { id: newFileId } = (await uploadRes.json()) as { id: number };
 
-        await replaceFile({
-          oldFileId: fileId,
-          newFileId: newFileId as Id<"files">,
+        await apiClient.files.replace.$post({
+          json: { id: fileId, newFileId },
         });
 
         setUploadState((prev) => (prev ? { ...prev, status: "complete" } : prev));
@@ -187,7 +142,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
         setTimeout(() => setUploadState(null), 3000);
       }
     },
-    [siteUrl, commitFile, replaceFile, fileId, onOpenChange, getToken],
+    [apiClient, file?.projectId, fileId, onOpenChange],
   );
 
   const handleCopyUrl = async () => {
@@ -205,7 +160,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
   };
 
   const handleDelete = async () => {
-    await deleteFile({ fileId });
+    await apiClient.files.delete.$post({ json: { id: fileId } });
     onOpenChange(false);
   };
 
@@ -361,7 +316,9 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 <Switch
                   id="ai-metadata"
                   checked={file.aiMetadataEnabled !== false}
-                  onCheckedChange={(checked) => setAiMetadata({ fileId, enabled: checked })}
+                  onCheckedChange={(checked) =>
+                    apiClient.files.setAiMetadata.$post({ json: { id: fileId, enabled: checked } })
+                  }
                 />
                 <Label htmlFor="ai-metadata">AI metadata</Label>
               </div>
@@ -370,7 +327,9 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 placeholder="File name..."
                 initialValue={file.filename}
                 disabled={file.aiMetadataEnabled !== false}
-                onSave={(value) => updateFileFilename({ fileId, filename: value })}
+                onSave={(value) =>
+                  apiClient.files.setFilename.$post({ json: { id: fileId, filename: value } })
+                }
               />
               <DebouncedFieldEditor
                 label="Alt text"
@@ -378,7 +337,9 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 initialValue={file.alt}
                 disabled={file.aiMetadataEnabled !== false}
                 rows={2}
-                onSave={(value) => updateFileAlt({ fileId, alt: value })}
+                onSave={(value) =>
+                  apiClient.files.setAlt.$post({ json: { id: fileId, alt: value } })
+                }
               />
               <div className="text-muted-foreground space-y-1 text-sm">
                 <MetadataRow label="Format">
