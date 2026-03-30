@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
-import { requireOrg } from "./authorization";
 import { createDb } from "./db";
 export { AiJobScheduler } from "./durable-objects/ai-job-scheduler";
 import { authRoutes, createAuth } from "./features/auth";
@@ -53,14 +52,6 @@ const app = new Hono<AppEnv>()
     c.set("session", session.session);
     await next();
   })
-  // All content routes require authentication
-  .use("/projects/*", requireOrg)
-  .use("/pages/*", requireOrg)
-  .use("/blocks/*", requireOrg)
-  .use("/layouts/*", requireOrg)
-  .use("/files/*", requireOrg)
-  .use("/repeatableItems/*", requireOrg)
-  .use("/blockDefinitions/*", requireOrg)
   .route("/projects", projectRoutes)
   .route("/pages", pageRoutes)
   .route("/blocks", blockRoutes)

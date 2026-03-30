@@ -8,7 +8,7 @@ import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { assertBlockAccess, assertPageAccess } from "../authorization";
+import { assertBlockAccess, assertPageAccess, requireOrg } from "../authorization";
 import type { Database } from "../db";
 import { contentToMarkdown } from "../lib/content-markdown";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
@@ -219,6 +219,7 @@ const createBlockSchema = z.object({
 });
 
 export const blockRoutes = new Hono<AppEnv>()
+  .use(requireOrg)
   .get("/getUsageCounts", async (c) => {
     const orgSlug = c.var.orgSlug!;
     const result = await c.var.db

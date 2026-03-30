@@ -8,7 +8,7 @@ import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { assertPageAccess, getAuthorizedProject } from "../authorization";
+import { assertPageAccess, getAuthorizedProject, requireOrg } from "../authorization";
 import type { Database } from "../db";
 import { contentToMarkdown } from "../lib/content-markdown";
 import { markdownToLexicalState, plainTextToLexicalState } from "../lib/lexical-state";
@@ -472,24 +472,8 @@ const createPageSchema = z.object({
 });
 
 export const pageRoutes = new Hono<AppEnv>()
-  .get("/list", async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const result = await c.var.db
-      .select({ page: pages })
-      .from(pages)
-      .innerJoin(projects, eq(projects.id, pages.projectId))
-      .where(eq(projects.organizationSlug, orgSlug));
-    return c.json(result.map((r) => r.page));
-  })
-  .get("/get", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id } = c.req.valid("query");
-    const result = await assertPageAccess(c.var.db, id, orgSlug);
-    if (!result) return c.json({ error: "Not found" }, 404);
-    return c.json(result.page);
-  })
+  // Public routes (no auth required — used by SSR loaders)
   .get("/getByPath", zValidator("query", z.object({ path: z.string() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
     const { path: fullPath } = c.req.valid("query");
 
     const db = c.var.db;
@@ -498,9 +482,7 @@ export const pageRoutes = new Hono<AppEnv>()
     if (!page) return c.json({ error: "Not found" }, 404);
 
     const project = await db.select().from(projects).where(eq(projects.id, page.projectId)).get();
-    if (!project || project.organizationSlug !== orgSlug) {
-      return c.json({ error: "Not found" }, 404);
-    }
+    if (!project) return c.json({ error: "Not found" }, 404);
 
     // Fetch block definitions for field ordering
     const defs = await db
@@ -546,6 +528,24 @@ export const pageRoutes = new Hono<AppEnv>()
         afterBlocks,
       },
     });
+  })
+  // Protected routes
+  .use(requireOrg)
+  .get("/list", async (c) => {
+    const orgSlug = c.var.orgSlug!;
+    const result = await c.var.db
+      .select({ page: pages })
+      .from(pages)
+      .innerJoin(projects, eq(projects.id, pages.projectId))
+      .where(eq(projects.organizationSlug, orgSlug));
+    return c.json(result.map((r) => r.page));
+  })
+  .get("/get", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
+    const orgSlug = c.var.orgSlug!;
+    const { id } = c.req.valid("query");
+    const result = await assertPageAccess(c.var.db, id, orgSlug);
+    if (!result) return c.json({ error: "Not found" }, 404);
+    return c.json(result.page);
   })
   .post("/create", zValidator("json", createPageSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;

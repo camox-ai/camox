@@ -7,7 +7,7 @@ import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { assertFileAccess, getAuthorizedProject } from "../authorization";
+import { assertFileAccess, getAuthorizedProject, requireOrg } from "../authorization";
 import type { Database } from "../db";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import type { AppEnv } from "../types";
@@ -93,6 +93,7 @@ const commitFileSchema = z.object({
 });
 
 export const fileRoutes = new Hono<AppEnv>()
+  .use(requireOrg)
   .get("/list", async (c) => {
     const orgSlug = c.var.orgSlug!;
     const result = await c.var.db
