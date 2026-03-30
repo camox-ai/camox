@@ -54,17 +54,13 @@ const AddBlockSheet = () => {
         ? ""
         : (peekedBlockPosition ?? page.blocks[page.blocks.length - 1]?.position);
 
-    const res = await apiClient.blocks.create.$post({
-      json: {
-        pageId: page.page.id,
-        type: block.id,
-        content: block.getInitialContent(),
-        settings: block.getInitialSettings(),
-        afterPosition,
-      },
+    const { id: blockId } = await apiClient.blocks.create({
+      pageId: page.page.id,
+      type: block.id,
+      content: block.getInitialContent(),
+      settings: block.getInitialSettings(),
+      afterPosition,
     });
-    if (!res.ok) throw new Error("Failed to create block");
-    const { id: blockId } = await res.json();
     trackClientEvent("block_added", {
       projectId: page.page.projectId,
       blockType: block.id,

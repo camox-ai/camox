@@ -94,6 +94,8 @@ export function CamoxProvider({
   queryClient,
 }: CamoxProviderProps) {
   const authClient = React.useMemo(() => createCamoxAuthClient(apiUrl), [apiUrl]);
+
+  // useMemo to initialize the API client on mount, useful even without storing the value
   React.useMemo(() => initApiClient(apiUrl), [apiUrl]);
 
   // Verify ?ott= one-time token before the provider tree renders

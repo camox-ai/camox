@@ -72,7 +72,7 @@ const UnlinkAssetButton = ({ fileId, onUnlink, className }: UnlinkAssetButtonPro
             <AlertDialogAction
               onClick={() => {
                 onUnlink();
-                if (fileId) apiClient.files.delete.$post({ json: { id: fileId } });
+                if (fileId) apiClient.files.delete({ id: fileId });
               }}
               asChild
             >

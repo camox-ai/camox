@@ -358,9 +358,7 @@ const PageContentSheet = () => {
   const handleBlockFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
       if (!block) return;
-      apiClient.blocks.updateContent.$post({
-        json: { id: block.id, content: { [fieldName]: value } },
-      });
+      apiClient.blocks.updateContent({ id: block.id, content: { [fieldName]: value } });
     },
     [block, apiClient],
   );
@@ -368,8 +366,9 @@ const PageContentSheet = () => {
   const handleItemFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
       if (!currentItemId) return;
-      apiClient.repeatableItems.updateContent.$post({
-        json: { id: Number(currentItemId), content: { [fieldName]: value } },
+      apiClient.repeatableItems.updateContent({
+        id: Number(currentItemId),
+        content: { [fieldName]: value },
       });
     },
     [currentItemId, apiClient],
@@ -394,11 +393,9 @@ const PageContentSheet = () => {
       ];
       parentArray[idx] = { ...parentArray[idx], [fieldName]: value };
 
-      apiClient.repeatableItems.updateContent.$post({
-        json: {
-          id: Number(currentDepthResult.parentItemId),
-          content: { [currentDepthResult.parentFieldName]: parentArray },
-        },
+      apiClient.repeatableItems.updateContent({
+        id: Number(currentDepthResult.parentItemId),
+        content: { [currentDepthResult.parentFieldName]: parentArray },
       });
     },
     [block, currentDepthResult, repeatableBreadcrumbs, apiClient],
@@ -669,8 +666,9 @@ const PageContentSheet = () => {
                     <Select
                       value={value}
                       onValueChange={(newValue) => {
-                        apiClient.blocks.updateSettings.$post({
-                          json: { id: block.id, settings: { [field.name]: newValue } },
+                        apiClient.blocks.updateSettings({
+                          id: block.id,
+                          settings: { [field.name]: newValue },
                         });
                       }}
                     >
@@ -702,8 +700,9 @@ const PageContentSheet = () => {
                       id={`setting-${field.name}`}
                       checked={checked}
                       onCheckedChange={(newValue) => {
-                        apiClient.blocks.updateSettings.$post({
-                          json: { id: block.id, settings: { [field.name]: newValue } },
+                        apiClient.blocks.updateSettings({
+                          id: block.id,
+                          settings: { [field.name]: newValue },
                         });
                       }}
                     />

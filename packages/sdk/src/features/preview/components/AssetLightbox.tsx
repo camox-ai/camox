@@ -10,7 +10,7 @@ import { Check, Download, FileIcon, Link, Loader2, Trash2, X } from "lucide-reac
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
-import { getApiClient } from "@/lib/api-client";
+import { getApiClient, getApiUrl } from "@/lib/api-client";
 import { fileQueries } from "@/lib/queries";
 
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
@@ -113,7 +113,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
         formData.append("file", droppedFile);
         formData.append("projectId", String(file?.projectId ?? 0));
 
-        const uploadRes = await fetch(`${apiClient.files.upload.$url()}`, {
+        const uploadRes = await fetch(`${getApiUrl()}/files/upload`, {
           method: "POST",
           body: formData,
           credentials: "include",
@@ -125,9 +125,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
 
         const { id: newFileId } = (await uploadRes.json()) as { id: number };
 
-        await apiClient.files.replace.$post({
-          json: { id: fileId, newFileId },
-        });
+        await apiClient.files.replace({ id: fileId, newFileId });
 
         setUploadState((prev) => (prev ? { ...prev, status: "complete" } : prev));
         toast.success("File replaced");
@@ -160,7 +158,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
   };
 
   const handleDelete = async () => {
-    await apiClient.files.delete.$post({ json: { id: fileId } });
+    await apiClient.files.delete({ id: fileId });
     onOpenChange(false);
   };
 
@@ -317,7 +315,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                   id="ai-metadata"
                   checked={file.aiMetadataEnabled !== false}
                   onCheckedChange={(checked) =>
-                    apiClient.files.setAiMetadata.$post({ json: { id: fileId, enabled: checked } })
+                    apiClient.files.setAiMetadata({ id: fileId, enabled: checked })
                   }
                 />
                 <Label htmlFor="ai-metadata">AI metadata</Label>
@@ -327,9 +325,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 placeholder="File name..."
                 initialValue={file.filename}
                 disabled={file.aiMetadataEnabled !== false}
-                onSave={(value) =>
-                  apiClient.files.setFilename.$post({ json: { id: fileId, filename: value } })
-                }
+                onSave={(value) => apiClient.files.setFilename({ id: fileId, filename: value })}
               />
               <DebouncedFieldEditor
                 label="Alt text"
@@ -337,9 +333,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 initialValue={file.alt}
                 disabled={file.aiMetadataEnabled !== false}
                 rows={2}
-                onSave={(value) =>
-                  apiClient.files.setAlt.$post({ json: { id: fileId, alt: value } })
-                }
+                onSave={(value) => apiClient.files.setAlt({ id: fileId, alt: value })}
               />
               <div className="text-muted-foreground space-y-1 text-sm">
                 <MetadataRow label="Format">

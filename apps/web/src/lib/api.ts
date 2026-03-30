@@ -1,8 +1,14 @@
-import type { AppType } from "@camox/api";
-import { hc, type InferResponseType } from "hono/client";
+import type { Router } from "@camox/api";
+import { createORPCClient } from "@orpc/client";
+import type { InferClientOutputs } from "@orpc/client";
+import { RPCLink } from "@orpc/client/fetch";
+import type { RouterClient } from "@orpc/server";
 
-export const api = hc<AppType>(import.meta.env.VITE_API_URL!, {
-  init: { credentials: "include" },
+const link = new RPCLink({
+  url: `${import.meta.env.VITE_API_URL!}/rpc`,
+  fetch: (request, init) => fetch(request, { ...init, credentials: "include" }),
 });
 
-export type Project = InferResponseType<typeof api.projects.list.$get, 200>[number];
+export const api = createORPCClient<RouterClient<Router>>(link);
+
+export type Project = InferClientOutputs<RouterClient<Router>>["projects"]["list"][number];

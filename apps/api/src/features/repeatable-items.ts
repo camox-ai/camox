@@ -1,10 +1,9 @@
-import { zValidator } from "@hono/zod-validator";
+import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { eq } from "drizzle-orm";
 import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { generateKeyBetween } from "fractional-indexing";
-import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
@@ -12,7 +11,7 @@ import { assertBlockAccess, assertRepeatableItemAccess } from "../authorization"
 import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
-import type { AppEnv } from "../types";
+import { authed } from "../orpc";
 import { blocks } from "./blocks";
 
 // --- Schema ---
@@ -138,7 +137,7 @@ export async function executeRepeatableItemSummary(
   return null;
 }
 
-// --- Routes ---
+// --- Procedures ---
 
 const createItemSchema = z.object({
   blockId: z.number(),
@@ -147,187 +146,195 @@ const createItemSchema = z.object({
   afterPosition: z.string().nullable().optional(),
 });
 
-export const repeatableItemRoutes = new Hono<AppEnv>()
-  .post("/create", zValidator("json", createItemSchema), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { blockId, fieldName, content, afterPosition } = c.req.valid("json");
-    const access = await assertBlockAccess(c.var.db, blockId, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
+const create = authed.input(createItemSchema).handler(async ({ context, input }) => {
+  const { blockId, fieldName, content, afterPosition } = input;
+  const access = await assertBlockAccess(context.db, blockId, context.orgSlug);
+  if (!access) throw new ORPCError("NOT_FOUND");
 
-    const now = Date.now();
-    const position = generateKeyBetween(afterPosition ?? null, null);
-    const result = await c.var.db
-      .insert(repeatableItems)
-      .values({
-        blockId,
-        fieldName,
-        content,
-        summary: "",
-        position,
-        createdAt: now,
-        updatedAt: now,
-      })
+  const now = Date.now();
+  const position = generateKeyBetween(afterPosition ?? null, null);
+  const result = await context.db
+    .insert(repeatableItems)
+    .values({
+      blockId,
+      fieldName,
+      content,
+      summary: "",
+      position,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+    .get();
+
+  scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+    entityTable: "repeatableItems",
+    entityId: result.id,
+    type: "summary",
+    delayMs: 0,
+  });
+  broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
+    entity: "repeatableItem",
+    action: "created",
+    entityId: result.id,
+    parentId: blockId,
+  });
+
+  return result;
+});
+
+const updateContent = authed
+  .input(z.object({ id: z.number(), content: z.unknown() }))
+  .handler(async ({ context, input }) => {
+    const { id, content } = input;
+    const access = await assertRepeatableItemAccess(context.db, id, context.orgSlug);
+    if (!access) throw new ORPCError("NOT_FOUND");
+
+    // Merge partial content into existing content (frontend sends single-field patches)
+    const merged = {
+      ...(access.item.content as Record<string, unknown>),
+      ...(content as Record<string, unknown>),
+    };
+    const result = await context.db
+      .update(repeatableItems)
+      .set({ content: merged, updatedAt: Date.now() })
+      .where(eq(repeatableItems.id, id))
       .returning()
       .get();
 
-    scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
+    scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
       entityTable: "repeatableItems",
-      entityId: result.id,
+      entityId: id,
       type: "summary",
-      delayMs: 0,
+      delayMs: 5000,
     });
-    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
       entity: "repeatableItem",
-      action: "created",
-      entityId: result.id,
-      parentId: blockId,
+      action: "updated",
+      entityId: id,
+      parentId: access.item.blockId,
     });
 
-    return c.json(result, 201);
-  })
-  .post(
-    "/updateContent",
-    zValidator("json", z.object({ id: z.number(), content: z.unknown() })),
-    async (c) => {
-      const orgSlug = c.var.orgSlug!;
-      const { id, content } = c.req.valid("json");
-      const access = await assertRepeatableItemAccess(c.var.db, id, orgSlug);
-      if (!access) return c.json({ error: "Not found" }, 404);
+    return result;
+  });
 
-      // Merge partial content into existing content (frontend sends single-field patches)
-      const merged = {
-        ...(access.item.content as Record<string, unknown>),
-        ...(content as Record<string, unknown>),
-      };
-      const result = await c.var.db
-        .update(repeatableItems)
-        .set({ content: merged, updatedAt: Date.now() })
-        .where(eq(repeatableItems.id, id))
-        .returning()
-        .get();
-
-      scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
-        entityTable: "repeatableItems",
-        entityId: id,
-        type: "summary",
-        delayMs: 5000,
-      });
-      broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
-        entity: "repeatableItem",
-        action: "updated",
-        entityId: id,
-        parentId: access.item.blockId,
-      });
-
-      return c.json(result);
-    },
+const updatePosition = authed
+  .input(
+    z.object({
+      id: z.number(),
+      afterPosition: z.string().nullable().optional(),
+      beforePosition: z.string().nullable().optional(),
+    }),
   )
-  .post(
-    "/updatePosition",
-    zValidator(
-      "json",
-      z.object({
-        id: z.number(),
-        afterPosition: z.string().nullable().optional(),
-        beforePosition: z.string().nullable().optional(),
-      }),
-    ),
-    async (c) => {
-      const orgSlug = c.var.orgSlug!;
-      const { id, afterPosition, beforePosition } = c.req.valid("json");
-      const access = await assertRepeatableItemAccess(c.var.db, id, orgSlug);
-      if (!access) return c.json({ error: "Not found" }, 404);
+  .handler(async ({ context, input }) => {
+    const { id, afterPosition, beforePosition } = input;
+    const access = await assertRepeatableItemAccess(context.db, id, context.orgSlug);
+    if (!access) throw new ORPCError("NOT_FOUND");
 
-      const position = generateKeyBetween(afterPosition ?? null, beforePosition ?? null);
-      const result = await c.var.db
-        .update(repeatableItems)
-        .set({ position, updatedAt: Date.now() })
-        .where(eq(repeatableItems.id, id))
-        .returning()
-        .get();
-      broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
-        entity: "repeatableItem",
-        action: "updated",
-        entityId: id,
-        parentId: access.item.blockId,
-      });
-      return c.json(result);
-    },
-  )
-  .post("/duplicate", zValidator("json", z.object({ id: z.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id } = c.req.valid("json");
-    const access = await assertRepeatableItemAccess(c.var.db, id, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
-    const original = access.item;
-
-    const now = Date.now();
-    const position = generateKeyBetween(original.position, null);
-    const result = await c.var.db
-      .insert(repeatableItems)
-      .values({
-        blockId: original.blockId,
-        fieldName: original.fieldName,
-        content: original.content,
-        summary: original.summary,
-        position,
-        createdAt: now,
-        updatedAt: now,
-      })
+    const position = generateKeyBetween(afterPosition ?? null, beforePosition ?? null);
+    const result = await context.db
+      .update(repeatableItems)
+      .set({ position, updatedAt: Date.now() })
+      .where(eq(repeatableItems.id, id))
       .returning()
       .get();
-    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
       entity: "repeatableItem",
-      action: "created",
-      entityId: result.id,
-      parentId: original.blockId,
+      action: "updated",
+      entityId: id,
+      parentId: access.item.blockId,
     });
-    return c.json(result, 201);
-  })
-  .post("/generateSummary", zValidator("json", z.object({ id: z.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id } = c.req.valid("json");
-    const access = await assertRepeatableItemAccess(c.var.db, id, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
+    return result;
+  });
 
-    const cascade = await executeRepeatableItemSummary(c.var.db, c.env.OPEN_ROUTER_API_KEY, id);
+const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
+  const { id } = input;
+  const access = await assertRepeatableItemAccess(context.db, id, context.orgSlug);
+  if (!access) throw new ORPCError("NOT_FOUND");
+  const original = access.item;
+
+  const now = Date.now();
+  const position = generateKeyBetween(original.position, null);
+  const result = await context.db
+    .insert(repeatableItems)
+    .values({
+      blockId: original.blockId,
+      fieldName: original.fieldName,
+      content: original.content,
+      summary: original.summary,
+      position,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+    .get();
+  broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
+    entity: "repeatableItem",
+    action: "created",
+    entityId: result.id,
+    parentId: original.blockId,
+  });
+  return result;
+});
+
+const generateSummary = authed
+  .input(z.object({ id: z.number() }))
+  .handler(async ({ context, input }) => {
+    const { id } = input;
+    const access = await assertRepeatableItemAccess(context.db, id, context.orgSlug);
+    if (!access) throw new ORPCError("NOT_FOUND");
+
+    const cascade = await executeRepeatableItemSummary(
+      context.db,
+      context.env.OPEN_ROUTER_API_KEY,
+      id,
+    );
     if (cascade) {
-      scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
+      scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
         entityTable: "blocks",
         entityId: cascade.blockId,
         type: "summary",
         delayMs: 5000,
       });
     }
-    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
       entity: "repeatableItem",
       action: "updated",
       entityId: id,
       parentId: access.item.blockId,
     });
-    const updated = await c.var.db
+    const updated = await context.db
       .select()
       .from(repeatableItems)
       .where(eq(repeatableItems.id, id))
       .get();
-    return c.json(updated);
-  })
-  .post("/delete", zValidator("json", z.object({ id: z.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const { id } = c.req.valid("json");
-    const access = await assertRepeatableItemAccess(c.var.db, id, orgSlug);
-    if (!access) return c.json({ error: "Not found" }, 404);
-
-    const result = await c.var.db
-      .delete(repeatableItems)
-      .where(eq(repeatableItems.id, id))
-      .returning()
-      .get();
-    broadcastInvalidation(c.env.ProjectRoom, access.projectId, {
-      entity: "repeatableItem",
-      action: "deleted",
-      entityId: id,
-      parentId: access.item.blockId,
-    });
-    return c.json(result);
+    return updated;
   });
+
+const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
+  const { id } = input;
+  const access = await assertRepeatableItemAccess(context.db, id, context.orgSlug);
+  if (!access) throw new ORPCError("NOT_FOUND");
+
+  const result = await context.db
+    .delete(repeatableItems)
+    .where(eq(repeatableItems.id, id))
+    .returning()
+    .get();
+  broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
+    entity: "repeatableItem",
+    action: "deleted",
+    entityId: id,
+    parentId: access.item.blockId,
+  });
+  return result;
+});
+
+export const repeatableItemProcedures = {
+  create,
+  updateContent,
+  updatePosition,
+  duplicate,
+  generateSummary,
+  delete: deleteFn,
+};

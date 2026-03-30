@@ -88,6 +88,8 @@
     "@lexical/markdown": "^0.41.0",
     "@lexical/react": "^0.41.0",
     "@lexical/rich-text": "^0.41.0",
+    "@orpc/client": "^1.13.13",
+    "@orpc/tanstack-query": "^1.13.13",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-slot": "^1.2.3",
     "@sinclair/typebox": "^0.34.41",
@@ -110,6 +112,7 @@
     "shiki": "^4.0.1"
   },
   "devDependencies": {
+    "@orpc/server": "^1.13.13",
     "@tailwindcss/cli": "^4.0.6",
     "@types/node": "^24.6.2",
     "@types/react": "^19.0.8",

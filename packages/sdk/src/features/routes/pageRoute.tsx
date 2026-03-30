@@ -1,3 +1,7 @@
+import type { Router } from "@camox/api";
+import { createORPCClient } from "@orpc/client";
+import { RPCLink } from "@orpc/client/fetch";
+import type { RouterClient } from "@orpc/server";
 import { notFound } from "@tanstack/react-router";
 import { createMiddleware, createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
@@ -30,6 +34,10 @@ export function prefersMarkdown(accept: string): boolean {
   return markdownQ > 0 && markdownQ >= htmlQ;
 }
 
+function createServerApiClient(apiUrl: string): RouterClient<Router> {
+  return createORPCClient<RouterClient<Router>>(new RPCLink({ url: `${apiUrl}/rpc` }));
+}
+
 /* -------------------------------------------------------------------------------------------------
  * Server functions
  * -----------------------------------------------------------------------------------------------*/
@@ -45,31 +53,28 @@ export const getOrigin = createServerFn({ method: "GET" }).handler(async () => {
  * -----------------------------------------------------------------------------------------------*/
 
 export function createMarkdownMiddleware(apiUrl: string) {
+  const api = createServerApiClient(apiUrl);
+
   return createMiddleware().server(async ({ next, request }) => {
     const accept = request.headers.get("Accept") ?? "";
     if (prefersMarkdown(accept)) {
       const url = new URL(request.url);
-      const pageRes = await fetch(
-        `${apiUrl}/pages/getByPath?${new URLSearchParams({ path: url.pathname })}`,
-      );
-      if (pageRes.ok) {
-        const page = (await pageRes.json()) as PageWithBlocks;
-        const mdRes = await fetch(
-          `${apiUrl}/blocks/getPageMarkdown?${new URLSearchParams({ pageId: String(page.page.id) })}`,
-        );
-        if (mdRes.ok) {
-          const { markdown } = (await mdRes.json()) as { markdown: string };
-          if (markdown) {
-            trackEvent("markdown_served", {
-              pathname: url.pathname,
-              projectId: page.page.projectId,
-              projectName: page.projectName,
-            });
-            throw new Response(markdown, {
-              headers: { "Content-Type": "text/markdown; charset=utf-8" },
-            });
-          }
+      try {
+        const page = await api.pages.getByPath({ path: url.pathname });
+        const { markdown } = await api.blocks.getPageMarkdown({ pageId: page.page.id });
+        if (markdown) {
+          trackEvent("markdown_served", {
+            pathname: url.pathname,
+            projectId: page.page.projectId,
+            projectName: page.projectName,
+          });
+          throw new Response(markdown, {
+            headers: { "Content-Type": "text/markdown; charset=utf-8" },
+          });
         }
+      } catch (e) {
+        // Re-throw Response objects (markdown response), ignore oRPC errors (page not found)
+        if (e instanceof Response) throw e;
       }
     }
     return next();
@@ -77,19 +82,18 @@ export function createMarkdownMiddleware(apiUrl: string) {
 }
 
 export function createPageLoader(apiUrl: string) {
-  return async ({ location }: { location: { pathname: string } }) => {
-    const [pageRes, origin] = await Promise.all([
-      fetch(`${apiUrl}/pages/getByPath?${new URLSearchParams({ path: location.pathname })}`),
-      getOrigin(),
-    ]);
+  const api = createServerApiClient(apiUrl);
 
-    if (!pageRes.ok) {
+  return async ({ location }: { location: { pathname: string } }) => {
+    try {
+      const [page, origin] = await Promise.all([
+        api.pages.getByPath({ path: location.pathname }),
+        getOrigin(),
+      ]);
+      return { page, origin };
+    } catch {
       throw notFound();
     }
-
-    const page = (await pageRes.json()) as PageWithBlocks;
-
-    return { page, origin };
   };
 }
 

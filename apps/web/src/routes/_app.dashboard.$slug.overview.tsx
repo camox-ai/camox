@@ -26,15 +26,12 @@ function ProjectSettingsFormInner({ project }: { project: Project }) {
     },
     onSubmit: async ({ value }) => {
       try {
-        const res = await api.projects.update.$post({
-          json: {
-            id: project.id,
-            name: value.name,
-            description: value.description,
-            domain: value.domain,
-          },
+        await api.projects.update({
+          id: project.id,
+          name: value.name,
+          description: value.description,
+          domain: value.domain,
         });
-        if (!res.ok) throw new Error("Update failed");
         toast.success("Project settings updated");
       } catch (error) {
         console.error("Failed to update project:", error);
@@ -142,11 +139,7 @@ function ProjectSettingsPage() {
 
   const { data: project } = useSuspenseQuery({
     queryKey: ["projects", "getBySlug", slug],
-    queryFn: async () => {
-      const res = await api.projects.getBySlug.$get({ query: { slug } });
-      if (!res.ok) throw new Error("Project not found");
-      return res.json();
-    },
+    queryFn: () => api.projects.getBySlug({ slug }),
   });
 
   if (!project) return null;

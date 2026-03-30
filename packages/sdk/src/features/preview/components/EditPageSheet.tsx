@@ -72,20 +72,14 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
     },
     onSubmit: async (values) => {
       try {
-        const res = await apiClient.pages.update.$post({
-          json: {
-            id: pageToEdit.id,
-            pathSegment: values.value.pathSegment,
-            parentPageId: values.value.parentPageId,
-          },
+        const { fullPath } = await apiClient.pages.update({
+          id: pageToEdit.id,
+          pathSegment: values.value.pathSegment,
+          parentPageId: values.value.parentPageId,
         });
-        if (!res.ok) throw new Error("Failed to update page");
-        const { fullPath } = await res.json();
 
         if (values.value.layoutId) {
-          await apiClient.pages.setLayout.$post({
-            json: { id: pageToEdit.id, layoutId: values.value.layoutId },
-          });
+          await apiClient.pages.setLayout({ id: pageToEdit.id, layoutId: values.value.layoutId });
         }
 
         trackClientEvent("page_updated", {
@@ -221,7 +215,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
                   id="ai-seo"
                   checked={page.aiSeoEnabled !== false}
                   onCheckedChange={(checked) =>
-                    apiClient.pages.setAiSeo.$post({ json: { id: page.id, enabled: checked } })
+                    apiClient.pages.setAiSeo({ id: page.id, enabled: checked })
                   }
                 />
                 <Label htmlFor="ai-seo">AI metadata</Label>
@@ -231,9 +225,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
                 placeholder="Page title..."
                 initialValue={page.metaTitle ?? ""}
                 disabled={page.aiSeoEnabled !== false}
-                onSave={(value) =>
-                  apiClient.pages.setMetaTitle.$post({ json: { id: page.id, metaTitle: value } })
-                }
+                onSave={(value) => apiClient.pages.setMetaTitle({ id: page.id, metaTitle: value })}
               />
               <DebouncedFieldEditor
                 label="Page description"
@@ -242,9 +234,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
                 disabled={page.aiSeoEnabled !== false}
                 rows={2}
                 onSave={(value) =>
-                  apiClient.pages.setMetaDescription.$post({
-                    json: { id: page.id, metaDescription: value },
-                  })
+                  apiClient.pages.setMetaDescription({ id: page.id, metaDescription: value })
                 }
               />
               <SearchEnginePreview

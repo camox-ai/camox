@@ -53,8 +53,7 @@ const PagePicker = () => {
   const handleDeletePage = async (page: Page) => {
     const displayName = page.metaTitle ?? formatPathSegment(page.pathSegment);
     try {
-      const res = await apiClient.pages.delete.$post({ json: { id: page.id } });
-      if (!res.ok) throw new Error("Failed to delete page");
+      await apiClient.pages.delete({ id: page.id });
       toast.success(`Deleted ${displayName} page`);
 
       if (pathname === page.fullPath) {
