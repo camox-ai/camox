@@ -21,14 +21,17 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { Skeleton } from "@camox/ui/skeleton";
 import { toast } from "@camox/ui/toaster";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import { api } from "camox/server/api";
-import { Doc } from "camox/server/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
 import * as React from "react";
 
+import { useApiClient } from "@/lib/api-client";
+import type { Page } from "@/lib/queries";
+import { pageQueries } from "@/lib/queries";
 import { cn, formatPathSegment } from "@/lib/utils";
 
 import { previewStore } from "../previewStore";
@@ -41,18 +44,19 @@ const CREATE_PAGE_VALUE = "__create_page__";
 
 const PagePicker = () => {
   const [open, setOpen] = React.useState(false);
-  const [pageToDelete, setPageToDelete] = React.useState<Doc<"pages"> | null>(null);
+  const [pageToDelete, setPageToDelete] = React.useState<Page | null>(null);
   const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
 
-  const pages = useQuery(api.pages.listPages);
+  const apiClient = useApiClient();
+  const { data: pages } = useQuery(pageQueries.list(apiClient));
   const deletePage = useMutation(api.pages.deletePage);
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const handleDeletePage = async (page: Doc<"pages">) => {
+  const handleDeletePage = async (page: Page) => {
     const displayName = page.metaTitle ?? formatPathSegment(page.pathSegment);
     try {
-      await deletePage({ pageId: page._id });
+      await deletePage({ pageId: page.id });
       toast.success(`Deleted ${displayName} page`);
 
       if (pathname === page.fullPath) {
@@ -121,7 +125,7 @@ const PagePicker = () => {
               <CommandGroup>
                 {pages.map((page) => (
                   <CommandItem
-                    key={page._id}
+                    key={page.id}
                     value={page.fullPath}
                     className="group/item justify-between"
                     onSelect={() => {

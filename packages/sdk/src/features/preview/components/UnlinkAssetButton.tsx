@@ -9,23 +9,29 @@ import {
 } from "@camox/ui/alert-dialog";
 import { Button } from "@camox/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "camox/server/api";
-import type { Id } from "camox/server/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { X } from "lucide-react";
 import { useState } from "react";
 
+import { useApiClient } from "@/lib/api-client";
+import { fileQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 interface UnlinkAssetButtonProps {
-  fileId: Id<"files"> | undefined;
+  fileId: number | undefined;
   onUnlink: () => void;
   className?: string;
 }
 
 const UnlinkAssetButton = ({ fileId, onUnlink, className }: UnlinkAssetButtonProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const usageCount = useQuery(api.files.getFileUsageCount, fileId ? { fileId } : "skip");
+  const apiClient = useApiClient();
+  const { data: usageCount } = useQuery({
+    ...fileQueries.getUsageCount(apiClient, fileId!),
+    enabled: !!fileId,
+  });
   const deleteFile = useMutation(api.files.deleteFile);
 
   const handleClick = (e: React.MouseEvent) => {

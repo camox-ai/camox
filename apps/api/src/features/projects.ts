@@ -4,7 +4,7 @@ import { int, sqliteTable, text, index, uniqueIndex } from "drizzle-orm/sqlite-c
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { getAuthorizedProject, getAuthorizedProjectBySlug, requireOrg } from "../authorization";
+import { getAuthorizedProject, requireOrg } from "../authorization";
 import type { AppEnv } from "../types";
 
 // --- Schema ---
@@ -45,40 +45,30 @@ const updateProjectSchema = z.object({
 });
 
 export const projectRoutes = new Hono<AppEnv>()
-  .use(requireOrg)
+  // Public routes (no auth required)
   .get("/list", async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const result = await c.var.db
-      .select()
-      .from(projects)
-      .where(eq(projects.organizationSlug, orgSlug));
+    const result = await c.var.db.select().from(projects);
     return c.json(result);
   })
   .get("/getFirst", async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const result = await c.var.db
-      .select()
-      .from(projects)
-      .where(eq(projects.organizationSlug, orgSlug))
-      .limit(1)
-      .get();
+    const result = await c.var.db.select().from(projects).limit(1).get();
     if (!result) return c.json({ error: "Not found" }, 404);
     return c.json(result);
   })
   .get("/getBySlug", zValidator("query", z.object({ slug: z.string() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
     const { slug } = c.req.valid("query");
-    const result = await getAuthorizedProjectBySlug(c.var.db, slug, orgSlug);
+    const result = await c.var.db.select().from(projects).where(eq(projects.slug, slug)).get();
     if (!result) return c.json({ error: "Not found" }, 404);
     return c.json(result);
   })
   .get("/get", zValidator("query", z.object({ id: z.coerce.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
     const { id } = c.req.valid("query");
-    const result = await getAuthorizedProject(c.var.db, id, orgSlug);
+    const result = await c.var.db.select().from(projects).where(eq(projects.id, id)).get();
     if (!result) return c.json({ error: "Not found" }, 404);
     return c.json(result);
   })
+  // Protected routes
+  .use(requireOrg)
   .post("/create", zValidator("json", createProjectSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const body = c.req.valid("json");

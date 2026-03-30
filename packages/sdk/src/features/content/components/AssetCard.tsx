@@ -1,10 +1,10 @@
-import type { Doc } from "camox/server/dataModel";
 import { FileIcon } from "lucide-react";
 
+import type { File } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 interface AssetCardProps {
-  file: Doc<"files">;
+  file: File;
   selected: boolean;
   onSelect: () => void;
   onOpen: () => void;
@@ -17,7 +17,7 @@ export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) 
   return (
     <button
       type="button"
-      data-asset-id={file._id}
+      data-asset-id={file.id}
       className={cn(
         "group flex flex-col gap-1.5 rounded-lg p-2 text-left border-2 border-transparent",
         selected ? "bg-primary/20 border-2 border-primary" : "hover:bg-accent/75",

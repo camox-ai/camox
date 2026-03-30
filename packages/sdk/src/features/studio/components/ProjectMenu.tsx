@@ -2,12 +2,13 @@ import { Button } from "@camox/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { Separator } from "@camox/ui/separator";
 import { Skeleton } from "@camox/ui/skeleton";
-import { api } from "camox/server/api";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Globe, Settings, Users } from "lucide-react";
 import * as React from "react";
 
+import { useApiClient } from "@/lib/api-client";
 import { AuthContext } from "@/lib/auth";
+import { projectQueries } from "@/lib/queries";
 
 const Favicon = ({ size = 16 }: { size?: number }) => {
   const [faviconUrl, setFaviconUrl] = React.useState<string | null>(null);
@@ -66,7 +67,8 @@ const Favicon = ({ size = 16 }: { size?: number }) => {
 export const ProjectMenu = () => {
   const [open, setOpen] = React.useState(false);
   const authCtx = React.useContext(AuthContext);
-  const project = useQuery(api.projects.getFirstProject);
+  const apiClient = useApiClient();
+  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
 
   if (!project) {
     return (

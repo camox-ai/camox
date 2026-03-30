@@ -1,20 +1,21 @@
 import { Button } from "@camox/ui/button";
 import { Skeleton } from "@camox/ui/skeleton";
-import { api } from "camox/server/api";
-import type { Doc } from "camox/server/dataModel";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import * as React from "react";
 
 import { AssetCard } from "@/features/content/components/AssetCard";
+import { useApiClient } from "@/lib/api-client";
+import type { File } from "@/lib/queries";
+import { fileQueries } from "@/lib/queries";
 
 import { AssetLightbox } from "./AssetLightbox";
 
 interface AssetPickerGridProps {
   assetType: "Image" | "File";
   mode: "single" | "multiple";
-  onSelectSingle: (file: Doc<"files">) => void;
-  onSelectMultiple: (files: Doc<"files">[]) => void;
+  onSelectSingle: (file: File) => void;
+  onSelectMultiple: (files: File[]) => void;
   onClose: () => void;
 }
 
@@ -25,9 +26,10 @@ const AssetPickerGrid = ({
   onSelectMultiple,
   onClose,
 }: AssetPickerGridProps) => {
-  const allFiles = useQuery(api.files.listFiles);
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
-  const [lightboxFile, setLightboxFile] = React.useState<Doc<"files"> | null>(null);
+  const apiClient = useApiClient();
+  const { data: allFiles } = useQuery(fileQueries.list(apiClient));
+  const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set());
+  const [lightboxFile, setLightboxFile] = React.useState<File | null>(null);
 
   const isImage = assetType === "Image";
   const files = React.useMemo(() => {
@@ -36,7 +38,7 @@ const AssetPickerGrid = ({
     return allFiles.filter((f) => f.mimeType?.startsWith("image/"));
   }, [allFiles, isImage]);
 
-  const toggleSelection = (fileId: string) => {
+  const toggleSelection = (fileId: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(fileId)) {
@@ -50,7 +52,7 @@ const AssetPickerGrid = ({
 
   const handleConfirmMultiple = () => {
     if (!files) return;
-    const selected = files.filter((f) => selectedIds.has(f._id));
+    const selected = files.filter((f) => selectedIds.has(f.id));
     onSelectMultiple(selected);
   };
 
@@ -96,14 +98,14 @@ const AssetPickerGrid = ({
           <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
             {files.map((file) => (
               <AssetCard
-                key={file._id}
+                key={file.id}
                 file={file}
-                selected={selectedIds.has(file._id)}
+                selected={selectedIds.has(file.id)}
                 onSelect={() => {
                   if (mode === "single") {
                     onSelectSingle(file);
                   } else {
-                    toggleSelection(file._id);
+                    toggleSelection(file.id);
                   }
                 }}
                 onOpen={() => setLightboxFile(file)}
@@ -119,7 +121,7 @@ const AssetPickerGrid = ({
           onOpenChange={(open) => {
             if (!open) setLightboxFile(null);
           }}
-          fileId={lightboxFile._id}
+          fileId={lightboxFile.id}
         />
       )}
     </div>

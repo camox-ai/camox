@@ -7,14 +7,17 @@ import {
   CommandList,
 } from "@camox/ui/command";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
+import { useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import { api } from "camox/server/api";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { InfoIcon } from "lucide-react";
 import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
 import { trackClientEvent } from "@/lib/analytics-client";
+import { useApiClient } from "@/lib/api-client";
+import { blockQueries } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -28,7 +31,8 @@ const AddBlockSheet = () => {
     .getBlocks()
     .filter((b) => !b.layoutOnly);
   const page = usePreviewedPage();
-  const totalCounts = useQuery(api.blocks.getBlockUsageCounts) ?? {};
+  const apiClient = useApiClient();
+  const { data: totalCounts = {} } = useQuery(blockQueries.getUsageCounts(apiClient));
 
   const pageCounts = React.useMemo(() => {
     const counts: Record<string, number> = {};
@@ -54,7 +58,7 @@ const AddBlockSheet = () => {
         : (peekedBlockPosition ?? page.blocks[page.blocks.length - 1]?.position);
 
     const blockId = await createBlockMutation({
-      pageId: page.page._id,
+      pageId: page.page.id,
       type: block.id,
       content: block.getInitialContent(),
       settings: block.getInitialSettings(),

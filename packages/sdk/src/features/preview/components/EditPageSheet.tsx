@@ -11,15 +11,18 @@ import { Switch } from "@camox/ui/switch";
 import { toast } from "@camox/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useForm } from "@tanstack/react-form";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import { api } from "camox/server/api";
-import { Doc, Id } from "camox/server/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Globe, Info } from "lucide-react";
 import * as React from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
+import { useApiClient } from "@/lib/api-client";
+import type { Page } from "@/lib/queries";
+import { blockQueries, layoutQueries, pageQueries, projectQueries } from "@/lib/queries";
 import { formatPathSegment } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -36,15 +39,17 @@ const EditPageSheet = () => {
   return <EditPageSheetContent pageToEdit={editingPage} />;
 };
 
-const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
-  const livePage = useQuery(api.pages.getPageById, {
-    pageId: pageToEdit._id,
-  });
+const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
+  const apiClient = useApiClient();
+  const { data: livePage } = useQuery(pageQueries.getById(apiClient, pageToEdit.id));
   const page = livePage ?? pageToEdit;
   const isRootPage = page.fullPath === "/";
-  const pages = useQuery(api.pages.listPages);
-  const project = useQuery(api.projects.getFirstProject);
-  const layouts = useQuery(api.layouts.listLayouts, project ? { projectId: project._id } : "skip");
+  const { data: pages } = useQuery(pageQueries.list(apiClient));
+  const { data: project } = useQuery(projectQueries.getFirst(apiClient));
+  const { data: layouts } = useQuery({
+    ...layoutQueries.list(apiClient, project?.id ?? 0),
+    enabled: !!project,
+  });
   const camoxApp = useCamoxApp();
   const updatePage = useMutation(api.pages.updatePage);
   const setPageLayout = useMutation(api.pages.setPageLayout);
@@ -53,7 +58,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
   const updatePageMetaDescription = useMutation(api.pages.updatePageMetaDescription);
   const navigate = useNavigate();
 
-  const pageLayoutRecord = layouts?.find((l) => l._id === page.layoutId);
+  const pageLayoutRecord = layouts?.find((l) => l.id === page.layoutId);
   const layoutDef = pageLayoutRecord
     ? camoxApp.getLayoutById(pageLayoutRecord.layoutId)
     : undefined;
@@ -69,20 +74,20 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
   const form = useForm({
     defaultValues: {
       pathSegment: pageToEdit.pathSegment,
-      parentPageId: pageToEdit.parentPageId,
-      layoutId: pageToEdit.layoutId ?? ("" as Id<"layouts">),
+      parentPageId: pageToEdit.parentPageId ?? undefined,
+      layoutId: pageToEdit.layoutId ?? 0,
     },
     onSubmit: async (values) => {
       try {
         const { fullPath } = await updatePage({
-          pageId: pageToEdit._id,
+          pageId: pageToEdit.id,
           pathSegment: values.value.pathSegment,
           parentPageId: values.value.parentPageId,
         });
 
         if (values.value.layoutId) {
           await setPageLayout({
-            pageId: pageToEdit._id,
+            pageId: pageToEdit.id,
             layoutId: values.value.layoutId,
           });
         }
@@ -109,14 +114,14 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
   });
 
   // Reset form when opening with a different page
-  const prevPageId = React.useRef(pageToEdit._id);
+  const prevPageId = React.useRef(pageToEdit.id);
   React.useEffect(() => {
-    if (prevPageId.current === pageToEdit._id) return;
-    prevPageId.current = pageToEdit._id;
+    if (prevPageId.current === pageToEdit.id) return;
+    prevPageId.current = pageToEdit.id;
     form.reset({
       pathSegment: pageToEdit.pathSegment,
-      parentPageId: pageToEdit.parentPageId,
-      layoutId: pageToEdit.layoutId ?? ("" as Id<"layouts">),
+      parentPageId: pageToEdit.parentPageId ?? undefined,
+      layoutId: pageToEdit.layoutId ?? 0,
     });
   }, [pageToEdit, form]);
 
@@ -160,7 +165,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
                           onPathSegmentChange={pathField.handleChange}
                           disabled={isRootPage}
                           pages={pages}
-                          excludePageId={pageToEdit._id}
+                          excludePageId={pageToEdit.id}
                         />
                       )}
                     </form.Field>
@@ -172,15 +177,15 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
                       <div className="space-y-2">
                         <Label>Layout</Label>
                         <Select
-                          value={field.state.value}
-                          onValueChange={(value) => field.handleChange(value as Id<"layouts">)}
+                          value={field.state.value ? String(field.state.value) : ""}
+                          onValueChange={(value) => field.handleChange(Number(value))}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select a layout" />
                           </SelectTrigger>
                           <SelectContent>
                             {layouts.map((t) => (
-                              <SelectItem key={t._id} value={t._id}>
+                              <SelectItem key={t.id} value={String(t.id)}>
                                 {camoxApp.getLayoutById(t.layoutId)?.title ?? t.layoutId}
                               </SelectItem>
                             ))}
@@ -219,7 +224,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
                 <Switch
                   id="ai-seo"
                   checked={page.aiSeoEnabled !== false}
-                  onCheckedChange={(checked) => setAiSeo({ pageId: page._id, enabled: checked })}
+                  onCheckedChange={(checked) => setAiSeo({ pageId: page.id, enabled: checked })}
                 />
                 <Label htmlFor="ai-seo">AI metadata</Label>
               </div>
@@ -228,7 +233,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
                 placeholder="Page title..."
                 initialValue={page.metaTitle ?? ""}
                 disabled={page.aiSeoEnabled !== false}
-                onSave={(value) => updatePageMetaTitle({ pageId: page._id, metaTitle: value })}
+                onSave={(value) => updatePageMetaTitle({ pageId: page.id, metaTitle: value })}
               />
               <DebouncedFieldEditor
                 label="Page description"
@@ -238,7 +243,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
                 rows={2}
                 onSave={(value) =>
                   updatePageMetaDescription({
-                    pageId: page._id,
+                    pageId: page.id,
                     metaDescription: value,
                   })
                 }
@@ -268,7 +273,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Doc<"pages"> }) => {
             </div>
             <div>
               <PageMarkdownPreview
-                pageId={page._id}
+                pageId={page.id}
                 metaTitle={metaTitle}
                 metaDescription={page.metaDescription ?? ""}
               />
@@ -291,7 +296,7 @@ const SearchEnginePreview = ({
   metaTitle,
   metaDescription,
 }: {
-  page: Doc<"pages">;
+  page: Page;
   domain?: string;
   metaTitle: string;
   metaDescription: string;
@@ -333,7 +338,7 @@ const SocialPreviewSection = ({
   layoutId,
   projectName,
 }: {
-  page: Doc<"pages">;
+  page: Page;
   domain?: string;
   metaTitle: string;
   metaDescription: string;
@@ -388,11 +393,12 @@ const PageMarkdownPreview = ({
   metaTitle,
   metaDescription,
 }: {
-  pageId: Id<"pages">;
+  pageId: number;
   metaTitle: string;
   metaDescription: string;
 }) => {
-  const markdown = useQuery(api.blocks.getPageMarkdown, { pageId });
+  const apiClient = useApiClient();
+  const { data: markdown } = useQuery(blockQueries.getPageMarkdown(apiClient, pageId));
   if (markdown === undefined) {
     return (
       <div className="text-muted-foreground flex items-center gap-2 py-2 text-sm">

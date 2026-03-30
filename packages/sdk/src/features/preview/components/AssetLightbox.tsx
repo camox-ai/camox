@@ -5,15 +5,18 @@ import { Label } from "@camox/ui/label";
 import { Switch } from "@camox/ui/switch";
 import { toast } from "@camox/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "camox/server/api";
 import type { Id } from "camox/server/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Check, Download, FileIcon, Link, Loader2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
+import { useApiClient } from "@/lib/api-client";
 import { useConvexToken } from "@/lib/auth";
 import { FS_PREFIX, getSiteUrl } from "@/lib/convex-site";
+import { fileQueries } from "@/lib/queries";
 
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
 
@@ -57,12 +60,13 @@ function formatFileSize(bytes: number): string {
 interface AssetLightboxProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  fileId: Id<"files">;
+  fileId: number;
 }
 
 const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
-  const file = useQuery(api.files.getFile, { fileId });
-  const usageCount = useQuery(api.files.getFileUsageCount, { fileId });
+  const apiClient = useApiClient();
+  const { data: file } = useQuery(fileQueries.get(apiClient, fileId));
+  const { data: usageCount } = useQuery(fileQueries.getUsageCount(apiClient, fileId));
   const [uploadState, setUploadState] = useState<{
     status: "uploading" | "committing" | "complete" | "error";
     progress: number;

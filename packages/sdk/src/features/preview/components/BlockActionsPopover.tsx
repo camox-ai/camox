@@ -21,12 +21,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { toast } from "@camox/ui/toaster";
 import { useSelector } from "@xstate/store/react";
 import { api } from "camox/server/api";
-import { Doc, Id } from "camox/server/dataModel";
+import { Id } from "camox/server/dataModel";
 import { useMutation } from "convex/react";
 import { Copy, Pen, Settings, Trash2 } from "lucide-react";
 import * as React from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
+import type { PageWithBlocks } from "@/lib/queries";
 import { formatShortcut } from "@/lib/utils";
 
 import type { Action } from "../../provider/actionsStore";
@@ -36,7 +37,7 @@ import { usePreviewedPage } from "../CamoxPreview";
 import { previewStore, type SelectionBreadcrumb } from "../previewStore";
 
 interface BlockActionsPopoverProps {
-  block: Doc<"blocks"> | undefined | null;
+  block: PageWithBlocks["blocks"][number] | undefined | null;
   children: React.ReactNode;
   align?: "start" | "center" | "end";
   open: boolean;
@@ -54,7 +55,9 @@ const BlockActionsPopover = ({
   isLayoutBlock,
   layoutPlacement,
 }: BlockActionsPopoverProps) => {
-  const [blockToDelete, setBlockToDelete] = React.useState<Doc<"blocks"> | null>(null);
+  const [blockToDelete, setBlockToDelete] = React.useState<PageWithBlocks["blocks"][number] | null>(
+    null,
+  );
 
   const camoxApp = useCamoxApp();
   const page = usePreviewedPage();
@@ -62,9 +65,9 @@ const BlockActionsPopover = ({
   const deleteBlocksMutation = useMutation(api.blocks.deleteBlocks);
   const duplicateBlockMutation = useMutation(api.blocks.duplicateBlock);
 
-  const handleDeleteBlock = async (block: Doc<"blocks">) => {
+  const handleDeleteBlock = async (block: PageWithBlocks["blocks"][number]) => {
     try {
-      await deleteBlockMutation({ blockId: block._id });
+      await deleteBlockMutation({ blockId: block.id });
       trackClientEvent("block_deleted", {
         projectId: page?.page.projectId,
         blockType: block.type,
@@ -78,9 +81,9 @@ const BlockActionsPopover = ({
     }
   };
 
-  const handleDuplicateBlock = async (block: Doc<"blocks">) => {
+  const handleDuplicateBlock = async (block: PageWithBlocks["blocks"][number]) => {
     try {
-      await duplicateBlockMutation({ blockId: block._id });
+      await duplicateBlockMutation({ blockId: block.id });
       trackClientEvent("block_duplicated", {
         projectId: page?.page.projectId,
         blockType: block.type,
@@ -92,10 +95,10 @@ const BlockActionsPopover = ({
     }
   };
 
-  const handleAddBlockAbove = (block: Doc<"blocks">) => {
+  const handleAddBlockAbove = (block: PageWithBlocks["blocks"][number]) => {
     if (!page) return;
 
-    const blockIndex = page.blocks.findIndex((b) => b._id === block._id);
+    const blockIndex = page.blocks.findIndex((b) => String(b.id) === String(block.id));
     const afterPosition = blockIndex > 0 ? page.blocks[blockIndex - 1].position : "";
 
     previewStore.send({
@@ -104,31 +107,31 @@ const BlockActionsPopover = ({
     });
   };
 
-  const handleAddBlockBelow = (block: Doc<"blocks">) => {
+  const handleAddBlockBelow = (block: PageWithBlocks["blocks"][number]) => {
     previewStore.send({
       type: "openAddBlockSheet",
       afterPosition: block.position,
     });
   };
 
-  const getBlocksAbove = (block: Doc<"blocks">) => {
+  const getBlocksAbove = (block: PageWithBlocks["blocks"][number]) => {
     if (!page) return [];
-    const blockIndex = page.blocks.findIndex((b) => b._id === block._id);
+    const blockIndex = page.blocks.findIndex((b) => String(b.id) === String(block.id));
     return page.blocks.slice(0, blockIndex);
   };
 
-  const getBlocksBelow = (block: Doc<"blocks">) => {
+  const getBlocksBelow = (block: PageWithBlocks["blocks"][number]) => {
     if (!page) return [];
-    const blockIndex = page.blocks.findIndex((b) => b._id === block._id);
+    const blockIndex = page.blocks.findIndex((b) => String(b.id) === String(block.id));
     return page.blocks.slice(blockIndex + 1);
   };
 
-  const handleDeleteBlocksAbove = async (block: Doc<"blocks">) => {
+  const handleDeleteBlocksAbove = async (block: PageWithBlocks["blocks"][number]) => {
     const blocksAbove = getBlocksAbove(block);
     if (blocksAbove.length === 0) return;
 
     try {
-      await deleteBlocksMutation({ blockIds: blocksAbove.map((b) => b._id) });
+      await deleteBlocksMutation({ blockIds: blocksAbove.map((b) => b.id) });
       toast.success(`Deleted ${blocksAbove.length} block${blocksAbove.length === 1 ? "" : "s"}`);
     } catch (error) {
       console.error("Failed to delete blocks above:", error);
@@ -136,12 +139,12 @@ const BlockActionsPopover = ({
     }
   };
 
-  const handleDeleteBlocksBelow = async (block: Doc<"blocks">) => {
+  const handleDeleteBlocksBelow = async (block: PageWithBlocks["blocks"][number]) => {
     const blocksBelow = getBlocksBelow(block);
     if (blocksBelow.length === 0) return;
 
     try {
-      await deleteBlocksMutation({ blockIds: blocksBelow.map((b) => b._id) });
+      await deleteBlocksMutation({ blockIds: blocksBelow.map((b) => b.id) });
       toast.success(`Deleted ${blocksBelow.length} block${blocksBelow.length === 1 ? "" : "s"}`);
     } catch (error) {
       console.error("Failed to delete blocks below:", error);
@@ -164,7 +167,7 @@ const BlockActionsPopover = ({
                     onSelect={() => {
                       previewStore.send({
                         type: "openBlockContentSheet",
-                        blockId: block._id,
+                        blockId: String(block.id),
                       });
                       onOpenChange(false);
                     }}
@@ -188,7 +191,7 @@ const BlockActionsPopover = ({
                           onSelect={() => {
                             previewStore.send({
                               type: "openBlockContentSheet",
-                              blockId: block._id,
+                              blockId: String(block.id),
                             });
                             onOpenChange(false);
                           }}
@@ -375,7 +378,7 @@ function findClosestActionable(breadcrumbs: SelectionBreadcrumb[]) {
 function isLayoutBlockId(page: ReturnType<typeof usePreviewedPage>, blockId: string): boolean {
   if (!page?.layout) return false;
   const allLayoutBlocks = [...(page.layout.beforeBlocks ?? []), ...(page.layout.afterBlocks ?? [])];
-  return allLayoutBlocks.some((b) => b._id === blockId);
+  return allLayoutBlocks.some((b) => String(b.id) === blockId);
 }
 
 function useBlockActionsShortcuts() {
@@ -412,11 +415,11 @@ function useBlockActionsShortcuts() {
           if (target.type === "RepeatableObject") {
             if (!page) return false;
             if (!blockCrumb) return false;
-            const block = page.blocks.find((b) => b._id === blockCrumb.id);
+            const block = page.blocks.find((b) => String(b.id) === blockCrumb.id);
             if (!block) return false;
             for (const [, value] of Object.entries(block.content)) {
               if (!Array.isArray(value)) continue;
-              const item = value.find((i: Doc<"repeatableItems">) => i._id === target.id);
+              const item = value.find((i: any) => i._id === target.id);
               if (item) return value.length > 1;
             }
             return false;
@@ -441,7 +444,7 @@ function useBlockActionsShortcuts() {
           }
 
           const blockId = target.id as Id<"blocks">;
-          const block = page?.blocks.find((b) => b._id === blockId);
+          const block = page?.blocks.find((b) => String(b.id) === blockId);
           deleteBlockMutation({ blockId }).then(
             () => toast.success(`Deleted "${block?.summary}" block`),
             () => toast.error("Could not delete block"),
@@ -477,7 +480,7 @@ function useBlockActionsShortcuts() {
           }
 
           const blockId = target.id as Id<"blocks">;
-          const block = page?.blocks.find((b) => b._id === blockId);
+          const block = page?.blocks.find((b) => String(b.id) === blockId);
           duplicateBlockMutation({ blockId }).then(
             () => toast.success(`Duplicated "${block?.summary}" block`),
             () => toast.error("Could not duplicate block"),
@@ -496,7 +499,7 @@ function useBlockActionsShortcuts() {
           const blockCrumb = ctx.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return false;
           if (isLayoutBlockId(page, blockCrumb.id)) return false;
-          const index = page.blocks.findIndex((b) => b._id === blockCrumb.id);
+          const index = page.blocks.findIndex((b) => String(b.id) === blockCrumb.id);
           return index > 0;
         },
         execute: () => {
@@ -505,7 +508,7 @@ function useBlockActionsShortcuts() {
             .context.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return;
           const blockId = blockCrumb.id as Id<"blocks">;
-          const index = page.blocks.findIndex((b) => b._id === blockId);
+          const index = page.blocks.findIndex((b) => String(b.id) === blockId);
           if (index <= 0) return;
 
           const afterPosition = index > 1 ? page.blocks[index - 2].position : undefined;
@@ -533,7 +536,7 @@ function useBlockActionsShortcuts() {
           const blockCrumb = ctx.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return false;
           if (isLayoutBlockId(page, blockCrumb.id)) return false;
-          const index = page.blocks.findIndex((b) => b._id === blockCrumb.id);
+          const index = page.blocks.findIndex((b) => String(b.id) === blockCrumb.id);
           return index !== -1 && index < page.blocks.length - 1;
         },
         execute: () => {
@@ -542,7 +545,7 @@ function useBlockActionsShortcuts() {
             .context.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return;
           const blockId = blockCrumb.id as Id<"blocks">;
-          const index = page.blocks.findIndex((b) => b._id === blockId);
+          const index = page.blocks.findIndex((b) => String(b.id) === blockId);
           if (index === -1 || index >= page.blocks.length - 1) return;
 
           const afterPosition = page.blocks[index + 1].position;
@@ -574,7 +577,7 @@ function useBlockActionsShortcuts() {
             .getSnapshot()
             .context.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return;
-          const block = page.blocks.find((b) => b._id === blockCrumb.id);
+          const block = page.blocks.find((b) => String(b.id) === blockCrumb.id);
           if (!block) return;
 
           previewStore.send({
@@ -598,7 +601,7 @@ function useBlockActionsShortcuts() {
             .getSnapshot()
             .context.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return;
-          const blockIndex = page.blocks.findIndex((b) => b._id === blockCrumb.id);
+          const blockIndex = page.blocks.findIndex((b) => String(b.id) === blockCrumb.id);
           if (blockIndex === -1) return;
 
           const afterPosition = blockIndex > 0 ? page.blocks[blockIndex - 1].position : "";

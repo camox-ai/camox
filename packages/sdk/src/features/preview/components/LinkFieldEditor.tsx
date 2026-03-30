@@ -12,12 +12,13 @@ import { Label } from "@camox/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { Switch } from "@camox/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@camox/ui/tabs";
-import { api } from "camox/server/api";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown } from "lucide-react";
 import * as React from "react";
 
 import type { LinkValue } from "@/core/lib/contentType.ts";
+import { useApiClient } from "@/lib/api-client";
+import { pageQueries } from "@/lib/queries";
 import { cn, formatPathSegment } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------------------------------
@@ -47,10 +48,11 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
   const linkValueRef = React.useRef<LinkValue>(linkValue);
   const [pagePickerOpen, setPagePickerOpen] = React.useState(false);
 
-  const pages = useQuery(api.pages.listPages);
+  const apiClient = useApiClient();
+  const { data: pages } = useQuery(pageQueries.list(apiClient));
 
   const selectedPage =
-    linkValue.type === "page" ? pages?.find((p) => p._id === linkValue.pageId) : null;
+    linkValue.type === "page" ? pages?.find((p) => String(p.id) === linkValue.pageId) : null;
 
   React.useEffect(() => {
     linkValueRef.current = linkValue;
@@ -158,14 +160,14 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
                   <CommandGroup>
                     {pages?.map((page) => (
                       <CommandItem
-                        key={page._id}
+                        key={page.id}
                         value={page.fullPath}
-                        onSelect={() => handlePageSelect(page._id)}
+                        onSelect={() => handlePageSelect(String(page.id))}
                       >
                         <Check
                           className={cn(
                             "mr-2 size-4",
-                            selectedPage?._id === page._id ? "opacity-100" : "opacity-0",
+                            selectedPage?.id === page.id ? "opacity-100" : "opacity-0",
                           )}
                         />
                         <div className="flex flex-col">

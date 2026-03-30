@@ -1,14 +1,15 @@
 import { Button } from "@camox/ui/button";
 import { Kbd } from "@camox/ui/kbd";
+import { useQuery } from "@tanstack/react-query";
 import type { LinkProps } from "@tanstack/react-router";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { api } from "camox/server/api";
-import { useQuery } from "convex/react";
 import { Globe, SearchIcon, Database } from "lucide-react";
 import * as icons from "lucide-react";
 import * as React from "react";
 
 import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet";
+import { useApiClient } from "@/lib/api-client";
+import { pageQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import type { Action } from "../../provider/actionsStore";
@@ -48,7 +49,8 @@ const links = [
 }>;
 
 const Navbar = () => {
-  const pages = useQuery(api.pages.listPages);
+  const apiClient = useApiClient();
+  const { data: pages } = useQuery(pageQueries.list(apiClient));
 
   const isMac = React.useMemo(() => navigator.userAgent.toUpperCase().indexOf("MAC") >= 0, []);
 

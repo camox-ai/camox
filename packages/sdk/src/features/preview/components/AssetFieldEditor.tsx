@@ -1,11 +1,11 @@
 import { Button } from "@camox/ui/button";
-import type { Doc, Id } from "camox/server/dataModel";
 import { FileIcon, Upload } from "lucide-react";
 import * as React from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { UploadItemRow } from "@/features/content/components/UploadProgressDrawer";
 import { type UploadItem, useFileUpload } from "@/hooks/use-file-upload";
+import type { File } from "@/lib/queries";
 
 import { AssetLightbox } from "./AssetLightbox";
 import { AssetPickerGrid } from "./AssetPickerGrid";
@@ -122,13 +122,13 @@ const SingleAssetFieldEditor = ({
     [uploadFiles],
   );
 
-  const handleSelectExisting = (file: Doc<"files">) => {
+  const handleSelectExisting = (file: File) => {
     onFieldChange(fieldName, {
       url: file.url,
       alt: file.alt,
       filename: file.filename,
       mimeType: file.mimeType,
-      _fileId: file._id,
+      _fileId: file.id,
     });
     setPickerOpen(false);
   };
@@ -171,7 +171,7 @@ const SingleAssetFieldEditor = ({
                 </p>
               </button>
               <UnlinkAssetButton
-                fileId={asset._fileId as Id<"files"> | undefined}
+                fileId={asset._fileId != null ? Number(asset._fileId) : undefined}
                 onUnlink={() => {
                   onFieldChange(fieldName, {
                     url: "",
@@ -185,7 +185,7 @@ const SingleAssetFieldEditor = ({
                 <AssetLightbox
                   open={lightboxOpen}
                   onOpenChange={setLightboxOpen}
-                  fileId={asset._fileId as Id<"files">}
+                  fileId={Number(asset._fileId)}
                 />
               )}
             </div>

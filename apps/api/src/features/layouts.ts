@@ -49,15 +49,14 @@ const syncLayoutsSchema = z.object({
 });
 
 export const layoutRoutes = new Hono<AppEnv>()
-  .use(requireOrg)
+  // Public routes (no auth required)
   .get("/list", zValidator("query", z.object({ projectId: z.coerce.number() })), async (c) => {
-    const orgSlug = c.var.orgSlug!;
     const { projectId } = c.req.valid("query");
-    const project = await getAuthorizedProject(c.var.db, projectId, orgSlug);
-    if (!project) return c.json({ error: "Not found" }, 404);
     const result = await c.var.db.select().from(layouts).where(eq(layouts.projectId, projectId));
     return c.json(result);
   })
+  // Protected routes
+  .use(requireOrg)
   .post("/sync", zValidator("json", syncLayoutsSchema), async (c) => {
     const orgSlug = c.var.orgSlug!;
     const { projectId, layouts: layoutDefs } = c.req.valid("json");

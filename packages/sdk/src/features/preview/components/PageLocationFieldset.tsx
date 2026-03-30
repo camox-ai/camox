@@ -16,21 +16,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@camox/ui/select";
-import { Id, Doc } from "camox/server/dataModel";
 
+import type { Page } from "@/lib/queries";
 import { formatPathSegment } from "@/lib/utils";
 
 const NO_PARENT_VALUE = "__no_parent__";
 
 type PageLocationFieldsetProps = {
-  parentPageId: Id<"pages"> | undefined;
-  onParentPageIdChange: (value: Id<"pages"> | undefined) => void;
+  parentPageId: number | undefined;
+  onParentPageIdChange: (value: number | undefined) => void;
   pathSegment: string;
   onPathSegmentChange: (value: string) => void;
   disabled?: boolean;
-  pages: Doc<"pages">[] | undefined;
+  pages: Page[] | undefined;
   /** Page ID to exclude from the parent page list (the page being edited). */
-  excludePageId?: Id<"pages">;
+  excludePageId?: number;
 };
 
 const PageLocationFieldset = ({
@@ -44,11 +44,11 @@ const PageLocationFieldset = ({
 }: PageLocationFieldsetProps) => {
   const getParentPath = () => {
     if (!pages || !parentPageId) return "/";
-    const page = pages.find((p) => p._id === parentPageId);
+    const page = pages.find((p) => p.id === parentPageId);
     return page ? page.fullPath + "/" : "/";
   };
 
-  const nonRootPages = pages?.filter((page) => page._id !== excludePageId && page.fullPath !== "/");
+  const nonRootPages = pages?.filter((page) => page.id !== excludePageId && page.fullPath !== "/");
   const hasParentOptions = nonRootPages && nonRootPages.length > 0;
 
   return (
@@ -58,12 +58,10 @@ const PageLocationFieldset = ({
           Parent page <span className="text-muted-foreground">(optional)</span>
         </Label>
         <Select
-          value={parentPageId ?? ""}
+          value={parentPageId != null ? String(parentPageId) : ""}
           disabled={disabled || !hasParentOptions}
           onValueChange={(value) =>
-            onParentPageIdChange(
-              ["", NO_PARENT_VALUE].includes(value) ? undefined : (value as Id<"pages">),
-            )
+            onParentPageIdChange(["", NO_PARENT_VALUE].includes(value) ? undefined : Number(value))
           }
         >
           <SelectTrigger>
@@ -73,7 +71,7 @@ const PageLocationFieldset = ({
             <SelectItem value={NO_PARENT_VALUE}>No parent</SelectItem>
             <SelectSeparator />
             {nonRootPages?.map((page) => (
-              <SelectItem key={page._id} value={page._id}>
+              <SelectItem key={page.id} value={String(page.id)}>
                 <div className="flex flex-col items-start">
                   <span>{page.metaTitle ?? formatPathSegment(page.pathSegment)}</span>
                   <span className="text-muted-foreground font-mono text-xs [[data-slot=select-value]_&]:hidden">
