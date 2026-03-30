@@ -12,6 +12,12 @@
       "migrations_dir": "migrations",
     },
   ],
+  "r2_buckets": [
+    {
+      "binding": "FILES_BUCKET",
+      "bucket_name": "camox-files",
+    },
+  ],
   "durable_objects": {
     "bindings": [
       {
