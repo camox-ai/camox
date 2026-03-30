@@ -83,16 +83,23 @@ export async function executeFileMetadata(db: Database, apiKey: string, fileId: 
 
 // --- Routes ---
 
-const commitFileSchema = z.object({
-  projectId: z.number(),
-  blobId: z.string(),
-  filename: z.string(),
-  contentType: z.string(),
-  size: z.number(),
-  siteUrl: z.string(),
-});
-
 export const fileRoutes = new Hono<AppEnv>()
+  // File serving (public, no auth — files must be accessible on published sites)
+  .get("/serve/*", async (c) => {
+    const key = c.req.path.replace(/^\/files\/serve\//, "");
+    if (!key) return c.json({ error: "Missing file key" }, 400);
+
+    const object = await c.env.FILES_BUCKET.get(key);
+    if (!object) return c.notFound();
+
+    return new Response(object.body, {
+      headers: {
+        "Content-Type": object.httpMetadata?.contentType ?? "application/octet-stream",
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Content-Disposition": "inline",
+      },
+    });
+  })
   // Public routes (no auth required)
   .get("/list", async (c) => {
     const result = await c.var.db.select().from(files);
@@ -119,23 +126,37 @@ export const fileRoutes = new Hono<AppEnv>()
   })
   // Protected routes
   .use(requireOrg)
-  .post("/commit", zValidator("json", commitFileSchema), async (c) => {
+  .post("/upload", async (c) => {
     const orgSlug = c.var.orgSlug!;
-    const { projectId, blobId, filename, contentType, size, siteUrl } = c.req.valid("json");
+    const body = await c.req.parseBody();
+    const file = body["file"];
+    const projectId = Number(body["projectId"]);
+
+    if (!(file instanceof File)) return c.json({ error: "Missing file" }, 400);
+    if (!projectId || Number.isNaN(projectId)) return c.json({ error: "Missing projectId" }, 400);
+
     const project = await getAuthorizedProject(c.var.db, projectId, orgSlug);
     if (!project) return c.json({ error: "Not found" }, 404);
+
     const now = Date.now();
-    const path = `/files/${blobId}/${filename}`;
-    const url = `${siteUrl}${path}`;
+    const key = `${projectId}/${now}-${file.name}`;
+
+    await c.env.FILES_BUCKET.put(key, file.stream(), {
+      httpMetadata: { contentType: file.type },
+    });
+
+    const apiOrigin = new URL(c.req.url).origin;
+    const url = `${apiOrigin}/files/serve/${key}`;
+
     const result = await c.var.db
       .insert(files)
       .values({
         projectId,
-        blobId,
-        filename,
-        mimeType: contentType,
-        size,
-        path,
+        blobId: key,
+        filename: file.name,
+        mimeType: file.type,
+        size: file.size,
+        path: key,
         url,
         alt: "",
         createdAt: now,
