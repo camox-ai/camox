@@ -1,12 +1,11 @@
 import path from "node:path";
 
-import { api } from "camox/server/api";
-import type { Id } from "camox/server/dataModel";
-import { ConvexClient } from "convex/browser";
 import type { ViteDevServer } from "vite";
 
 import type { CamoxApp } from "@/core/createApp";
 import type { Block } from "@/core/createBlock";
+
+import { createServerApiClient, type ServerApiClient } from "../../lib/api-client-server";
 
 const SYNC_DEBOUNCE_DELAY_MS = 100;
 
@@ -15,8 +14,8 @@ export interface DefinitionsSyncOptions {
   projectSlug?: string;
   /** Path to the module that exports the camoxApp (relative to project root) */
   camoxAppPath?: string;
-  /** Convex URL to connect to for syncing definitions */
-  convexUrl?: string;
+  /** URL of the Camox API backend */
+  apiUrl?: string;
 }
 
 function getBlockIdFromFilePath(filePath: string): string {
@@ -39,26 +38,20 @@ export async function syncDefinitions(
   }
   const projectSlug: string = options.projectSlug;
 
-  const convexUrl = options.convexUrl ?? process.env.VITE_CONVEX_URL;
-  if (!convexUrl) {
-    server.config.logger.warn("[camox] No Convex URL provided, skipping block definitions sync", {
-      timestamp: true,
-    });
-    return;
-  }
+  const apiUrl = options.apiUrl ?? "http://localhost:8787";
+  const client: ServerApiClient = createServerApiClient(apiUrl);
 
-  const client = new ConvexClient(convexUrl);
-
-  async function getProjectId(): Promise<Id<"projects"> | null> {
-    const project = await client.query(api.projects.getProjectBySlug, { slug: projectSlug });
-    if (!project) {
+  async function getProjectId(): Promise<number | null> {
+    try {
+      const project = await client.projects.getBySlug({ slug: projectSlug });
+      return project.id;
+    } catch {
       server.config.logger.warn(
         `[camox] No project found with slug "${projectSlug}", skipping block definitions sync`,
         { timestamp: true },
       );
       return null;
     }
-    return project._id;
   }
 
   async function performInitialSync(): Promise<void> {
@@ -86,7 +79,7 @@ export async function syncDefinitions(
       layoutOnly: block.layoutOnly || undefined,
     }));
 
-    await client.mutation(api.blockDefinitions.syncBlockDefinitions, {
+    await client.blockDefinitions.sync({
       projectId,
       definitions,
     });
@@ -99,7 +92,7 @@ export async function syncDefinitions(
     // Sync layouts
     const layoutDefinitions = camoxModule.camoxApp.getSerializableLayoutDefinitions();
     if (layoutDefinitions.length > 0) {
-      await client.mutation(api.layouts.syncLayouts, {
+      await client.layouts.sync({
         projectId,
         layouts: layoutDefinitions,
       });
@@ -134,7 +127,7 @@ export async function syncDefinitions(
     const projectId = await getProjectId();
     if (!projectId) return;
 
-    const result = await client.mutation(api.blockDefinitions.upsertBlockDefinition, {
+    const result = await client.blockDefinitions.upsert({
       projectId,
       blockId: block.id,
       title: block.title,
@@ -155,7 +148,7 @@ export async function syncDefinitions(
     const projectId = await getProjectId();
     if (!projectId) return;
 
-    const result = await client.mutation(api.blockDefinitions.deleteBlockDefinition, {
+    const result = await client.blockDefinitions.delete({
       projectId,
       blockId,
     });
@@ -167,7 +160,7 @@ export async function syncDefinitions(
     }
   }
 
-  // Initial sync from files to Convex
+  // Initial sync from files to API
   try {
     await performInitialSync();
   } catch (error) {
@@ -249,9 +242,4 @@ export async function syncDefinitions(
   server.watcher.on("add", handleBlockFileUpsert);
   server.watcher.on("add", handleLayoutFileChange);
   server.watcher.on("unlink", handleBlockFileDelete);
-
-  // Clean up on server close
-  server.httpServer?.on("close", () => {
-    client.close();
-  });
 }

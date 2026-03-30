@@ -3,9 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 
-import { getAuthorizedProject } from "../authorization";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
-import { authed, pub } from "../orpc";
+import { pub } from "../orpc";
 import { projects } from "./projects";
 
 // --- Schema ---
@@ -53,10 +52,9 @@ const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ con
   return context.db.select().from(layouts).where(eq(layouts.projectId, projectId));
 });
 
-const sync = authed.input(syncLayoutsSchema).handler(async ({ context, input }) => {
-  const orgSlug = context.orgSlug;
+const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => {
   const { projectId, layouts: layoutDefs } = input;
-  const project = await getAuthorizedProject(context.db, projectId, orgSlug);
+  const project = await context.db.select().from(projects).where(eq(projects.id, projectId)).get();
 
   if (!project) {
     throw new ORPCError("NOT_FOUND");

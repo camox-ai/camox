@@ -111,7 +111,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
           syncDefinitions(server, {
             ...options.definitionsSync,
             projectSlug: options.projectSlug,
-            convexUrl,
+            apiUrl,
           });
         }
       });

@@ -3,8 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 
-import { getAuthorizedProject } from "../authorization";
-import { authed, pub } from "../orpc";
+import { pub } from "../orpc";
 import { projects } from "./projects";
 
 // --- Schema ---
@@ -65,9 +64,9 @@ const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ con
   return result;
 });
 
-const sync = authed.input(syncSchema).handler(async ({ context, input }) => {
+const sync = pub.input(syncSchema).handler(async ({ context, input }) => {
   const { projectId, definitions } = input;
-  const project = await getAuthorizedProject(context.db, projectId, context.orgSlug);
+  const project = await context.db.select().from(projects).where(eq(projects.id, projectId)).get();
   if (!project) throw new ORPCError("NOT_FOUND");
   const now = Date.now();
   const results = [];
@@ -119,8 +118,12 @@ const sync = authed.input(syncSchema).handler(async ({ context, input }) => {
   return results;
 });
 
-const upsert = authed.input(definitionSchema).handler(async ({ context, input }) => {
-  const project = await getAuthorizedProject(context.db, input.projectId, context.orgSlug);
+const upsert = pub.input(definitionSchema).handler(async ({ context, input }) => {
+  const project = await context.db
+    .select()
+    .from(projects)
+    .where(eq(projects.id, input.projectId))
+    .get();
   if (!project) throw new ORPCError("NOT_FOUND");
   const now = Date.now();
 
@@ -149,7 +152,7 @@ const upsert = authed.input(definitionSchema).handler(async ({ context, input })
       .where(eq(blockDefinitions.id, existing.id))
       .returning()
       .get();
-    return result;
+    return { ...result, action: "updated" as const };
   }
 
   const result = await context.db
@@ -163,22 +166,19 @@ const upsert = authed.input(definitionSchema).handler(async ({ context, input })
     })
     .returning()
     .get();
-  return result;
+  return { ...result, action: "created" as const };
 });
 
-const deleteFn = authed
+const deleteFn = pub
   .input(z.object({ projectId: z.number(), blockId: z.string() }))
   .handler(async ({ context, input }) => {
     const { projectId, blockId } = input;
-    const project = await getAuthorizedProject(context.db, projectId, context.orgSlug);
-    if (!project) throw new ORPCError("NOT_FOUND");
     const result = await context.db
       .delete(blockDefinitions)
       .where(and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, blockId)))
       .returning()
       .get();
-    if (!result) throw new ORPCError("NOT_FOUND");
-    return result;
+    return { deleted: !!result, blockId };
   });
 
 export const blockDefinitionProcedures = { list, sync, upsert, delete: deleteFn };
