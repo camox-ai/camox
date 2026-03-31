@@ -7,14 +7,16 @@ import {
   CommandList,
 } from "@camox/ui/command";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
+import { generateKeyBetween } from "fractional-indexing";
 import { InfoIcon } from "lucide-react";
 import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
 import { trackClientEvent } from "@/lib/analytics-client";
-import { blockMutations, blockQueries } from "@/lib/queries";
+import { type PageWithBlocks, blockMutations, blockQueries, pageQueries } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -23,7 +25,84 @@ import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
 
 const AddBlockSheet = () => {
   const [highlightedValue, setHighlightedValue] = React.useState<string>("");
-  const createBlock = useMutation(blockMutations.create());
+  const queryClient = useQueryClient();
+  const { pathname } = useLocation();
+  const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
+  const pagePathname = peekedPagePathname ?? pathname;
+
+  const createBlock = useMutation({
+    ...blockMutations.create(),
+    onMutate: (variables) => {
+      const queryOptions = pageQueries.getByPath(pagePathname);
+      const previousPage = queryClient.getQueryData<PageWithBlocks>(queryOptions.queryKey);
+
+      if (previousPage) {
+        const blocks = previousPage.blocks;
+        const { afterPosition } = variables;
+
+        let position: string;
+        if (afterPosition == null) {
+          const lastBlock = blocks[blocks.length - 1];
+          position = generateKeyBetween(lastBlock?.position ?? null, null);
+        } else if (afterPosition === "") {
+          const firstBlock = blocks[0];
+          position = generateKeyBetween(null, firstBlock?.position ?? null);
+        } else {
+          let afterIndex = -1;
+          for (let i = blocks.length - 1; i >= 0; i--) {
+            if (String(blocks[i].position) <= afterPosition) {
+              afterIndex = i;
+              break;
+            }
+          }
+          const nextBlock = afterIndex >= 0 ? blocks[afterIndex + 1] : blocks[0];
+          position = generateKeyBetween(
+            afterIndex >= 0 ? blocks[afterIndex].position : null,
+            nextBlock?.position ?? null,
+          );
+        }
+
+        const now = Date.now();
+        const optimisticBlock = {
+          id: -now,
+          pageId: variables.pageId,
+          layoutId: null,
+          type: variables.type,
+          content: variables.content as Record<string, unknown>,
+          settings: (variables.settings as Record<string, unknown>) ?? null,
+          placement: null,
+          summary: "",
+          position,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        const newBlocks = [...blocks, optimisticBlock].sort((a, b) =>
+          a.position.localeCompare(b.position),
+        );
+
+        queryClient.setQueryData<PageWithBlocks>(queryOptions.queryKey, {
+          ...previousPage,
+          blocks: newBlocks,
+        });
+      }
+
+      queryClient.cancelQueries({ queryKey: queryOptions.queryKey });
+      return { previousPage };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousPage) {
+        queryClient.setQueryData(
+          pageQueries.getByPath(pagePathname).queryKey,
+          context.previousPage,
+        );
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: pageQueries.getByPath(pagePathname).queryKey });
+    },
+  });
+
   const availableBlocks = useCamoxApp()
     .getBlocks()
     .filter((b) => !b.layoutOnly);
