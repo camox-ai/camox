@@ -18,7 +18,7 @@ const HEADER = `/* =============================================================
 
 `;
 
-function generateCamoxLayout(convexUrl: string, managementUrl: string, apiUrl: string): string {
+function generateCamoxLayout(managementUrl: string, apiUrl: string): string {
   return (
     HEADER +
     `import { QueryClient } from "@tanstack/react-query";
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_camox")({
 
 function CamoxPathlessLayout() {
   return (
-    <CamoxProvider camoxApp={camoxApp} convexUrl="${convexUrl}" managementUrl="${managementUrl}" apiUrl="${apiUrl}" queryClient={queryClient}>
+    <CamoxProvider camoxApp={camoxApp} managementUrl="${managementUrl}" apiUrl="${apiUrl}" queryClient={queryClient}>
       <Outlet />
     </CamoxProvider>
   );
@@ -172,17 +172,12 @@ function RouteComponent() {
   );
 }
 
-function getRouteFileEntries(
-  routesDir: string,
-  convexUrl: string,
-  managementUrl: string,
-  apiUrl: string,
-) {
+function getRouteFileEntries(routesDir: string, managementUrl: string, apiUrl: string) {
   const camoxDir = resolve(routesDir, "_camox");
   return [
     {
       path: resolve(routesDir, "_camox.tsx"),
-      content: generateCamoxLayout(convexUrl, managementUrl, apiUrl),
+      content: generateCamoxLayout(managementUrl, apiUrl),
     },
     { path: resolve(camoxDir, "$.tsx"), content: generatePageRoute(apiUrl) },
     { path: resolve(camoxDir, "og.tsx"), content: generateOgRoute() },
@@ -193,16 +188,11 @@ function getRouteFileEntries(
   ];
 }
 
-export function generateRouteFiles(
-  routesDir: string,
-  convexUrl: string,
-  managementUrl: string,
-  apiUrl: string,
-) {
+export function generateRouteFiles(routesDir: string, managementUrl: string, apiUrl: string) {
   const camoxDir = resolve(routesDir, "_camox");
   mkdirSync(camoxDir, { recursive: true });
 
-  for (const entry of getRouteFileEntries(routesDir, convexUrl, managementUrl, apiUrl)) {
+  for (const entry of getRouteFileEntries(routesDir, managementUrl, apiUrl)) {
     writeIfChanged(entry.path, entry.content);
   }
 }
@@ -210,11 +200,10 @@ export function generateRouteFiles(
 export function watchRouteFiles(
   server: ViteDevServer,
   routesDir: string,
-  convexUrl: string,
   managementUrl: string,
   apiUrl: string,
 ) {
-  const entries = getRouteFileEntries(routesDir, convexUrl, managementUrl, apiUrl);
+  const entries = getRouteFileEntries(routesDir, managementUrl, apiUrl);
   const expectedByPath = new Map(entries.map((e) => [e.path, e.content]));
 
   server.watcher.on("change", (changedPath) => {
