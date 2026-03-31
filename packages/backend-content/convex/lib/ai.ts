@@ -93,7 +93,12 @@ export async function generateImageMetadata(image: string | ArrayBuffer, current
                 ? { type: "url" as const, value: image }
                 : {
                     type: "data" as const,
-                    value: btoa(String.fromCharCode(...new Uint8Array(image))),
+                    value: (() => {
+                      const b = new Uint8Array(image);
+                      let s = "";
+                      for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+                      return btoa(s);
+                    })(),
                     mimeType: "image/png" as const,
                   },
           },
