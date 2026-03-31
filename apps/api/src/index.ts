@@ -101,4 +101,13 @@ app.all("/rpc/*", async (c) => {
   return c.notFound();
 });
 
+// ---------------------------------------------------------------------------
+// Error logging (development)
+// ---------------------------------------------------------------------------
+
+app.onError((err, c) => {
+  console.error(`[${c.req.method}] ${c.req.path} →`, err);
+  return c.json({ error: "Internal Server Error" }, 500);
+});
+
 export default app;

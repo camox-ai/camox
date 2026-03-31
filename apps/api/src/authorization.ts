@@ -72,7 +72,7 @@ export async function assertPageAccess(db: Database, pageId: number, orgSlug: st
 
 export async function assertBlockAccess(db: Database, blockId: number, orgSlug: string) {
   return db
-    .select({ block: blocks, projectId: projects.id })
+    .select({ block: blocks, projectId: projects.id, pagePath: pages.fullPath })
     .from(blocks)
     .leftJoin(pages, eq(blocks.pageId, pages.id))
     .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
@@ -83,7 +83,7 @@ export async function assertBlockAccess(db: Database, blockId: number, orgSlug: 
 
 export async function assertRepeatableItemAccess(db: Database, itemId: number, orgSlug: string) {
   return db
-    .select({ item: repeatableItems, projectId: projects.id })
+    .select({ item: repeatableItems, projectId: projects.id, pagePath: pages.fullPath })
     .from(repeatableItems)
     .innerJoin(blocks, eq(repeatableItems.blockId, blocks.id))
     .leftJoin(pages, eq(blocks.pageId, pages.id))

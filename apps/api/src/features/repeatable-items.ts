@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { generateKeyBetween } from "fractional-indexing";
 import { outdent } from "outdent";
@@ -152,7 +152,28 @@ const create = authed.input(createItemSchema).handler(async ({ context, input })
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const now = Date.now();
-  const position = generateKeyBetween(afterPosition ?? null, null);
+
+  // Get siblings to determine correct position
+  const siblings = (
+    await context.db
+      .select()
+      .from(repeatableItems)
+      .where(and(eq(repeatableItems.blockId, blockId), eq(repeatableItems.fieldName, fieldName)))
+  ).sort((a, b) => a.position.localeCompare(b.position));
+
+  let position: string;
+  if (afterPosition === undefined || afterPosition === null) {
+    const lastItem = siblings[siblings.length - 1];
+    position = generateKeyBetween(lastItem?.position ?? null, null);
+  } else if (afterPosition === "") {
+    const firstItem = siblings[0];
+    position = generateKeyBetween(null, firstItem?.position ?? null);
+  } else {
+    const afterIndex = siblings.findIndex((s) => s.position === afterPosition);
+    const nextItem = siblings[afterIndex + 1];
+    position = generateKeyBetween(afterPosition, nextItem?.position ?? null);
+  }
+
   const result = await context.db
     .insert(repeatableItems)
     .values({
@@ -178,6 +199,7 @@ const create = authed.input(createItemSchema).handler(async ({ context, input })
     action: "created",
     entityId: result.id,
     parentId: blockId,
+    pagePath: access.pagePath ?? undefined,
   });
 
   return result;
@@ -213,6 +235,7 @@ const updateContent = authed
       action: "updated",
       entityId: id,
       parentId: access.item.blockId,
+      pagePath: access.pagePath ?? undefined,
     });
 
     return result;
@@ -243,6 +266,7 @@ const updatePosition = authed
       action: "updated",
       entityId: id,
       parentId: access.item.blockId,
+      pagePath: access.pagePath ?? undefined,
     });
     return result;
   });
@@ -254,7 +278,23 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
   const original = access.item;
 
   const now = Date.now();
-  const position = generateKeyBetween(original.position, null);
+
+  // Find the next sibling to insert between original and next
+  const siblings = (
+    await context.db
+      .select()
+      .from(repeatableItems)
+      .where(
+        and(
+          eq(repeatableItems.blockId, original.blockId),
+          eq(repeatableItems.fieldName, original.fieldName),
+        ),
+      )
+  ).sort((a, b) => a.position.localeCompare(b.position));
+  const originalIndex = siblings.findIndex((s) => s.id === id);
+  const nextItem = originalIndex >= 0 ? siblings[originalIndex + 1] : undefined;
+  const position = generateKeyBetween(original.position, nextItem?.position ?? null);
+
   const result = await context.db
     .insert(repeatableItems)
     .values({
@@ -273,6 +313,7 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
     action: "created",
     entityId: result.id,
     parentId: original.blockId,
+    pagePath: access.pagePath ?? undefined,
   });
   return result;
 });
@@ -302,6 +343,7 @@ const generateSummary = authed
       action: "updated",
       entityId: id,
       parentId: access.item.blockId,
+      pagePath: access.pagePath ?? undefined,
     });
     const updated = await context.db
       .select()
@@ -326,6 +368,7 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
     action: "deleted",
     entityId: id,
     parentId: access.item.blockId,
+    pagePath: access.pagePath ?? undefined,
   });
   return result;
 });
