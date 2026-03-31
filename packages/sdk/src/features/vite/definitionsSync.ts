@@ -5,7 +5,7 @@ import type { ViteDevServer } from "vite";
 import type { CamoxApp } from "@/core/createApp";
 import type { Block } from "@/core/createBlock";
 
-import { createServerApiClient, type ServerApiClient } from "../../lib/api-client-server";
+import { createServerApiClient } from "../../lib/api-client-server";
 
 const SYNC_DEBOUNCE_DELAY_MS = 100;
 
@@ -39,7 +39,7 @@ export async function syncDefinitions(
   const projectSlug: string = options.projectSlug;
 
   const apiUrl = options.apiUrl ?? "http://localhost:8787";
-  const client: ServerApiClient = createServerApiClient(apiUrl);
+  const client = createServerApiClient(apiUrl);
 
   async function getProjectId(): Promise<number | null> {
     try {

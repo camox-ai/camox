@@ -210,6 +210,11 @@ async function seedContent(db: Database) {
 }
 
 export const seedRoutes = new Hono<AppEnv>().post("/", async (c) => {
+  const secret = c.req.header("x-seed-secret");
+  if (!secret || secret !== c.env.SEED_SECRET) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
   const db = c.var.db;
 
   await clearAll(db);

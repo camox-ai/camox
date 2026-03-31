@@ -10,7 +10,7 @@
     "test": "nx run-many -t test --all",
     "fmt": "oxfmt .",
     "check": "oxfmt . && nx run-many -t check --all --no-tui",
-    "seed": "curl -X POST http://localhost:8787/seed",
+    "seed": "nx run @camox/api:seed",
     "prepare": "husky"
   },
   "devDependencies": {
