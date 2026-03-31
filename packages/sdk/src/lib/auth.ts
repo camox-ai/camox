@@ -66,7 +66,7 @@ export function useProcessOtt(authClient: CamoxAuthClient) {
 
 interface AuthContextValue {
   authClient: CamoxAuthClient;
-  managementUrl: string;
+  authenticationUrl: string;
   apiUrl: string;
 }
 
@@ -97,19 +97,19 @@ export function useIsAuthenticated() {
 }
 
 export function useSignInRedirect() {
-  const { managementUrl } = useAuthContext();
+  const { authenticationUrl } = useAuthContext();
 
   return React.useCallback(() => {
     const redirect = encodeURIComponent(window.location.href);
-    window.location.href = `${managementUrl}/login?redirect=${redirect}`;
-  }, [managementUrl]);
+    window.location.href = `${authenticationUrl}/login?redirect=${redirect}`;
+  }, [authenticationUrl]);
 }
 
 /**
  * Registers sign-out and manage-account actions in the command palette.
  */
 export function useAuthActions() {
-  const { authClient, managementUrl } = useAuthContext();
+  const { authClient, authenticationUrl } = useAuthContext();
 
   React.useEffect(() => {
     actionsStore.send({
@@ -121,7 +121,7 @@ export function useAuthActions() {
           groupLabel: "Studio",
           checkIfAvailable: () => true,
           execute: () => {
-            window.open(`${managementUrl}/profile`, "_blank");
+            window.open(`${authenticationUrl}/profile`, "_blank");
           },
           icon: "User",
         },
@@ -142,5 +142,5 @@ export function useAuthActions() {
         ids: ["manage-account", "log-out"],
       });
     };
-  }, [authClient, managementUrl]);
+  }, [authClient, authenticationUrl]);
 }

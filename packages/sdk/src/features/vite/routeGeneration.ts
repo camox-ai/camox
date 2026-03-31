@@ -18,7 +18,7 @@ const HEADER = `/* =============================================================
 
 `;
 
-function generateCamoxLayout(managementUrl: string, apiUrl: string): string {
+function generateCamoxLayout(authenticationUrl: string, apiUrl: string): string {
   return (
     HEADER +
     `import { QueryClient } from "@tanstack/react-query";
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_camox")({
 
 function CamoxPathlessLayout() {
   return (
-    <CamoxProvider camoxApp={camoxApp} managementUrl="${managementUrl}" apiUrl="${apiUrl}" queryClient={queryClient}>
+    <CamoxProvider camoxApp={camoxApp} authenticationUrl="${authenticationUrl}" apiUrl="${apiUrl}" queryClient={queryClient}>
       <Outlet />
     </CamoxProvider>
   );
@@ -172,12 +172,18 @@ function RouteComponent() {
   );
 }
 
-function getRouteFileEntries(routesDir: string, managementUrl: string, apiUrl: string) {
+type RouteFilesOptions = {
+  routesDir: string;
+  authenticationUrl: string;
+  apiUrl: string;
+};
+
+function getRouteFileEntries({ routesDir, authenticationUrl, apiUrl }: RouteFilesOptions) {
   const camoxDir = resolve(routesDir, "_camox");
   return [
     {
       path: resolve(routesDir, "_camox.tsx"),
-      content: generateCamoxLayout(managementUrl, apiUrl),
+      content: generateCamoxLayout(authenticationUrl, apiUrl),
     },
     { path: resolve(camoxDir, "$.tsx"), content: generatePageRoute(apiUrl) },
     { path: resolve(camoxDir, "og.tsx"), content: generateOgRoute() },
@@ -188,22 +194,18 @@ function getRouteFileEntries(routesDir: string, managementUrl: string, apiUrl: s
   ];
 }
 
-export function generateRouteFiles(routesDir: string, managementUrl: string, apiUrl: string) {
-  const camoxDir = resolve(routesDir, "_camox");
+export function generateRouteFiles(options: RouteFilesOptions) {
+  const camoxDir = resolve(options.routesDir, "_camox");
   mkdirSync(camoxDir, { recursive: true });
 
-  for (const entry of getRouteFileEntries(routesDir, managementUrl, apiUrl)) {
+  for (const entry of getRouteFileEntries(options)) {
     writeIfChanged(entry.path, entry.content);
   }
 }
 
-export function watchRouteFiles(
-  server: ViteDevServer,
-  routesDir: string,
-  managementUrl: string,
-  apiUrl: string,
-) {
-  const entries = getRouteFileEntries(routesDir, managementUrl, apiUrl);
+export function watchRouteFiles(options: RouteFilesOptions & { server: ViteDevServer }) {
+  const { server, ...routeFilesOptions } = options;
+  const entries = getRouteFileEntries(routeFilesOptions);
   const expectedByPath = new Map(entries.map((e) => [e.path, e.content]));
 
   server.watcher.on("change", (changedPath) => {

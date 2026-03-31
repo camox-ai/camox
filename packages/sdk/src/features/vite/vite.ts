@@ -16,29 +16,32 @@ import { syncDefinitions, type DefinitionsSyncOptions } from "./definitionsSync"
 import { generateRouteFiles, watchRouteFiles } from "./routeGeneration";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
-/** Default management backend URL (production Camox web app) */
-const DEFAULT_MANAGEMENT_URL = "https://camox.ai";
+/** Authentication URL to use for Camox authentication (production Camox web app) */
+const DEFAULT_AUTHENTICATION_URL = "https://camox.ai";
 
 export interface CamoxPluginOptions {
   /** Stable, human-readable slug identifying this project (e.g. "prestigious-impala-84") */
   projectSlug: string;
-  /** Disable the generation of boilerplate code when creating a blank file in the blocks directory (default: false) */
-  disableBlockBoilerplateGeneration?: boolean;
-  /** Disable automatic definitions sync on server start (default: false) */
-  disableDefinitionsSync?: boolean;
   /** Options for definitions sync */
   definitionsSync?: DefinitionsSyncOptions;
-  /** URL of the Camox management web app, used for authentication redirects */
-  managementUrl?: string;
-  /** URL of the Camox API backend, used for authentication and data fetching */
-  apiUrl?: string;
   /** Disable PostHog analytics collection (default: false) */
   disableAnalytics?: boolean;
+  /** Internal options (intended for Camox contributors in development, not for public use) */
+  _internal?: {
+    /** URL of the Camox API backend, used for data fetching */
+    apiUrl?: string;
+    /** URL of the Camox authentication backend (default: https://camox.ai) */
+    authenticationUrl?: string;
+    /** Show Tanstack query devtools (default: false) */
+    enableTanstackDevtools?: boolean;
+  };
 }
 
 export function camox(options: CamoxPluginOptions): Plugin {
-  const managementUrl = options.managementUrl ?? DEFAULT_MANAGEMENT_URL;
-  const apiUrl = options.apiUrl ?? LOCAL_API_URL;
+  const apiUrl = options._internal?.apiUrl ?? LOCAL_API_URL;
+  const authenticationUrl = options._internal?.authenticationUrl ?? DEFAULT_AUTHENTICATION_URL;
+  const enableTanstackDevtools = options._internal?.enableTanstackDevtools ?? false;
+
   let isBuild = false;
 
   return {
@@ -62,13 +65,18 @@ export function camox(options: CamoxPluginOptions): Plugin {
       return {
         define: {
           __CAMOX_ANALYTICS_DISABLED__: JSON.stringify(!!options.disableAnalytics),
+          __ENABLE_TANSTACK_DEVTOOLS__: JSON.stringify(enableTanstackDevtools),
         },
       };
     },
     configResolved(config) {
       const routesDir = resolve(config.root, "src/routes");
       generateAppFile(config.root);
-      generateRouteFiles(routesDir, managementUrl, apiUrl);
+      generateRouteFiles({
+        routesDir,
+        authenticationUrl,
+        apiUrl,
+      });
       generateSkillFiles(config.root);
 
       const message =
@@ -81,21 +89,17 @@ export function camox(options: CamoxPluginOptions): Plugin {
     configureServer(server: ViteDevServer) {
       const routesDir = resolve(server.config.root, "src/routes");
       watchAppFile(server, server.config.root);
-      watchRouteFiles(server, routesDir, managementUrl, apiUrl);
+      watchRouteFiles({ server, routesDir, authenticationUrl, apiUrl });
       watchSkillFiles(server, server.config.root);
 
-      if (!options.disableBlockBoilerplateGeneration) {
-        watchNewBlockFiles(server);
-      }
+      watchNewBlockFiles(server);
 
       server.httpServer?.once("listening", () => {
-        if (!options.disableDefinitionsSync) {
-          syncDefinitions(server, {
-            ...options.definitionsSync,
-            projectSlug: options.projectSlug,
-            apiUrl,
-          });
-        }
+        syncDefinitions(server, {
+          ...options.definitionsSync,
+          projectSlug: options.projectSlug,
+          apiUrl,
+        });
       });
     },
   };

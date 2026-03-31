@@ -61,7 +61,10 @@ const config = defineConfig({
     tailwindcss(),
     camox({
       projectSlug: "camox-demo-01",
-      managementUrl: process.env.CAMOX_MANAGEMENT_URL,
+      _internal: {
+        enableTanstackDevtools: true,
+        authenticationUrl: "http://localhost:3274",
+      },
     }),
     tanstackStart(),
     viteReact(),
