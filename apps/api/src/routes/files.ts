@@ -17,6 +17,15 @@ import type { AppEnv } from "../types";
 // --- AI Executor ---
 
 async function generateImageMetadata(apiKey: string, imageUrl: string, currentFilename: string) {
+  // Fetch image server-side — the AI provider can't reach localhost URLs in development
+  const response = await fetch(imageUrl);
+  const buffer = await response.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  const base64 = btoa(binary);
+  const mimeType = response.headers.get("content-type") || "image/jpeg";
+
   return await chat({
     adapter: createOpenRouterText("google/gemini-2.5-flash-lite", apiKey),
     outputSchema: z.object({
@@ -29,7 +38,7 @@ async function generateImageMetadata(apiKey: string, imageUrl: string, currentFi
         content: [
           {
             type: "image" as const,
-            source: { type: "url" as const, value: imageUrl },
+            source: { type: "data" as const, value: base64, mimeType: mimeType as "image/png" },
           },
           {
             type: "text" as const,

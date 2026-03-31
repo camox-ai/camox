@@ -71,6 +71,11 @@ export function useProjectRoom(apiUrl: string, projectId: number | undefined) {
                 break;
               case "file":
                 queryClient.invalidateQueries({ queryKey: fileQueries.list().queryKey });
+                if (event.entityId) {
+                  queryClient.invalidateQueries({
+                    queryKey: fileQueries.get(event.entityId).queryKey,
+                  });
+                }
                 break;
               case "layout":
                 queryClient.invalidateQueries({ queryKey: getOrpc().layouts.key() });
