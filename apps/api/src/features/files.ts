@@ -232,23 +232,28 @@ export const fileProcedures = {
 
 // --- Hono routes (binary serving + multipart upload) ---
 
-export const fileHonoRoutes = new Hono<AppEnv>()
-  .get("/serve/*", async (c) => {
-    const key = c.req.path.replace(/^\/files\/serve\//, "");
-    if (!key) return c.json({ error: "Missing file key" }, 400);
+export const fileHonoRoutes = new Hono<AppEnv>();
 
-    const object = await c.env.FILES_BUCKET.get(key);
-    if (!object) return c.notFound();
+fileHonoRoutes.get("/serve/*", async (c) => {
+  const key = c.req.path.replace(/^\/files\/serve\//, "");
+  if (!key) return c.json({ error: "Missing file key" }, 400);
 
-    return new Response(object.body, {
-      headers: {
-        "Content-Type": object.httpMetadata?.contentType ?? "application/octet-stream",
-        "Cache-Control": "public, max-age=31536000, immutable",
-        "Content-Disposition": "inline",
-      },
-    });
-  })
-  .post("/upload", requireOrg, async (c) => {
+  const object = await c.env.FILES_BUCKET.get(key);
+  if (!object) return c.notFound();
+
+  return new Response(object.body, {
+    headers: {
+      "Content-Type": object.httpMetadata?.contentType ?? "application/octet-stream",
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "Content-Disposition": "inline",
+    },
+  });
+});
+
+fileHonoRoutes.post(
+  "/upload",
+  (c, next) => requireOrg(c, next),
+  async (c) => {
     const orgSlug = c.var.orgSlug!;
     const body = await c.req.parseBody();
     const file = body["file"];
@@ -300,4 +305,5 @@ export const fileHonoRoutes = new Hono<AppEnv>()
     });
 
     return c.json(result, 201);
-  });
+  },
+);

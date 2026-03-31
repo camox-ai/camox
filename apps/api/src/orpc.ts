@@ -23,7 +23,17 @@ export type AuthedContext = BaseContext & {
 // --- Base procedures ---
 
 /** Public procedure — available to anyone, no auth required */
-export const pub = os.$context<BaseContext>();
+export const pub = os.$context<BaseContext>().use(async ({ next, path }) => {
+  try {
+    return await next();
+  } catch (error) {
+    if (error instanceof ORPCError && error.status < 500) {
+      throw error;
+    }
+    console.error(`[oRPC] ${path.join(".")} →`, error);
+    throw error;
+  }
+});
 
 /** Authed procedure — requires authenticated user with org membership */
 export const authed = pub.use(async ({ context, next }) => {

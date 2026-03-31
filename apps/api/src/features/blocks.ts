@@ -345,7 +345,27 @@ const create = authed.input(createBlockSchema).handler(async ({ context, input }
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const now = Date.now();
-  const position = generateKeyBetween(afterPosition ?? null, null);
+
+  // Get all blocks for this page to determine correct position
+  const pageBlocks = sortByPosition(
+    await context.db.select().from(blocks).where(eq(blocks.pageId, pageId)),
+  );
+
+  let position: string;
+  if (afterPosition === undefined) {
+    // Insert at the end
+    const lastBlock = pageBlocks[pageBlocks.length - 1];
+    position = generateKeyBetween(lastBlock?.position ?? null, null);
+  } else if (afterPosition === "") {
+    // Insert at the beginning (empty string is a marker for this)
+    const firstBlock = pageBlocks[0];
+    position = generateKeyBetween(null, firstBlock?.position ?? null);
+  } else {
+    // Insert after the specified position
+    const afterIndex = pageBlocks.findIndex((b) => b.position === afterPosition);
+    const nextBlock = pageBlocks[afterIndex + 1];
+    position = generateKeyBetween(afterPosition, nextBlock?.position ?? null);
+  }
   const result = await context.db
     .insert(blocks)
     .values({
@@ -372,6 +392,7 @@ const create = authed.input(createBlockSchema).handler(async ({ context, input }
     action: "created",
     entityId: result.id,
     pageId,
+    pagePath: access.page.fullPath,
   });
 
   return result;
@@ -408,6 +429,7 @@ const updateContent = authed
       action: "updated",
       entityId: id,
       pageId: access.block.pageId ?? undefined,
+      pagePath: access.pagePath ?? undefined,
     });
 
     return result;
@@ -432,6 +454,7 @@ const updateSettings = authed
       action: "updated",
       entityId: id,
       pageId: access.block.pageId ?? undefined,
+      pagePath: access.pagePath ?? undefined,
     });
     return result;
   });
@@ -462,6 +485,7 @@ const updatePosition = authed
       action: "updated",
       entityId: id,
       pageId: access.block.pageId ?? undefined,
+      pagePath: access.pagePath ?? undefined,
     });
     return result;
   });
@@ -478,6 +502,7 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
     action: "deleted",
     entityId: id,
     pageId: access.block.pageId ?? undefined,
+    pagePath: access.pagePath ?? undefined,
   });
   return result;
 });
@@ -533,6 +558,7 @@ const generateSummary = authed
       action: "updated",
       entityId: id,
       pageId: access.block.pageId ?? undefined,
+      pagePath: access.pagePath ?? undefined,
     });
     const updated = await context.db.select().from(blocks).where(eq(blocks.id, id)).get();
     return updated;
@@ -546,7 +572,17 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
   const original = access.block;
 
   const now = Date.now();
-  const position = generateKeyBetween(original.position, null);
+
+  // Find the next block after the original to insert between them
+  const parentId = original.pageId ?? original.layoutId;
+  const parentColumn = original.pageId ? blocks.pageId : blocks.layoutId;
+  const siblings = parentId
+    ? sortByPosition(await context.db.select().from(blocks).where(eq(parentColumn, parentId)))
+    : [];
+  const originalIndex = siblings.findIndex((b) => b.id === id);
+  const nextBlock = originalIndex >= 0 ? siblings[originalIndex + 1] : undefined;
+  const position = generateKeyBetween(original.position, nextBlock?.position ?? null);
+
   const result = await context.db
     .insert(blocks)
     .values({
@@ -568,6 +604,7 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
     action: "created",
     entityId: result.id,
     pageId: original.pageId ?? undefined,
+    pagePath: access.pagePath ?? undefined,
   });
   return result;
 });

@@ -8,6 +8,7 @@ export type InvalidationEvent = {
   action: "created" | "updated" | "deleted";
   entityId?: number;
   pageId?: number;
+  pagePath?: string;
   parentId?: number;
 };
 
