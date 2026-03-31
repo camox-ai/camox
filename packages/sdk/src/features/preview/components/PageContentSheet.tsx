@@ -16,12 +16,13 @@ import {
 import { Label } from "@camox/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { Switch } from "@camox/ui/switch";
+import { useMutation } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
 import { actionsStore, type Action } from "@/features/provider/actionsStore";
 import { trackClientEvent } from "@/lib/analytics-client";
-import { getApiClient } from "@/lib/api-client";
+import { blockMutations, repeatableItemMutations } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -163,7 +164,9 @@ function findItemById(
 
 const PageContentSheet = () => {
   const camoxApp = useCamoxApp();
-  const apiClient = getApiClient();
+  const updateContent = useMutation(blockMutations.updateContent());
+  const updateSettings = useMutation(blockMutations.updateSettings());
+  const updateRepeatableContent = useMutation(repeatableItemMutations.updateContent());
   // Get state from store
   const isOpen = useSelector(previewStore, (state) => state.context.isPageContentSheetOpen);
   const selectionBreadcrumbs = useSelector(
@@ -358,20 +361,20 @@ const PageContentSheet = () => {
   const handleBlockFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
       if (!block) return;
-      apiClient.blocks.updateContent({ id: block.id, content: { [fieldName]: value } });
+      updateContent.mutate({ id: block.id, content: { [fieldName]: value } });
     },
-    [block, apiClient],
+    [block, updateContent],
   );
 
   const handleItemFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
       if (!currentItemId) return;
-      apiClient.repeatableItems.updateContent({
+      updateRepeatableContent.mutate({
         id: Number(currentItemId),
         content: { [fieldName]: value },
       });
     },
-    [currentItemId, apiClient],
+    [currentItemId, updateRepeatableContent],
   );
 
   const isNestedInlineItem = !!currentDepthResult?.parentItemId;
@@ -393,12 +396,12 @@ const PageContentSheet = () => {
       ];
       parentArray[idx] = { ...parentArray[idx], [fieldName]: value };
 
-      apiClient.repeatableItems.updateContent({
+      updateRepeatableContent.mutate({
         id: Number(currentDepthResult.parentItemId),
         content: { [currentDepthResult.parentFieldName]: parentArray },
       });
     },
-    [block, currentDepthResult, repeatableBreadcrumbs, apiClient],
+    [block, currentDepthResult, repeatableBreadcrumbs, updateRepeatableContent],
   );
 
   let activeFieldChangeHandler: typeof handleNestedItemFieldChange;
@@ -666,7 +669,7 @@ const PageContentSheet = () => {
                     <Select
                       value={value}
                       onValueChange={(newValue) => {
-                        apiClient.blocks.updateSettings({
+                        updateSettings.mutate({
                           id: block.id,
                           settings: { [field.name]: newValue },
                         });
@@ -700,7 +703,7 @@ const PageContentSheet = () => {
                       id={`setting-${field.name}`}
                       checked={checked}
                       onCheckedChange={(newValue) => {
-                        apiClient.blocks.updateSettings({
+                        updateSettings.mutate({
                           id: block.id,
                           settings: { [field.name]: newValue },
                         });

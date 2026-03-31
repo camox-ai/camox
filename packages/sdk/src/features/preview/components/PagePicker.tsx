@@ -21,15 +21,14 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { Skeleton } from "@camox/ui/skeleton";
 import { toast } from "@camox/ui/toaster";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
 import * as React from "react";
 
-import { getApiClient } from "@/lib/api-client";
 import type { Page } from "@/lib/queries";
-import { pageQueries } from "@/lib/queries";
+import { pageMutations, pageQueries } from "@/lib/queries";
 import { cn, formatPathSegment } from "@/lib/utils";
 
 import { previewStore } from "../previewStore";
@@ -45,7 +44,7 @@ const PagePicker = () => {
   const [pageToDelete, setPageToDelete] = React.useState<Page | null>(null);
   const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
 
-  const apiClient = getApiClient();
+  const deletePage = useMutation(pageMutations.delete());
   const { data: pages } = useQuery(pageQueries.list());
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -53,7 +52,7 @@ const PagePicker = () => {
   const handleDeletePage = async (page: Page) => {
     const displayName = page.metaTitle ?? formatPathSegment(page.pathSegment);
     try {
-      await apiClient.pages.delete({ id: page.id });
+      await deletePage.mutateAsync({ id: page.id });
       toast.success(`Deleted ${displayName} page`);
 
       if (pathname === page.fullPath) {

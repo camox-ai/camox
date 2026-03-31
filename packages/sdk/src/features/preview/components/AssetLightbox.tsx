@@ -5,13 +5,13 @@ import { Label } from "@camox/ui/label";
 import { Switch } from "@camox/ui/switch";
 import { toast } from "@camox/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Download, FileIcon, Link, Loader2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
-import { getApiClient, getApiUrl } from "@/lib/api-client";
-import { fileQueries } from "@/lib/queries";
+import { getApiUrl } from "@/lib/api-client";
+import { fileMutations, fileQueries } from "@/lib/queries";
 
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
 
@@ -59,7 +59,11 @@ interface AssetLightboxProps {
 }
 
 const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
-  const apiClient = getApiClient();
+  const replaceFile = useMutation(fileMutations.replace());
+  const deleteFile = useMutation(fileMutations.delete());
+  const setAiMetadata = useMutation(fileMutations.setAiMetadata());
+  const setFilename = useMutation(fileMutations.setFilename());
+  const setAlt = useMutation(fileMutations.setAlt());
   const { data: file } = useQuery(fileQueries.get(fileId));
   const { data: usageCount } = useQuery(fileQueries.getUsageCount(fileId));
   const [uploadState, setUploadState] = useState<{
@@ -125,7 +129,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
 
         const { id: newFileId } = (await uploadRes.json()) as { id: number };
 
-        await apiClient.files.replace({ id: fileId, newFileId });
+        await replaceFile.mutateAsync({ id: fileId, newFileId });
 
         setUploadState((prev) => (prev ? { ...prev, status: "complete" } : prev));
         toast.success("File replaced");
@@ -140,7 +144,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
         setTimeout(() => setUploadState(null), 3000);
       }
     },
-    [apiClient, file?.projectId, fileId, onOpenChange],
+    [replaceFile, file?.projectId, fileId, onOpenChange],
   );
 
   const handleCopyUrl = async () => {
@@ -158,7 +162,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
   };
 
   const handleDelete = async () => {
-    await apiClient.files.delete({ id: fileId });
+    await deleteFile.mutateAsync({ id: fileId });
     onOpenChange(false);
   };
 
@@ -315,7 +319,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                   id="ai-metadata"
                   checked={file.aiMetadataEnabled !== false}
                   onCheckedChange={(checked) =>
-                    apiClient.files.setAiMetadata({ id: fileId, enabled: checked })
+                    setAiMetadata.mutate({ id: fileId, enabled: checked })
                   }
                 />
                 <Label htmlFor="ai-metadata">AI metadata</Label>
@@ -325,7 +329,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 placeholder="File name..."
                 initialValue={file.filename}
                 disabled={file.aiMetadataEnabled !== false}
-                onSave={(value) => apiClient.files.setFilename({ id: fileId, filename: value })}
+                onSave={(value) => setFilename.mutate({ id: fileId, filename: value })}
               />
               <DebouncedFieldEditor
                 label="Alt text"
@@ -333,7 +337,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 initialValue={file.alt}
                 disabled={file.aiMetadataEnabled !== false}
                 rows={2}
-                onSave={(value) => apiClient.files.setAlt({ id: fileId, alt: value })}
+                onSave={(value) => setAlt.mutate({ id: fileId, alt: value })}
               />
               <div className="text-muted-foreground space-y-1 text-sm">
                 <MetadataRow label="Format">

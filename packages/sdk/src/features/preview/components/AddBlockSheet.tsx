@@ -7,15 +7,14 @@ import {
   CommandList,
 } from "@camox/ui/command";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import { InfoIcon } from "lucide-react";
 import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
 import { trackClientEvent } from "@/lib/analytics-client";
-import { getApiClient } from "@/lib/api-client";
-import { blockQueries } from "@/lib/queries";
+import { blockMutations, blockQueries } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -24,7 +23,7 @@ import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
 
 const AddBlockSheet = () => {
   const [highlightedValue, setHighlightedValue] = React.useState<string>("");
-  const apiClient = getApiClient();
+  const createBlock = useMutation(blockMutations.create());
   const availableBlocks = useCamoxApp()
     .getBlocks()
     .filter((b) => !b.layoutOnly);
@@ -54,7 +53,7 @@ const AddBlockSheet = () => {
         ? ""
         : (peekedBlockPosition ?? page.blocks[page.blocks.length - 1]?.position);
 
-    const { id: blockId } = await apiClient.blocks.create({
+    const { id: blockId } = await createBlock.mutateAsync({
       pageId: page.page.id,
       type: block.id,
       content: block.getInitialContent(),

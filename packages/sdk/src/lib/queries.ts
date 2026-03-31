@@ -79,3 +79,39 @@ export const blockQueries = {
     select: (data: { markdown: string }) => data.markdown,
   }),
 };
+
+export const blockMutations = {
+  create: () => getOrpc().blocks.create.mutationOptions(),
+  delete: () => getOrpc().blocks.delete.mutationOptions(),
+  deleteMany: () => getOrpc().blocks.deleteMany.mutationOptions(),
+  duplicate: () => getOrpc().blocks.duplicate.mutationOptions(),
+  updateContent: () => getOrpc().blocks.updateContent.mutationOptions(),
+  updateSettings: () => getOrpc().blocks.updateSettings.mutationOptions(),
+  updatePosition: () => getOrpc().blocks.updatePosition.mutationOptions(),
+};
+
+export const repeatableItemMutations = {
+  create: () => getOrpc().repeatableItems.create.mutationOptions(),
+  delete: () => getOrpc().repeatableItems.delete.mutationOptions(),
+  duplicate: () => getOrpc().repeatableItems.duplicate.mutationOptions(),
+  updateContent: () => getOrpc().repeatableItems.updateContent.mutationOptions(),
+  updatePosition: () => getOrpc().repeatableItems.updatePosition.mutationOptions(),
+};
+
+export const pageMutations = {
+  create: () => getOrpc().pages.create.mutationOptions(),
+  delete: () => getOrpc().pages.delete.mutationOptions(),
+  update: () => getOrpc().pages.update.mutationOptions(),
+  setLayout: () => getOrpc().pages.setLayout.mutationOptions(),
+  setAiSeo: () => getOrpc().pages.setAiSeo.mutationOptions(),
+  setMetaTitle: () => getOrpc().pages.setMetaTitle.mutationOptions(),
+  setMetaDescription: () => getOrpc().pages.setMetaDescription.mutationOptions(),
+};
+
+export const fileMutations = {
+  delete: () => getOrpc().files.delete.mutationOptions(),
+  replace: () => getOrpc().files.replace.mutationOptions(),
+  setAiMetadata: () => getOrpc().files.setAiMetadata.mutationOptions(),
+  setFilename: () => getOrpc().files.setFilename.mutationOptions(),
+  setAlt: () => getOrpc().files.setAlt.mutationOptions(),
+};

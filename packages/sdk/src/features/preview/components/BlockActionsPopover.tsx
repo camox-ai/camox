@@ -19,13 +19,13 @@ import {
 } from "@camox/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { toast } from "@camox/ui/toaster";
+import { useMutation } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import { Copy, Pen, Settings, Trash2 } from "lucide-react";
 import * as React from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
-import { getApiClient } from "@/lib/api-client";
-import type { PageWithBlocks } from "@/lib/queries";
+import { blockMutations, repeatableItemMutations, type PageWithBlocks } from "@/lib/queries";
 import { formatShortcut } from "@/lib/utils";
 
 import type { Action } from "../../provider/actionsStore";
@@ -59,11 +59,14 @@ const BlockActionsPopover = ({
 
   const camoxApp = useCamoxApp();
   const page = usePreviewedPage();
-  const apiClient = getApiClient();
+
+  const deleteBlock = useMutation(blockMutations.delete());
+  const duplicateBlock = useMutation(blockMutations.duplicate());
+  const deleteManyBlocks = useMutation(blockMutations.deleteMany());
 
   const handleDeleteBlock = async (block: PageWithBlocks["blocks"][number]) => {
     try {
-      await apiClient.blocks.delete({ id: block.id });
+      await deleteBlock.mutateAsync({ id: block.id });
       trackClientEvent("block_deleted", {
         projectId: page?.page.projectId,
         blockType: block.type,
@@ -79,7 +82,7 @@ const BlockActionsPopover = ({
 
   const handleDuplicateBlock = async (block: PageWithBlocks["blocks"][number]) => {
     try {
-      await apiClient.blocks.duplicate({ id: block.id });
+      await duplicateBlock.mutateAsync({ id: block.id });
       trackClientEvent("block_duplicated", {
         projectId: page?.page.projectId,
         blockType: block.type,
@@ -127,7 +130,7 @@ const BlockActionsPopover = ({
     if (blocksAbove.length === 0) return;
 
     try {
-      await apiClient.blocks.deleteMany({ blockIds: blocksAbove.map((b) => b.id) });
+      await deleteManyBlocks.mutateAsync({ blockIds: blocksAbove.map((b) => b.id) });
       toast.success(`Deleted ${blocksAbove.length} block${blocksAbove.length === 1 ? "" : "s"}`);
     } catch (error) {
       console.error("Failed to delete blocks above:", error);
@@ -140,7 +143,7 @@ const BlockActionsPopover = ({
     if (blocksBelow.length === 0) return;
 
     try {
-      await apiClient.blocks.deleteMany({ blockIds: blocksBelow.map((b) => b.id) });
+      await deleteManyBlocks.mutateAsync({ blockIds: blocksBelow.map((b) => b.id) });
       toast.success(`Deleted ${blocksBelow.length} block${blocksBelow.length === 1 ? "" : "s"}`);
     } catch (error) {
       console.error("Failed to delete blocks below:", error);
@@ -385,7 +388,11 @@ function useBlockActionsShortcuts() {
     (state) => state.context.selectionBreadcrumbs,
   );
 
-  const apiClient = getApiClient();
+  const deleteBlockMutation = useMutation(blockMutations.delete());
+  const duplicateBlockMutation = useMutation(blockMutations.duplicate());
+  const updatePositionMutation = useMutation(blockMutations.updatePosition());
+  const deleteRepeatableItem = useMutation(repeatableItemMutations.delete());
+  const duplicateRepeatableItem = useMutation(repeatableItemMutations.duplicate());
 
   React.useEffect(() => {
     const actions = [
@@ -426,7 +433,7 @@ function useBlockActionsShortcuts() {
           if (!target) return;
 
           if (target.type === "RepeatableObject") {
-            apiClient.repeatableItems.delete({ id: Number(target.id) }).then(
+            deleteRepeatableItem.mutateAsync({ id: Number(target.id) }).then(
               () => toast.success("Deleted item"),
               () => toast.error("Could not delete item"),
             );
@@ -435,7 +442,7 @@ function useBlockActionsShortcuts() {
           }
 
           const block = page?.blocks.find((b) => String(b.id) === target.id);
-          apiClient.blocks.delete({ id: Number(target.id) }).then(
+          deleteBlockMutation.mutateAsync({ id: Number(target.id) }).then(
             () => toast.success(`Deleted "${block?.summary}" block`),
             () => toast.error("Could not delete block"),
           );
@@ -461,7 +468,7 @@ function useBlockActionsShortcuts() {
           if (!target) return;
 
           if (target.type === "RepeatableObject") {
-            apiClient.repeatableItems.duplicate({ id: Number(target.id) }).then(
+            duplicateRepeatableItem.mutateAsync({ id: Number(target.id) }).then(
               () => toast.success("Duplicated item"),
               () => toast.error("Could not duplicate item"),
             );
@@ -469,7 +476,7 @@ function useBlockActionsShortcuts() {
           }
 
           const block = page?.blocks.find((b) => String(b.id) === target.id);
-          apiClient.blocks.duplicate({ id: Number(target.id) }).then(
+          duplicateBlockMutation.mutateAsync({ id: Number(target.id) }).then(
             () => toast.success(`Duplicated "${block?.summary}" block`),
             () => toast.error("Could not duplicate block"),
           );
@@ -501,8 +508,8 @@ function useBlockActionsShortcuts() {
           const afterPosition = index > 1 ? page.blocks[index - 2].position : undefined;
           const beforePosition = page.blocks[index - 1].position;
 
-          apiClient.blocks
-            .updatePosition({ id: Number(blockCrumb.id), afterPosition, beforePosition })
+          updatePositionMutation
+            .mutateAsync({ id: Number(blockCrumb.id), afterPosition, beforePosition })
             .then(
               () => {},
               () => toast.error("Could not move block"),
@@ -536,8 +543,8 @@ function useBlockActionsShortcuts() {
           const beforePosition =
             index + 2 < page.blocks.length ? page.blocks[index + 2].position : undefined;
 
-          apiClient.blocks
-            .updatePosition({ id: Number(blockCrumb.id), afterPosition, beforePosition })
+          updatePositionMutation
+            .mutateAsync({ id: Number(blockCrumb.id), afterPosition, beforePosition })
             .then(
               () => {},
               () => toast.error("Could not move block"),
@@ -604,7 +611,7 @@ function useBlockActionsShortcuts() {
         ids: actions.map((a) => a.id),
       });
     };
-  }, [selectionBreadcrumbs, page, camoxApp, apiClient]);
+  }, [selectionBreadcrumbs, page, camoxApp]);
 }
 
 export { BlockActionsPopover, useBlockActionsShortcuts };

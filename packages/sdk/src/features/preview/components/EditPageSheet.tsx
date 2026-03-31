@@ -11,16 +11,21 @@ import { Switch } from "@camox/ui/switch";
 import { toast } from "@camox/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useForm } from "@tanstack/react-form";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import { Globe, Info } from "lucide-react";
 import * as React from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
-import { getApiClient } from "@/lib/api-client";
 import type { Page } from "@/lib/queries";
-import { blockQueries, layoutQueries, pageQueries, projectQueries } from "@/lib/queries";
+import {
+  blockQueries,
+  layoutQueries,
+  pageMutations,
+  pageQueries,
+  projectQueries,
+} from "@/lib/queries";
 import { formatPathSegment } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -38,7 +43,11 @@ const EditPageSheet = () => {
 };
 
 const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
-  const apiClient = getApiClient();
+  const updatePage = useMutation(pageMutations.update());
+  const setLayout = useMutation(pageMutations.setLayout());
+  const setAiSeo = useMutation(pageMutations.setAiSeo());
+  const setMetaTitle = useMutation(pageMutations.setMetaTitle());
+  const setMetaDescription = useMutation(pageMutations.setMetaDescription());
   const { data: livePage } = useQuery(pageQueries.getById(pageToEdit.id));
   const page = livePage ?? pageToEdit;
   const isRootPage = page.fullPath === "/";
@@ -72,14 +81,14 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
     },
     onSubmit: async (values) => {
       try {
-        const { fullPath } = await apiClient.pages.update({
+        const { fullPath } = await updatePage.mutateAsync({
           id: pageToEdit.id,
           pathSegment: values.value.pathSegment,
           parentPageId: values.value.parentPageId,
         });
 
         if (values.value.layoutId) {
-          await apiClient.pages.setLayout({ id: pageToEdit.id, layoutId: values.value.layoutId });
+          await setLayout.mutateAsync({ id: pageToEdit.id, layoutId: values.value.layoutId });
         }
 
         trackClientEvent("page_updated", {
@@ -214,9 +223,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
                 <Switch
                   id="ai-seo"
                   checked={page.aiSeoEnabled !== false}
-                  onCheckedChange={(checked) =>
-                    apiClient.pages.setAiSeo({ id: page.id, enabled: checked })
-                  }
+                  onCheckedChange={(checked) => setAiSeo.mutate({ id: page.id, enabled: checked })}
                 />
                 <Label htmlFor="ai-seo">AI metadata</Label>
               </div>
@@ -225,7 +232,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
                 placeholder="Page title..."
                 initialValue={page.metaTitle ?? ""}
                 disabled={page.aiSeoEnabled !== false}
-                onSave={(value) => apiClient.pages.setMetaTitle({ id: page.id, metaTitle: value })}
+                onSave={(value) => setMetaTitle.mutate({ id: page.id, metaTitle: value })}
               />
               <DebouncedFieldEditor
                 label="Page description"
@@ -234,7 +241,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
                 disabled={page.aiSeoEnabled !== false}
                 rows={2}
                 onSave={(value) =>
-                  apiClient.pages.setMetaDescription({ id: page.id, metaDescription: value })
+                  setMetaDescription.mutate({ id: page.id, metaDescription: value })
                 }
               />
               <SearchEnginePreview
