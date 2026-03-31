@@ -96,16 +96,6 @@ export function useIsAuthenticated() {
   return isAuthenticated;
 }
 
-/**
- * Stub — previously returned a Convex JWT for file uploads.
- * Returns null until file uploads are migrated to the new backend.
- */
-export function useConvexToken() {
-  return React.useCallback(async () => {
-    return null;
-  }, []);
-}
-
 export function useSignInRedirect() {
   const { managementUrl } = useAuthContext();
 

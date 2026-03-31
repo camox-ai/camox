@@ -10,12 +10,6 @@ const RESOLVED_VIRTUAL_STUDIO_CSS = "\0" + VIRTUAL_STUDIO_CSS;
 
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
-import {
-  LOCAL_CONVEX_URL,
-  LOCAL_CONVEX_SITE_URL,
-  startConvexDev,
-  stopConvexDev,
-} from "./convexSync";
 
 const LOCAL_API_URL = "http://localhost:8787";
 import { syncDefinitions, type DefinitionsSyncOptions } from "./definitionsSync";
@@ -43,7 +37,6 @@ export interface CamoxPluginOptions {
 }
 
 export function camox(options: CamoxPluginOptions): Plugin {
-  const convexUrl = LOCAL_CONVEX_URL;
   const managementUrl = options.managementUrl ?? DEFAULT_MANAGEMENT_URL;
   const apiUrl = options.apiUrl ?? LOCAL_API_URL;
   let isBuild = false;
@@ -68,10 +61,6 @@ export function camox(options: CamoxPluginOptions): Plugin {
       isBuild = env.command === "build";
       return {
         define: {
-          ...(env.command === "serve" && {
-            "import.meta.env.VITE_CONVEX_URL": JSON.stringify(convexUrl),
-            "import.meta.env.VITE_CONVEX_SITE_URL": JSON.stringify(LOCAL_CONVEX_SITE_URL),
-          }),
           __CAMOX_ANALYTICS_DISABLED__: JSON.stringify(!!options.disableAnalytics),
         },
       };
@@ -79,7 +68,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
     configResolved(config) {
       const routesDir = resolve(config.root, "src/routes");
       generateAppFile(config.root);
-      generateRouteFiles(routesDir, convexUrl, managementUrl, apiUrl);
+      generateRouteFiles(routesDir, managementUrl, apiUrl);
       generateSkillFiles(config.root);
 
       const message =
@@ -92,21 +81,14 @@ export function camox(options: CamoxPluginOptions): Plugin {
     configureServer(server: ViteDevServer) {
       const routesDir = resolve(server.config.root, "src/routes");
       watchAppFile(server, server.config.root);
-      watchRouteFiles(server, routesDir, convexUrl, managementUrl, apiUrl);
+      watchRouteFiles(server, routesDir, managementUrl, apiUrl);
       watchSkillFiles(server, server.config.root);
 
       if (!options.disableBlockBoilerplateGeneration) {
         watchNewBlockFiles(server);
       }
 
-      // Start local Convex backend, then sync definitions once it's ready
-      server.httpServer?.once("listening", async () => {
-        await startConvexDev(server);
-
-        // TODO: Set environment variables on the local deployment via
-        // POST http://127.0.0.1:3210/update_environment_variables
-        // so users don't have to manually run `npx convex env set` before the push succeeds.
-
+      server.httpServer?.once("listening", () => {
         if (!options.disableDefinitionsSync) {
           syncDefinitions(server, {
             ...options.definitionsSync,
@@ -115,10 +97,6 @@ export function camox(options: CamoxPluginOptions): Plugin {
           });
         }
       });
-    },
-
-    buildEnd() {
-      stopConvexDev();
     },
   };
 }

@@ -1,5 +1,6 @@
 import { Toaster } from "@camox/ui/toaster";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
 import * as React from "react";
 import studioCssUrl from "virtual:camox-studio-css";
 
@@ -80,7 +81,6 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
 interface CamoxProviderProps {
   children: React.ReactNode;
   camoxApp: CamoxApp;
-  convexUrl?: string;
   managementUrl: string;
   apiUrl: string;
   queryClient: QueryClient;
@@ -109,6 +109,7 @@ export function CamoxProvider({
     <AuthContext.Provider value={{ authClient, managementUrl, apiUrl }}>
       <CamoxAppProvider app={camoxApp}>
         <QueryClientProvider client={queryClient}>
+          <ReactQueryDevtools initialIsOpen={false} />
           <AuthGate
             authenticated={
               <>
