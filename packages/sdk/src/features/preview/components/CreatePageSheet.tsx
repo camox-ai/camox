@@ -10,14 +10,13 @@ import { Spinner } from "@camox/ui/spinner";
 import { Textarea } from "@camox/ui/textarea";
 import { toast } from "@camox/ui/toaster";
 import { useForm } from "@tanstack/react-form";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import { useEffect } from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
-import { getApiClient } from "@/lib/api-client";
-import { layoutQueries, pageQueries, projectQueries } from "@/lib/queries";
+import { layoutQueries, pageMutations, pageQueries, projectQueries } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { previewStore } from "../previewStore";
@@ -25,7 +24,7 @@ import { PageLocationFieldset } from "./PageLocationFieldset";
 
 const CreatePageSheet = () => {
   const open = useSelector(previewStore, (state) => state.context.isCreatePageSheetOpen);
-  const apiClient = getApiClient();
+  const createPage = useMutation(pageMutations.create());
   const { data: pages } = useQuery(pageQueries.list());
   const { data: project } = useQuery(projectQueries.getFirst());
   const { data: layouts } = useQuery({
@@ -49,7 +48,7 @@ const CreatePageSheet = () => {
           return;
         }
 
-        const createPagePromise = apiClient.pages.create({
+        const createPagePromise = createPage.mutateAsync({
           projectId: project.id,
           pathSegment: values.value.pathSegment,
           parentPageId: values.value.parentPageId,

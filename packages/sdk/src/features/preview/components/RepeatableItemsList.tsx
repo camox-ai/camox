@@ -17,10 +17,11 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useMutation } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import { CircleMinus, CirclePlus, GripVertical } from "lucide-react";
 
-import { getApiClient } from "@/lib/api-client";
+import { repeatableItemMutations } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import type { OverlayMessage } from "../overlayMessages";
@@ -327,7 +328,10 @@ const RepeatableItemsList = ({
   parentItemId,
 }: RepeatableItemsListProps) => {
   const isInline = !!parentItemId;
-  const apiClient = getApiClient();
+  const createRepeatableItem = useMutation(repeatableItemMutations.create());
+  const deleteRepeatableItem = useMutation(repeatableItemMutations.delete());
+  const updateRepeatableContent = useMutation(repeatableItemMutations.updateContent());
+  const updateRepeatablePosition = useMutation(repeatableItemMutations.updatePosition());
 
   const canAdd = maxItems === undefined || items.length < maxItems;
   const canRemove = minItems === undefined || items.length > minItems;
@@ -344,7 +348,7 @@ const RepeatableItemsList = ({
         }
       }
     }
-    apiClient.repeatableItems.create({
+    createRepeatableItem.mutate({
       blockId: Number(blockId),
       fieldName,
       content: defaultContent,
@@ -352,7 +356,7 @@ const RepeatableItemsList = ({
   };
 
   const handleRemoveItem = (itemId: string) => {
-    apiClient.repeatableItems.delete({ id: Number(itemId) });
+    deleteRepeatableItem.mutate({ id: Number(itemId) });
   };
 
   const handleAddInlineItem = () => {
@@ -369,7 +373,7 @@ const RepeatableItemsList = ({
       }
     }
     const currentItems = items as Record<string, unknown>[];
-    apiClient.repeatableItems.updateContent({
+    updateRepeatableContent.mutate({
       id: Number(parentItemId),
       content: { [fieldName]: [...currentItems, defaultContent] },
     });
@@ -378,7 +382,7 @@ const RepeatableItemsList = ({
   const handleRemoveInlineItem = (index: number) => {
     if (!parentItemId) return;
     const currentItems = items as Record<string, unknown>[];
-    apiClient.repeatableItems.updateContent({
+    updateRepeatableContent.mutate({
       id: Number(parentItemId),
       content: { [fieldName]: currentItems.filter((_, i) => i !== index) },
     });
@@ -396,7 +400,7 @@ const RepeatableItemsList = ({
     const [moved] = currentItems.splice(oldIndex, 1);
     currentItems.splice(newIndex, 0, moved);
 
-    apiClient.repeatableItems.updateContent({
+    updateRepeatableContent.mutate({
       id: Number(parentItemId),
       content: { [fieldName]: currentItems },
     });
@@ -442,7 +446,7 @@ const RepeatableItemsList = ({
       beforePosition = dbItems[newIndex].position;
     }
 
-    await apiClient.repeatableItems.updatePosition({
+    await updateRepeatablePosition.mutateAsync({
       id: Number(active.id),
       afterPosition,
       beforePosition,

@@ -16,14 +16,13 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { FileIcon, GripVertical } from "lucide-react";
 import * as React from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { useFileUpload } from "@/hooks/use-file-upload";
-import { getApiClient } from "@/lib/api-client";
-import { type File, projectQueries } from "@/lib/queries";
+import { type File, projectQueries, repeatableItemMutations } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import { AssetActionButtons } from "./AssetFieldEditor";
@@ -146,13 +145,15 @@ const MultipleAssetFieldEditor = ({
   const contentKey = assetType === "Image" ? "image" : "file";
   const isImage = assetType === "Image";
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const apiClient = getApiClient();
+  const createRepeatableItem = useMutation(repeatableItemMutations.create());
+  const deleteRepeatableItem = useMutation(repeatableItemMutations.delete());
+  const updateRepeatablePosition = useMutation(repeatableItemMutations.updatePosition());
   const { data: project } = useQuery(projectQueries.getFirst());
 
   const { uploads, uploadFiles } = useFileUpload({
     projectId: project?.id,
     onFileCommitted: (result) => {
-      apiClient.repeatableItems.create({
+      createRepeatableItem.mutate({
         blockId: Number(blockId),
         fieldName,
         content: {
@@ -205,7 +206,7 @@ const MultipleAssetFieldEditor = ({
       beforePosition = dbItems[newIndex].position;
     }
 
-    await apiClient.repeatableItems.updatePosition({
+    await updateRepeatablePosition.mutateAsync({
       id: Number(active.id),
       afterPosition,
       beforePosition,
@@ -213,7 +214,7 @@ const MultipleAssetFieldEditor = ({
   };
 
   const handleRemove = (itemId: string) => {
-    apiClient.repeatableItems.delete({ id: Number(itemId) });
+    deleteRepeatableItem.mutate({ id: Number(itemId) });
   };
 
   const handleAssetOpen = (item: RepeatableItem) => {
@@ -222,7 +223,7 @@ const MultipleAssetFieldEditor = ({
 
   const handleSelectMultiple = async (files: File[]) => {
     for (const file of files) {
-      await apiClient.repeatableItems.create({
+      await createRepeatableItem.mutateAsync({
         blockId: Number(blockId),
         fieldName,
         content: {

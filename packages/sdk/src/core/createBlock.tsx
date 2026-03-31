@@ -6,14 +6,13 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from "@camox/u
 import { toast } from "@camox/ui/toaster";
 import { Slot } from "@radix-ui/react-slot";
 import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 import { createPortal } from "react-dom";
 
 import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet.tsx";
-import { getApiClient } from "@/lib/api-client";
-import { type Page, pageQueries } from "@/lib/queries";
+import { blockMutations, repeatableItemMutations, type Page, pageQueries } from "@/lib/queries";
 
 import {
   OVERLAY_WIDTHS,
@@ -426,26 +425,27 @@ export function createBlock<
       setIsHovered(isHoveredFromSidebar);
     }, [isHoveredFromSidebar]);
 
-    const apiClient = getApiClient();
+    const updateBlockContent = useMutation(blockMutations.updateContent());
+    const updateRepeatableContent = useMutation(repeatableItemMutations.updateContent());
 
     const handleChange = React.useCallback(
       (newValue: Record<string, unknown>) => {
         if (repeaterContext) {
           const { itemId } = repeaterContext;
           if (itemId) {
-            apiClient.repeatableItems.updateContent({
+            updateRepeatableContent.mutate({
               id: Number(itemId),
               content: { [name]: newValue },
             });
           }
         } else {
-          apiClient.blocks.updateContent({
+          updateBlockContent.mutate({
             id: Number(blockId),
             content: { [name]: newValue },
           });
         }
       },
-      [blockId, name, repeaterContext, apiClient],
+      [blockId, name, repeaterContext, updateBlockContent, updateRepeatableContent],
     );
 
     const handleFocus = React.useCallback(() => {
@@ -566,7 +566,8 @@ export function createBlock<
       setIsHovered(isHoveredFromSidebar);
     }, [isHoveredFromSidebar]);
 
-    const apiClient = getApiClient();
+    const updateBlockContent = useMutation(blockMutations.updateContent());
+    const updateRepeatableContent = useMutation(repeatableItemMutations.updateContent());
 
     // Sync urlValue with fieldValue when popover is closed
     React.useEffect(() => {
@@ -601,17 +602,17 @@ export function createBlock<
             ...nestedArray[nestedIndex],
             [name]: newValue,
           };
-          apiClient.repeatableItems.updateContent({
+          updateRepeatableContent.mutate({
             id: Number(parentItemId),
             content: { [nestedFieldName]: nestedArray },
           });
         } else if (repeaterContext?.itemId) {
-          apiClient.repeatableItems.updateContent({
+          updateRepeatableContent.mutate({
             id: Number(repeaterContext.itemId),
             content: { [name]: newValue },
           });
         } else {
-          apiClient.blocks.updateContent({
+          updateBlockContent.mutate({
             id: Number(blockId),
             content: { [name]: newValue },
           });
@@ -729,7 +730,8 @@ export function createBlock<
       ? (repeaterContext.itemContent[name] as LinkValue)
       : (content[name] as LinkValue);
     const fieldValue = normalizeLinkValue(rawFieldValue as unknown as Record<string, unknown>);
-    const apiClient = getApiClient();
+    const updateBlockContent = useMutation(blockMutations.updateContent());
+    const updateRepeatableContent = useMutation(repeatableItemMutations.updateContent());
     const { data: pages } = useQuery(pageQueries.list());
     const resolvedHref = resolveLinkHref(fieldValue, pages as Page[] | undefined);
 
@@ -778,17 +780,17 @@ export function createBlock<
           ...nestedArray[nestedIndex],
           [name]: newLinkValue,
         };
-        apiClient.repeatableItems.updateContent({
+        updateRepeatableContent.mutate({
           id: Number(parentItemId),
           content: { [nestedFieldName]: nestedArray },
         });
       } else if (repeaterContext?.itemId) {
-        apiClient.repeatableItems.updateContent({
+        updateRepeatableContent.mutate({
           id: Number(repeaterContext.itemId),
           content: { [name]: newLinkValue },
         });
       } else {
-        apiClient.blocks.updateContent({
+        updateBlockContent.mutate({
           id: Number(blockId),
           content: { [name]: newLinkValue },
         });

@@ -9,12 +9,11 @@ import {
 } from "@camox/ui/alert-dialog";
 import { Button } from "@camox/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useState } from "react";
 
-import { getApiClient } from "@/lib/api-client";
-import { fileQueries } from "@/lib/queries";
+import { fileMutations, fileQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 interface UnlinkAssetButtonProps {
@@ -25,7 +24,7 @@ interface UnlinkAssetButtonProps {
 
 const UnlinkAssetButton = ({ fileId, onUnlink, className }: UnlinkAssetButtonProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const apiClient = getApiClient();
+  const deleteFile = useMutation(fileMutations.delete());
   const { data: usageCount } = useQuery({
     ...fileQueries.getUsageCount(fileId!),
     enabled: !!fileId,
@@ -72,7 +71,7 @@ const UnlinkAssetButton = ({ fileId, onUnlink, className }: UnlinkAssetButtonPro
             <AlertDialogAction
               onClick={() => {
                 onUnlink();
-                if (fileId) apiClient.files.delete({ id: fileId });
+                if (fileId) deleteFile.mutate({ id: fileId });
               }}
               asChild
             >

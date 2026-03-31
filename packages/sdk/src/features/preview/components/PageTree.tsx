@@ -18,13 +18,13 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import * as Accordion from "@radix-ui/react-accordion";
+import { useMutation } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react";
 import * as React from "react";
 
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
-import { getApiClient } from "@/lib/api-client";
-import type { PageWithBlocks } from "@/lib/queries";
+import { blockMutations, type PageWithBlocks } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -507,7 +507,7 @@ const PageTree = () => {
   const page = usePreviewedPage();
   const camoxApp = useCamoxApp();
 
-  const apiClient = getApiClient();
+  const updatePosition = useMutation(blockMutations.updatePosition());
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -554,7 +554,7 @@ const PageTree = () => {
       beforePosition = page.blocks[newIndex].position;
     }
 
-    await apiClient.blocks.updatePosition({
+    await updatePosition.mutateAsync({
       id: Number(active.id),
       afterPosition,
       beforePosition,
