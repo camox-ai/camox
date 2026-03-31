@@ -1,10 +1,10 @@
-import { blockDefinitionProcedures } from "./features/block-definitions";
-import { blockProcedures } from "./features/blocks";
-import { fileProcedures } from "./features/files";
-import { layoutProcedures } from "./features/layouts";
-import { pageProcedures } from "./features/pages";
-import { projectProcedures } from "./features/projects";
-import { repeatableItemProcedures } from "./features/repeatable-items";
+import { blockDefinitionProcedures } from "./routes/block-definitions";
+import { blockProcedures } from "./routes/blocks";
+import { fileProcedures } from "./routes/files";
+import { layoutProcedures } from "./routes/layouts";
+import { pageProcedures } from "./routes/pages";
+import { projectProcedures } from "./routes/projects";
+import { repeatableItemProcedures } from "./routes/repeatable-items";
 
 export const router = {
   projects: projectProcedures,

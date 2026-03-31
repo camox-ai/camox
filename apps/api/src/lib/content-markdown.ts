@@ -41,9 +41,10 @@ function resolveField(schema: any, value: unknown): string | undefined {
   const fieldType: string | undefined = schema?.fieldType;
 
   if (fieldType === "String") {
+    if (isLexicalState(value))
+      return lexicalStateToMarkdown(value as string | Record<string, unknown>) || undefined;
     const text = String(value);
     if (!text) return undefined;
-    if (isLexicalState(text)) return lexicalStateToMarkdown(text) || undefined;
     return text;
   }
 

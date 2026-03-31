@@ -1,6 +1,6 @@
 /// <reference types="@cloudflare/workers-types" />
 import type { Database } from "./db";
-import type { Auth } from "./features/auth";
+import type { Auth } from "./routes/auth";
 
 export type Bindings = {
   DB: D1Database;

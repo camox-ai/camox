@@ -2,7 +2,6 @@ import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { eq, sql } from "drizzle-orm";
-import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
@@ -12,33 +11,8 @@ import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
+import { blocks, files } from "../schema";
 import type { AppEnv } from "../types";
-import { blocks } from "./blocks";
-import { projects } from "./projects";
-
-// --- Schema ---
-
-export const files = sqliteTable(
-  "files",
-  {
-    id: int().primaryKey({ autoIncrement: true }),
-    projectId: int("project_id").references(() => projects.id),
-    url: text().notNull(),
-    alt: text().notNull().default(""),
-    filename: text().notNull(),
-    mimeType: text("mime_type").notNull(),
-    size: int().notNull(),
-    blobId: text("blob_id").notNull(),
-    path: text().notNull(),
-    aiMetadataEnabled: int("ai_metadata_enabled", { mode: "boolean" }),
-    createdAt: int("created_at").notNull(),
-    updatedAt: int("updated_at").notNull(),
-  },
-  (table) => [
-    index("files_blob_id_idx").on(table.blobId),
-    index("files_project_idx").on(table.projectId),
-  ],
-);
 
 // --- AI Executor ---
 

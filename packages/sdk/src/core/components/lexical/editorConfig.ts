@@ -4,12 +4,15 @@ import { ParagraphNode } from "lexical";
 import { isLexicalState, plainTextToLexicalState } from "../../lib/lexicalState";
 import { InlineParagraphNode } from "./InlineParagraphNode";
 
-export function normalizeLexicalState(value: string): string {
+export function normalizeLexicalState(value: string | Record<string, unknown>): string {
+  if (typeof value === "object") return JSON.stringify(value);
   if (isLexicalState(value)) return value;
-  return plainTextToLexicalState(value);
+  return JSON.stringify(plainTextToLexicalState(value));
 }
 
-export function createEditorConfig(initialState: string | undefined): InitialConfigType {
+export function createEditorConfig(
+  initialState: string | Record<string, unknown> | undefined,
+): InitialConfigType {
   return {
     namespace: "camox",
     editorState: initialState ? normalizeLexicalState(initialState) : undefined,

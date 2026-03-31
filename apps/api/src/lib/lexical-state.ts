@@ -20,6 +20,9 @@ function lexicalTextToMarkdown(text: string, format: number): string {
 }
 
 export function isLexicalState(value: unknown): boolean {
+  if (typeof value === "object" && value !== null) {
+    return (value as any)?.root?.type === "root";
+  }
   if (typeof value !== "string") return false;
   try {
     const parsed = JSON.parse(value);
@@ -29,8 +32,8 @@ export function isLexicalState(value: unknown): boolean {
   }
 }
 
-export function plainTextToLexicalState(text: string): string {
-  return JSON.stringify({
+export function plainTextToLexicalState(text: string): Record<string, unknown> {
+  return {
     root: {
       children: [
         {
@@ -60,15 +63,15 @@ export function plainTextToLexicalState(text: string): string {
       type: "root",
       version: 1,
     },
-  });
+  };
 }
 
-export function lexicalStateToPlainText(serialized: string): string {
+export function lexicalStateToPlainText(serialized: string | Record<string, unknown>): string {
   try {
-    const parsed = JSON.parse(serialized);
+    const parsed = typeof serialized === "object" ? serialized : JSON.parse(serialized);
     return extractText(parsed.root);
   } catch {
-    return serialized;
+    return typeof serialized === "string" ? serialized : "";
   }
 }
 
@@ -89,12 +92,12 @@ function extractText(node: any): string {
   return parts.join("\n\n");
 }
 
-export function lexicalStateToMarkdown(serialized: string): string {
+export function lexicalStateToMarkdown(serialized: string | Record<string, unknown>): string {
   try {
-    const parsed = JSON.parse(serialized);
+    const parsed = typeof serialized === "object" ? serialized : JSON.parse(serialized);
     return extractMarkdown(parsed.root);
   } catch {
-    return serialized;
+    return typeof serialized === "string" ? serialized : "";
   }
 }
 
@@ -167,7 +170,7 @@ function parseInlineMarkdown(text: string): any[] {
   }));
 }
 
-export function markdownToLexicalState(markdown: string): string {
+export function markdownToLexicalState(markdown: string): Record<string, unknown> {
   const paragraphs = markdown.split(/\n\n+/);
   const children = paragraphs.map((para) => ({
     children: parseInlineMarkdown(para),
@@ -180,7 +183,7 @@ export function markdownToLexicalState(markdown: string): string {
     textStyle: "",
   }));
 
-  return JSON.stringify({
+  return {
     root: {
       children,
       direction: "ltr",
@@ -189,5 +192,5 @@ export function markdownToLexicalState(markdown: string): string {
       type: "root",
       version: 1,
     },
-  });
+  };
 }

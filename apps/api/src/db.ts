@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/d1";
 
-import { aiJobs } from "./features/ai-jobs";
 import {
+  aiJobs,
   account,
   invitation,
   member,
@@ -9,14 +9,14 @@ import {
   session,
   user,
   verification,
-} from "./features/auth";
-import { blockDefinitions } from "./features/block-definitions";
-import { blocks } from "./features/blocks";
-import { files } from "./features/files";
-import { layouts } from "./features/layouts";
-import { pages } from "./features/pages";
-import { projects } from "./features/projects";
-import { repeatableItems } from "./features/repeatable-items";
+  blockDefinitions,
+  blocks,
+  files,
+  layouts,
+  pages,
+  projects,
+  repeatableItems,
+} from "./schema";
 
 const schema = {
   projects,

@@ -2,12 +2,14 @@ import * as React from "react";
 
 import { applyModifierRendering } from "./modifiers";
 
-export function lexicalStateToReactNodes(serialized: string): React.ReactNode {
+export function lexicalStateToReactNodes(
+  serialized: string | Record<string, unknown>,
+): React.ReactNode {
   try {
-    const parsed = JSON.parse(serialized);
+    const parsed = typeof serialized === "object" ? serialized : JSON.parse(serialized);
     return renderNode(parsed.root);
   } catch {
-    return serialized;
+    return typeof serialized === "string" ? serialized : null;
   }
 }
 

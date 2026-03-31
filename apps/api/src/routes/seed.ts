@@ -3,15 +3,19 @@ import { generateKeyBetween } from "fractional-indexing";
 import { Hono } from "hono";
 
 import type { Database } from "../db";
+import {
+  blockDefinitions,
+  blocks,
+  files,
+  layouts,
+  member,
+  organizationTable,
+  pages,
+  projects,
+  repeatableItems,
+} from "../schema";
 import type { AppEnv } from "../types";
-import { createAuth, member, organizationTable } from "./auth";
-import { blockDefinitions } from "./block-definitions";
-import { blocks } from "./blocks";
-import { files } from "./files";
-import { layouts } from "./layouts";
-import { pages } from "./pages";
-import { projects } from "./projects";
-import { repeatableItems } from "./repeatable-items";
+import { createAuth } from "./auth";
 
 async function clearAll(db: Database) {
   await db.delete(repeatableItems).run();

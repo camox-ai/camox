@@ -1,31 +1,10 @@
 import { ORPCError } from "@orpc/server";
 import { eq } from "drizzle-orm";
-import { int, sqliteTable, text, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 
 import { getAuthorizedProject } from "../authorization";
 import { authed, pub } from "../orpc";
-
-// --- Schema ---
-
-export const projects = sqliteTable(
-  "projects",
-  {
-    id: int().primaryKey({ autoIncrement: true }),
-    slug: text().notNull(),
-    name: text().notNull(),
-    description: text(),
-    domain: text().notNull(),
-    organizationSlug: text("organization_slug").notNull(),
-    createdAt: int("created_at").notNull(),
-    updatedAt: int("updated_at").notNull(),
-  },
-  (table) => [
-    uniqueIndex("projects_slug_idx").on(table.slug),
-    index("projects_domain_idx").on(table.domain),
-    index("projects_organization_idx").on(table.organizationSlug),
-  ],
-);
+import { projects } from "../schema";
 
 // --- Procedures ---
 
