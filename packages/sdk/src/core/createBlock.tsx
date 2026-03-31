@@ -395,9 +395,9 @@ export function createBlock<
     const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));
 
     // Get field value based on context
-    const fieldValue = (
-      repeaterContext ? repeaterContext.itemContent[name] : content[name]
-    ) as string;
+    const fieldValue = (repeaterContext ? repeaterContext.itemContent[name] : content[name]) as
+      | string
+      | Record<string, unknown>;
 
     // Local hover/focus state for overlay styling
     const [isHovered, setIsHovered] = React.useState(false);
@@ -429,7 +429,7 @@ export function createBlock<
     const apiClient = getApiClient();
 
     const handleChange = React.useCallback(
-      (newValue: string) => {
+      (newValue: Record<string, unknown>) => {
         if (repeaterContext) {
           const { itemId } = repeaterContext;
           if (itemId) {

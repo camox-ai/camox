@@ -2,7 +2,6 @@ import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { and, eq } from "drizzle-orm";
-import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { generateKeyBetween } from "fractional-indexing";
 import { outdent } from "outdent";
 import { z } from "zod";
@@ -12,29 +11,23 @@ import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { authed } from "../orpc";
-import { blocks } from "./blocks";
+import { blocks, repeatableItems } from "../schema";
 
-// --- Schema ---
+function comparePositions(a: string, b: string): number {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
 
-export const repeatableItems = sqliteTable(
-  "repeatable_items",
-  {
-    id: int().primaryKey({ autoIncrement: true }),
-    blockId: int("block_id")
-      .notNull()
-      .references(() => blocks.id),
-    fieldName: text("field_name").notNull(),
-    content: text({ mode: "json" }).notNull(),
-    summary: text().notNull().default(""),
-    position: text().notNull(),
-    createdAt: int("created_at").notNull(),
-    updatedAt: int("updated_at").notNull(),
-  },
-  (table) => [
-    index("repeatable_items_block_field_idx").on(table.blockId, table.fieldName),
-    index("repeatable_items_block_idx").on(table.blockId),
-  ],
-);
+/** Find the last index where item.position <= target in a sorted array. */
+function findLastIndexLe<T extends { position: string }>(items: T[], target: string): number {
+  let result = -1;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].position <= target) result = i;
+    else break;
+  }
+  return result;
+}
 
 // --- AI Executor ---
 
@@ -159,7 +152,7 @@ const create = authed.input(createItemSchema).handler(async ({ context, input })
       .select()
       .from(repeatableItems)
       .where(and(eq(repeatableItems.blockId, blockId), eq(repeatableItems.fieldName, fieldName)))
-  ).sort((a, b) => a.position.localeCompare(b.position));
+  ).sort((a, b) => comparePositions(a.position, b.position));
 
   let position: string;
   if (afterPosition === undefined || afterPosition === null) {
@@ -169,9 +162,12 @@ const create = authed.input(createItemSchema).handler(async ({ context, input })
     const firstItem = siblings[0];
     position = generateKeyBetween(null, firstItem?.position ?? null);
   } else {
-    const afterIndex = siblings.findIndex((s) => s.position === afterPosition);
-    const nextItem = siblings[afterIndex + 1];
-    position = generateKeyBetween(afterPosition, nextItem?.position ?? null);
+    const afterIndex = findLastIndexLe(siblings, afterPosition!);
+    const nextItem = afterIndex >= 0 ? siblings[afterIndex + 1] : siblings[0];
+    position = generateKeyBetween(
+      afterIndex >= 0 ? siblings[afterIndex].position : null,
+      nextItem?.position ?? null,
+    );
   }
 
   const result = await context.db
@@ -254,7 +250,37 @@ const updatePosition = authed
     const access = await assertRepeatableItemAccess(context.db, id, context.orgSlug);
     if (!access) throw new ORPCError("NOT_FOUND");
 
-    const position = generateKeyBetween(afterPosition ?? null, beforePosition ?? null);
+    const item = access.item;
+    const siblings = (
+      await context.db
+        .select()
+        .from(repeatableItems)
+        .where(
+          and(
+            eq(repeatableItems.blockId, item.blockId),
+            eq(repeatableItems.fieldName, item.fieldName),
+          ),
+        )
+    )
+      .filter((s) => s.id !== id)
+      .sort((a, b) => comparePositions(a.position, b.position));
+
+    const after = afterPosition || null;
+    const before = beforePosition || null;
+
+    let position: string;
+    if (!after && !before) {
+      const last = siblings[siblings.length - 1];
+      position = generateKeyBetween(last?.position ?? null, null);
+    } else if (!after) {
+      const firstIdx = siblings.findIndex((b) => b.position >= before!);
+      position = generateKeyBetween(null, siblings[firstIdx]?.position ?? null);
+    } else {
+      const afterIdx = findLastIndexLe(siblings, after);
+      const nextPos = siblings[afterIdx + 1]?.position ?? null;
+      position = generateKeyBetween(siblings[afterIdx]?.position ?? null, nextPos);
+    }
+
     const result = await context.db
       .update(repeatableItems)
       .set({ position, updatedAt: Date.now() })
@@ -265,7 +291,7 @@ const updatePosition = authed
       entity: "repeatableItem",
       action: "updated",
       entityId: id,
-      parentId: access.item.blockId,
+      parentId: item.blockId,
       pagePath: access.pagePath ?? undefined,
     });
     return result;
@@ -290,7 +316,7 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
           eq(repeatableItems.fieldName, original.fieldName),
         ),
       )
-  ).sort((a, b) => a.position.localeCompare(b.position));
+  ).sort((a, b) => comparePositions(a.position, b.position));
   const originalIndex = siblings.findIndex((s) => s.id === id);
   const nextItem = originalIndex >= 0 ? siblings[originalIndex + 1] : undefined;
   const position = generateKeyBetween(original.position, nextItem?.position ?? null);

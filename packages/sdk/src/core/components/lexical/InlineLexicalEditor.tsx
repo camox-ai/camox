@@ -12,15 +12,15 @@ import { InlineContentEditable } from "./InlineContentEditable";
 import { SelectionBroadcaster } from "./SelectionBroadcaster";
 
 interface InlineLexicalEditorProps {
-  initialState: string;
-  externalState: string;
-  onChange: (serialized: string) => void;
+  initialState: string | Record<string, unknown>;
+  externalState: string | Record<string, unknown>;
+  onChange: (state: Record<string, unknown>) => void;
   onFocus: () => void;
   onBlur: () => void;
   activateRef?: React.RefObject<(() => void) | null>;
 }
 
-function ExternalStateSync({ externalState }: { externalState: string }) {
+function ExternalStateSync({ externalState }: { externalState: string | Record<string, unknown> }) {
   const [editor] = useLexicalComposerContext();
   const isFocusedRef = React.useRef(false);
 
@@ -132,8 +132,7 @@ export function InlineLexicalEditor({
       if (!isDirtyRef.current) return;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = window.setTimeout(() => {
-        const serialized = JSON.stringify(editorState.toJSON());
-        onChange(serialized);
+        onChange(editorState.toJSON() as unknown as Record<string, unknown>);
       }, 300);
     },
     [onChange],

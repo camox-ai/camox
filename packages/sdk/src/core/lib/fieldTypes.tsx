@@ -37,9 +37,9 @@ const fieldTypesDictionary = {
     isContentEditable: true,
     getIcon: () => (props: LucideProps) => <TypeIcon {...props} />,
     getLabel: (value: unknown) => {
-      const str = value as string;
-      if (isLexicalState(str)) return lexicalStateToPlainText(str);
-      return str;
+      if (isLexicalState(value))
+        return lexicalStateToPlainText(value as string | Record<string, unknown>);
+      return typeof value === "string" ? value : "";
     },
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
       previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "String" });

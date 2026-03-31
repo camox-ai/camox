@@ -11,13 +11,13 @@ import { INPUT_BASE_STYLES, INPUT_FOCUS_STYLES, cn } from "@/lib/utils";
 import { createEditorConfig, normalizeLexicalState } from "./editorConfig";
 
 interface SidebarLexicalEditorProps {
-  value: string;
-  onChange: (serialized: string) => void;
+  value: string | Record<string, unknown>;
+  onChange: (state: Record<string, unknown>) => void;
   onFocus?: () => void;
   onBlur?: () => void;
 }
 
-function ExternalStateSync({ value }: { value: string }) {
+function ExternalStateSync({ value }: { value: string | Record<string, unknown> }) {
   const [editor] = useLexicalComposerContext();
   const isFocusedRef = React.useRef(false);
 
@@ -71,8 +71,7 @@ export function SidebarLexicalEditor({
     (editorState: EditorState) => {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = window.setTimeout(() => {
-        const serialized = JSON.stringify(editorState.toJSON());
-        onChange(serialized);
+        onChange(editorState.toJSON() as unknown as Record<string, unknown>);
       }, 300);
     },
     [onChange],

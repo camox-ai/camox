@@ -1,34 +1,9 @@
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
-import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 
 import { pub } from "../orpc";
-import { projects } from "./projects";
-
-// --- Schema ---
-
-export const blockDefinitions = sqliteTable(
-  "block_definitions",
-  {
-    id: int().primaryKey({ autoIncrement: true }),
-    projectId: int("project_id")
-      .notNull()
-      .references(() => projects.id),
-    blockId: text("block_id").notNull(),
-    title: text().notNull(),
-    description: text().notNull(),
-    contentSchema: text("content_schema", { mode: "json" }).notNull(),
-    settingsSchema: text("settings_schema", { mode: "json" }),
-    layoutOnly: int("layout_only", { mode: "boolean" }),
-    createdAt: int("created_at").notNull(),
-    updatedAt: int("updated_at").notNull(),
-  },
-  (table) => [
-    index("block_definitions_project_idx").on(table.projectId),
-    index("block_definitions_project_block_idx").on(table.projectId, table.blockId),
-  ],
-);
+import { blockDefinitions, projects } from "../schema";
 
 // --- Procedures ---
 

@@ -2,7 +2,8 @@ import { os, ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 
 import type { Database } from "./db";
-import { member, organizationTable, type Auth } from "./features/auth";
+import type { Auth } from "./routes/auth";
+import { member, organizationTable } from "./schema";
 import type { Bindings } from "./types";
 
 // --- Context types ---

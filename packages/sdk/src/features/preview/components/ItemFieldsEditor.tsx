@@ -111,13 +111,13 @@ const ItemFieldsEditor = ({
   }, [fields]);
 
   const defaultValues = React.useMemo(() => {
-    const values: Record<string, string> = {};
+    const values: Record<string, unknown> = {};
     for (const fieldName of scalarFields) {
-      const raw = (data[fieldName] as string) ?? "";
+      const raw = data[fieldName] ?? "";
       // Find the field definition to check if it's a String field
       const fieldDef = fields.find((f) => f.name === fieldName);
       if (fieldDef?.fieldType === "String" && raw && !isLexicalState(raw)) {
-        values[fieldName] = plainTextToLexicalState(raw);
+        values[fieldName] = plainTextToLexicalState(typeof raw === "string" ? raw : "");
       } else {
         values[fieldName] = raw;
       }
@@ -144,7 +144,7 @@ const ItemFieldsEditor = ({
     };
   }, [postToIframe]);
 
-  const handleScalarChange = (fieldName: string, value: string, fieldApi: any) => {
+  const handleScalarChange = (fieldName: string, value: unknown, fieldApi: any) => {
     fieldApi.handleChange(value);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
@@ -191,7 +191,7 @@ const ItemFieldsEditor = ({
                 >
                   <Label htmlFor={field.name}>{label}</Label>
                   <SidebarLexicalEditor
-                    value={fieldApi.state.value}
+                    value={fieldApi.state.value as string | Record<string, unknown>}
                     onChange={(value) => handleScalarChange(field.name, value, fieldApi)}
                     onFocus={() => handleFieldFocus(field.name)}
                     onBlur={() => handleFieldBlur(field.name)}
@@ -225,7 +225,7 @@ const ItemFieldsEditor = ({
                   <Input
                     id={field.name}
                     type="url"
-                    value={fieldApi.state.value}
+                    value={fieldApi.state.value as string}
                     onChange={(e) => handleScalarChange(field.name, e.target.value, fieldApi)}
                     onFocus={() => handleFieldFocus(field.name)}
                     onBlur={() => handleFieldBlur(field.name)}

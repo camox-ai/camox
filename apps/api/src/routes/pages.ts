@@ -2,7 +2,6 @@ import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { eq, inArray } from "drizzle-orm";
-import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { generateKeyBetween } from "fractional-indexing";
 import { outdent } from "outdent";
 import { z } from "zod";
@@ -14,40 +13,15 @@ import { contentToMarkdown } from "../lib/content-markdown";
 import { markdownToLexicalState, plainTextToLexicalState } from "../lib/lexical-state";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
-import { blockDefinitions } from "./block-definitions";
-import { blocks } from "./blocks";
-import { files } from "./files";
-import { layouts } from "./layouts";
-import { projects } from "./projects";
-import { repeatableItems } from "./repeatable-items";
-
-// --- Schema ---
-
-export const pages = sqliteTable(
-  "pages",
-  {
-    id: int().primaryKey({ autoIncrement: true }),
-    projectId: int("project_id")
-      .notNull()
-      .references(() => projects.id),
-    pathSegment: text("path_segment").notNull(),
-    fullPath: text("full_path").notNull(),
-    parentPageId: int("parent_page_id"),
-    layoutId: int("layout_id")
-      .notNull()
-      .references(() => layouts.id),
-    metaTitle: text("meta_title"),
-    metaDescription: text("meta_description"),
-    aiSeoEnabled: int("ai_seo_enabled", { mode: "boolean" }),
-    createdAt: int("created_at").notNull(),
-    updatedAt: int("updated_at").notNull(),
-  },
-  (table) => [
-    index("pages_full_path_idx").on(table.fullPath),
-    index("pages_parent_idx").on(table.parentPageId),
-    index("pages_project_idx").on(table.projectId),
-  ],
-);
+import {
+  blockDefinitions,
+  blocks,
+  files,
+  layouts,
+  pages,
+  projects,
+  repeatableItems,
+} from "../schema";
 
 // --- AI Executors ---
 
@@ -210,7 +184,7 @@ export async function executePageSeo(db: Database, apiKey: string, pageId: numbe
 
   // Get all blocks for this page
   const pageBlocks = await db.select().from(blocks).where(eq(blocks.pageId, pageId));
-  const sorted = pageBlocks.sort((a, b) => a.position.localeCompare(b.position));
+  const sorted = pageBlocks.sort((a, b) => comparePositions(a.position, b.position));
 
   // Get block definitions for content schemas
   const defs = await db
@@ -281,8 +255,14 @@ export async function executePageSeo(db: Database, apiKey: string, pageId: numbe
 
 type ContentRecord = Record<string, unknown>;
 
+function comparePositions(a: string, b: string): number {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
 function sortByPosition<T extends { position: string }>(items: T[]): T[] {
-  return items.sort((a, b) => a.position.localeCompare(b.position));
+  return items.sort((a, b) => comparePositions(a.position, b.position));
 }
 
 function collectFileIds(content: Record<string, unknown>, fileIds: Set<number>) {

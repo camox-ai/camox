@@ -2,13 +2,12 @@ import { DurableObject } from "cloudflare:workers";
 import { eq, or } from "drizzle-orm";
 
 import { createDb } from "../db";
-import { blocks, executeBlockSummary } from "../features/blocks";
-import { files, executeFileMetadata } from "../features/files";
-import { layouts } from "../features/layouts";
-import { pages, executePageSeo } from "../features/pages";
-import { projects } from "../features/projects";
-import { repeatableItems, executeRepeatableItemSummary } from "../features/repeatable-items";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
+import { executeBlockSummary } from "../routes/blocks";
+import { executeFileMetadata } from "../routes/files";
+import { executePageSeo } from "../routes/pages";
+import { executeRepeatableItemSummary } from "../routes/repeatable-items";
+import { blocks, files, layouts, pages, projects, repeatableItems } from "../schema";
 import type { Bindings } from "../types";
 
 type JobParams = {

@@ -2,7 +2,6 @@ import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { and, eq, or, sql, inArray } from "drizzle-orm";
-import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { generateKeyBetween } from "fractional-indexing";
 import { outdent } from "outdent";
 import { z } from "zod";
@@ -13,35 +12,7 @@ import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { contentToMarkdown } from "../lib/content-markdown";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
-import { blockDefinitions } from "./block-definitions";
-import { layouts } from "./layouts";
-import { pages } from "./pages";
-import { projects } from "./projects";
-import { repeatableItems } from "./repeatable-items";
-
-// --- Schema ---
-
-export const blocks = sqliteTable(
-  "blocks",
-  {
-    id: int().primaryKey({ autoIncrement: true }),
-    pageId: int("page_id").references(() => pages.id),
-    layoutId: int("layout_id").references(() => layouts.id),
-    type: text().notNull(),
-    content: text({ mode: "json" }).notNull(),
-    settings: text({ mode: "json" }),
-    placement: text().$type<"before" | "after">(),
-    summary: text().notNull().default(""),
-    position: text().notNull(),
-    createdAt: int("created_at").notNull(),
-    updatedAt: int("updated_at").notNull(),
-  },
-  (table) => [
-    index("blocks_page_idx").on(table.pageId),
-    index("blocks_layout_idx").on(table.layoutId),
-    index("blocks_type_idx").on(table.type),
-  ],
-);
+import { blockDefinitions, blocks, layouts, pages, projects, repeatableItems } from "../schema";
 
 // --- AI Executor ---
 
@@ -111,8 +82,24 @@ async function generateObjectSummary(
   });
 }
 
+function comparePositions(a: string, b: string): number {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
 function sortByPosition<T extends { position: string }>(items: T[]): T[] {
-  return items.sort((a, b) => a.position.localeCompare(b.position));
+  return items.sort((a, b) => comparePositions(a.position, b.position));
+}
+
+/** Find the last index where item.position <= target in a sorted array. */
+function findLastIndexLe<T extends { position: string }>(items: T[], target: string): number {
+  let result = -1;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].position <= target) result = i;
+    else break;
+  }
+  return result;
 }
 
 async function assembleBlockContent(db: Database, blockId: number) {
@@ -247,7 +234,7 @@ const getPageMarkdown = pub
 
     // Get page blocks sorted by position
     const pageBlocks = await context.db.select().from(blocks).where(eq(blocks.pageId, pageId));
-    const sorted = pageBlocks.sort((a, b) => a.position.localeCompare(b.position));
+    const sorted = pageBlocks.sort((a, b) => comparePositions(a.position, b.position));
 
     // Fetch all repeatable items for these blocks
     const blockIds = sorted.map((b) => b.id);
@@ -273,7 +260,7 @@ const getPageMarkdown = pub
         .select()
         .from(blocks)
         .where(eq(blocks.layoutId, page.layoutId));
-      const sortedLayout = layoutBlocks.sort((a, b) => a.position.localeCompare(b.position));
+      const sortedLayout = layoutBlocks.sort((a, b) => comparePositions(a.position, b.position));
       const layoutBlockIds = sortedLayout.map((b) => b.id);
       const layoutItems =
         layoutBlockIds.length > 0
@@ -352,19 +339,22 @@ const create = authed.input(createBlockSchema).handler(async ({ context, input }
   );
 
   let position: string;
-  if (afterPosition === undefined) {
-    // Insert at the end
+  if (afterPosition == null) {
+    // No afterPosition provided → insert at the end
     const lastBlock = pageBlocks[pageBlocks.length - 1];
     position = generateKeyBetween(lastBlock?.position ?? null, null);
   } else if (afterPosition === "") {
-    // Insert at the beginning (empty string is a marker for this)
+    // Empty string marker → insert at the beginning
     const firstBlock = pageBlocks[0];
     position = generateKeyBetween(null, firstBlock?.position ?? null);
   } else {
     // Insert after the specified position
-    const afterIndex = pageBlocks.findIndex((b) => b.position === afterPosition);
-    const nextBlock = pageBlocks[afterIndex + 1];
-    position = generateKeyBetween(afterPosition, nextBlock?.position ?? null);
+    const afterIndex = findLastIndexLe(pageBlocks, afterPosition!);
+    const nextBlock = afterIndex >= 0 ? pageBlocks[afterIndex + 1] : pageBlocks[0];
+    position = generateKeyBetween(
+      afterIndex >= 0 ? pageBlocks[afterIndex].position : null,
+      nextBlock?.position ?? null,
+    );
   }
   const result = await context.db
     .insert(blocks)
@@ -473,7 +463,34 @@ const updatePosition = authed
     const access = await assertBlockAccess(context.db, id, orgSlug);
     if (!access) throw new ORPCError("NOT_FOUND");
 
-    const position = generateKeyBetween(afterPosition ?? null, beforePosition ?? null);
+    // Query siblings (excluding the block being moved) to compute a correct position
+    const block = access.block;
+    const parentColumn = block.pageId ? blocks.pageId : blocks.layoutId;
+    const parentId = block.pageId ?? block.layoutId;
+    const siblings = parentId
+      ? sortByPosition(
+          (await context.db.select().from(blocks).where(eq(parentColumn, parentId))).filter(
+            (b) => b.id !== id,
+          ),
+        )
+      : [];
+
+    const after = afterPosition || null;
+    const before = beforePosition || null;
+
+    let position: string;
+    if (!after && !before) {
+      const last = siblings[siblings.length - 1];
+      position = generateKeyBetween(last?.position ?? null, null);
+    } else if (!after) {
+      const firstIdx = siblings.findIndex((b) => b.position >= before!);
+      position = generateKeyBetween(null, siblings[firstIdx]?.position ?? null);
+    } else {
+      const afterIdx = findLastIndexLe(siblings, after);
+      const nextPos = siblings[afterIdx + 1]?.position ?? null;
+      position = generateKeyBetween(siblings[afterIdx]?.position ?? null, nextPos);
+    }
+
     const result = await context.db
       .update(blocks)
       .set({ position, updatedAt: Date.now() })

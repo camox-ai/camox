@@ -11,7 +11,7 @@ function getLocalD1Db(): string {
 }
 
 export default defineConfig({
-  schema: "./src/features/*.ts",
+  schema: "./src/schema.ts",
   out: "./migrations",
   dialect: "sqlite",
   dbCredentials: {

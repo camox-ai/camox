@@ -2,13 +2,16 @@ import { and, eq, or } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 
 import type { Database } from "./db";
-import { member, organizationTable } from "./features/auth";
-import { blocks } from "./features/blocks";
-import { files } from "./features/files";
-import { layouts } from "./features/layouts";
-import { pages } from "./features/pages";
-import { projects } from "./features/projects";
-import { repeatableItems } from "./features/repeatable-items";
+import {
+  member,
+  organizationTable,
+  blocks,
+  files,
+  layouts,
+  pages,
+  projects,
+  repeatableItems,
+} from "./schema";
 import type { AppEnv } from "./types";
 
 // --- Middleware ---

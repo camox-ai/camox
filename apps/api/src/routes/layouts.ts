@@ -1,31 +1,10 @@
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
-import { int, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { pub } from "../orpc";
-import { projects } from "./projects";
-
-// --- Schema ---
-
-export const layouts = sqliteTable(
-  "layouts",
-  {
-    id: int().primaryKey({ autoIncrement: true }),
-    projectId: int("project_id")
-      .notNull()
-      .references(() => projects.id),
-    layoutId: text("layout_id").notNull(),
-    description: text(),
-    createdAt: int("created_at").notNull(),
-    updatedAt: int("updated_at").notNull(),
-  },
-  (table) => [
-    index("layouts_project_idx").on(table.projectId),
-    index("layouts_project_layout_idx").on(table.projectId, table.layoutId),
-  ],
-);
+import { layouts, projects } from "../schema";
 
 // --- Procedures ---
 
