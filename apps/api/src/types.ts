@@ -15,6 +15,7 @@ export type Bindings = {
   AI_JOB_SCHEDULER: DurableObjectNamespace;
   ProjectRoom: DurableObjectNamespace;
   FILES_BUCKET: R2Bucket;
+  SEED_SECRET: string;
 };
 
 export type AppEnv = {

@@ -12,6 +12,7 @@
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "db:studio": "drizzle-kit studio",
+    "seed": "source .dev.vars && curl -s -X POST -H \"x-seed-secret: $SEED_SECRET\" http://localhost:8787/seed",
     "lint": "oxlint",
     "check": "tsgo --noEmit && oxlint --fix"
   },
