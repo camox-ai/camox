@@ -40,7 +40,7 @@ function AuthenticatedUserButton({
 }) {
   const authCtx = useContext(AuthContext);
   const { data: session } = (authCtx!.authClient as any).useSession();
-  const managementUrl = authCtx!.managementUrl;
+  const authenticationUrl = authCtx!.authenticationUrl;
 
   const userName = session?.user?.name || "User";
   const userEmail = session?.user?.email;
@@ -74,7 +74,7 @@ function AuthenticatedUserButton({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => window.open(`${managementUrl}/dashboard/profile`, "_blank")}
+          onClick={() => window.open(`${authenticationUrl}/dashboard/profile`, "_blank")}
         >
           <Settings className="h-4 w-4" />
           <span>Manage account</span>

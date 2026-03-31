@@ -24,6 +24,8 @@ import { CamoxAppProvider } from "./components/CamoxAppContext";
 import { CommandPalette, useCommandPaletteActions } from "./components/CommandPalette";
 import { useAdminShortcuts } from "./useAdminShortcuts";
 
+declare const __ENABLE_TANSTACK_DEVTOOLS__: boolean;
+
 interface AuthenticatedCamoxProviderProps {
   children: React.ReactNode;
 }
@@ -81,7 +83,7 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
 interface CamoxProviderProps {
   children: React.ReactNode;
   camoxApp: CamoxApp;
-  managementUrl: string;
+  authenticationUrl: string;
   apiUrl: string;
   queryClient: QueryClient;
 }
@@ -89,7 +91,7 @@ interface CamoxProviderProps {
 export function CamoxProvider({
   children,
   camoxApp,
-  managementUrl,
+  authenticationUrl,
   apiUrl,
   queryClient,
 }: CamoxProviderProps) {
@@ -106,10 +108,10 @@ export function CamoxProvider({
   if (!ottReady) return null;
 
   return (
-    <AuthContext.Provider value={{ authClient, managementUrl, apiUrl }}>
+    <AuthContext.Provider value={{ authClient, authenticationUrl, apiUrl }}>
       <CamoxAppProvider app={camoxApp}>
         <QueryClientProvider client={queryClient}>
-          <ReactQueryDevtools initialIsOpen={false} />
+          {__ENABLE_TANSTACK_DEVTOOLS__ && <ReactQueryDevtools initialIsOpen={false} />}
           <AuthGate
             authenticated={
               <>

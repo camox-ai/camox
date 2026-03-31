@@ -101,7 +101,7 @@ export const ProjectMenu = () => {
                 className="w-full justify-start"
                 onClick={() => {
                   if (authCtx) {
-                    window.open(`${authCtx.managementUrl}/dashboard/${project.slug}`, "_blank");
+                    window.open(`${authCtx.authenticationUrl}/dashboard/${project.slug}`, "_blank");
                   }
                   setOpen(false);
                 }}
@@ -117,7 +117,10 @@ export const ProjectMenu = () => {
                 className="w-full justify-start"
                 onClick={() => {
                   if (authCtx) {
-                    window.open(`${authCtx.managementUrl}/dashboard/team?tab=members`, "_blank");
+                    window.open(
+                      `${authCtx.authenticationUrl}/dashboard/team?tab=members`,
+                      "_blank",
+                    );
                   }
                   setOpen(false);
                 }}
@@ -130,7 +133,10 @@ export const ProjectMenu = () => {
                 className="w-full justify-start"
                 onClick={() => {
                   if (authCtx) {
-                    window.open(`${authCtx.managementUrl}/dashboard/team?tab=settings`, "_blank");
+                    window.open(
+                      `${authCtx.authenticationUrl}/dashboard/team?tab=settings`,
+                      "_blank",
+                    );
                   }
                   setOpen(false);
                 }}
