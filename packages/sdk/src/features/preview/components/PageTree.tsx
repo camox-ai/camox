@@ -2,12 +2,14 @@ import { Button } from "@camox/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
 } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
@@ -15,16 +17,17 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
+  defaultAnimateLayoutChanges,
+  type AnimateLayoutChanges,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import * as Accordion from "@radix-ui/react-accordion";
-import { useMutation } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react";
 import * as React from "react";
 
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
-import { blockMutations, type PageWithBlocks } from "@/lib/queries";
+import { type PageWithBlocks } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -32,6 +35,7 @@ import { usePreviewedPage } from "../CamoxPreview";
 import type { OverlayMessage } from "../overlayMessages";
 import { previewStore } from "../previewStore";
 import { BlockActionsPopover } from "./BlockActionsPopover";
+import { useUpdateBlockPosition } from "./useUpdateBlockPosition";
 
 /* -------------------------------------------------------------------------------------------------
  * useEmbedTitle
@@ -373,15 +377,22 @@ interface SortableBlockProps {
   isSelected: boolean;
 }
 
+const animateLayoutChanges: AnimateLayoutChanges = (args) => {
+  const { isSorting, wasDragging } = args;
+  if (isSorting || wasDragging) return false;
+  return defaultAnimateLayoutChanges(args);
+};
+
 const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
   const [gripPopoverOpen, setGripPopoverOpen] = React.useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: String(block.id),
+    animateLayoutChanges,
   });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0 : 1,
   };
   const ctx = useBlockTreeItem(block, isSelected, isDragging);
 
@@ -507,7 +518,8 @@ const PageTree = () => {
   const page = usePreviewedPage();
   const camoxApp = useCamoxApp();
 
-  const updatePosition = useMutation(blockMutations.updatePosition());
+  const updatePosition = useUpdateBlockPosition();
+  const [activeId, setActiveId] = React.useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -522,10 +534,15 @@ const PageTree = () => {
     }),
   );
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over || active.id === over.id || !page) {
+      setActiveId(null);
       return;
     }
 
@@ -534,6 +551,7 @@ const PageTree = () => {
     const newIndex = page.blocks.findIndex((block) => String(block.id) === over.id);
 
     if (oldIndex === -1 || newIndex === -1) {
+      setActiveId(null);
       return;
     }
 
@@ -554,11 +572,18 @@ const PageTree = () => {
       beforePosition = page.blocks[newIndex].position;
     }
 
-    await updatePosition.mutateAsync({
+    // mutate() triggers onMutate synchronously, reordering the list
+    // before dnd-kit resets transforms on neighboring items
+    updatePosition.mutate({
       id: Number(active.id),
       afterPosition,
       beforePosition,
     });
+    setActiveId(null);
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
   };
 
   if (!page) {
@@ -583,7 +608,9 @@ const PageTree = () => {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
           modifiers={[restrictToVerticalAxis]}
         >
           <SortableContext
@@ -598,6 +625,22 @@ const PageTree = () => {
               />
             ))}
           </SortableContext>
+          <DragOverlay dropAnimation={null}>
+            {activeId
+              ? (() => {
+                  const activeBlock = page.blocks.find((b) => String(b.id) === activeId);
+                  if (!activeBlock) return null;
+                  return (
+                    <div className="bg-accent text-accent-foreground rounded-lg shadow-md">
+                      <div className="flex items-center gap-1 px-1 py-2 text-sm">
+                        <GripVertical className="text-muted-foreground mx-1.5 h-4 w-4" />
+                        <span className="truncate">{activeBlock.summary}</span>
+                      </div>
+                    </div>
+                  );
+                })()
+              : null}
+          </DragOverlay>
         </DndContext>
         {afterBlocks.map((block) => (
           <LayoutBlockItem

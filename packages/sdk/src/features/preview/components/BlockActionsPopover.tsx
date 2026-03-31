@@ -33,6 +33,7 @@ import { actionsStore } from "../../provider/actionsStore";
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
 import { previewStore, type SelectionBreadcrumb } from "../previewStore";
+import { useUpdateBlockPosition } from "./useUpdateBlockPosition";
 
 interface BlockActionsPopoverProps {
   block: PageWithBlocks["blocks"][number] | undefined | null;
@@ -390,7 +391,7 @@ function useBlockActionsShortcuts() {
 
   const deleteBlockMutation = useMutation(blockMutations.delete());
   const duplicateBlockMutation = useMutation(blockMutations.duplicate());
-  const updatePositionMutation = useMutation(blockMutations.updatePosition());
+  const updatePositionMutation = useUpdateBlockPosition();
   const deleteRepeatableItem = useMutation(repeatableItemMutations.delete());
   const duplicateRepeatableItem = useMutation(repeatableItemMutations.duplicate());
 
