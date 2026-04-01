@@ -21,12 +21,9 @@ const HEADER = `/* =============================================================
 function generateCamoxLayout(authenticationUrl: string, apiUrl: string): string {
   return (
     HEADER +
-    `import { QueryClient } from "@tanstack/react-query";
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+    `import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { CamoxProvider } from "camox/CamoxProvider";
 import { camoxApp } from "@/camox/app";
-
-const queryClient = new QueryClient();
 
 export const Route = createFileRoute("/_camox")({
   component: CamoxPathlessLayout,
@@ -34,7 +31,7 @@ export const Route = createFileRoute("/_camox")({
 
 function CamoxPathlessLayout() {
   return (
-    <CamoxProvider camoxApp={camoxApp} authenticationUrl="${authenticationUrl}" apiUrl="${apiUrl}" queryClient={queryClient}>
+    <CamoxProvider camoxApp={camoxApp} authenticationUrl="${authenticationUrl}" apiUrl="${apiUrl}">
       <Outlet />
     </CamoxProvider>
   );

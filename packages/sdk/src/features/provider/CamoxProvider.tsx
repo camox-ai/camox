@@ -1,5 +1,5 @@
 import { Toaster } from "@camox/ui/toaster";
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
 import * as React from "react";
 import studioCssUrl from "virtual:camox-studio-css";
@@ -85,7 +85,6 @@ interface CamoxProviderProps {
   camoxApp: CamoxApp;
   authenticationUrl: string;
   apiUrl: string;
-  queryClient: QueryClient;
 }
 
 export function CamoxProvider({
@@ -93,7 +92,6 @@ export function CamoxProvider({
   camoxApp,
   authenticationUrl,
   apiUrl,
-  queryClient,
 }: CamoxProviderProps) {
   const authClient = React.useMemo(() => createCamoxAuthClient(apiUrl), [apiUrl]);
 
@@ -110,20 +108,16 @@ export function CamoxProvider({
   return (
     <AuthContext.Provider value={{ authClient, authenticationUrl, apiUrl }}>
       <CamoxAppProvider app={camoxApp}>
-        <QueryClientProvider client={queryClient}>
-          {__ENABLE_TANSTACK_DEVTOOLS__ && <ReactQueryDevtools initialIsOpen={false} />}
-          <AuthGate
-            authenticated={
-              <>
-                <link rel="stylesheet" href={studioCssUrl} />
-                <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
-              </>
-            }
-            unauthenticated={
-              <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>
-            }
-          />
-        </QueryClientProvider>
+        {__ENABLE_TANSTACK_DEVTOOLS__ && <ReactQueryDevtools initialIsOpen={false} />}
+        <AuthGate
+          authenticated={
+            <>
+              <link rel="stylesheet" href={studioCssUrl} />
+              <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
+            </>
+          }
+          unauthenticated={<UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>}
+        />
       </CamoxAppProvider>
     </AuthContext.Provider>
   );
