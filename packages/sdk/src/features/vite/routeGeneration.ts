@@ -60,15 +60,10 @@ export const Route = createFileRoute("/_camox/$")({
   server: {
     middleware: [markdownMiddleware],
   },
-  component: App,
+  component: PageRouteComponent,
   loader,
   head,
 });
-
-function App() {
-  const { page } = Route.useLoaderData();
-  return <PageRouteComponent page={page} />;
-}
 `
   );
 }
