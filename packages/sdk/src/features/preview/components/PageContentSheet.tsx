@@ -608,7 +608,7 @@ const PageContentSheet = () => {
             fieldName={assetFieldName}
             assetType={assetType}
             currentData={currentData}
-            blockId={String(block.id)}
+            onFieldChange={activeFieldChangeHandler}
           />
         )}
         {isViewingAsset && assetFieldName && !isMultipleAsset && (

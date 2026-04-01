@@ -105,13 +105,7 @@ const SingleAssetFieldEditor = ({
   const { uploads, uploadFiles } = useFileUpload({
     projectId: project?.id,
     onFileCommitted: (result) => {
-      onFieldChange(fieldName, {
-        url: result.url,
-        alt: "",
-        filename: result.filename,
-        mimeType: result.mimeType,
-        _fileId: result.fileId,
-      });
+      onFieldChange(fieldName, { _fileId: Number(result.fileId) });
     },
   });
 
@@ -126,13 +120,7 @@ const SingleAssetFieldEditor = ({
   );
 
   const handleSelectExisting = (file: File) => {
-    onFieldChange(fieldName, {
-      url: file.url,
-      alt: file.alt,
-      filename: file.filename,
-      mimeType: file.mimeType,
-      _fileId: file.id,
-    });
+    onFieldChange(fieldName, { _fileId: file.id });
     setPickerOpen(false);
   };
 
@@ -176,12 +164,7 @@ const SingleAssetFieldEditor = ({
               <UnlinkAssetButton
                 fileId={asset._fileId != null ? Number(asset._fileId) : undefined}
                 onUnlink={() => {
-                  onFieldChange(fieldName, {
-                    url: "",
-                    alt: "",
-                    filename: "",
-                    mimeType: "",
-                  });
+                  onFieldChange(fieldName, null);
                 }}
               />
               {asset._fileId && (

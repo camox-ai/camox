@@ -206,10 +206,16 @@ export async function executePageSeo(db: Database, apiKey: string, pageId: numbe
   const blockIds = sorted.map((b) => b.id);
   const allItems =
     blockIds.length > 0
-      ? await db.select().from(repeatableItems).where(inArray(repeatableItems.blockId, blockIds))
+      ? sortByPosition(
+          await db.select().from(repeatableItems).where(inArray(repeatableItems.blockId, blockIds)),
+        )
       : [];
+
+  nestChildItems(allItems);
+
   const itemsByBlock = new Map<number, typeof allItems>();
   for (const item of allItems) {
+    if (item.parentItemId !== null) continue;
     const list = itemsByBlock.get(item.blockId) ?? [];
     list.push(item);
     itemsByBlock.set(item.blockId, list);
@@ -270,8 +276,8 @@ function collectFileIds(content: Record<string, unknown>, fileIds: Set<number>) 
   for (const value of Object.values(content)) {
     if (value && typeof value === "object" && !Array.isArray(value)) {
       const obj = value as Record<string, unknown>;
-      if ("_fileId" in obj && typeof obj._fileId === "number") {
-        fileIds.add(obj._fileId);
+      if ("_fileId" in obj && obj._fileId != null) {
+        fileIds.add(Number(obj._fileId));
       } else {
         collectFileIds(obj, fileIds);
       }
@@ -297,15 +303,16 @@ function resolveFileRefs(
   for (const [key, value] of Object.entries(content)) {
     if (value && typeof value === "object" && !Array.isArray(value)) {
       const obj = value as Record<string, unknown>;
-      if ("_fileId" in obj && typeof obj._fileId === "number") {
-        const file = fileMap.get(obj._fileId);
+      if ("_fileId" in obj && obj._fileId != null) {
+        const numericId = Number(obj._fileId);
+        const file = fileMap.get(numericId);
         resolved[key] = file
           ? {
               url: file.url,
               alt: file.alt,
               filename: file.filename,
               mimeType: file.mimeType,
-              _fileId: obj._fileId,
+              _fileId: numericId,
             }
           : { url: "", alt: "", filename: "", mimeType: "" };
       } else {
@@ -334,28 +341,57 @@ function resolveFileRefs(
   return resolved;
 }
 
-function groupItemsByBlockAndField<T extends { blockId: number; fieldName: string }>(
-  items: T[],
-): Record<string, T[]> {
+function groupItemsByBlockAndField<
+  T extends { blockId: number; fieldName: string; parentItemId: number | null },
+>(items: T[]): Record<string, T[]> {
   const acc: Record<string, T[]> = {};
   for (const item of items) {
+    if (item.parentItemId !== null) continue;
     const key = `${item.blockId}:${item.fieldName}`;
     (acc[key] ??= []).push(item);
   }
   return acc;
 }
 
+/** Recursively nest child items into their parent item's content. */
+function nestChildItems(
+  allItems: { id: number; parentItemId: number | null; fieldName: string; content: unknown }[],
+) {
+  const childrenByParent = new Map<number, Map<string, typeof allItems>>();
+  for (const item of allItems) {
+    if (item.parentItemId === null) continue;
+    let fieldMap = childrenByParent.get(item.parentItemId);
+    if (!fieldMap) {
+      fieldMap = new Map();
+      childrenByParent.set(item.parentItemId, fieldMap);
+    }
+    const list = fieldMap.get(item.fieldName) ?? [];
+    list.push(item);
+    fieldMap.set(item.fieldName, list);
+  }
+  for (const item of allItems) {
+    const childFields = childrenByParent.get(item.id);
+    if (!childFields) continue;
+    const content = item.content as Record<string, unknown>;
+    for (const [fieldName, children] of childFields) {
+      content[fieldName] = children;
+    }
+  }
+}
+
 function reconstructBlockContent(
   blockContent: Record<string, unknown>,
   itemsByBlockAndField: Record<string, unknown[]>,
   blockId: number,
-  allItems: { blockId: number; fieldName: string }[],
+  allItems: { blockId: number; fieldName: string; parentItemId: number | null }[],
   fieldOrder?: string[],
 ): ContentRecord {
   const reconstructed: Record<string, unknown> = { ...blockContent };
 
   const fieldNames = new Set(
-    allItems.filter((item) => item.blockId === blockId).map((item) => item.fieldName),
+    allItems
+      .filter((item) => item.blockId === blockId && item.parentItemId === null)
+      .map((item) => item.fieldName),
   );
   for (const fieldName of fieldNames) {
     reconstructed[fieldName] = itemsByBlockAndField[`${blockId}:${fieldName}`] || [];
@@ -391,13 +427,16 @@ async function assembleBlocks(
   const sorted = sortByPosition(rawBlocks);
   const blockIds = sorted.map((b) => b.id);
 
-  // Fetch all repeatable items for these blocks
+  // Fetch all repeatable items for these blocks (top-level + nested)
   const allItems =
     blockIds.length > 0
       ? sortByPosition(
           await db.select().from(repeatableItems).where(inArray(repeatableItems.blockId, blockIds)),
         )
       : [];
+
+  // Nest child items into their parent item's content
+  nestChildItems(allItems);
 
   const itemsByBlockAndField = groupItemsByBlockAndField(allItems);
 

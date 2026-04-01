@@ -196,8 +196,9 @@ export function createBlock<
     }
   }
 
-  // Extract per-item defaults for repeatable (array) fields
+  // Extract per-item defaults and defaultItems count for repeatable (array) fields
   const repeatableItemDefaults: Record<string, Record<string, unknown>> = {};
+  const repeatableDefaultItemCounts: Record<string, number> = {};
   for (const [key, prop] of Object.entries(typeboxSchema.properties)) {
     const p = prop as any;
     if (p.type === "array" && p.items?.properties) {
@@ -209,6 +210,9 @@ export function createBlock<
       }
       if (Object.keys(itemDefaults).length > 0) {
         repeatableItemDefaults[key] = itemDefaults;
+      }
+      if (typeof p.defaultItems === "number" && p.defaultItems > 0) {
+        repeatableDefaultItemCounts[key] = p.defaultItems;
       }
     }
   }
@@ -933,9 +937,10 @@ export function createBlock<
     const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const { window: iframeWindow } = useFrame();
     const repeaterContext = React.use(RepeaterItemContext);
-    const fieldValue = repeaterContext
-      ? (repeaterContext.itemContent[name] as ImageValue)
-      : (content[name] as ImageValue);
+    const rawValue = repeaterContext
+      ? (repeaterContext.itemContent[name] as ImageValue | null)
+      : (content[name] as ImageValue | null);
+    const fieldValue = rawValue ?? (contentDefaults[String(name)] as ImageValue);
 
     const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));
 
@@ -964,18 +969,7 @@ export function createBlock<
         fieldName?: string;
       }> = [{ type: "Block", id: blockId }];
 
-      if (repeaterContext?.nested) {
-        crumbs.push({
-          type: "RepeatableObject",
-          id: repeaterContext.nested.parentItemId,
-          fieldName: repeaterContext.nested.parentArrayFieldName,
-        });
-        crumbs.push({
-          type: "RepeatableObject",
-          id: `idx:${repeaterContext.nested.nestedIndex}`,
-          fieldName: repeaterContext.nested.nestedFieldName,
-        });
-      } else if (repeaterContext?.itemId) {
+      if (repeaterContext?.itemId) {
         crumbs.push({
           type: "RepeatableObject",
           id: repeaterContext.itemId,
@@ -983,10 +977,15 @@ export function createBlock<
         });
       }
 
+      // For inline array items (no itemId), use the array field name
+      // so the sidebar identifies this as a multiple-asset field
+      const imageFieldName =
+        repeaterContext && !repeaterContext.itemId ? repeaterContext.arrayFieldName : String(name);
+
       crumbs.push({
         type: "Image",
-        id: String(name),
-        fieldName: String(name),
+        id: imageFieldName,
+        fieldName: imageFieldName,
       });
 
       return crumbs;
@@ -1045,9 +1044,10 @@ export function createBlock<
 
     const { content } = blockContext;
     const repeaterContext = React.use(RepeaterItemContext);
-    const fieldValue = repeaterContext
-      ? (repeaterContext.itemContent[name] as FileValue)
-      : (content[name] as FileValue);
+    const rawValue = repeaterContext
+      ? (repeaterContext.itemContent[name] as FileValue | null)
+      : (content[name] as FileValue | null);
+    const fieldValue = rawValue ?? (contentDefaults[String(name)] as FileValue);
 
     return <>{children(fieldValue)}</>;
   };
@@ -1275,54 +1275,19 @@ export function createBlock<
       Repeater: ItemRepeater,
     };
 
-    // Nested repeater: items are plain objects in parent item's content
-    if (parentRepeaterContext) {
-      const nestedArray = (parentRepeaterContext.itemContent[name] ?? []) as any[];
-
-      if (!Array.isArray(nestedArray)) {
-        throw new Error(`Field "${String(name)}" is not an array`);
-      }
-
-      const parentItemId = parentRepeaterContext.itemId!;
-
-      return (
-        <RepeaterHoverProvider blockId={blockId} fieldName={fieldName}>
-          {nestedArray.map((item: any, index: number) => {
-            const nestedItemId = `nested:${parentItemId}:${fieldName}:${index}`;
-            return (
-              <RepeaterItemContext.Provider
-                key={index}
-                value={{
-                  arrayFieldName: fieldName,
-                  itemIndex: index,
-                  itemContent: {
-                    ...repeatableItemDefaults[fieldName],
-                    ...item,
-                  },
-                  nested: {
-                    parentItemId,
-                    parentContent: parentRepeaterContext.itemContent,
-                    parentArrayFieldName: parentRepeaterContext.arrayFieldName,
-                    nestedFieldName: fieldName,
-                    nestedIndex: index,
-                  },
-                }}
-              >
-                <RepeaterItemWrapper itemId={nestedItemId} blockId={blockId} mode={mode}>
-                  {children(itemComponents, index)}
-                </RepeaterItemWrapper>
-              </RepeaterItemContext.Provider>
-            );
-          })}
-        </RepeaterHoverProvider>
-      );
-    }
-
-    // Top-level repeater: items are { _id, content, ... } documents
-    const arrayValue = (content[name] ?? []) as RepeatableFields[K];
+    // Items come from either the parent repeater context (nested) or block content (top-level)
+    const source = parentRepeaterContext ? parentRepeaterContext.itemContent[name] : content[name];
+    let arrayValue = (source ?? []) as any[];
 
     if (!Array.isArray(arrayValue)) {
       throw new Error(`Field "${String(name)}" is not an array`);
+    }
+
+    // When the array is empty, fill with placeholder items for rendering only
+    const defaults = repeatableItemDefaults[fieldName];
+    const defaultCount = repeatableDefaultItemCounts[fieldName] ?? 0;
+    if (arrayValue.length === 0 && defaults && defaultCount > 0) {
+      arrayValue = Array.from({ length: defaultCount }, () => ({ ...defaults }));
     }
 
     type TItem = RepeatableItemType<K>;
@@ -1330,11 +1295,13 @@ export function createBlock<
     return (
       <RepeaterHoverProvider blockId={blockId} fieldName={fieldName}>
         {arrayValue.map((item: any, index: number) => {
+          // DB-backed items have { id, content, ... }; inline items are plain objects
+          const isDbItem = item.content !== undefined && item.id != null;
           const itemContent = {
             ...repeatableItemDefaults[fieldName],
-            ...item.content,
+            ...(isDbItem ? item.content : item),
           } as TItem;
-          const itemId = item.id != null ? String(item.id) : undefined;
+          const itemId = isDbItem ? String(item.id) : undefined;
 
           return (
             <RepeaterItemContext.Provider

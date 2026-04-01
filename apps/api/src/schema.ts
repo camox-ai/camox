@@ -214,6 +214,7 @@ export const repeatableItems = sqliteTable(
     blockId: int("block_id")
       .notNull()
       .references(() => blocks.id),
+    parentItemId: int("parent_item_id"),
     fieldName: text("field_name").notNull(),
     content: text({ mode: "json" }).notNull(),
     summary: text().notNull().default(""),
@@ -224,6 +225,7 @@ export const repeatableItems = sqliteTable(
   (table) => [
     index("repeatable_items_block_field_idx").on(table.blockId, table.fieldName),
     index("repeatable_items_block_idx").on(table.blockId),
+    index("repeatable_items_parent_idx").on(table.parentItemId),
   ],
 );
 

@@ -83,6 +83,32 @@ async function generateObjectSummary(
   });
 }
 
+/** Recursively nest child items into their parent item's content. */
+function nestChildItems(
+  allItems: { id: number; parentItemId: number | null; fieldName: string; content: unknown }[],
+) {
+  const childrenByParent = new Map<number, Map<string, typeof allItems>>();
+  for (const item of allItems) {
+    if (item.parentItemId === null) continue;
+    let fieldMap = childrenByParent.get(item.parentItemId);
+    if (!fieldMap) {
+      fieldMap = new Map();
+      childrenByParent.set(item.parentItemId, fieldMap);
+    }
+    const list = fieldMap.get(item.fieldName) ?? [];
+    list.push(item);
+    fieldMap.set(item.fieldName, list);
+  }
+  for (const item of allItems) {
+    const childFields = childrenByParent.get(item.id);
+    if (!childFields) continue;
+    const content = item.content as Record<string, unknown>;
+    for (const [fieldName, children] of childFields) {
+      content[fieldName] = children;
+    }
+  }
+}
+
 function comparePositions(a: string, b: string): number {
   if (a < b) return -1;
   if (a > b) return 1;
@@ -137,10 +163,14 @@ async function assembleBlockContent(db: Database, blockId: number) {
     await db.select().from(repeatableItems).where(eq(repeatableItems.blockId, blockId)),
   );
 
+  nestChildItems(items);
+
   const content = { ...(block.content as Record<string, unknown>) };
-  const fieldNames = new Set(items.map((item) => item.fieldName));
-  for (const fieldName of fieldNames) {
-    content[fieldName] = items.filter((i) => i.fieldName === fieldName);
+  const topLevelFieldNames = new Set(
+    items.filter((item) => item.parentItemId === null).map((item) => item.fieldName),
+  );
+  for (const fieldName of topLevelFieldNames) {
+    content[fieldName] = items.filter((i) => i.fieldName === fieldName && i.parentItemId === null);
   }
 
   // Reorder keys to match field order from block definition
@@ -241,13 +271,17 @@ const getPageMarkdown = pub
     const blockIds = sorted.map((b) => b.id);
     const allItems =
       blockIds.length > 0
-        ? await context.db
-            .select()
-            .from(repeatableItems)
-            .where(inArray(repeatableItems.blockId, blockIds))
+        ? sortByPosition(
+            await context.db
+              .select()
+              .from(repeatableItems)
+              .where(inArray(repeatableItems.blockId, blockIds)),
+          )
         : [];
+    nestChildItems(allItems);
     const itemsByBlock = new Map<number, typeof allItems>();
     for (const item of allItems) {
+      if (item.parentItemId !== null) continue;
       const list = itemsByBlock.get(item.blockId) ?? [];
       list.push(item);
       itemsByBlock.set(item.blockId, list);
@@ -265,13 +299,17 @@ const getPageMarkdown = pub
       const layoutBlockIds = sortedLayout.map((b) => b.id);
       const layoutItems =
         layoutBlockIds.length > 0
-          ? await context.db
-              .select()
-              .from(repeatableItems)
-              .where(inArray(repeatableItems.blockId, layoutBlockIds))
+          ? sortByPosition(
+              await context.db
+                .select()
+                .from(repeatableItems)
+                .where(inArray(repeatableItems.blockId, layoutBlockIds)),
+            )
           : [];
+      nestChildItems(layoutItems);
       const layoutItemsByBlock = new Map<number, typeof layoutItems>();
       for (const item of layoutItems) {
+        if (item.parentItemId !== null) continue;
         const list = layoutItemsByBlock.get(item.blockId) ?? [];
         list.push(item);
         layoutItemsByBlock.set(item.blockId, list);
@@ -284,10 +322,8 @@ const getPageMarkdown = pub
         if (!schema?.toMarkdown) continue;
         const content = { ...(block.content as Record<string, unknown>) };
         const items = layoutItemsByBlock.get(block.id) ?? [];
-        for (const item of items) {
-          const arr = (content[item.fieldName] as unknown[]) ?? [];
-          arr.push(item);
-          content[item.fieldName] = arr;
+        for (const fieldName of new Set(items.map((i) => i.fieldName))) {
+          content[fieldName] = items.filter((i) => i.fieldName === fieldName);
         }
         const md = contentToMarkdown(schema.toMarkdown, schema.properties, content);
         if (block.placement === "before") beforeParts.push(md);
@@ -303,10 +339,8 @@ const getPageMarkdown = pub
       if (!schema?.toMarkdown) return JSON.stringify(block.content);
       const content = { ...(block.content as Record<string, unknown>) };
       const items = itemsByBlock.get(block.id) ?? [];
-      for (const item of items) {
-        const arr = (content[item.fieldName] as unknown[]) ?? [];
-        arr.push(item);
-        content[item.fieldName] = arr;
+      for (const fieldName of new Set(items.map((i) => i.fieldName))) {
+        content[fieldName] = items.filter((i) => i.fieldName === fieldName);
       }
       return contentToMarkdown(schema.toMarkdown, schema.properties, content);
     });

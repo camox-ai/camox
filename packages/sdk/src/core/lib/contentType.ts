@@ -106,13 +106,11 @@ function _imageType(options: {
 
   const defaultItems = options.defaultItems ?? 0;
   const itemSchema = TypeBoxType.Object({ image: singleSchema });
-  const defaultArray = Array.from({ length: defaultItems }, () => ({
-    image: imageDefault,
-  }));
   return TypeBoxType.Array(itemSchema, {
     minItems: 0,
     maxItems: 100,
-    default: defaultArray,
+    default: [],
+    defaultItems,
     title: options.title,
     fieldType: "RepeatableObject" as const,
     arrayItemType: "Image" as const,
@@ -163,13 +161,11 @@ function _fileType(options: {
 
   const defaultItems = options.defaultItems ?? 0;
   const itemSchema = TypeBoxType.Object({ file: singleSchema });
-  const defaultArray = Array.from({ length: defaultItems }, () => ({
-    file: fileDefault,
-  }));
   return TypeBoxType.Array(itemSchema, {
     minItems: 0,
     maxItems: 100,
-    default: defaultArray,
+    default: [],
+    defaultItems,
     title: options.title,
     fieldType: "RepeatableObject" as const,
     arrayItemType: "File" as const,
