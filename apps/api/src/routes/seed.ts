@@ -146,6 +146,24 @@ async function seedContent(db: Database) {
     .returning()
     .get();
 
+  // Seed a demo file for image fields
+  const demoFile = await db
+    .insert(files)
+    .values({
+      projectId: project.id,
+      url: "https://placehold.co/1200x800/18181b/fafafa.png?text=Demo+Image",
+      alt: "Demo placeholder image",
+      filename: "demo-image",
+      mimeType: "image/png",
+      size: 0,
+      blobId: "seed/demo-image.png",
+      path: "seed/demo-image.png",
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+    .get();
+
   // Page blocks
   const heroPos = generateKeyBetween(null, null);
   const statsPos = generateKeyBetween(heroPos, null);
@@ -157,6 +175,7 @@ async function seedContent(db: Database) {
       title: "Websites you'll love to maintain",
       description: "Meet Camox, the web toolkit designed for developers, LLMs and content editors.",
       ctaButton: { label: "Start building", url: "/get-started" },
+      illustration: { _fileId: demoFile.id },
     },
     summary: "Hero section with title, description and CTA",
     position: heroPos,

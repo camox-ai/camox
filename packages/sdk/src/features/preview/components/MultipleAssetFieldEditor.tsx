@@ -16,13 +16,13 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { FileIcon, GripVertical } from "lucide-react";
 import * as React from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { useFileUpload } from "@/hooks/use-file-upload";
-import { type File, projectQueries, repeatableItemMutations } from "@/lib/queries";
+import { type File, projectQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import { AssetActionButtons } from "./AssetFieldEditor";
@@ -31,33 +31,31 @@ import { AssetPickerGrid } from "./AssetPickerGrid";
 import { UnlinkAssetButton } from "./UnlinkAssetButton";
 
 /* -------------------------------------------------------------------------------------------------
+ * Types
+ * -----------------------------------------------------------------------------------------------*/
+
+type ResolvedAsset = {
+  url: string;
+  alt: string;
+  filename: string;
+  mimeType: string;
+  _fileId: number;
+};
+
+/* -------------------------------------------------------------------------------------------------
  * SortableAssetItem
  * -----------------------------------------------------------------------------------------------*/
 
-type RepeatableItem = {
-  id: number;
-  summary: string;
-  position: string;
-  content: Record<string, unknown>;
-};
-
 interface SortableAssetItemProps {
-  item: RepeatableItem;
+  asset: ResolvedAsset;
   assetType: "Image" | "File";
-  contentKey: "image" | "file";
-  onRemove: (itemId: string) => void;
-  onAssetOpen: (item: RepeatableItem) => void;
+  onRemove: (fileId: number) => void;
+  onAssetOpen: (asset: ResolvedAsset) => void;
 }
 
-const SortableAssetItem = ({
-  item,
-  assetType,
-  contentKey,
-  onRemove,
-  onAssetOpen,
-}: SortableAssetItemProps) => {
+const SortableAssetItem = ({ asset, assetType, onRemove, onAssetOpen }: SortableAssetItemProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: String(item.id),
+    id: String(asset._fileId),
   });
 
   const style = {
@@ -65,14 +63,6 @@ const SortableAssetItem = ({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
-
-  const asset = item.content?.[contentKey] as
-    | { url: string; alt: string; filename: string; _fileId?: string }
-    | undefined;
-
-  const url = asset?.url ?? "";
-  const alt = asset?.alt ?? "";
-  const filename = asset?.filename ?? "Untitled";
 
   return (
     <li>
@@ -98,11 +88,15 @@ const SortableAssetItem = ({
         <button
           type="button"
           className="flex min-w-0 flex-1 cursor-zoom-in items-center gap-2"
-          onClick={() => onAssetOpen(item)}
+          onClick={() => onAssetOpen(asset)}
         >
           {assetType === "Image" ? (
             <div className="border-border h-12 w-12 shrink-0 overflow-hidden rounded border">
-              <img src={url} alt={alt || filename} className="h-full w-full object-cover" />
+              <img
+                src={asset.url}
+                alt={asset.alt || asset.filename}
+                className="h-full w-full object-cover"
+              />
             </div>
           ) : (
             <div className="border-border bg-muted flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded border">
@@ -110,14 +104,14 @@ const SortableAssetItem = ({
             </div>
           )}
 
-          <p className="flex-1 truncate text-left text-sm" title={filename}>
-            {filename}
+          <p className="flex-1 truncate text-left text-sm" title={asset.filename}>
+            {asset.filename || "Untitled"}
           </p>
         </button>
 
         <UnlinkAssetButton
-          fileId={asset?._fileId != null ? Number(asset._fileId) : undefined}
-          onUnlink={() => onRemove(String(item.id))}
+          fileId={asset._fileId}
+          onUnlink={() => onRemove(asset._fileId)}
           className="hidden group-focus-within:flex group-hover:flex"
         />
       </div>
@@ -133,50 +127,44 @@ interface MultipleAssetFieldEditorProps {
   fieldName: string;
   assetType: "Image" | "File";
   currentData: Record<string, unknown>;
-  blockId: string;
+  onFieldChange: (fieldName: string, value: unknown) => void;
 }
 
 const MultipleAssetFieldEditor = ({
   fieldName,
   assetType,
   currentData,
-  blockId,
+  onFieldChange,
 }: MultipleAssetFieldEditorProps) => {
   const contentKey = assetType === "Image" ? "image" : "file";
   const isImage = assetType === "Image";
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const createRepeatableItem = useMutation(repeatableItemMutations.create());
-  const deleteRepeatableItem = useMutation(repeatableItemMutations.delete());
-  const updateRepeatablePosition = useMutation(repeatableItemMutations.updatePosition());
   const { data: project } = useQuery(projectQueries.getFirst());
+
+  // Resolved array: [{ image: { url, alt, ..., _fileId } }, ...] or [{ file: { ... } }, ...]
+  const rawItems = (currentData[fieldName] ?? []) as Record<string, ResolvedAsset>[];
+  const items = rawItems
+    .map((item) => item[contentKey])
+    .filter((a): a is ResolvedAsset => !!a?.url);
+
+  // Write { contentKey: { _fileId } } wrappers — the read path resolves _fileId markers
+  const toStorageFormat = (assets: ResolvedAsset[]) =>
+    assets.map((a) => ({ [contentKey]: { _fileId: a._fileId } }));
+
+  const addFileId = (fileId: number) => {
+    onFieldChange(fieldName, [...toStorageFormat(items), { [contentKey]: { _fileId: fileId } }]);
+  };
 
   const { uploads, uploadFiles } = useFileUpload({
     projectId: project?.id,
     onFileCommitted: (result) => {
-      createRepeatableItem.mutate({
-        blockId: Number(blockId),
-        fieldName,
-        content: {
-          [contentKey]: {
-            url: result.url,
-            alt: "",
-            filename: result.filename,
-            mimeType: result.mimeType,
-            _fileId: result.fileId,
-          },
-        },
-      });
+      addFileId(Number(result.fileId));
     },
-  });
-
-  const items = ((currentData[fieldName] ?? []) as RepeatableItem[]).filter((item) => {
-    const asset = item.content?.[contentKey] as { url?: string } | undefined;
-    return !!asset?.url;
   });
 
   // Picker & lightbox state
   const [pickerOpen, setPickerOpen] = React.useState(false);
-  const [lightboxItem, setLightboxItem] = React.useState<RepeatableItem | null>(null);
+  const [lightboxAsset, setLightboxAsset] = React.useState<ResolvedAsset | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -185,58 +173,30 @@ const MultipleAssetFieldEditor = ({
     }),
   );
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const dbItems = items;
-    const oldIndex = dbItems.findIndex((item) => String(item.id) === active.id);
-    const newIndex = dbItems.findIndex((item) => String(item.id) === over.id);
-
+    const oldIndex = items.findIndex((a) => String(a._fileId) === active.id);
+    const newIndex = items.findIndex((a) => String(a._fileId) === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    let afterPosition: string | undefined;
-    let beforePosition: string | undefined;
+    const reordered = [...items];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
 
-    if (oldIndex < newIndex) {
-      afterPosition = dbItems[newIndex].position;
-      beforePosition = newIndex < dbItems.length - 1 ? dbItems[newIndex + 1].position : undefined;
-    } else {
-      afterPosition = newIndex > 0 ? dbItems[newIndex - 1].position : undefined;
-      beforePosition = dbItems[newIndex].position;
-    }
-
-    await updateRepeatablePosition.mutateAsync({
-      id: Number(active.id),
-      afterPosition,
-      beforePosition,
-    });
+    onFieldChange(fieldName, toStorageFormat(reordered));
   };
 
-  const handleRemove = (itemId: string) => {
-    deleteRepeatableItem.mutate({ id: Number(itemId) });
+  const handleRemove = (fileId: number) => {
+    onFieldChange(fieldName, toStorageFormat(items.filter((a) => a._fileId !== fileId)));
   };
 
-  const handleAssetOpen = (item: RepeatableItem) => {
-    setLightboxItem(item);
-  };
-
-  const handleSelectMultiple = async (files: File[]) => {
-    for (const file of files) {
-      await createRepeatableItem.mutateAsync({
-        blockId: Number(blockId),
-        fieldName,
-        content: {
-          [contentKey]: {
-            url: file.url,
-            alt: file.alt,
-            filename: file.filename,
-            mimeType: file.mimeType,
-            _fileId: file.id,
-          },
-        },
-      });
-    }
+  const handleSelectMultiple = (files: File[]) => {
+    onFieldChange(fieldName, [
+      ...toStorageFormat(items),
+      ...files.map((f) => ({ [contentKey]: { _fileId: f.id } })),
+    ]);
     setPickerOpen(false);
   };
 
@@ -260,18 +220,17 @@ const MultipleAssetFieldEditor = ({
               modifiers={[restrictToVerticalAxis]}
             >
               <SortableContext
-                items={items.map((item) => String(item.id))}
+                items={items.map((a) => String(a._fileId))}
                 strategy={verticalListSortingStrategy}
               >
                 <ul className="flex flex-col gap-1">
-                  {items.map((item) => (
+                  {items.map((asset) => (
                     <SortableAssetItem
-                      key={String(item.id)}
-                      item={item}
+                      key={asset._fileId}
+                      asset={asset}
                       assetType={assetType}
-                      contentKey={contentKey}
                       onRemove={handleRemove}
-                      onAssetOpen={handleAssetOpen}
+                      onAssetOpen={setLightboxAsset}
                     />
                   ))}
                 </ul>
@@ -289,19 +248,15 @@ const MultipleAssetFieldEditor = ({
         </div>
       )}
 
-      {(() => {
-        const asset = lightboxItem?.content?.[contentKey] as { _fileId?: string } | undefined;
-        if (!asset?._fileId) return null;
-        return (
-          <AssetLightbox
-            open={!!lightboxItem}
-            onOpenChange={(open) => {
-              if (!open) setLightboxItem(null);
-            }}
-            fileId={Number(asset._fileId)}
-          />
-        );
-      })()}
+      {lightboxAsset && (
+        <AssetLightbox
+          open={!!lightboxAsset}
+          onOpenChange={(open) => {
+            if (!open) setLightboxAsset(null);
+          }}
+          fileId={lightboxAsset._fileId}
+        />
+      )}
     </UploadDropZone>
   );
 };
