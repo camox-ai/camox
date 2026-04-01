@@ -9,6 +9,7 @@ import { z } from "zod";
 import { assertFileAccess, getAuthorizedProject, requireOrg } from "../authorization";
 import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
+import { queryKeys } from "../lib/query-keys";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
 import { blocks, files } from "../schema";
@@ -104,11 +105,10 @@ const setAlt = authed
       .where(eq(files.id, input.id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, {
-      entity: "file",
-      action: "updated",
-      entityId: input.id,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
+      queryKeys.files.list,
+      queryKeys.files.get(input.id),
+    ]);
     return result;
   });
 
@@ -124,11 +124,10 @@ const setFilename = authed
       .where(eq(files.id, input.id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, {
-      entity: "file",
-      action: "updated",
-      entityId: input.id,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
+      queryKeys.files.list,
+      queryKeys.files.get(input.id),
+    ]);
     return result;
   });
 
@@ -137,11 +136,10 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const result = await context.db.delete(files).where(eq(files.id, input.id)).returning().get();
-  broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, {
-    entity: "file",
-    action: "deleted",
-    entityId: input.id,
-  });
+  broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
+    queryKeys.files.list,
+    queryKeys.files.get(input.id),
+  ]);
   return result;
 });
 
@@ -157,11 +155,10 @@ const replace = authed
       sql`UPDATE ${blocks} SET ${blocks.content} = REPLACE(CAST(${blocks.content} AS TEXT), ${oldAccess.file.url}, ${newAccess.file.url}), ${blocks.updatedAt} = ${Date.now()} WHERE INSTR(${blocks.content}, ${oldAccess.file.url}) > 0`,
     );
 
-    broadcastInvalidation(context.env.ProjectRoom, oldAccess.file.projectId!, {
-      entity: "file",
-      action: "updated",
-      entityId: input.id,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, oldAccess.file.projectId!, [
+      queryKeys.files.list,
+      queryKeys.files.get(input.id),
+    ]);
     return { replaced: true };
   });
 
@@ -177,11 +174,10 @@ const setAiMetadata = authed
       .where(eq(files.id, input.id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, {
-      entity: "file",
-      action: "updated",
-      entityId: input.id,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
+      queryKeys.files.list,
+      queryKeys.files.get(input.id),
+    ]);
     return result;
   });
 
@@ -192,11 +188,10 @@ const generateMetadata = authed
     if (!access) throw new ORPCError("NOT_FOUND");
 
     await executeFileMetadata(context.db, context.env.OPEN_ROUTER_API_KEY, input.id);
-    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, {
-      entity: "file",
-      action: "updated",
-      entityId: input.id,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
+      queryKeys.files.list,
+      queryKeys.files.get(input.id),
+    ]);
     const updated = await context.db.select().from(files).where(eq(files.id, input.id)).get();
     return updated;
   });
@@ -281,11 +276,10 @@ fileHonoRoutes.post(
       type: "fileMetadata",
       delayMs: 0,
     });
-    broadcastInvalidation(c.env.ProjectRoom, projectId, {
-      entity: "file",
-      action: "created",
-      entityId: result.id,
-    });
+    broadcastInvalidation(c.env.ProjectRoom, projectId, [
+      queryKeys.files.list,
+      queryKeys.files.get(result.id),
+    ]);
 
     return c.json(result, 201);
   },

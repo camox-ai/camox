@@ -11,6 +11,7 @@ import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { contentToMarkdown } from "../lib/content-markdown";
 import { markdownToLexicalState, plainTextToLexicalState } from "../lib/lexical-state";
+import { queryKeys } from "../lib/query-keys";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
 import {
@@ -661,11 +662,10 @@ const create = authed.input(createPageSchema).handler(async ({ context, input })
     });
   }
 
-  broadcastInvalidation(context.env.ProjectRoom, projectId, {
-    entity: "page",
-    action: "created",
-    entityId: page.id,
-  });
+  broadcastInvalidation(context.env.ProjectRoom, projectId, [
+    queryKeys.pages.list,
+    queryKeys.pages.getById(page.id),
+  ]);
 
   return { page, fullPath: page.fullPath };
 });
@@ -684,11 +684,10 @@ const update = authed
       .where(eq(pages.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, {
-      entity: "page",
-      action: "updated",
-      entityId: id,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+      queryKeys.pages.list,
+      queryKeys.pages.getById(id),
+    ]);
     return result;
   });
 
@@ -699,11 +698,10 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const result = await context.db.delete(pages).where(eq(pages.id, id)).returning().get();
-  broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, {
-    entity: "page",
-    action: "deleted",
-    entityId: id,
-  });
+  broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+    queryKeys.pages.list,
+    queryKeys.pages.getById(id),
+  ]);
   return result;
 });
 
@@ -721,11 +719,10 @@ const setAiSeo = authed
       .where(eq(pages.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, {
-      entity: "page",
-      action: "updated",
-      entityId: id,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+      queryKeys.pages.list,
+      queryKeys.pages.getById(id),
+    ]);
     return result;
   });
 
@@ -743,11 +740,10 @@ const setMetaTitle = authed
       .where(eq(pages.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, {
-      entity: "page",
-      action: "updated",
-      entityId: id,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+      queryKeys.pages.list,
+      queryKeys.pages.getById(id),
+    ]);
     return result;
   });
 
@@ -765,11 +761,10 @@ const setMetaDescription = authed
       .where(eq(pages.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, {
-      entity: "page",
-      action: "updated",
-      entityId: id,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+      queryKeys.pages.list,
+      queryKeys.pages.getById(id),
+    ]);
     return result;
   });
 
@@ -787,11 +782,10 @@ const setLayout = authed
       .where(eq(pages.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, {
-      entity: "page",
-      action: "updated",
-      entityId: id,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+      queryKeys.pages.list,
+      queryKeys.pages.getById(id),
+    ]);
     return result;
   });
 
@@ -804,11 +798,10 @@ const generateSeo = authed
     if (!access) throw new ORPCError("NOT_FOUND");
 
     await executePageSeo(context.db, context.env.OPEN_ROUTER_API_KEY, id);
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, {
-      entity: "page",
-      action: "updated",
-      entityId: id,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+      queryKeys.pages.list,
+      queryKeys.pages.getById(id),
+    ]);
     const updated = await context.db.select().from(pages).where(eq(pages.id, id)).get();
     return updated;
   });

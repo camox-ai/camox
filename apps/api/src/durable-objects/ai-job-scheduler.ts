@@ -3,6 +3,7 @@ import { eq, or } from "drizzle-orm";
 
 import { createDb } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
+import { queryKeys } from "../lib/query-keys";
 import { executeBlockSummary } from "../routes/blocks";
 import { executeFileMetadata } from "../routes/files";
 import { executePageSeo } from "../routes/pages";
@@ -61,11 +62,10 @@ export class AiJobScheduler extends DurableObject<Bindings> {
       // Broadcast block summary update
       const projectId = await this.getBlockProjectId(db, entityId);
       if (projectId) {
-        broadcastInvalidation(this.env.ProjectRoom, projectId, {
-          entity: "block",
-          action: "updated",
-          entityId,
-        });
+        broadcastInvalidation(this.env.ProjectRoom, projectId, [
+          queryKeys.pages.getByPathAll,
+          queryKeys.blocks.getUsageCounts,
+        ]);
       }
     } else if (entityTable === "repeatableItems" && type === "summary") {
       const cascade = await executeRepeatableItemSummary(db, apiKey, entityId);
@@ -89,12 +89,10 @@ export class AiJobScheduler extends DurableObject<Bindings> {
       if (item) {
         const projectId = await this.getBlockProjectId(db, item.blockId);
         if (projectId) {
-          broadcastInvalidation(this.env.ProjectRoom, projectId, {
-            entity: "repeatableItem",
-            action: "updated",
-            entityId,
-            parentId: item.blockId,
-          });
+          broadcastInvalidation(this.env.ProjectRoom, projectId, [
+            queryKeys.pages.getByPathAll,
+            queryKeys.blocks.getUsageCounts,
+          ]);
         }
       }
     } else if (entityTable === "files" && type === "fileMetadata") {
@@ -102,22 +100,20 @@ export class AiJobScheduler extends DurableObject<Bindings> {
 
       const file = await db.select().from(files).where(eq(files.id, entityId)).get();
       if (file?.projectId) {
-        broadcastInvalidation(this.env.ProjectRoom, file.projectId, {
-          entity: "file",
-          action: "updated",
-          entityId,
-        });
+        broadcastInvalidation(this.env.ProjectRoom, file.projectId, [
+          queryKeys.files.list,
+          queryKeys.files.get(entityId),
+        ]);
       }
     } else if (entityTable === "pages" && type === "seo") {
       await executePageSeo(db, apiKey, entityId);
 
       const page = await db.select().from(pages).where(eq(pages.id, entityId)).get();
       if (page) {
-        broadcastInvalidation(this.env.ProjectRoom, page.projectId, {
-          entity: "page",
-          action: "updated",
-          entityId,
-        });
+        broadcastInvalidation(this.env.ProjectRoom, page.projectId, [
+          queryKeys.pages.list,
+          queryKeys.pages.getById(entityId),
+        ]);
       }
     }
   }

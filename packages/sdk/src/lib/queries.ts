@@ -1,3 +1,5 @@
+import { queryKeys } from "@camox/api/query-keys";
+
 import { type ApiClient, getOrpc } from "./api-client";
 
 // --- Inferred API response types ---
@@ -12,29 +14,41 @@ export type BlockUsageCounts = Awaited<ReturnType<ApiClient["blocks"]["getUsageC
 // --- Query factories ---
 
 export const pageQueries = {
-  list: () => getOrpc().pages.list.queryOptions({ staleTime: Infinity }),
+  list: () => ({
+    ...getOrpc().pages.list.queryOptions({ staleTime: Infinity }),
+    queryKey: queryKeys.pages.list,
+  }),
 
-  getByPath: (fullPath: string) =>
-    getOrpc().pages.getByPath.queryOptions({
+  getByPath: (fullPath: string) => ({
+    ...getOrpc().pages.getByPath.queryOptions({
       input: { path: fullPath },
       staleTime: Infinity,
     }),
+    queryKey: queryKeys.pages.getByPath(fullPath),
+  }),
 
-  getById: (id: number) =>
-    getOrpc().pages.get.queryOptions({
+  getById: (id: number) => ({
+    ...getOrpc().pages.get.queryOptions({
       input: { id },
       staleTime: Infinity,
     }),
+    queryKey: queryKeys.pages.getById(id),
+  }),
 };
 
 export const fileQueries = {
-  list: () => getOrpc().files.list.queryOptions({ staleTime: Infinity }),
+  list: () => ({
+    ...getOrpc().files.list.queryOptions({ staleTime: Infinity }),
+    queryKey: queryKeys.files.list,
+  }),
 
-  get: (id: number) =>
-    getOrpc().files.get.queryOptions({
+  get: (id: number) => ({
+    ...getOrpc().files.get.queryOptions({
       input: { id },
       staleTime: Infinity,
     }),
+    queryKey: queryKeys.files.get(id),
+  }),
 
   getUsageCount: (id: number) => ({
     ...getOrpc().files.getUsageCount.queryOptions({
@@ -46,15 +60,19 @@ export const fileQueries = {
 };
 
 export const projectQueries = {
-  getFirst: () => getOrpc().projects.getFirst.queryOptions({ staleTime: Infinity }),
+  getFirst: () => ({
+    ...getOrpc().projects.getFirst.queryOptions({ staleTime: Infinity }),
+  }),
 };
 
 export const layoutQueries = {
-  list: (projectId: number) =>
-    getOrpc().layouts.list.queryOptions({
+  list: (projectId: number) => ({
+    ...getOrpc().layouts.list.queryOptions({
       input: { projectId },
       staleTime: Infinity,
     }),
+    queryKey: queryKeys.layouts.all,
+  }),
 };
 
 export const blockQueries = {
@@ -62,6 +80,7 @@ export const blockQueries = {
     ...getOrpc().blocks.getUsageCounts.queryOptions({
       staleTime: Infinity,
     }),
+    queryKey: queryKeys.blocks.getUsageCounts,
     select: (data: BlockUsageCounts) => {
       const counts: Record<string, number> = {};
       for (const { type, count } of data) {
@@ -76,6 +95,7 @@ export const blockQueries = {
       input: { pageId },
       staleTime: Infinity,
     }),
+    queryKey: queryKeys.blocks.getPageMarkdown(pageId),
     select: (data: { markdown: string }) => data.markdown,
   }),
 };

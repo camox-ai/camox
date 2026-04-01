@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
+import { queryKeys } from "../lib/query-keys";
 import { pub } from "../orpc";
 import { layouts, projects } from "../schema";
 
@@ -74,10 +75,10 @@ const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => 
     // TODO: sync layout blocks when block creation is wired up
   }
 
-  broadcastInvalidation(context.env.ProjectRoom, projectId, {
-    entity: "layout",
-    action: "updated",
-  });
+  broadcastInvalidation(context.env.ProjectRoom, projectId, [
+    queryKeys.layouts.all,
+    queryKeys.pages.getByPathAll,
+  ]);
 
   return results;
 });
