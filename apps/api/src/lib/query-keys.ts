@@ -1,24 +1,30 @@
+/**
+ * Use TypeScript to enforce 'camox' as the first query key to ensure they're all namespaced.
+ * This is because the Tanstack Query client on the frontend may be shared with the user's routes,
+ * so we ensure there won't be any key collisions.
+ */
+export type QueryKey = [first: "camox", ...rest: Array<string | number>];
+type QueryKeyGroup = Record<string, QueryKey | ((...args: any[]) => QueryKey)>;
+
 export const queryKeys = {
   pages: {
-    list: ["pages", "list"] as const,
-    getByPath: (path: string) => ["pages", "getByPath", path] as const,
-    getByPathAll: ["pages", "getByPath"] as const,
-    getById: (id: number) => ["pages", "getById", id] as const,
+    list: ["camox", "pages", "list"],
+    getByPath: (path: string) => ["camox", "pages", "getByPath", path],
+    getByPathAll: ["camox", "pages", "getByPath"],
+    getById: (id: number) => ["camox", "pages", "getById", id],
   },
   files: {
-    list: ["files", "list"] as const,
-    get: (id: number) => ["files", "get", id] as const,
+    list: ["camox", "files", "list"],
+    get: (id: number) => ["camox", "files", "get", id],
   },
   blocks: {
-    getUsageCounts: ["blocks", "getUsageCounts"] as const,
-    getPageMarkdown: (pageId: number) => ["blocks", "getPageMarkdown", pageId] as const,
+    getUsageCounts: ["camox", "blocks", "getUsageCounts"],
+    getPageMarkdown: (pageId: number) => ["camox", "blocks", "getPageMarkdown", pageId],
   },
   layouts: {
-    all: ["layouts"] as const,
+    all: ["camox", "layouts"],
   },
-};
-
-export type QueryKey = ReadonlyArray<string | number>;
+} satisfies Record<string, QueryKeyGroup>;
 
 export type InvalidationMessage = {
   type: "invalidate";
