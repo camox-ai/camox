@@ -9,6 +9,7 @@ import { z } from "zod";
 import { assertBlockAccess, assertRepeatableItemAccess } from "../authorization";
 import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
+import { queryKeys } from "../lib/query-keys";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { authed } from "../orpc";
 import { blocks, repeatableItems } from "../schema";
@@ -190,13 +191,12 @@ const create = authed.input(createItemSchema).handler(async ({ context, input })
     type: "summary",
     delayMs: 0,
   });
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-    entity: "repeatableItem",
-    action: "created",
-    entityId: result.id,
-    parentId: blockId,
-    pagePath: access.pagePath ?? undefined,
-  });
+  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+    ...(access.pagePath
+      ? [queryKeys.pages.getByPath(access.pagePath)]
+      : [queryKeys.pages.getByPathAll]),
+    queryKeys.blocks.getUsageCounts,
+  ]);
 
   return result;
 });
@@ -226,13 +226,12 @@ const updateContent = authed
       type: "summary",
       delayMs: 5000,
     });
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-      entity: "repeatableItem",
-      action: "updated",
-      entityId: id,
-      parentId: access.item.blockId,
-      pagePath: access.pagePath ?? undefined,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath)]
+        : [queryKeys.pages.getByPathAll]),
+      queryKeys.blocks.getUsageCounts,
+    ]);
 
     return result;
   });
@@ -287,13 +286,12 @@ const updatePosition = authed
       .where(eq(repeatableItems.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-      entity: "repeatableItem",
-      action: "updated",
-      entityId: id,
-      parentId: item.blockId,
-      pagePath: access.pagePath ?? undefined,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath)]
+        : [queryKeys.pages.getByPathAll]),
+      queryKeys.blocks.getUsageCounts,
+    ]);
     return result;
   });
 
@@ -334,13 +332,12 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
     })
     .returning()
     .get();
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-    entity: "repeatableItem",
-    action: "created",
-    entityId: result.id,
-    parentId: original.blockId,
-    pagePath: access.pagePath ?? undefined,
-  });
+  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+    ...(access.pagePath
+      ? [queryKeys.pages.getByPath(access.pagePath)]
+      : [queryKeys.pages.getByPathAll]),
+    queryKeys.blocks.getUsageCounts,
+  ]);
   return result;
 });
 
@@ -364,13 +361,12 @@ const generateSummary = authed
         delayMs: 5000,
       });
     }
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-      entity: "repeatableItem",
-      action: "updated",
-      entityId: id,
-      parentId: access.item.blockId,
-      pagePath: access.pagePath ?? undefined,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath)]
+        : [queryKeys.pages.getByPathAll]),
+      queryKeys.blocks.getUsageCounts,
+    ]);
     const updated = await context.db
       .select()
       .from(repeatableItems)
@@ -389,13 +385,12 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
     .where(eq(repeatableItems.id, id))
     .returning()
     .get();
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-    entity: "repeatableItem",
-    action: "deleted",
-    entityId: id,
-    parentId: access.item.blockId,
-    pagePath: access.pagePath ?? undefined,
-  });
+  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+    ...(access.pagePath
+      ? [queryKeys.pages.getByPath(access.pagePath)]
+      : [queryKeys.pages.getByPathAll]),
+    queryKeys.blocks.getUsageCounts,
+  ]);
   return result;
 });
 

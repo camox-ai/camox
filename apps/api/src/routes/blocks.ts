@@ -10,6 +10,7 @@ import { assertBlockAccess, assertPageAccess } from "../authorization";
 import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { contentToMarkdown } from "../lib/content-markdown";
+import { queryKeys } from "../lib/query-keys";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
 import { blockDefinitions, blocks, layouts, pages, projects, repeatableItems } from "../schema";
@@ -377,13 +378,11 @@ const create = authed.input(createBlockSchema).handler(async ({ context, input }
     type: "summary",
     delayMs: 0,
   });
-  broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, {
-    entity: "block",
-    action: "created",
-    entityId: result.id,
-    pageId,
-    pagePath: access.page.fullPath,
-  });
+  broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+    queryKeys.pages.getByPath(access.page.fullPath),
+    queryKeys.blocks.getPageMarkdown(pageId),
+    queryKeys.blocks.getUsageCounts,
+  ]);
 
   return result;
 });
@@ -414,13 +413,13 @@ const updateContent = authed
       type: "summary",
       delayMs: 5000,
     });
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-      entity: "block",
-      action: "updated",
-      entityId: id,
-      pageId: access.block.pageId ?? undefined,
-      pagePath: access.pagePath ?? undefined,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath)]
+        : [queryKeys.pages.getByPathAll]),
+      ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
+      queryKeys.blocks.getUsageCounts,
+    ]);
 
     return result;
   });
@@ -439,13 +438,13 @@ const updateSettings = authed
       .where(eq(blocks.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-      entity: "block",
-      action: "updated",
-      entityId: id,
-      pageId: access.block.pageId ?? undefined,
-      pagePath: access.pagePath ?? undefined,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath)]
+        : [queryKeys.pages.getByPathAll]),
+      ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
+      queryKeys.blocks.getUsageCounts,
+    ]);
     return result;
   });
 
@@ -497,13 +496,13 @@ const updatePosition = authed
       .where(eq(blocks.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-      entity: "block",
-      action: "updated",
-      entityId: id,
-      pageId: access.block.pageId ?? undefined,
-      pagePath: access.pagePath ?? undefined,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath)]
+        : [queryKeys.pages.getByPathAll]),
+      ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
+      queryKeys.blocks.getUsageCounts,
+    ]);
     return result;
   });
 
@@ -514,13 +513,13 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const result = await context.db.delete(blocks).where(eq(blocks.id, id)).returning().get();
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-    entity: "block",
-    action: "deleted",
-    entityId: id,
-    pageId: access.block.pageId ?? undefined,
-    pagePath: access.pagePath ?? undefined,
-  });
+  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+    ...(access.pagePath
+      ? [queryKeys.pages.getByPath(access.pagePath)]
+      : [queryKeys.pages.getByPathAll]),
+    ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
+    queryKeys.blocks.getUsageCounts,
+  ]);
   return result;
 });
 
@@ -545,10 +544,10 @@ const deleteMany = authed
     const result = await context.db.delete(blocks).where(inArray(blocks.id, blockIds)).returning();
     const projectId = authorizedBlocks[0]?.projectId;
     if (projectId) {
-      broadcastInvalidation(context.env.ProjectRoom, projectId, {
-        entity: "block",
-        action: "deleted",
-      });
+      broadcastInvalidation(context.env.ProjectRoom, projectId, [
+        queryKeys.pages.getByPathAll,
+        queryKeys.blocks.getUsageCounts,
+      ]);
     }
     return result;
   });
@@ -570,13 +569,13 @@ const generateSummary = authed
         delayMs: 15000,
       });
     }
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-      entity: "block",
-      action: "updated",
-      entityId: id,
-      pageId: access.block.pageId ?? undefined,
-      pagePath: access.pagePath ?? undefined,
-    });
+    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath)]
+        : [queryKeys.pages.getByPathAll]),
+      ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
+      queryKeys.blocks.getUsageCounts,
+    ]);
     const updated = await context.db.select().from(blocks).where(eq(blocks.id, id)).get();
     return updated;
   });
@@ -616,13 +615,13 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
     })
     .returning()
     .get();
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, {
-    entity: "block",
-    action: "created",
-    entityId: result.id,
-    pageId: original.pageId ?? undefined,
-    pagePath: access.pagePath ?? undefined,
-  });
+  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+    ...(access.pagePath
+      ? [queryKeys.pages.getByPath(access.pagePath)]
+      : [queryKeys.pages.getByPathAll]),
+    ...(original.pageId ? [queryKeys.blocks.getPageMarkdown(original.pageId)] : []),
+    queryKeys.blocks.getUsageCounts,
+  ]);
   return result;
 });
 

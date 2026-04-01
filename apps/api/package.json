@@ -2,7 +2,8 @@
   "name": "@camox/api",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./query-keys": "./src/lib/query-keys.ts"
   },
   "scripts": {
     "dev": "wrangler dev",
