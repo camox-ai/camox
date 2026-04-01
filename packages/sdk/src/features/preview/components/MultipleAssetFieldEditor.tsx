@@ -35,7 +35,7 @@ import { UnlinkAssetButton } from "./UnlinkAssetButton";
  * -----------------------------------------------------------------------------------------------*/
 
 type RepeatableItem = {
-  _id: string;
+  id: number;
   summary: string;
   position: string;
   content: Record<string, unknown>;
@@ -57,7 +57,7 @@ const SortableAssetItem = ({
   onAssetOpen,
 }: SortableAssetItemProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: item._id,
+    id: String(item.id),
   });
 
   const style = {
@@ -117,7 +117,7 @@ const SortableAssetItem = ({
 
         <UnlinkAssetButton
           fileId={asset?._fileId != null ? Number(asset._fileId) : undefined}
-          onUnlink={() => onRemove(item._id)}
+          onUnlink={() => onRemove(String(item.id))}
           className="hidden group-focus-within:flex group-hover:flex"
         />
       </div>
@@ -190,8 +190,8 @@ const MultipleAssetFieldEditor = ({
     if (!over || active.id === over.id) return;
 
     const dbItems = items;
-    const oldIndex = dbItems.findIndex((item) => item._id === active.id);
-    const newIndex = dbItems.findIndex((item) => item._id === over.id);
+    const oldIndex = dbItems.findIndex((item) => String(item.id) === active.id);
+    const newIndex = dbItems.findIndex((item) => String(item.id) === over.id);
 
     if (oldIndex === -1 || newIndex === -1) return;
 
@@ -260,13 +260,13 @@ const MultipleAssetFieldEditor = ({
               modifiers={[restrictToVerticalAxis]}
             >
               <SortableContext
-                items={items.map((item) => item._id)}
+                items={items.map((item) => String(item.id))}
                 strategy={verticalListSortingStrategy}
               >
                 <ul className="flex flex-col gap-1">
                   {items.map((item) => (
                     <SortableAssetItem
-                      key={item._id}
+                      key={String(item.id)}
                       item={item}
                       assetType={assetType}
                       contentKey={contentKey}

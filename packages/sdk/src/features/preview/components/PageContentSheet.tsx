@@ -111,7 +111,7 @@ const getDataAtDepth = (
       currentData = items[idx] as Record<string, unknown>;
     } else {
       // DB document item: find by _id, unwrap .content
-      const item = items.find((i) => i._id === crumb.id);
+      const item = items.find((i) => String(i.id) === crumb.id);
       if (!item) return null;
 
       lastItemId = crumb.id;
@@ -147,7 +147,7 @@ function findItemById(
     const items = currentData[crumb.fieldName] as any[] | undefined;
     if (!items) return null;
 
-    const item = items.find((i) => i._id === crumb.id);
+    const item = items.find((i) => String(i.id) === crumb.id);
     if (!item) return null;
 
     if (crumb.id === targetId) return item as { summary?: string };
@@ -474,7 +474,7 @@ const PageContentSheet = () => {
     >
       <SheetParts.SheetHeader className="border-border border-b">
         <SheetParts.SheetTitle>{block.summary}</SheetParts.SheetTitle>
-        <SheetParts.SheetDescription>
+        <SheetParts.SheetDescription asChild>
           <Breadcrumb>
             <BreadcrumbList className="flex-nowrap">
               <BreadcrumbItem className="min-w-0">

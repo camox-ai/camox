@@ -428,7 +428,10 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
                 <GripVertical className="h-4 w-4" />
               </Button>
             </BlockActionsPopover>
-            <BlockTreeItemTrigger displayText={block.summary} onClick={ctx.toggleSelection} />
+            <BlockTreeItemTrigger
+              displayText={block.summary || block.type}
+              onClick={ctx.toggleSelection}
+            />
             <BlockActionsPopover
               block={block}
               open={ctx.ellipsisPopoverOpen}

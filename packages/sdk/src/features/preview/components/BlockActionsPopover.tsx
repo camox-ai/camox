@@ -72,7 +72,7 @@ const BlockActionsPopover = ({
         projectId: page?.page.projectId,
         blockType: block.type,
       });
-      toast.success(`Deleted "${block.summary}" block`);
+      toast.success(`Deleted "${block.summary || block.type}" block`);
     } catch (error) {
       console.error("Failed to delete block:", error);
       toast.error("Could not delete block");
@@ -419,7 +419,7 @@ function useBlockActionsShortcuts() {
             if (!block) return false;
             for (const [, value] of Object.entries(block.content)) {
               if (!Array.isArray(value)) continue;
-              const item = value.find((i: any) => i._id === target.id);
+              const item = value.find((i: any) => String(i.id) === target.id);
               if (item) return value.length > 1;
             }
             return false;
@@ -444,7 +444,7 @@ function useBlockActionsShortcuts() {
 
           const block = page?.blocks.find((b) => String(b.id) === target.id);
           deleteBlockMutation.mutateAsync({ id: Number(target.id) }).then(
-            () => toast.success(`Deleted "${block?.summary}" block`),
+            () => toast.success(`Deleted "${block?.summary || block?.type}" block`),
             () => toast.error("Could not delete block"),
           );
           previewStore.send({ type: "clearSelection" });
