@@ -86,10 +86,10 @@ export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
       const value = result[key];
       if (Array.isArray(value) && value.length > 0) {
         const firstItem = value[0];
-        if (firstItem && typeof firstItem === "object" && !firstItem.content && !firstItem._id) {
+        if (firstItem && typeof firstItem === "object" && !firstItem.content && !firstItem.id) {
           result[key] = value.map((item: any) => ({
             content: item,
-            _id: undefined,
+            id: undefined,
           }));
         }
       }

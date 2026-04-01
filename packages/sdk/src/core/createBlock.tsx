@@ -1334,7 +1334,7 @@ export function createBlock<
             ...repeatableItemDefaults[fieldName],
             ...item.content,
           } as TItem;
-          const itemId = item._id as string | undefined;
+          const itemId = item.id != null ? String(item.id) : undefined;
 
           return (
             <RepeaterItemContext.Provider

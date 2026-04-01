@@ -107,8 +107,8 @@ async function seedContent(db: Database) {
       layoutId: layout.id,
       type: "navbar",
       content: {
-        title: "Acme",
-        ctaButton: { label: "Get Started", url: "/get-started" },
+        title: { text: "Acme", href: "/", newTab: false },
+        cta: { text: "Get Started", href: "/get-started", newTab: false },
       },
       settings: { floating: true },
       placement: "before" as const,

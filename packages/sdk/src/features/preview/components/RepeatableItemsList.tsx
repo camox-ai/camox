@@ -32,7 +32,7 @@ import { previewStore } from "../previewStore";
  * -----------------------------------------------------------------------------------------------*/
 
 type RepeatableItem = {
-  _id: string;
+  id: number;
   summary: string;
   position: string;
   content: Record<string, unknown>;
@@ -54,7 +54,7 @@ const SortableRepeatableItem = ({
   onRemove,
 }: SortableRepeatableItemProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: item._id,
+    id: String(item.id),
   });
 
   const style = {
@@ -70,7 +70,7 @@ const SortableRepeatableItem = ({
   );
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
   const isSelected = selectionBreadcrumbs.some(
-    (b) => b.type === "RepeatableObject" && b.id === item._id,
+    (b) => b.type === "RepeatableObject" && b.id === String(item.id),
   );
 
   const shouldShowHover = !isDragging && !isSelected;
@@ -80,7 +80,7 @@ const SortableRepeatableItem = ({
     const message: OverlayMessage = {
       type: "CAMOX_HOVER_REPEATER_ITEM",
       blockId,
-      itemId: item._id,
+      itemId: String(item.id),
     };
     iframeElement.contentWindow.postMessage(message, "*");
   };
@@ -90,7 +90,7 @@ const SortableRepeatableItem = ({
     const message: OverlayMessage = {
       type: "CAMOX_HOVER_REPEATER_ITEM_END",
       blockId,
-      itemId: item._id,
+      itemId: String(item.id),
     };
     iframeElement.contentWindow.postMessage(message, "*");
   };
@@ -128,7 +128,7 @@ const SortableRepeatableItem = ({
               handleMouseLeave();
               previewStore.send({
                 type: "drillIntoRepeatableItem",
-                itemId: item._id,
+                itemId: String(item.id),
                 fieldName,
               });
             }}
@@ -147,7 +147,7 @@ const SortableRepeatableItem = ({
                 className="text-muted-foreground hover:text-foreground hidden shrink-0 group-focus-within:flex group-hover:flex"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRemove(item._id);
+                  onRemove(String(item.id));
                 }}
               >
                 <CircleMinus className="h-4 w-4" />
@@ -423,8 +423,8 @@ const RepeatableItemsList = ({
     const dbItems = items as RepeatableItem[];
 
     // Find the old and new indices
-    const oldIndex = dbItems.findIndex((item) => item._id === active.id);
-    const newIndex = dbItems.findIndex((item) => item._id === over.id);
+    const oldIndex = dbItems.findIndex((item) => String(item.id) === active.id);
+    const newIndex = dbItems.findIndex((item) => String(item.id) === over.id);
 
     if (oldIndex === -1 || newIndex === -1) {
       return;
@@ -492,13 +492,13 @@ const RepeatableItemsList = ({
               modifiers={[restrictToVerticalAxis]}
             >
               <SortableContext
-                items={(items as RepeatableItem[]).map((item) => item._id)}
+                items={(items as RepeatableItem[]).map((item) => String(item.id))}
                 strategy={verticalListSortingStrategy}
               >
                 <ul className="flex flex-col gap-1">
                   {(items as RepeatableItem[]).map((item) => (
                     <SortableRepeatableItem
-                      key={item._id}
+                      key={String(item.id)}
                       item={item}
                       blockId={blockId}
                       fieldName={fieldName}
