@@ -1,7 +1,9 @@
 import type { Router } from "@camox/api";
+import { queryKeys } from "@camox/api/query-keys";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { RouterClient } from "@orpc/server";
+import type { QueryClient } from "@tanstack/react-query";
 import { notFound } from "@tanstack/react-router";
 import { createMiddleware, createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
@@ -82,12 +84,22 @@ export function createMarkdownMiddleware(apiUrl: string) {
 }
 
 export function createPageLoader(apiUrl: string) {
-  const api = createServerApiClient(apiUrl);
+  const serverApi = createServerApiClient(apiUrl);
 
-  return async ({ location }: { location: { pathname: string } }) => {
+  return async ({
+    location,
+    context,
+  }: {
+    location: { pathname: string };
+    context: { queryClient: QueryClient };
+  }) => {
     try {
       const [page, origin] = await Promise.all([
-        api.pages.getByPath({ path: location.pathname }),
+        context.queryClient.ensureQueryData({
+          queryKey: queryKeys.pages.getByPath(location.pathname),
+          queryFn: () => serverApi.pages.getByPath({ path: location.pathname }),
+          staleTime: Infinity,
+        }),
         getOrigin(),
       ]);
       return { page, origin };
@@ -164,10 +176,10 @@ export function createPageHead(camoxApp: CamoxApp) {
  * Component
  * -----------------------------------------------------------------------------------------------*/
 
-export const PageRouteComponent = ({ page }: { page: PageWithBlocks }) => {
+export const PageRouteComponent = () => {
   return (
     <CamoxPreview>
-      <PageContent page={page} />
+      <PageContent />
     </CamoxPreview>
   );
 };

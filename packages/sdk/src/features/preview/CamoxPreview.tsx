@@ -1,5 +1,5 @@
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
@@ -28,13 +28,16 @@ import { previewStore } from "./previewStore";
  * -----------------------------------------------------------------------------------------------*/
 
 /**
- * Fetches the current page being previewed, with live updates if the user is signed in.
+ * Fetches the current page being previewed, with live updates for authenticated users.
  * Also will switch to peeked page data if there is one.
+ *
+ * Data for the current route is guaranteed in queryClient cache from the loader's
+ * ensureQueryData. Live updates are gated by useProjectRoom only running in
+ * AuthenticatedCamoxProvider — unauthenticated users get SSR data that never refetches.
  */
-export function usePreviewedPage() {
+export function usePreviewedPage(): PageWithBlocks {
   const { pathname } = useLocation();
   const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
-  const pagePathnameToFetch = peekedPagePathname ?? pathname;
 
   // When the actual route changes, clear any stale peeked page so it doesn't
   // override the new pathname. This handles the race condition where the
@@ -47,27 +50,20 @@ export function usePreviewedPage() {
     }
   }, [pathname]);
 
-  /**
-   * Only fetch the page data if the user is signed in (i.e. an admin)
-   * to avoid unnecessary load on the backend and layout shifts for regular visitors.
-   */
+  const { data: currentPage } = useSuspenseQuery(pageQueries.getByPath(pathname));
+
   const isAuthenticated = useIsAuthenticated();
-  const { data: currentPage } = useQuery({
-    ...pageQueries.getByPath(pagePathnameToFetch),
-    enabled: isAuthenticated,
+  const { data: peekedPage } = useQuery({
+    ...pageQueries.getByPath(peekedPagePathname ?? ""),
+    enabled: isAuthenticated && !!peekedPagePathname,
     placeholderData: keepPreviousData,
   });
 
-  return currentPage;
+  return peekedPage ?? currentPage;
 }
 
-interface PageContentProps {
-  page: PageWithBlocks;
-}
-
-export const PageContent = ({ page: initialPageData }: PageContentProps) => {
-  const livePageData = usePreviewedPage();
-  const pageData = livePageData ?? initialPageData;
+export const PageContent = () => {
+  const pageData = usePreviewedPage();
   const peekedBlockPosition = useSelector(
     previewStore,
     (state) => state.context.peekedBlockPosition,
