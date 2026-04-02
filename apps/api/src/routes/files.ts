@@ -12,7 +12,7 @@ import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { queryKeys } from "../lib/query-keys";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
-import { blocks, files } from "../schema";
+import { blocks, files, repeatableItems } from "../schema";
 import type { AppEnv } from "../types";
 
 // --- AI Executor ---
@@ -85,12 +85,18 @@ const getUsageCount = pub
     const file = await context.db.select().from(files).where(eq(files.id, input.id)).get();
     if (!file) throw new ORPCError("NOT_FOUND");
 
-    const result = await context.db
+    const marker = `"_fileId":${file.id}`;
+    const blockCount = await context.db
       .select({ count: sql<number>`count(*)` })
       .from(blocks)
-      .where(sql`INSTR(${blocks.content}, ${file.url}) > 0`)
+      .where(sql`INSTR(${blocks.content}, ${marker}) > 0`)
       .get();
-    return { count: result?.count ?? 0 };
+    const itemCount = await context.db
+      .select({ count: sql<number>`count(*)` })
+      .from(repeatableItems)
+      .where(sql`INSTR(${repeatableItems.content}, ${marker}) > 0`)
+      .get();
+    return { count: (blockCount?.count ?? 0) + (itemCount?.count ?? 0) };
   });
 
 const setAlt = authed
@@ -174,6 +180,14 @@ const setAiMetadata = authed
       .where(eq(files.id, input.id))
       .returning()
       .get();
+    if (input.enabled) {
+      scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+        entityTable: "files",
+        entityId: input.id,
+        type: "fileMetadata",
+        delayMs: 0,
+      });
+    }
     broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
       queryKeys.files.list,
       queryKeys.files.get(input.id),

@@ -156,18 +156,28 @@ export const previewStore = createStore({
         blockId: string;
         itemId: string;
         fieldName?: string;
+        childFieldName?: string;
+        childFieldType?: FieldType;
       },
     ) => {
+      const crumbs: SelectionBreadcrumb[] = [
+        { type: "Block" as const, id: event.blockId },
+        {
+          type: "RepeatableObject" as const,
+          id: event.itemId,
+          fieldName: event.fieldName,
+        },
+      ];
+      if (event.childFieldName && event.childFieldType) {
+        crumbs.push({
+          type: event.childFieldType,
+          id: event.childFieldName,
+          fieldName: event.childFieldName,
+        });
+      }
       return {
         ...context,
-        selectionBreadcrumbs: [
-          { type: "Block" as const, id: event.blockId },
-          {
-            type: "RepeatableObject" as const,
-            id: event.itemId,
-            fieldName: event.fieldName,
-          },
-        ],
+        selectionBreadcrumbs: crumbs,
       };
     },
     drillIntoRepeatableItem: (context, event: { itemId: string; fieldName: string }) => {

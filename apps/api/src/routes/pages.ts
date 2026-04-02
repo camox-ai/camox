@@ -699,6 +699,14 @@ const setAiSeo = authed
       .where(eq(pages.id, id))
       .returning()
       .get();
+    if (enabled) {
+      scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+        entityTable: "pages",
+        entityId: id,
+        type: "seo",
+        delayMs: 0,
+      });
+    }
     broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
       queryKeys.pages.list,
       queryKeys.pages.getById(id),
