@@ -1,6 +1,8 @@
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
+import { usePageBlocks } from "@/lib/normalized-data";
+
 import { usePreviewedPage } from "../CamoxPreview";
 import { isOverlayMessage, type OverlayMessage } from "../overlayMessages";
 import { previewStore } from "../previewStore";
@@ -20,6 +22,7 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
   );
   const peekedBlock = useSelector(previewStore, (state) => state.context.peekedBlock);
   const page = usePreviewedPage();
+  const { pageBlocks } = usePageBlocks(page);
 
   // Listen for messages from iframe
   React.useEffect(() => {
@@ -39,9 +42,9 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
           afterPosition = blockPosition;
         } else {
           // Insert before: find the previous block's position
-          const blockIndex = page?.blocks.findIndex((b) => b.position === blockPosition);
-          if (blockIndex !== undefined && blockIndex > 0) {
-            afterPosition = page?.blocks[blockIndex - 1].position ?? null;
+          const blockIndex = pageBlocks.findIndex((b) => b.position === blockPosition);
+          if (blockIndex > 0) {
+            afterPosition = pageBlocks[blockIndex - 1].position ?? null;
           } else if (blockIndex === 0) {
             afterPosition = "";
           }

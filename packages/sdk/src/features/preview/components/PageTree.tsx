@@ -27,6 +27,7 @@ import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react
 import * as React from "react";
 
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
+import { usePageBlocks } from "@/lib/normalized-data";
 import { type PageWithBlocks } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -519,6 +520,11 @@ const PageTree = () => {
   // Get the block ID from breadcrumbs for selection state
   const focusedBlockId = selectionBreadcrumbs[0]?.id ?? null;
   const page = usePreviewedPage();
+  const {
+    pageBlocks,
+    beforeBlocks: layoutBeforeBlocks,
+    afterBlocks: layoutAfterBlocks,
+  } = usePageBlocks(page);
   const camoxApp = useCamoxApp();
 
   const updatePosition = useUpdateBlockPosition();
@@ -550,8 +556,8 @@ const PageTree = () => {
     }
 
     // Find the old and new indices
-    const oldIndex = page.blocks.findIndex((block) => String(block.id) === active.id);
-    const newIndex = page.blocks.findIndex((block) => String(block.id) === over.id);
+    const oldIndex = pageBlocks.findIndex((block) => String(block.id) === active.id);
+    const newIndex = pageBlocks.findIndex((block) => String(block.id) === over.id);
 
     if (oldIndex === -1 || newIndex === -1) {
       setActiveId(null);
@@ -566,13 +572,13 @@ const PageTree = () => {
 
     if (oldIndex < newIndex) {
       // Dragging down: insert after the target position
-      afterPosition = page.blocks[newIndex].position;
+      afterPosition = pageBlocks[newIndex].position;
       beforePosition =
-        newIndex < page.blocks.length - 1 ? page.blocks[newIndex + 1].position : undefined;
+        newIndex < pageBlocks.length - 1 ? pageBlocks[newIndex + 1].position : undefined;
     } else {
       // Dragging up: insert before the target position
-      afterPosition = newIndex > 0 ? page.blocks[newIndex - 1].position : undefined;
-      beforePosition = page.blocks[newIndex].position;
+      afterPosition = newIndex > 0 ? pageBlocks[newIndex - 1].position : undefined;
+      beforePosition = pageBlocks[newIndex].position;
     }
 
     // mutate() triggers onMutate synchronously, reordering the list
@@ -594,13 +600,11 @@ const PageTree = () => {
   }
 
   const layout = page.layout ? camoxApp.getLayoutById(page.layout.layoutId) : undefined;
-  const beforeBlocks = page.layout?.beforeBlocks ?? [];
-  const afterBlocks = page.layout?.afterBlocks ?? [];
 
   return (
     <>
       <div className="flex flex-col gap-0.5">
-        {beforeBlocks.map((block) => (
+        {layoutBeforeBlocks.map((block) => (
           <LayoutBlockItem
             key={String(block.id)}
             block={block}
@@ -617,10 +621,10 @@ const PageTree = () => {
           modifiers={[restrictToVerticalAxis]}
         >
           <SortableContext
-            items={page.blocks.map((block) => String(block.id))}
+            items={pageBlocks.map((block) => String(block.id))}
             strategy={verticalListSortingStrategy}
           >
-            {page.blocks.map((block) => (
+            {pageBlocks.map((block) => (
               <SortableBlock
                 key={String(block.id)}
                 block={block}
@@ -631,7 +635,7 @@ const PageTree = () => {
           <DragOverlay dropAnimation={null}>
             {activeId
               ? (() => {
-                  const activeBlock = page.blocks.find((b) => String(b.id) === activeId);
+                  const activeBlock = pageBlocks.find((b) => String(b.id) === activeId);
                   if (!activeBlock) return null;
                   return (
                     <div className="bg-accent text-accent-foreground rounded-lg shadow-md">
@@ -645,7 +649,7 @@ const PageTree = () => {
               : null}
           </DragOverlay>
         </DndContext>
-        {afterBlocks.map((block) => (
+        {layoutAfterBlocks.map((block) => (
           <LayoutBlockItem
             key={String(block.id)}
             block={block}

@@ -22,17 +22,22 @@ export function useUpdateBlockPosition() {
       if (previousPage) {
         const blockToMove = previousPage.blocks.find((b) => b.id === variables.id);
         if (blockToMove) {
-          const siblings = previousPage.blocks.filter((b) => b.id !== variables.id);
           const newPosition = generateKeyBetween(
             variables.afterPosition ?? null,
             variables.beforePosition ?? null,
           );
           const movedBlock = { ...blockToMove, position: newPosition };
-          const newBlocks = [...siblings, movedBlock].sort((a, b) =>
-            a.position.localeCompare(b.position),
-          );
+          const newBlocks = previousPage.blocks
+            .map((b) => (b.id === variables.id ? movedBlock : b))
+            .sort((a, b) => a.position.localeCompare(b.position));
+
+          // Re-derive blockIds from sorted page blocks
+          const pageBlockIdSet = new Set(previousPage.page.blockIds);
+          const newBlockIds = newBlocks.filter((b) => pageBlockIdSet.has(b.id)).map((b) => b.id);
+
           queryClient.setQueryData<PageWithBlocks>(queryOptions.queryKey, {
             ...previousPage,
+            page: { ...previousPage.page, blockIds: newBlockIds },
             blocks: newBlocks,
           });
         }

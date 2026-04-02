@@ -260,8 +260,6 @@ export async function executePageSeo(db: Database, apiKey: string, pageId: numbe
 
 // --- Content Assembly Helpers ---
 
-type ContentRecord = Record<string, unknown>;
-
 function comparePositions(a: string, b: string): number {
   if (a < b) return -1;
   if (a > b) return 1;
@@ -272,7 +270,7 @@ function sortByPosition<T extends { position: string }>(items: T[]): T[] {
   return items.sort((a, b) => comparePositions(a.position, b.position));
 }
 
-function collectFileIds(content: Record<string, unknown>, fileIds: Set<number>) {
+export function collectFileIds(content: Record<string, unknown>, fileIds: Set<number>) {
   for (const value of Object.values(content)) {
     if (value && typeof value === "object" && !Array.isArray(value)) {
       const obj = value as Record<string, unknown>;
@@ -291,66 +289,6 @@ function collectFileIds(content: Record<string, unknown>, fileIds: Set<number>) 
       }
     }
   }
-}
-
-type FileDoc = { id: number; url: string; alt: string; filename: string; mimeType: string };
-
-function resolveFileRefs(
-  content: Record<string, unknown>,
-  fileMap: Map<number, FileDoc>,
-): ContentRecord {
-  const resolved: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(content)) {
-    if (value && typeof value === "object" && !Array.isArray(value)) {
-      const obj = value as Record<string, unknown>;
-      if ("_fileId" in obj && obj._fileId != null) {
-        const numericId = Number(obj._fileId);
-        const file = fileMap.get(numericId);
-        resolved[key] = file
-          ? {
-              url: file.url,
-              alt: file.alt,
-              filename: file.filename,
-              mimeType: file.mimeType,
-              _fileId: numericId,
-            }
-          : { url: "", alt: "", filename: "", mimeType: "" };
-      } else {
-        resolved[key] = resolveFileRefs(obj, fileMap);
-      }
-    } else if (Array.isArray(value)) {
-      resolved[key] = value.map((item) => {
-        if (item && typeof item === "object" && "content" in item) {
-          return {
-            ...item,
-            content: resolveFileRefs(
-              (item as { content: Record<string, unknown> }).content,
-              fileMap,
-            ),
-          };
-        }
-        if (item && typeof item === "object" && !Array.isArray(item)) {
-          return resolveFileRefs(item as Record<string, unknown>, fileMap);
-        }
-        return item;
-      });
-    } else {
-      resolved[key] = value;
-    }
-  }
-  return resolved;
-}
-
-function groupItemsByBlockAndField<
-  T extends { blockId: number; fieldName: string; parentItemId: number | null },
->(items: T[]): Record<string, T[]> {
-  const acc: Record<string, T[]> = {};
-  for (const item of items) {
-    if (item.parentItemId !== null) continue;
-    const key = `${item.blockId}:${item.fieldName}`;
-    (acc[key] ??= []).push(item);
-  }
-  return acc;
 }
 
 /** Recursively nest child items into their parent item's content. */
@@ -379,92 +317,13 @@ function nestChildItems(
   }
 }
 
-function reconstructBlockContent(
-  blockContent: Record<string, unknown>,
-  itemsByBlockAndField: Record<string, unknown[]>,
-  blockId: number,
-  allItems: { blockId: number; fieldName: string; parentItemId: number | null }[],
-  fieldOrder?: string[],
-): ContentRecord {
-  const reconstructed: Record<string, unknown> = { ...blockContent };
-
-  const fieldNames = new Set(
-    allItems
-      .filter((item) => item.blockId === blockId && item.parentItemId === null)
-      .map((item) => item.fieldName),
-  );
-  for (const fieldName of fieldNames) {
-    reconstructed[fieldName] = itemsByBlockAndField[`${blockId}:${fieldName}`] || [];
-  }
-
-  if (!fieldOrder) return reconstructed;
-
-  // Reorder keys to match field order from block definition
-  const ordered: Record<string, unknown> = {};
-  for (const key of fieldOrder) {
-    if (key in reconstructed) ordered[key] = reconstructed[key];
-  }
-  for (const key of Object.keys(reconstructed)) {
-    if (!(key in ordered)) ordered[key] = reconstructed[key];
-  }
-  return ordered;
-}
-
-async function buildFileMap(db: Database, fileIds: Set<number>): Promise<Map<number, FileDoc>> {
+async function buildFileMap(db: Database, fileIds: Set<number>) {
   if (fileIds.size === 0) return new Map();
   const rows = await db
     .select()
     .from(files)
     .where(inArray(files.id, [...fileIds]));
   return new Map(rows.map((f) => [f.id, f]));
-}
-
-async function assembleBlocks(
-  db: Database,
-  rawBlocks: (typeof blocks.$inferSelect)[],
-  fieldOrderByType: Map<string, string[]>,
-) {
-  const sorted = sortByPosition(rawBlocks);
-  const blockIds = sorted.map((b) => b.id);
-
-  // Fetch all repeatable items for these blocks (top-level + nested)
-  const allItems =
-    blockIds.length > 0
-      ? sortByPosition(
-          await db.select().from(repeatableItems).where(inArray(repeatableItems.blockId, blockIds)),
-        )
-      : [];
-
-  // Nest child items into their parent item's content
-  nestChildItems(allItems);
-
-  const itemsByBlockAndField = groupItemsByBlockAndField(allItems);
-
-  // Reconstruct content with repeatable items merged in
-  const blocksWithItems = sorted.map((block) => ({
-    ...block,
-    content: reconstructBlockContent(
-      block.content as Record<string, unknown>,
-      itemsByBlockAndField,
-      block.id,
-      allItems,
-      fieldOrderByType.get(block.type),
-    ),
-  }));
-
-  // Resolve file references
-  const fileIds = new Set<number>();
-  for (const block of blocksWithItems) {
-    collectFileIds(block.content, fileIds);
-  }
-
-  if (fileIds.size === 0) return blocksWithItems;
-
-  const fileMap = await buildFileMap(db, fileIds);
-  return blocksWithItems.map((block) => ({
-    ...block,
-    content: resolveFileRefs(block.content, fileMap),
-  }));
 }
 
 // --- Procedures ---
@@ -503,52 +362,82 @@ const getByPath = pub.input(z.object({ path: z.string() })).handler(async ({ con
   const project = await db.select().from(projects).where(eq(projects.id, page.projectId)).get();
   if (!project) throw new ORPCError("NOT_FOUND");
 
-  // Fetch block definitions for field ordering
-  const defs = await db
-    .select()
-    .from(blockDefinitions)
-    .where(eq(blockDefinitions.projectId, page.projectId));
-  const fieldOrderByType = new Map<string, string[]>();
-  for (const def of defs) {
-    const schema = def.contentSchema as Record<string, unknown> | null;
-    if (schema?.properties) {
-      fieldOrderByType.set(def.blockId, Object.keys(schema.properties as Record<string, unknown>));
+  // Fetch page blocks sorted by position
+  const pageBlocks = sortByPosition(
+    await db.select().from(blocks).where(eq(blocks.pageId, page.id)),
+  );
+
+  // Fetch layout and its blocks
+  const layout = page.layoutId
+    ? await db.select().from(layouts).where(eq(layouts.id, page.layoutId)).get()
+    : null;
+
+  const layoutBlocks = layout
+    ? sortByPosition(await db.select().from(blocks).where(eq(blocks.layoutId, layout.id)))
+    : [];
+
+  // Merge all blocks into a single array
+  const allBlocks = [...pageBlocks, ...layoutBlocks];
+  const allBlockIds = allBlocks.map((b) => b.id);
+
+  // Fetch all repeatable items for all blocks (top-level + nested)
+  const allItems =
+    allBlockIds.length > 0
+      ? sortByPosition(
+          await db
+            .select()
+            .from(repeatableItems)
+            .where(inArray(repeatableItems.blockId, allBlockIds)),
+        )
+      : [];
+
+  // Group top-level items by block:fieldName for _itemId markers
+  const topLevelItemsByBlockField = new Map<string, typeof allItems>();
+  for (const item of allItems) {
+    if (item.parentItemId !== null) continue;
+    const key = `${item.blockId}:${item.fieldName}`;
+    const list = topLevelItemsByBlockField.get(key) ?? [];
+    list.push(item);
+    topLevelItemsByBlockField.set(key, list);
+  }
+
+  // Add _itemId markers to block content for repeatable fields
+  const blocksWithMarkers = allBlocks.map((block) => {
+    const content = { ...(block.content as Record<string, unknown>) };
+    for (const [key, items] of topLevelItemsByBlockField) {
+      if (!key.startsWith(`${block.id}:`)) continue;
+      const fieldName = key.slice(String(block.id).length + 1);
+      content[fieldName] = items.map((item) => ({ _itemId: item.id }));
     }
+    return { ...block, content };
+  });
+
+  // Collect file IDs from all block content and repeatable item content
+  const fileIds = new Set<number>();
+  for (const block of blocksWithMarkers) {
+    collectFileIds(block.content as Record<string, unknown>, fileIds);
+  }
+  for (const item of allItems) {
+    collectFileIds(item.content as Record<string, unknown>, fileIds);
   }
 
-  // Assemble page blocks
-  const pageBlocks = await db.select().from(blocks).where(eq(blocks.pageId, page.id));
-  const assembledBlocks = await assembleBlocks(db, pageBlocks, fieldOrderByType);
+  // Fetch referenced files
+  const fileRows = await buildFileMap(db, fileIds);
 
-  // Assemble layout
-  const layout = await db.select().from(layouts).where(eq(layouts.id, page.layoutId)).get();
-
-  let layoutData: {
-    id: number;
-    layoutId: string;
-    blocks: Awaited<ReturnType<typeof assembleBlocks>>;
-    beforeBlocks: Awaited<ReturnType<typeof assembleBlocks>>;
-    afterBlocks: Awaited<ReturnType<typeof assembleBlocks>>;
-  } | null = null;
-
-  if (layout) {
-    const layoutBlocks = await db.select().from(blocks).where(eq(blocks.layoutId, layout.id));
-    const assembledLayoutBlocks = await assembleBlocks(db, layoutBlocks, fieldOrderByType);
-
-    layoutData = {
-      id: layout.id,
-      layoutId: layout.layoutId,
-      blocks: assembledLayoutBlocks,
-      beforeBlocks: assembledLayoutBlocks.filter((b) => b.placement === "before"),
-      afterBlocks: assembledLayoutBlocks.filter((b) => b.placement === "after"),
-    };
-  }
+  // Build ID arrays
+  const blockIds = pageBlocks.map((b) => b.id);
+  const beforeBlockIds = layoutBlocks.filter((b) => b.placement === "before").map((b) => b.id);
+  const afterBlockIds = layoutBlocks.filter((b) => b.placement === "after").map((b) => b.id);
 
   return {
-    page,
+    page: { ...page, blockIds },
     projectName: project.name,
-    blocks: assembledBlocks,
-    layout: layoutData,
+    layout: layout
+      ? { id: layout.id, layoutId: layout.layoutId, beforeBlockIds, afterBlockIds }
+      : null,
+    blocks: blocksWithMarkers,
+    repeatableItems: allItems,
+    files: [...fileRows.values()],
   };
 });
 

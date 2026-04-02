@@ -6,6 +6,13 @@ import * as React from "react";
 
 import { SidebarLexicalEditor } from "@/core/components/lexical/SidebarLexicalEditor";
 import { isLexicalState, plainTextToLexicalState } from "@/core/lib/lexicalState";
+import {
+  isFileMarker,
+  isItemMarker,
+  resolveFileMarker,
+  type NormalizedFile,
+  type NormalizedItem,
+} from "@/lib/normalized-data";
 
 import type { OverlayMessage } from "../overlayMessages";
 import { previewStore } from "../previewStore";
@@ -75,6 +82,9 @@ interface ItemFieldsEditorProps {
   parentFieldName?: string;
   onFieldChange: (fieldName: string, value: unknown) => void;
   postToIframe: (message: OverlayMessage) => void;
+  /** Lookup maps for resolving _fileId and _itemId markers */
+  filesMap: Map<number, NormalizedFile>;
+  itemsMap: Map<number, NormalizedItem>;
 }
 
 const ItemFieldsEditor = ({
@@ -86,6 +96,8 @@ const ItemFieldsEditor = ({
   parentFieldName,
   onFieldChange,
   postToIframe,
+  filesMap,
+  itemsMap,
 }: ItemFieldsEditorProps) => {
   const fields = React.useMemo(() => getSchemaFieldsInOrder(schema), [schema]);
   const timerRef = React.useRef<number | null>(null);
@@ -377,7 +389,10 @@ const ItemFieldsEditor = ({
         }
 
         if (field.fieldType === "Image") {
-          const imageValue = data[field.name] as { filename?: string } | undefined;
+          const rawImage = data[field.name];
+          const imageValue = isFileMarker(rawImage)
+            ? resolveFileMarker(rawImage, filesMap)
+            : (rawImage as { filename?: string } | undefined);
           const preview = imageValue?.filename || "No image";
 
           return (
@@ -416,7 +431,10 @@ const ItemFieldsEditor = ({
         }
 
         if (field.fieldType === "File") {
-          const fileValue = data[field.name] as { filename?: string } | undefined;
+          const rawFile = data[field.name];
+          const fileValue = isFileMarker(rawFile)
+            ? resolveFileMarker(rawFile, filesMap)
+            : (rawFile as { filename?: string } | undefined);
           const preview = fileValue?.filename || "No file";
 
           return (
@@ -455,7 +473,16 @@ const ItemFieldsEditor = ({
         }
 
         if (field.fieldType === "RepeatableObject") {
-          const items = (data[field.name] ?? []) as Record<string, unknown>[];
+          const rawItems = (data[field.name] ?? []) as any[];
+          // Resolve _itemId markers to full item objects
+          const items = rawItems
+            .map((item: any) => {
+              if (isItemMarker(item)) {
+                return itemsMap.get(item._itemId) ?? null;
+              }
+              return item;
+            })
+            .filter(Boolean) as Record<string, unknown>[];
           const fieldSchema = (schema as any)?.properties?.[field.name];
 
           return (

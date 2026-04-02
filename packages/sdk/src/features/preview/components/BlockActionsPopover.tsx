@@ -25,6 +25,7 @@ import { Copy, Pen, Settings, Trash2 } from "lucide-react";
 import * as React from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
+import { usePageBlocks } from "@/lib/normalized-data";
 import { blockMutations, repeatableItemMutations, type PageWithBlocks } from "@/lib/queries";
 import { formatShortcut } from "@/lib/utils";
 
@@ -60,6 +61,7 @@ const BlockActionsPopover = ({
 
   const camoxApp = useCamoxApp();
   const page = usePreviewedPage();
+  const { pageBlocks } = usePageBlocks(page);
 
   const deleteBlock = useMutation(blockMutations.delete());
   const duplicateBlock = useMutation(blockMutations.duplicate());
@@ -98,8 +100,8 @@ const BlockActionsPopover = ({
   const handleAddBlockAbove = (block: PageWithBlocks["blocks"][number]) => {
     if (!page) return;
 
-    const blockIndex = page.blocks.findIndex((b) => String(b.id) === String(block.id));
-    const afterPosition = blockIndex > 0 ? page.blocks[blockIndex - 1].position : "";
+    const blockIndex = pageBlocks.findIndex((b) => String(b.id) === String(block.id));
+    const afterPosition = blockIndex > 0 ? pageBlocks[blockIndex - 1].position : "";
 
     previewStore.send({
       type: "openAddBlockSheet",
@@ -116,14 +118,14 @@ const BlockActionsPopover = ({
 
   const getBlocksAbove = (block: PageWithBlocks["blocks"][number]) => {
     if (!page) return [];
-    const blockIndex = page.blocks.findIndex((b) => String(b.id) === String(block.id));
-    return page.blocks.slice(0, blockIndex);
+    const blockIndex = pageBlocks.findIndex((b) => String(b.id) === String(block.id));
+    return pageBlocks.slice(0, blockIndex);
   };
 
   const getBlocksBelow = (block: PageWithBlocks["blocks"][number]) => {
     if (!page) return [];
-    const blockIndex = page.blocks.findIndex((b) => String(b.id) === String(block.id));
-    return page.blocks.slice(blockIndex + 1);
+    const blockIndex = pageBlocks.findIndex((b) => String(b.id) === String(block.id));
+    return pageBlocks.slice(blockIndex + 1);
   };
 
   const handleDeleteBlocksAbove = async (block: PageWithBlocks["blocks"][number]) => {
@@ -231,7 +233,7 @@ const BlockActionsPopover = ({
                     <CommandGroup>
                       <CommandItem
                         onSelect={() => {
-                          const lastPageBlock = page?.blocks[page.blocks.length - 1];
+                          const lastPageBlock = pageBlocks[pageBlocks.length - 1];
                           previewStore.send({
                             type: "openAddBlockSheet",
                             afterPosition: lastPageBlock?.position,
@@ -377,13 +379,14 @@ function findClosestActionable(breadcrumbs: SelectionBreadcrumb[]) {
 
 function isLayoutBlockId(page: ReturnType<typeof usePreviewedPage>, blockId: string): boolean {
   if (!page?.layout) return false;
-  const allLayoutBlocks = [...(page.layout.beforeBlocks ?? []), ...(page.layout.afterBlocks ?? [])];
-  return allLayoutBlocks.some((b) => String(b.id) === blockId);
+  const layoutBlockIds = new Set([...page.layout.beforeBlockIds, ...page.layout.afterBlockIds]);
+  return layoutBlockIds.has(Number(blockId));
 }
 
 function useBlockActionsShortcuts() {
   const camoxApp = useCamoxApp();
   const page = usePreviewedPage();
+  const { pageBlocks } = usePageBlocks(page);
   const selectionBreadcrumbs = useSelector(
     previewStore,
     (state) => state.context.selectionBreadcrumbs,
@@ -417,16 +420,19 @@ function useBlockActionsShortcuts() {
             if (!blockCrumb) return false;
             const block = page.blocks.find((b) => String(b.id) === blockCrumb.id);
             if (!block) return false;
+            // _itemId markers: check if the item is in an array with > 1 markers
             for (const [, value] of Object.entries(block.content)) {
               if (!Array.isArray(value)) continue;
-              const item = value.find((i: any) => String(i.id) === target.id);
-              if (item) return value.length > 1;
+              const hasItem = value.some(
+                (i: any) => i?._itemId != null && String(i._itemId) === target.id,
+              );
+              if (hasItem) return value.length > 1;
             }
             return false;
           }
 
-          // Block — allow delete only if more than 1 block
-          return (page?.blocks.length ?? 0) > 1;
+          // Block — allow delete only if more than 1 page block
+          return pageBlocks.length > 1;
         },
         execute: () => {
           const breadcrumbs = previewStore.getSnapshot().context.selectionBreadcrumbs;
@@ -442,7 +448,7 @@ function useBlockActionsShortcuts() {
             return;
           }
 
-          const block = page?.blocks.find((b) => String(b.id) === target.id);
+          const block = page.blocks.find((b) => String(b.id) === target.id);
           deleteBlockMutation.mutateAsync({ id: Number(target.id) }).then(
             () => toast.success(`Deleted "${block?.summary || block?.type}" block`),
             () => toast.error("Could not delete block"),
@@ -476,7 +482,7 @@ function useBlockActionsShortcuts() {
             return;
           }
 
-          const block = page?.blocks.find((b) => String(b.id) === target.id);
+          const block = page.blocks.find((b) => String(b.id) === target.id);
           duplicateBlockMutation.mutateAsync({ id: Number(target.id) }).then(
             () => toast.success(`Duplicated "${block?.summary}" block`),
             () => toast.error("Could not duplicate block"),
@@ -495,7 +501,7 @@ function useBlockActionsShortcuts() {
           const blockCrumb = ctx.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return false;
           if (isLayoutBlockId(page, blockCrumb.id)) return false;
-          const index = page.blocks.findIndex((b) => String(b.id) === blockCrumb.id);
+          const index = pageBlocks.findIndex((b) => String(b.id) === blockCrumb.id);
           return index > 0;
         },
         execute: () => {
@@ -503,11 +509,11 @@ function useBlockActionsShortcuts() {
             .getSnapshot()
             .context.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return;
-          const index = page.blocks.findIndex((b) => String(b.id) === blockCrumb.id);
+          const index = pageBlocks.findIndex((b) => String(b.id) === blockCrumb.id);
           if (index <= 0) return;
 
-          const afterPosition = index > 1 ? page.blocks[index - 2].position : undefined;
-          const beforePosition = page.blocks[index - 1].position;
+          const afterPosition = index > 1 ? pageBlocks[index - 2].position : undefined;
+          const beforePosition = pageBlocks[index - 1].position;
 
           updatePositionMutation
             .mutateAsync({ id: Number(blockCrumb.id), afterPosition, beforePosition })
@@ -529,20 +535,20 @@ function useBlockActionsShortcuts() {
           const blockCrumb = ctx.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return false;
           if (isLayoutBlockId(page, blockCrumb.id)) return false;
-          const index = page.blocks.findIndex((b) => String(b.id) === blockCrumb.id);
-          return index !== -1 && index < page.blocks.length - 1;
+          const index = pageBlocks.findIndex((b) => String(b.id) === blockCrumb.id);
+          return index !== -1 && index < pageBlocks.length - 1;
         },
         execute: () => {
           const blockCrumb = previewStore
             .getSnapshot()
             .context.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return;
-          const index = page.blocks.findIndex((b) => String(b.id) === blockCrumb.id);
-          if (index === -1 || index >= page.blocks.length - 1) return;
+          const index = pageBlocks.findIndex((b) => String(b.id) === blockCrumb.id);
+          if (index === -1 || index >= pageBlocks.length - 1) return;
 
-          const afterPosition = page.blocks[index + 1].position;
+          const afterPosition = pageBlocks[index + 1].position;
           const beforePosition =
-            index + 2 < page.blocks.length ? page.blocks[index + 2].position : undefined;
+            index + 2 < pageBlocks.length ? pageBlocks[index + 2].position : undefined;
 
           updatePositionMutation
             .mutateAsync({ id: Number(blockCrumb.id), afterPosition, beforePosition })
@@ -591,10 +597,10 @@ function useBlockActionsShortcuts() {
             .getSnapshot()
             .context.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return;
-          const blockIndex = page.blocks.findIndex((b) => String(b.id) === blockCrumb.id);
+          const blockIndex = pageBlocks.findIndex((b) => String(b.id) === blockCrumb.id);
           if (blockIndex === -1) return;
 
-          const afterPosition = blockIndex > 0 ? page.blocks[blockIndex - 1].position : "";
+          const afterPosition = blockIndex > 0 ? pageBlocks[blockIndex - 1].position : "";
 
           previewStore.send({
             type: "openAddBlockSheet",
@@ -612,7 +618,7 @@ function useBlockActionsShortcuts() {
         ids: actions.map((a) => a.id),
       });
     };
-  }, [selectionBreadcrumbs, page, camoxApp]);
+  }, [selectionBreadcrumbs, page, pageBlocks, camoxApp]);
 }
 
 export { BlockActionsPopover, useBlockActionsShortcuts };

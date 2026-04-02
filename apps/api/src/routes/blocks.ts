@@ -13,7 +13,16 @@ import { contentToMarkdown } from "../lib/content-markdown";
 import { queryKeys } from "../lib/query-keys";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
-import { blockDefinitions, blocks, layouts, pages, projects, repeatableItems } from "../schema";
+import {
+  blockDefinitions,
+  blocks,
+  files,
+  layouts,
+  pages,
+  projects,
+  repeatableItems,
+} from "../schema";
+import { collectFileIds } from "./pages";
 
 // --- AI Executor ---
 
@@ -659,7 +668,54 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
   return result;
 });
 
+const get = pub.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
+  const block = await context.db.select().from(blocks).where(eq(blocks.id, input.id)).get();
+  if (!block) throw new ORPCError("NOT_FOUND");
+
+  // Fetch repeatable items for this block
+  const items = await context.db
+    .select()
+    .from(repeatableItems)
+    .where(eq(repeatableItems.blockId, block.id));
+  const sorted = items.sort((a, b) => comparePositions(a.position, b.position));
+
+  // Add _itemId markers to block content
+  const content = { ...(block.content as Record<string, unknown>) };
+  const topLevelByField = new Map<string, typeof sorted>();
+  for (const item of sorted) {
+    if (item.parentItemId !== null) continue;
+    const list = topLevelByField.get(item.fieldName) ?? [];
+    list.push(item);
+    topLevelByField.set(item.fieldName, list);
+  }
+  for (const [fieldName, fieldItems] of topLevelByField) {
+    content[fieldName] = fieldItems.map((i) => ({ _itemId: i.id }));
+  }
+
+  // Collect and fetch referenced files
+  const fileIds = new Set<number>();
+  collectFileIds(content, fileIds);
+  for (const item of sorted) {
+    collectFileIds(item.content as Record<string, unknown>, fileIds);
+  }
+
+  const fileRows =
+    fileIds.size > 0
+      ? await context.db
+          .select()
+          .from(files)
+          .where(inArray(files.id, [...fileIds]))
+      : [];
+
+  return {
+    block: { ...block, content },
+    repeatableItems: sorted,
+    files: fileRows,
+  };
+});
+
 export const blockProcedures = {
+  get,
   getPageMarkdown,
   getUsageCounts,
   create,

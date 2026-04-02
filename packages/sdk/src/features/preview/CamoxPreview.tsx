@@ -5,6 +5,7 @@ import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
 import { useIsAuthenticated } from "@/lib/auth";
+import { NormalizedDataProvider, usePageBlocks } from "@/lib/normalized-data";
 import type { PageWithBlocks } from "@/lib/queries";
 import { pageQueries } from "@/lib/queries";
 import { formatPathSegment } from "@/lib/utils";
@@ -64,6 +65,7 @@ export function usePreviewedPage(): PageWithBlocks {
 
 export const PageContent = () => {
   const pageData = usePreviewedPage();
+  const { pageBlocks, beforeBlocks, afterBlocks } = usePageBlocks(pageData);
   const peekedBlockPosition = useSelector(
     previewStore,
     (state) => state.context.peekedBlockPosition,
@@ -91,29 +93,30 @@ export const PageContent = () => {
     }
 
     if (effectivePosition === null) {
-      return pageData.blocks.length; // Insert at the end
+      return pageBlocks.length; // Insert at the end
     }
 
     // Find the index after the block with the matching position
-    const afterBlockIndex = pageData.blocks.findIndex(
+    const afterBlockIndex = pageBlocks.findIndex(
       (block) => String(block.position) === effectivePosition,
     );
 
     if (afterBlockIndex === -1) {
       // Position not found, insert at the end
-      return pageData.blocks.length;
+      return pageBlocks.length;
     }
 
     // Insert after the found block
     return afterBlockIndex + 1;
-  }, [pageData.blocks, effectivePosition]);
+  }, [pageBlocks, effectivePosition]);
 
   // Look up layout
   const layout = pageData.layout ? camoxApp.getLayoutById(pageData.layout.layoutId) : undefined;
 
   // Build layout block data map by type
-  const layoutBlocks = React.useMemo(() => {
+  const layoutBlocksMap = React.useMemo(() => {
     if (!pageData.layout) return null;
+    const allLayoutBlocks = [...beforeBlocks, ...afterBlocks];
     const blocks: Record<
       string,
       {
@@ -124,7 +127,7 @@ export const PageContent = () => {
         position: string;
       }
     > = {};
-    for (const block of pageData.layout.blocks) {
+    for (const block of allLayoutBlocks) {
       blocks[block.type] = {
         _id: String(block.id),
         type: block.type,
@@ -134,15 +137,15 @@ export const PageContent = () => {
       };
     }
     return blocks;
-  }, [pageData.layout]);
+  }, [pageData.layout, beforeBlocks, afterBlocks]);
 
   const pageBlocksContent = (
     <>
       {/* Render peeked block at the beginning if it should be before the first block */}
-      {peekedBlockIndex === 0 && pageData.blocks.length > 0 && (
+      {peekedBlockIndex === 0 && pageBlocks.length > 0 && (
         <PeekedBlock onExitComplete={onExitComplete} />
       )}
-      {pageData.blocks.map((blockData, index) => {
+      {pageBlocks.map((blockData, index) => {
         const block = camoxApp.getBlockById(String(blockData.type));
 
         if (!block) {
@@ -173,20 +176,26 @@ export const PageContent = () => {
         );
       })}
       {/* Render peeked block at the end if there are no blocks */}
-      {pageData.blocks.length === 0 && <PeekedBlock onExitComplete={onExitComplete} />}
+      {pageBlocks.length === 0 && <PeekedBlock onExitComplete={onExitComplete} />}
     </>
   );
 
-  if (layout && layoutBlocks) {
+  const wrappedContent = (
+    <NormalizedDataProvider files={pageData.files} repeatableItems={pageData.repeatableItems}>
+      {pageBlocksContent}
+    </NormalizedDataProvider>
+  );
+
+  if (layout && layoutBlocksMap) {
     const LayoutComponent = layout.component;
     return (
-      <layout.Provider layoutBlocks={layoutBlocks}>
-        <LayoutComponent>{pageBlocksContent}</LayoutComponent>
+      <layout.Provider layoutBlocks={layoutBlocksMap}>
+        <LayoutComponent>{wrappedContent}</LayoutComponent>
       </layout.Provider>
     );
   }
 
-  return <main className="flex min-h-screen flex-col">{pageBlocksContent}</main>;
+  return <main className="flex min-h-screen flex-col">{wrappedContent}</main>;
 };
 
 /* -------------------------------------------------------------------------------------------------

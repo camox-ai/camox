@@ -22,6 +22,7 @@ import * as React from "react";
 
 import { actionsStore, type Action } from "@/features/provider/actionsStore";
 import { trackClientEvent } from "@/lib/analytics-client";
+import { useNormalizedMaps, isFileMarker } from "@/lib/normalized-data";
 import { blockMutations, repeatableItemMutations } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -76,13 +77,14 @@ const getSchemaAtDepth = (contentSchema: unknown, breadcrumbs: SelectionBreadcru
 };
 
 /**
- * Walks through content arrays to find the current item's data.
- * Returns the data object, the deepest item's ID, and for inline items
- * the parent DB document's ID and field name.
+ * Walks through content to find the current item's data.
+ * Resolves _itemId markers from the items map. For inline items (idx:N),
+ * accesses by index without .content unwrap.
  */
 const getDataAtDepth = (
   blockContent: Record<string, unknown>,
   breadcrumbs: SelectionBreadcrumb[],
+  itemsMap: Map<number, { id: number; content: unknown }>,
 ): {
   data: Record<string, unknown>;
   itemId: string;
@@ -110,8 +112,8 @@ const getDataAtDepth = (
       lastItemId = crumb.id;
       currentData = items[idx] as Record<string, unknown>;
     } else {
-      // DB document item: find by _id, unwrap .content
-      const item = items.find((i) => String(i.id) === crumb.id);
+      // DB item: resolve from items map
+      const item = itemsMap.get(Number(crumb.id));
       if (!item) return null;
 
       lastItemId = crumb.id;
@@ -135,27 +137,10 @@ const getDataAtDepth = (
  * -----------------------------------------------------------------------------------------------*/
 
 function findItemById(
-  blockContent: Record<string, unknown>,
-  breadcrumbs: SelectionBreadcrumb[],
+  itemsMap: Map<number, { id: number; summary: string }>,
   targetId: string,
 ): { summary?: string } | null {
-  let currentData: Record<string, unknown> = blockContent;
-
-  for (const crumb of breadcrumbs) {
-    if (crumb.type !== "RepeatableObject" || !crumb.fieldName) continue;
-
-    const items = currentData[crumb.fieldName] as any[] | undefined;
-    if (!items) return null;
-
-    const item = items.find((i) => String(i.id) === crumb.id);
-    if (!item) return null;
-
-    if (crumb.id === targetId) return item as { summary?: string };
-
-    currentData = item.content as Record<string, unknown>;
-  }
-
-  return null;
+  return itemsMap.get(Number(targetId)) ?? null;
 }
 
 /* -------------------------------------------------------------------------------------------------
@@ -194,12 +179,8 @@ const PageContentSheet = () => {
 
   // Look up the actual block document from page data
   const page = usePreviewedPage();
-  const block = blockId
-    ? (page?.blocks.find((b) => String(b.id) === blockId) ??
-      page?.layout?.beforeBlocks?.find((b) => String(b.id) === blockId) ??
-      page?.layout?.afterBlocks?.find((b) => String(b.id) === blockId) ??
-      null)
-    : null;
+  const { itemsMap, filesMap } = useNormalizedMaps(page);
+  const block = blockId ? (page.blocks.find((b) => String(b.id) === blockId) ?? null) : null;
 
   // Get block definition
   const blockDef = block ? camoxApp.getBlockById(block.type) : null;
@@ -216,11 +197,47 @@ const PageContentSheet = () => {
 
   const currentDepthResult = React.useMemo(() => {
     if (!block || depth === 0) return null;
-    return getDataAtDepth(block.content, repeatableBreadcrumbs);
+    return getDataAtDepth(block.content, repeatableBreadcrumbs, itemsMap);
   }, [block, depth, repeatableBreadcrumbs]);
 
-  const currentData: Record<string, unknown> =
+  const rawCurrentData: Record<string, unknown> =
     depth === 0 ? (block?.content ?? {}) : (currentDepthResult?.data ?? {});
+
+  // Resolve _fileId markers in data for asset field editors (recursive for inline arrays)
+  const currentData = React.useMemo(() => {
+    const resolveFile = (marker: { _fileId: number }) => {
+      const file = filesMap.get(marker._fileId);
+      return file
+        ? {
+            url: file.url,
+            alt: file.alt,
+            filename: file.filename,
+            mimeType: file.mimeType,
+            _fileId: marker._fileId,
+          }
+        : { url: "", alt: "", filename: "", mimeType: "" };
+    };
+
+    const resolveValue = (value: unknown): unknown => {
+      if (isFileMarker(value)) return resolveFile(value);
+      if (Array.isArray(value)) return value.map(resolveValue);
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        const obj = value as Record<string, unknown>;
+        const resolved: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          resolved[k] = resolveValue(v);
+        }
+        return resolved;
+      }
+      return value;
+    };
+
+    const resolved: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(rawCurrentData)) {
+      resolved[key] = resolveValue(value);
+    }
+    return resolved;
+  }, [rawCurrentData, filesMap]);
 
   const currentItemId = currentDepthResult?.itemId;
 
@@ -388,7 +405,11 @@ const PageContentSheet = () => {
       if (isNaN(idx)) return;
 
       // Get parent level data to find the current inline array
-      const parentResult = getDataAtDepth(block.content, repeatableBreadcrumbs.slice(0, -1));
+      const parentResult = getDataAtDepth(
+        block.content,
+        repeatableBreadcrumbs.slice(0, -1),
+        itemsMap,
+      );
       if (!parentResult) return;
 
       const parentArray = [
@@ -446,7 +467,7 @@ const PageContentSheet = () => {
       // Inline item: derive label from data
       const crumbIndex = repeatableBreadcrumbs.indexOf(crumb);
       const pathCrumbs = repeatableBreadcrumbs.slice(0, crumbIndex + 1);
-      const result = getDataAtDepth(block.content, pathCrumbs);
+      const result = getDataAtDepth(block.content, pathCrumbs, itemsMap);
       if (result?.data) {
         for (const value of Object.values(result.data)) {
           if (typeof value === "string" && value.trim()) return value;
@@ -460,7 +481,7 @@ const PageContentSheet = () => {
     }
 
     // Try to find the item summary from block content
-    const item = findItemById(block.content, selectionBreadcrumbs, crumb.id);
+    const item = findItemById(itemsMap, crumb.id);
     if (item?.summary) return item.summary;
     return fieldLabel;
   };
@@ -648,6 +669,8 @@ const PageContentSheet = () => {
             parentFieldName={currentDepthResult?.parentFieldName}
             onFieldChange={activeFieldChangeHandler}
             postToIframe={postToIframe}
+            filesMap={filesMap}
+            itemsMap={itemsMap}
           />
         )}
         {depth === 0 && !isViewingLink && !isViewingAsset && settingsFields.length > 0 && (

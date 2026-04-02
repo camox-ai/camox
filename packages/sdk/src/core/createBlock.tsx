@@ -22,6 +22,12 @@ import {
 } from "../features/preview/overlayConstants";
 import { postOverlayMessage } from "../features/preview/overlayMessages";
 import { previewStore } from "../features/preview/previewStore";
+import {
+  useNormalizedData,
+  isFileMarker,
+  isItemMarker,
+  resolveFileMarker,
+} from "../lib/normalized-data";
 import { AddBlockControlBar } from "./components/AddBlockControlBar.tsx";
 import { InlineLexicalEditor } from "./components/lexical/InlineLexicalEditor";
 import { useFieldSelection } from "./hooks/useFieldSelection.ts";
@@ -937,9 +943,12 @@ export function createBlock<
     const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const { window: iframeWindow } = useFrame();
     const repeaterContext = React.use(RepeaterItemContext);
-    const rawValue = repeaterContext
-      ? (repeaterContext.itemContent[name] as ImageValue | null)
-      : (content[name] as ImageValue | null);
+    const { filesMap } = useNormalizedData();
+    const rawSource = repeaterContext ? repeaterContext.itemContent[name] : content[name];
+    // Resolve _fileId markers to full file objects
+    const rawValue = isFileMarker(rawSource)
+      ? (resolveFileMarker(rawSource, filesMap) as unknown as ImageValue)
+      : (rawSource as ImageValue | null);
     const fieldValue = rawValue ?? (contentDefaults[String(name)] as ImageValue);
 
     const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));
@@ -1044,9 +1053,12 @@ export function createBlock<
 
     const { content } = blockContext;
     const repeaterContext = React.use(RepeaterItemContext);
-    const rawValue = repeaterContext
-      ? (repeaterContext.itemContent[name] as FileValue | null)
-      : (content[name] as FileValue | null);
+    const { filesMap } = useNormalizedData();
+    const rawSource = repeaterContext ? repeaterContext.itemContent[name] : content[name];
+    // Resolve _fileId markers to full file objects
+    const rawValue = isFileMarker(rawSource)
+      ? (resolveFileMarker(rawSource, filesMap) as unknown as FileValue)
+      : (rawSource as FileValue | null);
     const fieldValue = rawValue ?? (contentDefaults[String(name)] as FileValue);
 
     return <>{children(fieldValue)}</>;
@@ -1277,11 +1289,22 @@ export function createBlock<
 
     // Items come from either the parent repeater context (nested) or block content (top-level)
     const source = parentRepeaterContext ? parentRepeaterContext.itemContent[name] : content[name];
+    const { itemsMap } = useNormalizedData();
     let arrayValue = (source ?? []) as any[];
 
     if (!Array.isArray(arrayValue)) {
       throw new Error(`Field "${String(name)}" is not an array`);
     }
+
+    // Resolve _itemId markers to full item objects from the normalized data
+    arrayValue = arrayValue
+      .map((item: any) => {
+        if (isItemMarker(item)) {
+          return itemsMap.get(item._itemId) ?? null;
+        }
+        return item;
+      })
+      .filter(Boolean);
 
     // When the array is empty, fill with placeholder items for rendering only
     const defaults = repeatableItemDefaults[fieldName];
