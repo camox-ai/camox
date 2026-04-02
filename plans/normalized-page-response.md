@@ -156,46 +156,44 @@ Remove `assembleBlocks`, `reconstructBlockContent`, `nestChildItems`, `collectFi
 
 ---
 
-## Phase 3: Granular Frontend Caching
+## Phase 3: Granular Frontend Caching ✅ DONE
 
-**Goal:** Each entity (block, file, repeatable item) has its own query cache entry. Mutations invalidate only the affected entity.
+**Goal:** Each block has its own query cache entry. Content/settings mutations invalidate only the affected block, not the entire page.
 
-**Testable at the end:** Editing a block only refetches that block, not the entire page.
+**Testable at the end:** Editing a block only refetches that block via `blocks.get`, not the entire page.
 
-### 3a. Seed entity caches from page loader
+### What was implemented
 
-In `createPageLoader` (`packages/sdk/src/features/routes/pageRoute.tsx`), the `queryFn` fetches the full normalized response, seeds individual query caches, and returns only the structural data:
+**3a. Seed block caches from page loader**
 
-```ts
-context.queryClient.ensureQueryData({
-  queryKey: queryKeys.pages.getByPath(location.pathname),
-  queryFn: async () => {
-    const data = await serverApi.pages.getByPath({ path: location.pathname });
+- `seedBlockCaches()` utility in `normalized-data.ts` — takes a `PageWithBlocks` response and seeds individual block caches keyed by `queryKeys.blocks.get(blockId)`. Each cache entry stores a block bundle `{ block, repeatableItems, files }` matching the `blocks.get` endpoint shape. Items are filtered by `blockId`, files are filtered by scanning content for `_fileId` markers.
+- `createPageLoader` in `pageRoute.tsx` — seeds block caches inside the `queryFn` after fetching page data. The full page response is still stored under the page key (needed by editing UI components like `PageTree`, `AddBlockSheet`, `BlockActionsPopover`).
+- `PageContent` in `CamoxPreview.tsx` — re-seeds block caches synchronously whenever page data changes (handles peeked page switches and page query invalidation).
 
-    for (const block of data.blocks)
-      context.queryClient.setQueryData(queryKeys.blocks.get(block.id), block);
-    for (const file of data.files)
-      context.queryClient.setQueryData(queryKeys.files.get(file.id), file);
-    for (const item of data.repeatableItems)
-      context.queryClient.setQueryData(queryKeys.repeatableItems.get(item.id), item);
+**3b. BlockRenderer subscribes to individual block cache**
 
-    // Only the structure gets cached under the page key
-    return { page: data.page, layout: data.layout };
-  },
-  staleTime: Infinity,
-});
-```
+- New `BlockRenderer` component in `CamoxPreview.tsx` — uses `useSuspenseQuery(blockQueries.get(blockId))` to subscribe to the individual block cache. Wraps each block in its own `NormalizedDataProvider` scoped to that block's files and repeatable items. Falls back to fetching from `blocks.get` endpoint if cache is empty.
+- `PageContent` renders `BlockRenderer` wrappers instead of inline block rendering. An outer `NormalizedDataProvider` with page-level data remains for layout blocks (which still render from page data).
+- `PageContentSheet` reads block data, items map, and files map from `blockQueries.get(blockId)` instead of the page query. This ensures the editing UI stays in sync with the block cache.
 
-Same seeding logic applies to the peeked page query in `usePreviewedPage`.
+**3c. Granular invalidation**
 
-Note: `ensureQueryData` won't re-run the `queryFn` if there's already cached data for the page key. Entity caches won't get re-seeded on repeat visits. That's fine — individual entity invalidation works independently via the single-entity endpoints. Seeding is an optimization for first load, not the source of truth.
+Backend changes to `blocks.ts`:
 
-### 3b. Components subscribe to individual entity queries
+- `updateContent` — invalidates `blocks.get(id)` + `blocks.getPageMarkdown` only (removed page query invalidation)
+- `updateSettings` — invalidates `blocks.get(id)` + `blocks.getPageMarkdown` only (removed page query invalidation)
+- `generateSummary` — added `blocks.get(id)` to existing invalidation targets
+- Structural mutations (`create`, `delete`, `deleteMany`, `updatePosition`, `duplicate`) — unchanged, still invalidate page query
 
-Block components use `useQuery(queryKeys.blocks.get(blockId))` — data is already seeded from the loader, so no fetch fires. If the cache is empty (e.g. direct navigation to an editor), the `queryFn` hits the new single-entity endpoint as fallback.
+Backend changes to `repeatable-items.ts`:
 
-### 3c. Granular invalidation
+- `updateContent` — invalidates `blocks.get(blockId)` only (removed page query invalidation)
+- `updatePosition` — invalidates `blocks.get(blockId)` only
+- `create`, `delete`, `duplicate` — invalidate `blocks.get(blockId)` + `blocks.getUsageCounts` (removed page query invalidation)
+- `generateSummary` — invalidates `blocks.get(blockId)` + `blocks.getUsageCounts`
 
-When a mutation updates a single block, invalidate `queryKeys.blocks.get(blockId)` — TanStack Query refetches just that block via the `blocks.get` endpoint. No full page refetch.
+**Design decisions:**
 
-For mutations that change page structure (add/remove/reorder blocks), invalidate the page query key so the structural data (block IDs list) is refreshed and the loader re-seeds.
+- Page query still stores full `PageWithBlocks` — avoids refactoring all editing UI consumers (`PageTree`, `AddBlockSheet`, `useUpdateBlockPosition`, `BlockActionsPopover`, `Overlays`)
+- Layout blocks still render from page-level data — layout editing is less frequent and the layout rendering architecture would need a separate refactor
+- File mutations still invalidate page-level queries — file metadata edits are rare, and tracking which blocks reference a file would add complexity

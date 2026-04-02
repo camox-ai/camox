@@ -16,14 +16,14 @@ import {
 import { Label } from "@camox/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { Switch } from "@camox/ui/switch";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
 import { actionsStore, type Action } from "@/features/provider/actionsStore";
 import { trackClientEvent } from "@/lib/analytics-client";
-import { useNormalizedMaps, isFileMarker } from "@/lib/normalized-data";
-import { blockMutations, repeatableItemMutations } from "@/lib/queries";
+import { isFileMarker } from "@/lib/normalized-data";
+import { blockMutations, blockQueries, repeatableItemMutations } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -177,10 +177,22 @@ const PageContentSheet = () => {
   const repeatableBreadcrumbs = selectionBreadcrumbs.filter((b) => b.type === "RepeatableObject");
   const depth = repeatableBreadcrumbs.length;
 
-  // Look up the actual block document from page data
+  // Look up the actual block data from individual block cache (granular caching)
   const page = usePreviewedPage();
-  const { itemsMap, filesMap } = useNormalizedMaps(page);
-  const block = blockId ? (page.blocks.find((b) => String(b.id) === blockId) ?? null) : null;
+  const numericBlockId = blockId ? Number(blockId) : undefined;
+  const { data: blockBundle } = useQuery({
+    ...blockQueries.get(numericBlockId!),
+    enabled: numericBlockId != null,
+  });
+  const block = blockBundle?.block ?? null;
+  const itemsMap = React.useMemo(
+    () => new Map((blockBundle?.repeatableItems ?? []).map((i) => [i.id, i])),
+    [blockBundle?.repeatableItems],
+  );
+  const filesMap = React.useMemo(
+    () => new Map((blockBundle?.files ?? []).map((f) => [f.id, f])),
+    [blockBundle?.files],
+  );
 
   // Get block definition
   const blockDef = block ? camoxApp.getBlockById(block.type) : null;

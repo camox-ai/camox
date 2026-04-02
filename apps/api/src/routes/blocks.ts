@@ -456,12 +456,10 @@ const updateContent = authed
       type: "summary",
       delayMs: 5000,
     });
+    // Granular invalidation: only refetch this block, not the entire page
     broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-      ...(access.pagePath
-        ? [queryKeys.pages.getByPath(access.pagePath)]
-        : [queryKeys.pages.getByPathAll]),
+      queryKeys.blocks.get(id),
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
-      queryKeys.blocks.getUsageCounts,
     ]);
 
     return result;
@@ -481,12 +479,10 @@ const updateSettings = authed
       .where(eq(blocks.id, id))
       .returning()
       .get();
+    // Granular invalidation: only refetch this block, not the entire page
     broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-      ...(access.pagePath
-        ? [queryKeys.pages.getByPath(access.pagePath)]
-        : [queryKeys.pages.getByPathAll]),
+      queryKeys.blocks.get(id),
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
-      queryKeys.blocks.getUsageCounts,
     ]);
     return result;
   });
@@ -613,6 +609,7 @@ const generateSummary = authed
       });
     }
     broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+      queryKeys.blocks.get(id),
       ...(access.pagePath
         ? [queryKeys.pages.getByPath(access.pagePath)]
         : [queryKeys.pages.getByPathAll]),

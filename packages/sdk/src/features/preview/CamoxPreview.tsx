@@ -1,13 +1,18 @@
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
-import { keepPreviousData, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
 import { useIsAuthenticated } from "@/lib/auth";
-import { NormalizedDataProvider, usePageBlocks } from "@/lib/normalized-data";
+import { NormalizedDataProvider, seedBlockCaches, usePageBlocks } from "@/lib/normalized-data";
 import type { PageWithBlocks } from "@/lib/queries";
-import { pageQueries } from "@/lib/queries";
+import { blockQueries, pageQueries } from "@/lib/queries";
 import { formatPathSegment } from "@/lib/utils";
 
 import { type Action, actionsStore } from "../provider/actionsStore";
@@ -63,13 +68,65 @@ export function usePreviewedPage(): PageWithBlocks {
   return peekedPage ?? currentPage;
 }
 
+/* -------------------------------------------------------------------------------------------------
+ * BlockRenderer — subscribes to individual block cache for granular re-renders
+ * -----------------------------------------------------------------------------------------------*/
+
+const BlockRenderer = ({
+  blockId,
+  mode,
+  showAddBlockTop,
+  showAddBlockBottom,
+}: {
+  blockId: number;
+  mode: "site" | "peek" | "layout";
+  showAddBlockTop: boolean;
+  showAddBlockBottom: boolean;
+}) => {
+  const { data } = useSuspenseQuery(blockQueries.get(blockId));
+  const camoxApp = useCamoxApp();
+  const blockDef = camoxApp.getBlockById(data.block.type);
+
+  if (!blockDef) return null;
+
+  return (
+    <NormalizedDataProvider files={data.files} repeatableItems={data.repeatableItems}>
+      <blockDef.Component
+        blockData={{
+          _id: String(data.block.id) as any,
+          type: data.block.type,
+          content: data.block.content as Record<string, unknown>,
+          settings: data.block.settings as Record<string, unknown> | undefined,
+          position: String(data.block.position),
+        }}
+        mode={mode}
+        showAddBlockTop={showAddBlockTop}
+        showAddBlockBottom={showAddBlockBottom}
+      />
+    </NormalizedDataProvider>
+  );
+};
+
+/* -------------------------------------------------------------------------------------------------
+ * PageContent
+ * -----------------------------------------------------------------------------------------------*/
+
 export const PageContent = () => {
   const pageData = usePreviewedPage();
+  const queryClient = useQueryClient();
   const { pageBlocks, beforeBlocks, afterBlocks } = usePageBlocks(pageData);
   const peekedBlockPosition = useSelector(
     previewStore,
     (state) => state.context.peekedBlockPosition,
   );
+
+  // Seed block caches synchronously when page data changes.
+  // This ensures BlockRenderer components always find seeded data.
+  const lastSeededRef = React.useRef<PageWithBlocks | null>(null);
+  if (pageData !== lastSeededRef.current) {
+    lastSeededRef.current = pageData;
+    seedBlockCaches(queryClient, pageData);
+  }
 
   // Latch the last non-null position so the block doesn't jump during collapse
   const displayedPositionRef = React.useRef<string | null>(null);
@@ -145,41 +202,28 @@ export const PageContent = () => {
       {peekedBlockIndex === 0 && pageBlocks.length > 0 && (
         <PeekedBlock onExitComplete={onExitComplete} />
       )}
-      {pageBlocks.map((blockData, index) => {
-        const block = camoxApp.getBlockById(String(blockData.type));
-
-        if (!block) {
-          return null;
-        }
-
-        return (
-          <React.Fragment key={blockData.id}>
-            <block.Component
-              blockData={{
-                _id: String(blockData.id) as any,
-                type: blockData.type,
-                content: blockData.content as Record<string, unknown>,
-                settings: blockData.settings as Record<string, unknown> | undefined,
-                position: String(blockData.position),
-              }}
-              mode="site"
-              showAddBlockTop={
-                index === 0
-                  ? (layout?.blockDefinitions.some((b) => b.placement === "before") ?? false)
-                  : true
-              }
-              showAddBlockBottom={true}
-            />
-            {/* Render peeked block after this block if this is the insertion point */}
-            {index === peekedBlockIndex - 1 && <PeekedBlock onExitComplete={onExitComplete} />}
-          </React.Fragment>
-        );
-      })}
+      {pageBlocks.map((blockData, index) => (
+        <React.Fragment key={blockData.id}>
+          <BlockRenderer
+            blockId={blockData.id}
+            mode="site"
+            showAddBlockTop={
+              index === 0
+                ? (layout?.blockDefinitions.some((b) => b.placement === "before") ?? false)
+                : true
+            }
+            showAddBlockBottom={true}
+          />
+          {/* Render peeked block after this block if this is the insertion point */}
+          {index === peekedBlockIndex - 1 && <PeekedBlock onExitComplete={onExitComplete} />}
+        </React.Fragment>
+      ))}
       {/* Render peeked block at the end if there are no blocks */}
       {pageBlocks.length === 0 && <PeekedBlock onExitComplete={onExitComplete} />}
     </>
   );
 
+  // Outer NormalizedDataProvider serves layout blocks (which still render from page data)
   const wrappedContent = (
     <NormalizedDataProvider files={pageData.files} repeatableItems={pageData.repeatableItems}>
       {pageBlocksContent}
