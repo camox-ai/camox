@@ -5,11 +5,47 @@ import { Block } from "@/core/createBlock";
 import type { FieldType } from "@/core/lib/fieldTypes";
 import type { Page } from "@/lib/queries";
 
-export type SelectionBreadcrumb = {
-  type: FieldType | "Block";
-  id: string;
-  fieldName?: string;
-};
+/* -------------------------------------------------------------------------------------------------
+ * Selection — normalized, flat pointer to the currently selected entity
+ * -------------------------------------------------------------------------------------------------
+ * Instead of encoding a path (breadcrumb trail), the selection points directly to the entity.
+ * Breadcrumb UI is derived by walking up the parent chain from the items map.
+ * ------------------------------------------------------------------------------------------------*/
+
+export type Selection =
+  | { type: "block"; blockId: string }
+  | { type: "item"; blockId: string; itemId: string }
+  | { type: "block-field"; blockId: string; fieldName: string; fieldType: FieldType }
+  | {
+      type: "item-field";
+      blockId: string;
+      itemId: string;
+      fieldName: string;
+      fieldType: FieldType;
+    };
+
+/** Extract the blockId from any selection variant. */
+export function selectionBlockId(sel: Selection | null): string | null {
+  return sel?.blockId ?? null;
+}
+
+/** Extract the itemId from item or item-field selections. */
+export function selectionItemId(sel: Selection | null): string | null {
+  if (!sel) return null;
+  if (sel.type === "item" || sel.type === "item-field") return sel.itemId;
+  return null;
+}
+
+/** Check if the selection is viewing a terminal field (link, image, file, etc.). */
+export function selectionField(
+  sel: Selection | null,
+): { fieldName: string; fieldType: FieldType } | null {
+  if (!sel) return null;
+  if (sel.type === "block-field" || sel.type === "item-field") {
+    return { fieldName: sel.fieldName, fieldType: sel.fieldType };
+  }
+  return null;
+}
 
 interface PreviewContext {
   isPresentationMode: boolean;
@@ -25,7 +61,7 @@ interface PreviewContext {
   peekedBlockPosition: string | null;
   peekedPagePathname: string | null;
   skipPeekedBlockExitAnimation: boolean;
-  selectionBreadcrumbs: SelectionBreadcrumb[];
+  selection: Selection | null;
   iframeElement: HTMLIFrameElement | null;
 }
 
@@ -44,349 +80,203 @@ export const previewStore = createStore({
     peekedBlockPosition: null,
     peekedPagePathname: null,
     skipPeekedBlockExitAnimation: false,
-    selectionBreadcrumbs: [],
+    selection: null,
     iframeElement: null,
   } as PreviewContext,
   on: {
     enterPresentationMode: (context, _, enqueue) => {
-      if (context.isPresentationMode) {
-        return context;
-      }
-
+      if (context.isPresentationMode) return context;
       enqueue.effect(() => {
         toast("Entering presentation mode. Press ⌘ + Escape to restore admin interface", {
           duration: 4000,
         });
       });
-
-      return {
-        ...context,
-        isPresentationMode: true,
-      };
+      return { ...context, isPresentationMode: true };
     },
     exitPresentationMode: (context, _, enqueue) => {
-      if (!context.isPresentationMode) {
-        return context;
-      }
-
+      if (!context.isPresentationMode) return context;
       enqueue.effect(() => {
         toast("Leaving presentation mode");
       });
-
-      return {
-        ...context,
-        isPresentationMode: false,
-      };
+      return { ...context, isPresentationMode: false };
     },
     toggleSidebar: (context) => {
-      if (context.isPresentationMode) {
-        // It makes no sense to toggle the editing panel in presentation mode since it's not visible
-        return context;
-      }
-
-      return {
-        ...context,
-        isSidebarOpen: !context.isSidebarOpen,
-      };
+      if (context.isPresentationMode) return context;
+      return { ...context, isSidebarOpen: !context.isSidebarOpen };
     },
     toggleLockContent: (context, _, enqueue) => {
       enqueue.effect(() => {
         toast(context.isContentLocked ? "Enabling edits" : "Preventing edits");
       });
-
-      return {
-        ...context,
-        isContentLocked: !context.isContentLocked,
-      };
+      return { ...context, isContentLocked: !context.isContentLocked };
     },
     toggleMobileMode: (context, _, enqueue) => {
       enqueue.effect(() => {
         toast(context.isMobileMode ? "Leaving mobile mode" : "Entering mobile mode");
       });
-
-      return {
-        ...context,
-        isMobileMode: !context.isMobileMode,
-      };
+      return { ...context, isMobileMode: !context.isMobileMode };
     },
     setPeekedBlock: (context, event: { block: Block; afterPosition?: string | null }) => {
-      if (!event.block) {
-        return context;
-      }
-
+      if (!event.block) return context;
       return {
         ...context,
         peekedBlock: event.block,
         peekedBlockPosition: event.afterPosition ?? null,
       };
     },
-    exitPeekedBlock: (context) => {
-      return {
-        ...context,
-        peekedBlock: null,
-        peekedBlockPosition: null,
-        isAddBlockSheetOpen: false,
-      };
-    },
-    clearPeekedBlock: (context) => {
-      return {
-        ...context,
-        peekedBlock: null,
-        peekedBlockPosition: null,
-      };
-    },
-    setSelection: (context, event: { breadcrumbs: SelectionBreadcrumb[] }) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: event.breadcrumbs,
-      };
-    },
-    setFocusedBlock: (context, event: { blockId: string }) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: [{ type: "Block" as const, id: event.blockId }],
-        peekedBlock: null,
-        peekedBlockPosition: null,
-        isAddBlockSheetOpen: false,
-      };
-    },
-    setSelectedRepeatableItem: (
-      context,
-      event: {
-        blockId: string;
-        itemId: string;
-        fieldName?: string;
-        childFieldName?: string;
-        childFieldType?: FieldType;
-      },
-    ) => {
-      const crumbs: SelectionBreadcrumb[] = [
-        { type: "Block" as const, id: event.blockId },
-        {
-          type: "RepeatableObject" as const,
-          id: event.itemId,
-          fieldName: event.fieldName,
-        },
-      ];
-      if (event.childFieldName && event.childFieldType) {
-        crumbs.push({
-          type: event.childFieldType,
-          id: event.childFieldName,
-          fieldName: event.childFieldName,
-        });
-      }
-      return {
-        ...context,
-        selectionBreadcrumbs: crumbs,
-      };
-    },
-    drillIntoRepeatableItem: (context, event: { itemId: string; fieldName: string }) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: [
-          ...context.selectionBreadcrumbs,
-          {
-            type: "RepeatableObject" as const,
-            id: event.itemId,
-            fieldName: event.fieldName,
-          },
-        ],
-      };
-    },
-    drillIntoLink: (context, event: { fieldName: string }) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: [
-          ...context.selectionBreadcrumbs,
-          {
-            type: "Link" as const,
-            id: event.fieldName,
-            fieldName: event.fieldName,
-          },
-        ],
-      };
-    },
-    drillIntoImage: (context, event: { fieldName: string }) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: [
-          ...context.selectionBreadcrumbs,
-          {
-            type: "Image" as const,
-            id: event.fieldName,
-            fieldName: event.fieldName,
-          },
-        ],
-      };
-    },
-    drillIntoFile: (context, event: { fieldName: string }) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: [
-          ...context.selectionBreadcrumbs,
-          {
-            type: "File" as const,
-            id: event.fieldName,
-            fieldName: event.fieldName,
-          },
-        ],
-      };
-    },
-    navigateBreadcrumb: (context, event: { depth: number }) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: context.selectionBreadcrumbs.slice(0, event.depth + 1),
-      };
-    },
-    setSelectedField: (
+    exitPeekedBlock: (context) => ({
+      ...context,
+      peekedBlock: null,
+      peekedBlockPosition: null,
+      isAddBlockSheetOpen: false,
+    }),
+    clearPeekedBlock: (context) => ({
+      ...context,
+      peekedBlock: null,
+      peekedBlockPosition: null,
+    }),
+
+    /* --- Selection events --- */
+
+    setSelection: (context, event: { selection: Selection | null }) => ({
+      ...context,
+      selection: event.selection,
+    }),
+    setFocusedBlock: (context, event: { blockId: string }) => ({
+      ...context,
+      selection: { type: "block" as const, blockId: event.blockId },
+      peekedBlock: null,
+      peekedBlockPosition: null,
+      isAddBlockSheetOpen: false,
+    }),
+    selectItem: (context, event: { blockId: string; itemId: string }) => ({
+      ...context,
+      selection: { type: "item" as const, blockId: event.blockId, itemId: event.itemId },
+    }),
+    selectBlockField: (
       context,
       event: { blockId: string; fieldName: string; fieldType: FieldType },
-    ) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: [
-          { type: "Block" as const, id: event.blockId },
-          { type: event.fieldType, id: event.fieldName },
-        ],
-      };
-    },
-    clearSelection: (context) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: [],
-      };
-    },
-    clearFocusedBlock: (context) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: [],
-      };
-    },
-    selectParentBreadcrumb: (context) => {
-      // Remove the last breadcrumb to select the parent
-      if (context.selectionBreadcrumbs.length === 0) {
-        return context;
+    ) => ({
+      ...context,
+      selection: {
+        type: "block-field" as const,
+        blockId: event.blockId,
+        fieldName: event.fieldName,
+        fieldType: event.fieldType,
+      },
+    }),
+    selectItemField: (
+      context,
+      event: { blockId: string; itemId: string; fieldName: string; fieldType: FieldType },
+    ) => ({
+      ...context,
+      selection: {
+        type: "item-field" as const,
+        blockId: event.blockId,
+        itemId: event.itemId,
+        fieldName: event.fieldName,
+        fieldType: event.fieldType,
+      },
+    }),
+    selectParent: (context) => {
+      const sel = context.selection;
+      if (!sel) return context;
+      if (sel.type === "block-field") {
+        return { ...context, selection: { type: "block" as const, blockId: sel.blockId } };
       }
-
-      return {
-        ...context,
-        selectionBreadcrumbs: context.selectionBreadcrumbs.slice(0, -1),
-      };
+      if (sel.type === "item-field") {
+        return {
+          ...context,
+          selection: { type: "item" as const, blockId: sel.blockId, itemId: sel.itemId },
+        };
+      }
+      if (sel.type === "item") {
+        return { ...context, selection: { type: "block" as const, blockId: sel.blockId } };
+      }
+      return context;
     },
-    setPeekedPage: (context, event: { pathname: string }) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: [],
-        peekedPagePathname: event.pathname,
-      };
-    },
-    clearPeekedPage: (context) => {
-      return {
-        ...context,
-        peekedPagePathname: null,
-      };
-    },
-    openAddBlockSheet: (context, event: { afterPosition?: string | null }) => {
-      return {
-        ...context,
-        isAddBlockSheetOpen: true,
-        peekedBlock: null,
-        peekedBlockPosition: event.afterPosition ?? null,
-      };
-    },
-    closeAddBlockSheet: (context) => {
-      return {
-        ...context,
-        isAddBlockSheetOpen: false,
-        peekedBlock: null,
-        peekedBlockPosition: null,
-      };
-    },
-    focusCreatedBlock: (context, event: { blockId: string }) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: [{ type: "Block" as const, id: event.blockId }],
-        isAddBlockSheetOpen: false,
-        peekedBlock: null,
-        peekedBlockPosition: null,
-        skipPeekedBlockExitAnimation: true,
-      };
-    },
-    clearSkipPeekedBlockExitAnimation: (context) => {
-      return {
-        ...context,
-        skipPeekedBlockExitAnimation: false,
-      };
-    },
-    toggleContentSheet: (context) => {
-      return {
-        ...context,
-        isPageContentSheetOpen: !context.isPageContentSheetOpen,
-      };
-    },
+    clearSelection: (context) => ({
+      ...context,
+      selection: null,
+    }),
+    setPeekedPage: (context, event: { pathname: string }) => ({
+      ...context,
+      selection: null,
+      peekedPagePathname: event.pathname,
+    }),
+    clearPeekedPage: (context) => ({
+      ...context,
+      peekedPagePathname: null,
+    }),
+    openAddBlockSheet: (context, event: { afterPosition?: string | null }) => ({
+      ...context,
+      isAddBlockSheetOpen: true,
+      peekedBlock: null,
+      peekedBlockPosition: event.afterPosition ?? null,
+    }),
+    closeAddBlockSheet: (context) => ({
+      ...context,
+      isAddBlockSheetOpen: false,
+      peekedBlock: null,
+      peekedBlockPosition: null,
+    }),
+    focusCreatedBlock: (context, event: { blockId: string }) => ({
+      ...context,
+      selection: { type: "block" as const, blockId: event.blockId },
+      isAddBlockSheetOpen: false,
+      peekedBlock: null,
+      peekedBlockPosition: null,
+      skipPeekedBlockExitAnimation: true,
+    }),
+    clearSkipPeekedBlockExitAnimation: (context) => ({
+      ...context,
+      skipPeekedBlockExitAnimation: false,
+    }),
+    toggleContentSheet: (context) => ({
+      ...context,
+      isPageContentSheetOpen: !context.isPageContentSheetOpen,
+    }),
     openBlockContentSheet: (context, event: { blockId: string }) => {
-      const currentBlockMatches = context.selectionBreadcrumbs[0]?.id === event.blockId;
+      const currentBlockMatches = context.selection?.blockId === event.blockId;
       return {
         ...context,
         isPageContentSheetOpen: true,
-        selectionBreadcrumbs: currentBlockMatches
-          ? context.selectionBreadcrumbs
-          : [{ type: "Block" as const, id: event.blockId }],
+        selection: currentBlockMatches
+          ? context.selection
+          : { type: "block" as const, blockId: event.blockId },
       };
     },
-    setSelectionBreadcrumbs: (context, event: { breadcrumbs: SelectionBreadcrumb[] }) => {
-      return {
-        ...context,
-        selectionBreadcrumbs: event.breadcrumbs,
-      };
-    },
-    closeBlockContentSheet: (context) => {
-      return {
-        ...context,
-        isPageContentSheetOpen: false,
-      };
-    },
-    openAgentChatSheet: (context) => {
-      return {
-        ...context,
-        isAgentChatSheetOpen: true,
-      };
-    },
-    closeAgentChatSheet: (context) => {
-      return {
-        ...context,
-        isAgentChatSheetOpen: false,
-      };
-    },
-    openCreatePageSheet: (context) => {
-      return {
-        ...context,
-        isCreatePageSheetOpen: true,
-      };
-    },
-    closeCreatePageSheet: (context) => {
-      return {
-        ...context,
-        isCreatePageSheetOpen: false,
-      };
-    },
-    openEditPageSheet: (context, event: { page: Page }) => {
-      return {
-        ...context,
-        editingPage: event.page,
-      };
-    },
-    closeEditPageSheet: (context) => {
-      return {
-        ...context,
-        editingPage: null,
-      };
-    },
-    setIframeElement: (context, event: { element: HTMLIFrameElement | null }) => {
-      return {
-        ...context,
-        iframeElement: event.element,
-      };
-    },
+    closeBlockContentSheet: (context) => ({
+      ...context,
+      isPageContentSheetOpen: false,
+    }),
+    openAgentChatSheet: (context) => ({
+      ...context,
+      isAgentChatSheetOpen: true,
+    }),
+    closeAgentChatSheet: (context) => ({
+      ...context,
+      isAgentChatSheetOpen: false,
+    }),
+    openCreatePageSheet: (context) => ({
+      ...context,
+      isCreatePageSheetOpen: true,
+    }),
+    closeCreatePageSheet: (context) => ({
+      ...context,
+      isCreatePageSheetOpen: false,
+    }),
+    openEditPageSheet: (context, event: { page: Page }) => ({
+      ...context,
+      editingPage: event.page,
+    }),
+    closeEditPageSheet: (context) => ({
+      ...context,
+      editingPage: null,
+    }),
+    setIframeElement: (context, event: { element: HTMLIFrameElement | null }) => ({
+      ...context,
+      iframeElement: event.element,
+    }),
   },
 });

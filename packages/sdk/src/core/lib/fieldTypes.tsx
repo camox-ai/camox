@@ -42,7 +42,7 @@ const fieldTypesDictionary = {
       return typeof value === "string" ? value : "";
     },
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
-      previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "String" });
+      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType: "String" });
       previewStore.send({ type: "openBlockContentSheet", blockId });
     },
   },
@@ -69,7 +69,7 @@ const fieldTypesDictionary = {
     getIcon: () => (props: LucideProps) => <ChevronDownIcon {...props} />,
     getLabel: (value: unknown) => value as string,
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
-      previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "Enum" });
+      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType: "Enum" });
       previewStore.send({ type: "openBlockContentSheet", blockId });
     },
   },
@@ -80,7 +80,7 @@ const fieldTypesDictionary = {
     getIcon: () => (props: LucideProps) => <ToggleLeftIcon {...props} />,
     getLabel: (value: unknown) => JSON.stringify(value),
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
-      previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "Boolean" });
+      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType: "Boolean" });
       previewStore.send({ type: "openBlockContentSheet", blockId });
     },
   },
@@ -97,7 +97,7 @@ const fieldTypesDictionary = {
       return fetchedTitle ?? schemaTitle ?? domain ?? fieldName;
     },
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
-      previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "Embed" });
+      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType: "Embed" });
       previewStore.send({ type: "openBlockContentSheet", blockId });
     },
   },
@@ -108,9 +108,8 @@ const fieldTypesDictionary = {
     getIcon: () => (props: LucideProps) => <Link2Icon {...props} />,
     getLabel: (value: unknown) => (value as { text: string } | undefined)?.text ?? "",
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
-      previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "Link" });
+      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType: "Link" });
       previewStore.send({ type: "openBlockContentSheet", blockId });
-      previewStore.send({ type: "drillIntoLink", fieldName });
     },
   },
   Image: {
@@ -124,9 +123,8 @@ const fieldTypesDictionary = {
       return filename;
     },
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
-      previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "Image" });
+      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType: "Image" });
       previewStore.send({ type: "openBlockContentSheet", blockId });
-      previewStore.send({ type: "drillIntoImage", fieldName });
     },
   },
   File: {
@@ -140,9 +138,8 @@ const fieldTypesDictionary = {
       return filename;
     },
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
-      previewStore.send({ type: "setSelectedField", blockId, fieldName, fieldType: "File" });
+      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType: "File" });
       previewStore.send({ type: "openBlockContentSheet", blockId });
-      previewStore.send({ type: "drillIntoFile", fieldName });
     },
   },
 } satisfies Record<

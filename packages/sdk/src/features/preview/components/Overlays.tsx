@@ -16,10 +16,7 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
     previewStore,
     (state) => state.context.isPageContentSheetOpen,
   );
-  const selectionBreadcrumbs = useSelector(
-    previewStore,
-    (state) => state.context.selectionBreadcrumbs,
-  );
+  const selection = useSelector(previewStore, (state) => state.context.selection);
   const peekedBlock = useSelector(previewStore, (state) => state.context.peekedBlock);
   const page = usePreviewedPage();
   const { pageBlocks } = usePageBlocks(page);
@@ -65,23 +62,19 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
   React.useEffect(() => {
     if (isPageContentSheetOpen) return;
     if (peekedBlock) return;
-    if (selectionBreadcrumbs.length === 0) return;
+    if (!selection) return;
 
-    // Get the last breadcrumb which should be the field
-    const fieldBreadcrumb = selectionBreadcrumbs.find((b) => b.type === "String");
-    if (!fieldBreadcrumb) return;
+    // Only focus String fields in the iframe
+    if (selection.type !== "block-field" && selection.type !== "item-field") return;
+    if (selection.fieldType !== "String") return;
 
-    // Build the field ID from breadcrumbs
-    const blockBreadcrumb = selectionBreadcrumbs.find((b) => b.type === "Block");
-    if (!blockBreadcrumb) return;
-
-    const repeatableItemBreadcrumb = selectionBreadcrumbs.find(
-      (b) => b.type === "RepeatableObject",
-    );
-
-    const fieldId = repeatableItemBreadcrumb
-      ? `${blockBreadcrumb.id}__${repeatableItemBreadcrumb.id}__${fieldBreadcrumb.id}`
-      : `${blockBreadcrumb.id}__${fieldBreadcrumb.id}`;
+    // Build the field ID
+    const blockId = selection.blockId;
+    const fieldName = selection.fieldName;
+    const fieldId =
+      selection.type === "item-field"
+        ? `${blockId}__${selection.itemId}__${fieldName}`
+        : `${blockId}__${fieldName}`;
 
     // Send focus command to iframe
     const message: OverlayMessage = {
@@ -89,7 +82,7 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
       fieldId,
     };
     iframeElement?.contentWindow?.postMessage(message, "*");
-  }, [selectionBreadcrumbs, isPageContentSheetOpen, peekedBlock, iframeElement]);
+  }, [selection, isPageContentSheetOpen, peekedBlock, iframeElement]);
 
   return null;
 };

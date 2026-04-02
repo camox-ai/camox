@@ -33,7 +33,7 @@ import type { Action } from "../../provider/actionsStore";
 import { actionsStore } from "../../provider/actionsStore";
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
-import { previewStore, type SelectionBreadcrumb } from "../previewStore";
+import { previewStore, selectionItemId } from "../previewStore";
 import { useUpdateBlockPosition } from "./useUpdateBlockPosition";
 
 interface BlockActionsPopoverProps {
@@ -361,20 +361,6 @@ const BlockActionsPopover = ({
   );
 };
 
-/**
- * Walk breadcrumbs from deepest to shallowest and return the first
- * RepeatableObject or Block entry — i.e. the closest ancestor that
- * can be duplicated / deleted.
- */
-function findClosestActionable(breadcrumbs: SelectionBreadcrumb[]) {
-  for (let i = breadcrumbs.length - 1; i >= 0; i--) {
-    const crumb = breadcrumbs[i];
-    if (crumb.type === "RepeatableObject") return crumb;
-    if (crumb.type === "Block") return crumb;
-  }
-  return null;
-}
-
 function isLayoutBlockId(page: ReturnType<typeof usePreviewedPage>, blockId: string): boolean {
   if (!page?.layout) return false;
   const layoutBlockIds = new Set([...page.layout.beforeBlockIds, ...page.layout.afterBlockIds]);
@@ -385,10 +371,7 @@ function useBlockActionsShortcuts() {
   const camoxApp = useCamoxApp();
   const page = usePreviewedPage();
   const { pageBlocks } = usePageBlocks(page);
-  const selectionBreadcrumbs = useSelector(
-    previewStore,
-    (state) => state.context.selectionBreadcrumbs,
-  );
+  const selection = useSelector(previewStore, (state) => state.context.selection);
 
   const deleteBlockMutation = useMutation(blockMutations.delete());
   const duplicateBlockMutation = useMutation(blockMutations.duplicate());
@@ -407,22 +390,20 @@ function useBlockActionsShortcuts() {
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
-          const breadcrumbs = ctx.selectionBreadcrumbs;
-          const blockCrumb = breadcrumbs.find((b) => b.type === "Block");
-          if (blockCrumb && isLayoutBlockId(page, blockCrumb.id)) return false;
-          const target = findClosestActionable(breadcrumbs);
-          if (!target) return false;
+          const sel = ctx.selection;
+          if (!sel) return false;
+          if (isLayoutBlockId(page, sel.blockId)) return false;
 
-          if (target.type === "RepeatableObject") {
+          const itemId = selectionItemId(sel);
+          if (itemId) {
+            // Item — check if it's in an array with > 1 markers
             if (!page) return false;
-            if (!blockCrumb) return false;
-            const block = pageBlocks.find((b) => String(b.id) === blockCrumb.id);
+            const block = pageBlocks.find((b) => String(b.id) === sel.blockId);
             if (!block) return false;
-            // _itemId markers: check if the item is in an array with > 1 markers
             for (const [, value] of Object.entries(block.content)) {
               if (!Array.isArray(value)) continue;
               const hasItem = value.some(
-                (i: any) => i?._itemId != null && String(i._itemId) === target.id,
+                (i: any) => i?._itemId != null && String(i._itemId) === itemId,
               );
               if (hasItem) return value.length > 1;
             }
@@ -433,21 +414,21 @@ function useBlockActionsShortcuts() {
           return pageBlocks.length > 1;
         },
         execute: () => {
-          const breadcrumbs = previewStore.getSnapshot().context.selectionBreadcrumbs;
-          const target = findClosestActionable(breadcrumbs);
-          if (!target) return;
+          const sel = previewStore.getSnapshot().context.selection;
+          if (!sel) return;
 
-          if (target.type === "RepeatableObject") {
-            deleteRepeatableItem.mutateAsync({ id: Number(target.id) }).then(
+          const itemId = selectionItemId(sel);
+          if (itemId) {
+            deleteRepeatableItem.mutateAsync({ id: Number(itemId) }).then(
               () => toast.success("Deleted item"),
               () => toast.error("Could not delete item"),
             );
-            previewStore.send({ type: "selectParentBreadcrumb" });
+            previewStore.send({ type: "selectParent" });
             return;
           }
 
-          const block = pageBlocks.find((b) => String(b.id) === target.id);
-          deleteBlockMutation.mutateAsync({ id: Number(target.id) }).then(
+          const block = pageBlocks.find((b) => String(b.id) === sel.blockId);
+          deleteBlockMutation.mutateAsync({ id: Number(sel.blockId) }).then(
             () => toast.success(`Deleted "${block?.summary || block?.type}" block`),
             () => toast.error("Could not delete block"),
           );
@@ -463,25 +444,26 @@ function useBlockActionsShortcuts() {
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
-          const blockCrumb = ctx.selectionBreadcrumbs.find((b) => b.type === "Block");
-          if (blockCrumb && isLayoutBlockId(page, blockCrumb.id)) return false;
-          return findClosestActionable(ctx.selectionBreadcrumbs) !== null;
+          const sel = ctx.selection;
+          if (!sel) return false;
+          if (isLayoutBlockId(page, sel.blockId)) return false;
+          return true;
         },
         execute: () => {
-          const breadcrumbs = previewStore.getSnapshot().context.selectionBreadcrumbs;
-          const target = findClosestActionable(breadcrumbs);
-          if (!target) return;
+          const sel = previewStore.getSnapshot().context.selection;
+          if (!sel) return;
 
-          if (target.type === "RepeatableObject") {
-            duplicateRepeatableItem.mutateAsync({ id: Number(target.id) }).then(
+          const itemId = selectionItemId(sel);
+          if (itemId) {
+            duplicateRepeatableItem.mutateAsync({ id: Number(itemId) }).then(
               () => toast.success("Duplicated item"),
               () => toast.error("Could not duplicate item"),
             );
             return;
           }
 
-          const block = pageBlocks.find((b) => String(b.id) === target.id);
-          duplicateBlockMutation.mutateAsync({ id: Number(target.id) }).then(
+          const block = pageBlocks.find((b) => String(b.id) === sel.blockId);
+          duplicateBlockMutation.mutateAsync({ id: Number(sel.blockId) }).then(
             () => toast.success(`Duplicated "${block?.summary}" block`),
             () => toast.error("Could not duplicate block"),
           );
@@ -496,25 +478,23 @@ function useBlockActionsShortcuts() {
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
-          const blockCrumb = ctx.selectionBreadcrumbs.find((b) => b.type === "Block");
-          if (!blockCrumb || !page) return false;
-          if (isLayoutBlockId(page, blockCrumb.id)) return false;
-          const index = pageBlocks.findIndex((b) => String(b.id) === blockCrumb.id);
+          const sel = ctx.selection;
+          if (!sel || !page) return false;
+          if (isLayoutBlockId(page, sel.blockId)) return false;
+          const index = pageBlocks.findIndex((b) => String(b.id) === sel.blockId);
           return index > 0;
         },
         execute: () => {
-          const blockCrumb = previewStore
-            .getSnapshot()
-            .context.selectionBreadcrumbs.find((b) => b.type === "Block");
-          if (!blockCrumb || !page) return;
-          const index = pageBlocks.findIndex((b) => String(b.id) === blockCrumb.id);
+          const sel = previewStore.getSnapshot().context.selection;
+          if (!sel || !page) return;
+          const index = pageBlocks.findIndex((b) => String(b.id) === sel.blockId);
           if (index <= 0) return;
 
           const afterPosition = index > 1 ? pageBlocks[index - 2].position : undefined;
           const beforePosition = pageBlocks[index - 1].position;
 
           updatePositionMutation
-            .mutateAsync({ id: Number(blockCrumb.id), afterPosition, beforePosition })
+            .mutateAsync({ id: Number(sel.blockId), afterPosition, beforePosition })
             .then(
               () => {},
               () => toast.error("Could not move block"),
@@ -530,18 +510,16 @@ function useBlockActionsShortcuts() {
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
-          const blockCrumb = ctx.selectionBreadcrumbs.find((b) => b.type === "Block");
-          if (!blockCrumb || !page) return false;
-          if (isLayoutBlockId(page, blockCrumb.id)) return false;
-          const index = pageBlocks.findIndex((b) => String(b.id) === blockCrumb.id);
+          const sel = ctx.selection;
+          if (!sel || !page) return false;
+          if (isLayoutBlockId(page, sel.blockId)) return false;
+          const index = pageBlocks.findIndex((b) => String(b.id) === sel.blockId);
           return index !== -1 && index < pageBlocks.length - 1;
         },
         execute: () => {
-          const blockCrumb = previewStore
-            .getSnapshot()
-            .context.selectionBreadcrumbs.find((b) => b.type === "Block");
-          if (!blockCrumb || !page) return;
-          const index = pageBlocks.findIndex((b) => String(b.id) === blockCrumb.id);
+          const sel = previewStore.getSnapshot().context.selection;
+          if (!sel || !page) return;
+          const index = pageBlocks.findIndex((b) => String(b.id) === sel.blockId);
           if (index === -1 || index >= pageBlocks.length - 1) return;
 
           const afterPosition = pageBlocks[index + 1].position;
@@ -549,7 +527,7 @@ function useBlockActionsShortcuts() {
             index + 2 < pageBlocks.length ? pageBlocks[index + 2].position : undefined;
 
           updatePositionMutation
-            .mutateAsync({ id: Number(blockCrumb.id), afterPosition, beforePosition })
+            .mutateAsync({ id: Number(sel.blockId), afterPosition, beforePosition })
             .then(
               () => {},
               () => toast.error("Could not move block"),
@@ -564,14 +542,12 @@ function useBlockActionsShortcuts() {
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
-          return ctx.selectionBreadcrumbs.find((b) => b.type === "Block") !== null;
+          return ctx.selection !== null;
         },
         execute: () => {
-          const blockCrumb = previewStore
-            .getSnapshot()
-            .context.selectionBreadcrumbs.find((b) => b.type === "Block");
-          if (!blockCrumb || !page) return;
-          const block = pageBlocks.find((b) => String(b.id) === blockCrumb.id);
+          const sel = previewStore.getSnapshot().context.selection;
+          if (!sel || !page) return;
+          const block = pageBlocks.find((b) => String(b.id) === sel.blockId);
           if (!block) return;
 
           previewStore.send({
@@ -588,14 +564,12 @@ function useBlockActionsShortcuts() {
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
-          return ctx.selectionBreadcrumbs.find((b) => b.type === "Block") !== null;
+          return ctx.selection !== null;
         },
         execute: () => {
-          const blockCrumb = previewStore
-            .getSnapshot()
-            .context.selectionBreadcrumbs.find((b) => b.type === "Block");
-          if (!blockCrumb || !page) return;
-          const blockIndex = pageBlocks.findIndex((b) => String(b.id) === blockCrumb.id);
+          const sel = previewStore.getSnapshot().context.selection;
+          if (!sel || !page) return;
+          const blockIndex = pageBlocks.findIndex((b) => String(b.id) === sel.blockId);
           if (blockIndex === -1) return;
 
           const afterPosition = blockIndex > 0 ? pageBlocks[blockIndex - 1].position : "";
@@ -616,7 +590,7 @@ function useBlockActionsShortcuts() {
         ids: actions.map((a) => a.id),
       });
     };
-  }, [selectionBreadcrumbs, page, pageBlocks, camoxApp]);
+  }, [selection, page, pageBlocks, camoxApp]);
 }
 
 export { BlockActionsPopover, useBlockActionsShortcuts };

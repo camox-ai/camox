@@ -22,13 +22,13 @@ import * as React from "react";
 
 import { actionsStore, type Action } from "@/features/provider/actionsStore";
 import { trackClientEvent } from "@/lib/analytics-client";
-import { isFileMarker } from "@/lib/normalized-data";
+import { isFileMarker, type NormalizedItem } from "@/lib/normalized-data";
 import { blockMutations, blockQueries, fileQueries, repeatableItemMutations } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
 import type { OverlayMessage } from "../overlayMessages";
-import { previewStore, type SelectionBreadcrumb } from "../previewStore";
+import { previewStore, selectionBlockId, selectionField, selectionItemId } from "../previewStore";
 import { SingleAssetFieldEditor } from "./AssetFieldEditor";
 import { type SchemaField, formatFieldName } from "./ItemFieldsEditor";
 import { ItemFieldsEditor } from "./ItemFieldsEditor";
@@ -58,18 +58,30 @@ const getSettingsFields = (schema: unknown): SchemaField[] => {
 };
 
 /* -------------------------------------------------------------------------------------------------
- * Schema/data traversal helpers
+ * Schema traversal helper — walk up parent chain to find schema for an item
  * -----------------------------------------------------------------------------------------------*/
 
 /**
- * Walks the content schema down through RepeatableObject breadcrumbs
- * to get the sub-schema at the current depth.
+ * Builds the path of fieldNames from the block root to the given item,
+ * then walks the schema down that path to return the sub-schema for the item's fields.
  */
-const getSchemaAtDepth = (contentSchema: unknown, breadcrumbs: SelectionBreadcrumb[]): unknown => {
+const getSchemaForItem = (
+  contentSchema: unknown,
+  itemId: number,
+  itemsMap: Map<number, NormalizedItem>,
+): unknown => {
+  // Build path from root to this item
+  const path: string[] = [];
+  let current = itemsMap.get(itemId);
+  while (current) {
+    path.unshift(current.fieldName);
+    current = current.parentItemId ? itemsMap.get(current.parentItemId) : undefined;
+  }
+
+  // Walk schema down the path
   let schema = contentSchema;
-  for (const crumb of breadcrumbs) {
-    if (crumb.type !== "RepeatableObject" || !crumb.fieldName) continue;
-    const prop = (schema as any)?.properties?.[crumb.fieldName];
+  for (const fieldName of path) {
+    const prop = (schema as any)?.properties?.[fieldName];
     if (!prop?.items) return null;
     schema = prop.items;
   }
@@ -77,71 +89,21 @@ const getSchemaAtDepth = (contentSchema: unknown, breadcrumbs: SelectionBreadcru
 };
 
 /**
- * Walks through content to find the current item's data.
- * Resolves _itemId markers from the items map. For inline items (idx:N),
- * accesses by index without .content unwrap.
+ * Builds the ancestor chain from root to this item (inclusive).
+ * Returns items in order from root-most ancestor to the item itself.
  */
-const getDataAtDepth = (
-  blockContent: Record<string, unknown>,
-  breadcrumbs: SelectionBreadcrumb[],
-  itemsMap: Map<number, { id: number; content: unknown }>,
-): {
-  data: Record<string, unknown>;
-  itemId: string;
-  parentItemId?: string;
-  parentFieldName?: string;
-} | null => {
-  let currentData: Record<string, unknown> = blockContent;
-  let lastItemId = "";
-  let parentItemId: string | undefined;
-  let parentFieldName: string | undefined;
-
-  for (const crumb of breadcrumbs) {
-    if (crumb.type !== "RepeatableObject" || !crumb.fieldName) continue;
-
-    const items = currentData[crumb.fieldName] as any[] | undefined;
-    if (!items) return null;
-
-    if (crumb.id.startsWith("idx:")) {
-      // Inline item: access by index, no .content unwrap
-      const idx = parseInt(crumb.id.slice(4), 10);
-      if (isNaN(idx) || idx < 0 || idx >= items.length) return null;
-
-      parentItemId = lastItemId || undefined;
-      parentFieldName = crumb.fieldName;
-      lastItemId = crumb.id;
-      currentData = items[idx] as Record<string, unknown>;
-    } else {
-      // DB item: resolve from items map
-      const item = itemsMap.get(Number(crumb.id));
-      if (!item) return null;
-
-      lastItemId = crumb.id;
-      currentData = item.content as Record<string, unknown>;
-      parentItemId = undefined;
-      parentFieldName = undefined;
-    }
+const buildAncestorChain = (
+  itemId: number,
+  itemsMap: Map<number, NormalizedItem>,
+): NormalizedItem[] => {
+  const chain: NormalizedItem[] = [];
+  let current = itemsMap.get(itemId);
+  while (current) {
+    chain.unshift(current);
+    current = current.parentItemId ? itemsMap.get(current.parentItemId) : undefined;
   }
-
-  if (!lastItemId) return null;
-  return {
-    data: currentData,
-    itemId: lastItemId,
-    parentItemId,
-    parentFieldName,
-  };
+  return chain;
 };
-
-/* -------------------------------------------------------------------------------------------------
- * Helper: Find item by ID in block content
- * -----------------------------------------------------------------------------------------------*/
-
-function findItemById(
-  itemsMap: Map<number, { id: number; summary: string }>,
-  targetId: string,
-): { summary?: string } | null {
-  return itemsMap.get(Number(targetId)) ?? null;
-}
 
 /* -------------------------------------------------------------------------------------------------
  * PageContentSheet
@@ -152,12 +114,10 @@ const PageContentSheet = () => {
   const updateContent = useMutation(blockMutations.updateContent());
   const updateSettings = useMutation(blockMutations.updateSettings());
   const updateRepeatableContent = useMutation(repeatableItemMutations.updateContent());
+
   // Get state from store
   const isOpen = useSelector(previewStore, (state) => state.context.isPageContentSheetOpen);
-  const selectionBreadcrumbs = useSelector(
-    previewStore,
-    (state) => state.context.selectionBreadcrumbs,
-  );
+  const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
 
   const postToIframe = React.useCallback(
@@ -168,14 +128,9 @@ const PageContentSheet = () => {
     [iframeElement],
   );
 
-  // Find the Block breadcrumb (always the first one)
-  const blockBreadcrumb =
-    selectionBreadcrumbs[0]?.type === "Block" ? selectionBreadcrumbs[0] : null;
-  const blockId = blockBreadcrumb?.id;
-
-  // RepeatableObject breadcrumbs (everything after the block)
-  const repeatableBreadcrumbs = selectionBreadcrumbs.filter((b) => b.type === "RepeatableObject");
-  const depth = repeatableBreadcrumbs.length;
+  const blockId = selectionBlockId(selection);
+  const currentItemId = selectionItemId(selection);
+  const fieldInfo = selectionField(selection);
 
   // Look up the actual block data from individual block cache (granular caching)
   const page = usePreviewedPage();
@@ -214,19 +169,18 @@ const PageContentSheet = () => {
     return blockDef ? getSettingsFields(blockDef.settingsSchema) : [];
   }, [blockDef]);
 
-  // Compute schema and data at the current breadcrumb depth
+  // Compute schema and data based on selection
   const currentSchema = React.useMemo(() => {
     if (!blockDef) return null;
-    return getSchemaAtDepth(blockDef.contentSchema, repeatableBreadcrumbs);
-  }, [blockDef, repeatableBreadcrumbs]);
+    if (!currentItemId) return blockDef.contentSchema;
+    return getSchemaForItem(blockDef.contentSchema, Number(currentItemId), itemsMap);
+  }, [blockDef, currentItemId, itemsMap]);
 
-  const currentDepthResult = React.useMemo(() => {
-    if (!block || depth === 0) return null;
-    return getDataAtDepth(block.content, repeatableBreadcrumbs, itemsMap);
-  }, [block, depth, repeatableBreadcrumbs]);
+  const currentItem = currentItemId ? itemsMap.get(Number(currentItemId)) : null;
 
-  const rawCurrentData: Record<string, unknown> =
-    depth === 0 ? (block?.content ?? {}) : (currentDepthResult?.data ?? {});
+  const rawCurrentData: Record<string, unknown> = currentItem
+    ? (currentItem.content as Record<string, unknown>)
+    : (block?.content ?? {});
 
   // Resolve _fileId markers in data for asset field editors (recursive for inline arrays)
   const currentData = React.useMemo(() => {
@@ -264,18 +218,15 @@ const PageContentSheet = () => {
     return resolved;
   }, [rawCurrentData, filesMap]);
 
-  const currentItemId = currentDepthResult?.itemId;
+  // Detect terminal field view
+  const isViewingLink = fieldInfo?.fieldType === "Link";
+  const linkFieldName = isViewingLink ? fieldInfo.fieldName : null;
 
-  // Detect if the last breadcrumb is a Link drill-in
-  const lastBreadcrumb = selectionBreadcrumbs[selectionBreadcrumbs.length - 1];
-  const isViewingLink = lastBreadcrumb?.type === "Link" && !!lastBreadcrumb.fieldName;
-  const linkFieldName = isViewingLink ? lastBreadcrumb.fieldName : null;
+  const isViewingImage = fieldInfo?.fieldType === "Image";
+  const imageFieldName = isViewingImage ? fieldInfo.fieldName : null;
 
-  const isViewingImage = lastBreadcrumb?.type === "Image" && !!lastBreadcrumb.fieldName;
-  const imageFieldName = isViewingImage ? lastBreadcrumb.fieldName : null;
-
-  const isViewingFile = lastBreadcrumb?.type === "File" && !!lastBreadcrumb.fieldName;
-  const fileFieldName = isViewingFile ? lastBreadcrumb.fieldName : null;
+  const isViewingFile = fieldInfo?.fieldType === "File";
+  const fileFieldName = isViewingFile ? fieldInfo.fieldName : null;
 
   const isViewingAsset = isViewingImage || isViewingFile;
   const assetFieldName = imageFieldName ?? fileFieldName;
@@ -283,71 +234,13 @@ const PageContentSheet = () => {
 
   const isMultipleAsset = React.useMemo(() => {
     if (!isViewingAsset || !assetFieldName || !blockDef) return false;
-    const schema = getSchemaAtDepth(blockDef.contentSchema, repeatableBreadcrumbs);
+    // Get the schema at the current level (block or item)
+    const schema = currentItemId
+      ? getSchemaForItem(blockDef.contentSchema, Number(currentItemId), itemsMap)
+      : blockDef.contentSchema;
     const prop = (schema as any)?.properties?.[assetFieldName];
     return prop?.arrayItemType === "Image" || prop?.arrayItemType === "File";
-  }, [isViewingAsset, assetFieldName, blockDef, repeatableBreadcrumbs]);
-
-  // Redirect RepeatableObject drill-ins for multi-asset fields to the asset view.
-  // Clicking an asset in the iframe produces breadcrumbs like
-  // [Block, RepeatableObject(itemId, "images"), Image("image")].
-  // Collapse to [Block, Image("images")] so we show "Gallery > Images".
-  React.useEffect(() => {
-    if (!blockDef) return;
-    const last = selectionBreadcrumbs[selectionBreadcrumbs.length - 1];
-    const secondToLast = selectionBreadcrumbs[selectionBreadcrumbs.length - 2];
-
-    // Case 1: [... RepeatableObject, Image/File] — from component click
-    if (
-      (last?.type === "Image" || last?.type === "File") &&
-      secondToLast?.type === "RepeatableObject" &&
-      secondToLast.fieldName
-    ) {
-      const parentSchema = getSchemaAtDepth(
-        blockDef.contentSchema,
-        repeatableBreadcrumbs.slice(0, -1),
-      );
-      const fieldProp = (parentSchema as any)?.properties?.[secondToLast.fieldName];
-      if (fieldProp?.arrayItemType === "Image" || fieldProp?.arrayItemType === "File") {
-        const drillType = fieldProp.arrayItemType as "Image" | "File";
-        previewStore.send({
-          type: "setSelectionBreadcrumbs",
-          breadcrumbs: [
-            ...selectionBreadcrumbs.slice(0, -2),
-            {
-              type: drillType,
-              id: secondToLast.fieldName,
-              fieldName: secondToLast.fieldName,
-            },
-          ],
-        });
-        return;
-      }
-    }
-
-    // Case 2: [... RepeatableObject] — from setSelectedRepeatableItem
-    if (last?.type === "RepeatableObject" && last.fieldName) {
-      const parentSchema = getSchemaAtDepth(
-        blockDef.contentSchema,
-        repeatableBreadcrumbs.slice(0, -1),
-      );
-      const fieldProp = (parentSchema as any)?.properties?.[last.fieldName];
-      if (fieldProp?.arrayItemType === "Image" || fieldProp?.arrayItemType === "File") {
-        const drillType = fieldProp.arrayItemType as "Image" | "File";
-        previewStore.send({
-          type: "setSelectionBreadcrumbs",
-          breadcrumbs: [
-            ...selectionBreadcrumbs.slice(0, -1),
-            {
-              type: drillType,
-              id: last.fieldName,
-              fieldName: last.fieldName,
-            },
-          ],
-        });
-      }
-    }
-  }, [blockDef, selectionBreadcrumbs, repeatableBreadcrumbs]);
+  }, [isViewingAsset, assetFieldName, blockDef, currentItemId, itemsMap]);
 
   // Track content sheet open
   React.useEffect(() => {
@@ -360,25 +253,23 @@ const PageContentSheet = () => {
   }, [isOpen, block, page?.page.projectId]);
 
   // Auto-focus selected field when sheet opens
-  const selectedFieldName =
-    selectionBreadcrumbs.length === 2 &&
-    selectionBreadcrumbs[1]?.type !== "Block" &&
-    selectionBreadcrumbs[1]?.type !== "RepeatableObject"
-      ? selectionBreadcrumbs[1]?.id
+  const autoFocusFieldName =
+    selection?.type === "block-field" && selection.fieldType === "String"
+      ? selection.fieldName
       : null;
 
   const handleOpenAutoFocus = React.useCallback(
     (e: Event) => {
       e.preventDefault();
-      if (!selectedFieldName) return;
+      if (!autoFocusFieldName) return;
       setTimeout(() => {
-        const element = document.getElementById(selectedFieldName) as HTMLTextAreaElement | null;
+        const element = document.getElementById(autoFocusFieldName) as HTMLTextAreaElement | null;
         if (!element) return;
         element.focus();
         element.select();
       }, 100);
     },
-    [selectedFieldName],
+    [autoFocusFieldName],
   );
 
   // Register action to toggle content sheet for current selection
@@ -419,52 +310,14 @@ const PageContentSheet = () => {
     [currentItemId, updateRepeatableContent],
   );
 
-  const isNestedInlineItem = !!currentDepthResult?.parentItemId;
-
-  const handleNestedItemFieldChange = React.useCallback(
-    (fieldName: string, value: unknown) => {
-      if (!block || !currentDepthResult?.parentItemId || !currentDepthResult?.parentFieldName)
-        return;
-
-      const idx = parseInt(currentDepthResult.itemId.slice(4), 10);
-      if (isNaN(idx)) return;
-
-      // Get parent level data to find the current inline array
-      const parentResult = getDataAtDepth(
-        block.content,
-        repeatableBreadcrumbs.slice(0, -1),
-        itemsMap,
-      );
-      if (!parentResult) return;
-
-      const parentArray = [
-        ...((parentResult.data[currentDepthResult.parentFieldName] as any[]) ?? []),
-      ];
-      parentArray[idx] = { ...parentArray[idx], [fieldName]: value };
-
-      updateRepeatableContent.mutate({
-        id: Number(currentDepthResult.parentItemId),
-        content: { [currentDepthResult.parentFieldName]: parentArray },
-      });
-    },
-    [block, currentDepthResult, repeatableBreadcrumbs, updateRepeatableContent],
-  );
-
-  let activeFieldChangeHandler: typeof handleNestedItemFieldChange;
-  if (isNestedInlineItem) {
-    activeFieldChangeHandler = handleNestedItemFieldChange;
-  } else if (depth === 0) {
-    activeFieldChangeHandler = handleBlockFieldChange;
-  } else {
-    activeFieldChangeHandler = handleItemFieldChange;
-  }
+  const activeFieldChangeHandler = currentItemId ? handleItemFieldChange : handleBlockFieldChange;
 
   const handleOpenChange = (open: boolean) => {
     if (open) return;
-    if (block && selectedFieldName) {
+    if (block && autoFocusFieldName) {
       const fieldId = currentItemId
-        ? `${String(block.id)}__${currentItemId}__${selectedFieldName}`
-        : `${String(block.id)}__${selectedFieldName}`;
+        ? `${String(block.id)}__${currentItemId}__${autoFocusFieldName}`
+        : `${String(block.id)}__${autoFocusFieldName}`;
       postToIframe({ type: "CAMOX_FOCUS_FIELD_END", fieldId });
     }
     // Clear any lingering hover/focus overlays for the current item
@@ -482,34 +335,9 @@ const PageContentSheet = () => {
     return null;
   }
 
-  // Build breadcrumb label for each RepeatableObject crumb
-  const getBreadcrumbLabel = (crumb: SelectionBreadcrumb, schema: unknown): string => {
-    if (!crumb.fieldName) return crumb.id;
-    const prop = (schema as any)?.properties?.[crumb.fieldName];
-    const fieldLabel = prop?.title ?? formatFieldName(crumb.fieldName);
-
-    if (crumb.id.startsWith("idx:")) {
-      // Inline item: derive label from data
-      const crumbIndex = repeatableBreadcrumbs.indexOf(crumb);
-      const pathCrumbs = repeatableBreadcrumbs.slice(0, crumbIndex + 1);
-      const result = getDataAtDepth(block.content, pathCrumbs, itemsMap);
-      if (result?.data) {
-        for (const value of Object.values(result.data)) {
-          if (typeof value === "string" && value.trim()) return value;
-          if (value && typeof value === "object" && "text" in value) {
-            const text = (value as any).text;
-            if (typeof text === "string" && text.trim()) return text;
-          }
-        }
-      }
-      return fieldLabel;
-    }
-
-    // Try to find the item summary from block content
-    const item = findItemById(itemsMap, crumb.id);
-    if (item?.summary) return item.summary;
-    return fieldLabel;
-  };
+  // Build breadcrumb display from the ancestor chain
+  const ancestorChain = currentItemId ? buildAncestorChain(Number(currentItemId), itemsMap) : [];
+  const isAtBlockLevel = ancestorChain.length === 0 && !fieldInfo;
 
   return (
     <PreviewSideSheet
@@ -523,26 +351,26 @@ const PageContentSheet = () => {
         <SheetParts.SheetDescription asChild>
           <Breadcrumb>
             <BreadcrumbList className="flex-nowrap">
+              {/* Block title — always shown */}
               <BreadcrumbItem className="min-w-0">
-                {depth === 0 && !isViewingLink && !isViewingAsset ? (
+                {isAtBlockLevel ? (
                   <BreadcrumbPage className="truncate">{blockDef.title}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink
                     className="cursor-pointer"
                     onClick={() =>
-                      previewStore.send({
-                        type: "navigateBreadcrumb",
-                        depth: 0,
-                      })
+                      previewStore.send({ type: "setFocusedBlock", blockId: String(block.id) })
                     }
                   >
                     {blockDef.title}
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
-              {depth > 0 && (
+
+              {/* Ancestor items — ellipsis dropdown for deep nesting */}
+              {ancestorChain.length > 0 && (
                 <>
-                  {repeatableBreadcrumbs.length > 1 && (
+                  {ancestorChain.length > 1 && (
                     <>
                       <BreadcrumbSeparator />
                       <BreadcrumbItem>
@@ -551,26 +379,20 @@ const PageContentSheet = () => {
                             <BreadcrumbEllipsis className="size-5" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start">
-                            {repeatableBreadcrumbs.slice(0, -1).map((crumb, index) => {
-                              const parentSchema = getSchemaAtDepth(
-                                blockDef.contentSchema,
-                                repeatableBreadcrumbs.slice(0, index),
-                              );
-                              const label = getBreadcrumbLabel(crumb, parentSchema);
-                              return (
-                                <DropdownMenuItem
-                                  key={crumb.id}
-                                  onClick={() =>
-                                    previewStore.send({
-                                      type: "navigateBreadcrumb",
-                                      depth: index + 1,
-                                    })
-                                  }
-                                >
-                                  {label}
-                                </DropdownMenuItem>
-                              );
-                            })}
+                            {ancestorChain.slice(0, -1).map((ancestor) => (
+                              <DropdownMenuItem
+                                key={ancestor.id}
+                                onClick={() =>
+                                  previewStore.send({
+                                    type: "selectItem",
+                                    blockId: String(block.id),
+                                    itemId: String(ancestor.id),
+                                  })
+                                }
+                              >
+                                {ancestor.summary || formatFieldName(ancestor.fieldName)}
+                              </DropdownMenuItem>
+                            ))}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </BreadcrumbItem>
@@ -578,23 +400,17 @@ const PageContentSheet = () => {
                   )}
                   <BreadcrumbSeparator />
                   {(() => {
-                    const lastCrumb = repeatableBreadcrumbs[repeatableBreadcrumbs.length - 1];
-                    const parentSchema = getSchemaAtDepth(
-                      blockDef.contentSchema,
-                      repeatableBreadcrumbs.slice(0, -1),
-                    );
-                    const crumbLabel = getBreadcrumbLabel(lastCrumb, parentSchema);
+                    const lastAncestor = ancestorChain[ancestorChain.length - 1];
+                    const crumbLabel =
+                      lastAncestor.summary || formatFieldName(lastAncestor.fieldName);
 
-                    if (isViewingLink || isViewingAsset) {
+                    if (fieldInfo) {
+                      // Viewing a field within this item — item is clickable
                       return (
                         <BreadcrumbItem className="min-w-0">
                           <BreadcrumbLink
                             className="cursor-pointer truncate"
-                            onClick={() =>
-                              previewStore.send({
-                                type: "selectParentBreadcrumb",
-                              })
-                            }
+                            onClick={() => previewStore.send({ type: "selectParent" })}
                           >
                             {crumbLabel}
                           </BreadcrumbLink>
@@ -602,6 +418,7 @@ const PageContentSheet = () => {
                       );
                     }
 
+                    // Viewing the item itself — it's the current page
                     return (
                       <BreadcrumbItem className="min-w-0">
                         <BreadcrumbPage className="truncate">{crumbLabel}</BreadcrumbPage>
@@ -610,35 +427,23 @@ const PageContentSheet = () => {
                   })()}
                 </>
               )}
-              {isViewingLink && (
+
+              {/* Terminal field (Link/Image/File) */}
+              {fieldInfo && (
                 <>
                   <BreadcrumbSeparator />
                   <BreadcrumbItem className="min-w-0">
                     <BreadcrumbPage className="truncate">
                       {(() => {
-                        const parentSchema = getSchemaAtDepth(
-                          blockDef.contentSchema,
-                          repeatableBreadcrumbs,
-                        );
-                        const prop = (parentSchema as any)?.properties?.[linkFieldName!];
-                        return prop?.title ?? formatFieldName(linkFieldName!);
-                      })()}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </>
-              )}
-              {isViewingAsset && assetFieldName && (
-                <>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem className="min-w-0">
-                    <BreadcrumbPage className="truncate">
-                      {(() => {
-                        const parentSchema = getSchemaAtDepth(
-                          blockDef.contentSchema,
-                          repeatableBreadcrumbs,
-                        );
-                        const prop = (parentSchema as any)?.properties?.[assetFieldName];
-                        return prop?.title ?? formatFieldName(assetFieldName);
+                        const schema = currentItemId
+                          ? getSchemaForItem(
+                              blockDef.contentSchema,
+                              Number(currentItemId),
+                              itemsMap,
+                            )
+                          : blockDef.contentSchema;
+                        const prop = (schema as any)?.properties?.[fieldInfo.fieldName];
+                        return prop?.title ?? formatFieldName(fieldInfo.fieldName);
                       })()}
                     </BreadcrumbPage>
                   </BreadcrumbItem>
@@ -689,16 +494,14 @@ const PageContentSheet = () => {
             schema={currentSchema}
             data={currentData}
             blockId={String(block.id)}
-            itemId={currentItemId}
-            parentItemId={currentDepthResult?.parentItemId}
-            parentFieldName={currentDepthResult?.parentFieldName}
+            itemId={currentItemId ?? undefined}
             onFieldChange={activeFieldChangeHandler}
             postToIframe={postToIframe}
             filesMap={filesMap}
             itemsMap={itemsMap}
           />
         )}
-        {depth === 0 && !isViewingLink && !isViewingAsset && settingsFields.length > 0 && (
+        {!currentItemId && !fieldInfo && settingsFields.length > 0 && (
           <div className="border-border space-y-4 border-t px-4 py-4">
             <Label className="text-muted-foreground">Settings</Label>
             {settingsFields.map((field) => {
