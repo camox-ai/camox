@@ -25,8 +25,8 @@ import { Copy, Pen, Settings, Trash2 } from "lucide-react";
 import * as React from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
-import { usePageBlocks } from "@/lib/normalized-data";
-import { blockMutations, repeatableItemMutations, type PageWithBlocks } from "@/lib/queries";
+import { type NormalizedBlock, usePageBlocks } from "@/lib/normalized-data";
+import { blockMutations, repeatableItemMutations } from "@/lib/queries";
 import { formatShortcut } from "@/lib/utils";
 
 import type { Action } from "../../provider/actionsStore";
@@ -37,7 +37,7 @@ import { previewStore, type SelectionBreadcrumb } from "../previewStore";
 import { useUpdateBlockPosition } from "./useUpdateBlockPosition";
 
 interface BlockActionsPopoverProps {
-  block: PageWithBlocks["blocks"][number] | undefined | null;
+  block: NormalizedBlock | undefined | null;
   children: React.ReactNode;
   align?: "start" | "center" | "end";
   open: boolean;
@@ -55,9 +55,7 @@ const BlockActionsPopover = ({
   isLayoutBlock,
   layoutPlacement,
 }: BlockActionsPopoverProps) => {
-  const [blockToDelete, setBlockToDelete] = React.useState<PageWithBlocks["blocks"][number] | null>(
-    null,
-  );
+  const [blockToDelete, setBlockToDelete] = React.useState<NormalizedBlock | null>(null);
 
   const camoxApp = useCamoxApp();
   const page = usePreviewedPage();
@@ -67,7 +65,7 @@ const BlockActionsPopover = ({
   const duplicateBlock = useMutation(blockMutations.duplicate());
   const deleteManyBlocks = useMutation(blockMutations.deleteMany());
 
-  const handleDeleteBlock = async (block: PageWithBlocks["blocks"][number]) => {
+  const handleDeleteBlock = async (block: NormalizedBlock) => {
     try {
       await deleteBlock.mutateAsync({ id: block.id });
       trackClientEvent("block_deleted", {
@@ -83,7 +81,7 @@ const BlockActionsPopover = ({
     }
   };
 
-  const handleDuplicateBlock = async (block: PageWithBlocks["blocks"][number]) => {
+  const handleDuplicateBlock = async (block: NormalizedBlock) => {
     try {
       await duplicateBlock.mutateAsync({ id: block.id });
       trackClientEvent("block_duplicated", {
@@ -97,7 +95,7 @@ const BlockActionsPopover = ({
     }
   };
 
-  const handleAddBlockAbove = (block: PageWithBlocks["blocks"][number]) => {
+  const handleAddBlockAbove = (block: NormalizedBlock) => {
     if (!page) return;
 
     const blockIndex = pageBlocks.findIndex((b) => String(b.id) === String(block.id));
@@ -109,26 +107,26 @@ const BlockActionsPopover = ({
     });
   };
 
-  const handleAddBlockBelow = (block: PageWithBlocks["blocks"][number]) => {
+  const handleAddBlockBelow = (block: NormalizedBlock) => {
     previewStore.send({
       type: "openAddBlockSheet",
       afterPosition: block.position,
     });
   };
 
-  const getBlocksAbove = (block: PageWithBlocks["blocks"][number]) => {
+  const getBlocksAbove = (block: NormalizedBlock) => {
     if (!page) return [];
     const blockIndex = pageBlocks.findIndex((b) => String(b.id) === String(block.id));
     return pageBlocks.slice(0, blockIndex);
   };
 
-  const getBlocksBelow = (block: PageWithBlocks["blocks"][number]) => {
+  const getBlocksBelow = (block: NormalizedBlock) => {
     if (!page) return [];
     const blockIndex = pageBlocks.findIndex((b) => String(b.id) === String(block.id));
     return pageBlocks.slice(blockIndex + 1);
   };
 
-  const handleDeleteBlocksAbove = async (block: PageWithBlocks["blocks"][number]) => {
+  const handleDeleteBlocksAbove = async (block: NormalizedBlock) => {
     const blocksAbove = getBlocksAbove(block);
     if (blocksAbove.length === 0) return;
 
@@ -141,7 +139,7 @@ const BlockActionsPopover = ({
     }
   };
 
-  const handleDeleteBlocksBelow = async (block: PageWithBlocks["blocks"][number]) => {
+  const handleDeleteBlocksBelow = async (block: NormalizedBlock) => {
     const blocksBelow = getBlocksBelow(block);
     if (blocksBelow.length === 0) return;
 
@@ -418,7 +416,7 @@ function useBlockActionsShortcuts() {
           if (target.type === "RepeatableObject") {
             if (!page) return false;
             if (!blockCrumb) return false;
-            const block = page.blocks.find((b) => String(b.id) === blockCrumb.id);
+            const block = pageBlocks.find((b) => String(b.id) === blockCrumb.id);
             if (!block) return false;
             // _itemId markers: check if the item is in an array with > 1 markers
             for (const [, value] of Object.entries(block.content)) {
@@ -448,7 +446,7 @@ function useBlockActionsShortcuts() {
             return;
           }
 
-          const block = page.blocks.find((b) => String(b.id) === target.id);
+          const block = pageBlocks.find((b) => String(b.id) === target.id);
           deleteBlockMutation.mutateAsync({ id: Number(target.id) }).then(
             () => toast.success(`Deleted "${block?.summary || block?.type}" block`),
             () => toast.error("Could not delete block"),
@@ -482,7 +480,7 @@ function useBlockActionsShortcuts() {
             return;
           }
 
-          const block = page.blocks.find((b) => String(b.id) === target.id);
+          const block = pageBlocks.find((b) => String(b.id) === target.id);
           duplicateBlockMutation.mutateAsync({ id: Number(target.id) }).then(
             () => toast.success(`Duplicated "${block?.summary}" block`),
             () => toast.error("Could not duplicate block"),
@@ -573,7 +571,7 @@ function useBlockActionsShortcuts() {
             .getSnapshot()
             .context.selectionBreadcrumbs.find((b) => b.type === "Block");
           if (!blockCrumb || !page) return;
-          const block = page.blocks.find((b) => String(b.id) === blockCrumb.id);
+          const block = pageBlocks.find((b) => String(b.id) === blockCrumb.id);
           if (!block) return;
 
           previewStore.send({

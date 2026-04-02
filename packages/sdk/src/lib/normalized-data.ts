@@ -1,8 +1,10 @@
 import { queryKeys } from "@camox/api/query-keys";
 import type { QueryClient } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 import * as React from "react";
 
-import type { PageWithBlocks } from "./queries";
+import type { BlockBundle, PageStructure, PageWithBlocks } from "./queries";
+import { blockQueries } from "./queries";
 
 /* -------------------------------------------------------------------------------------------------
  * Types
@@ -52,41 +54,58 @@ export function useNormalizedData() {
 }
 
 /* -------------------------------------------------------------------------------------------------
- * Hook for building maps from page data (used by editing UI components)
+ * Helper: resolve page/layout blocks from individual block caches
+ * Uses useQueries to subscribe to each block's cache entry.
  * -----------------------------------------------------------------------------------------------*/
 
-export function useNormalizedMaps(pageData: PageWithBlocks) {
-  return React.useMemo(
-    () => ({
-      filesMap: new Map(pageData.files.map((f) => [f.id, f])),
-      itemsMap: new Map(pageData.repeatableItems.map((i) => [i.id, i])),
-    }),
-    [pageData.files, pageData.repeatableItems],
+const EMPTY_IDS: number[] = [];
+
+export function usePageBlocks(pageStructure: PageStructure) {
+  const blockIds = pageStructure.page.blockIds;
+  const beforeIds = pageStructure.layout?.beforeBlockIds ?? EMPTY_IDS;
+  const afterIds = pageStructure.layout?.afterBlockIds ?? EMPTY_IDS;
+
+  const allIds = React.useMemo(
+    () => [...blockIds, ...beforeIds, ...afterIds],
+    [blockIds, beforeIds, afterIds],
   );
-}
 
-/* -------------------------------------------------------------------------------------------------
- * Helper: resolve page/layout blocks from normalized response
- * -----------------------------------------------------------------------------------------------*/
+  const results = useQueries({
+    queries: allIds.map((id) => blockQueries.get(id)),
+  });
 
-export function usePageBlocks(pageData: PageWithBlocks) {
   return React.useMemo(() => {
-    const blocksMap = new Map(pageData.blocks.map((b) => [b.id, b]));
-    const pageBlocks = pageData.page.blockIds
-      .map((id) => blocksMap.get(id))
-      .filter((b): b is NormalizedBlock => b != null);
-    const beforeBlocks = pageData.layout
-      ? pageData.layout.beforeBlockIds
-          .map((id) => blocksMap.get(id))
-          .filter((b): b is NormalizedBlock => b != null)
-      : [];
-    const afterBlocks = pageData.layout
-      ? pageData.layout.afterBlockIds
-          .map((id) => blocksMap.get(id))
-          .filter((b): b is NormalizedBlock => b != null)
-      : [];
-    return { pageBlocks, beforeBlocks, afterBlocks, allBlocks: pageData.blocks };
-  }, [pageData]);
+    const bundleMap = new Map<number, BlockBundle>();
+    for (let i = 0; i < allIds.length; i++) {
+      const data = results[i]?.data;
+      if (data) bundleMap.set(allIds[i], data);
+    }
+
+    // Merge files and items from layout block bundles for NormalizedDataProvider
+    const layoutFiles: NormalizedFile[] = [];
+    const layoutItems: NormalizedItem[] = [];
+    for (const id of [...beforeIds, ...afterIds]) {
+      const bundle = bundleMap.get(id);
+      if (bundle) {
+        layoutFiles.push(...bundle.files);
+        layoutItems.push(...bundle.repeatableItems);
+      }
+    }
+
+    return {
+      pageBlocks: blockIds
+        .map((id) => bundleMap.get(id)?.block)
+        .filter((b): b is NormalizedBlock => b != null),
+      beforeBlocks: beforeIds
+        .map((id) => bundleMap.get(id)?.block)
+        .filter((b): b is NormalizedBlock => b != null),
+      afterBlocks: afterIds
+        .map((id) => bundleMap.get(id)?.block)
+        .filter((b): b is NormalizedBlock => b != null),
+      layoutFiles,
+      layoutItems,
+    };
+  }, [results, allIds, blockIds, beforeIds, afterIds]);
 }
 
 /* -------------------------------------------------------------------------------------------------
@@ -156,6 +175,10 @@ export function seedBlockCaches(queryClient: QueryClient, pageData: PageWithBloc
       repeatableItems: blockItems,
       files: blockFiles,
     });
+
+    for (const file of blockFiles) {
+      queryClient.setQueryData(queryKeys.files.get(file.id), file);
+    }
   }
 }
 

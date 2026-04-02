@@ -1,9 +1,10 @@
+import { queryKeys } from "@camox/api/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import { generateKeyBetween } from "fractional-indexing";
 
-import { type PageWithBlocks, blockMutations, pageQueries } from "@/lib/queries";
+import { type BlockBundle, type PageStructure, blockMutations } from "@/lib/queries";
 
 import { previewStore } from "../previewStore";
 
@@ -16,46 +17,59 @@ export function useUpdateBlockPosition() {
   return useMutation({
     ...blockMutations.updatePosition(),
     onMutate: (variables) => {
-      const queryOptions = pageQueries.getByPath(pagePathname);
-      const previousPage = queryClient.getQueryData<PageWithBlocks>(queryOptions.queryKey);
+      const pageQueryKey = queryKeys.pages.getByPath(pagePathname);
+      const previousPage = queryClient.getQueryData<PageStructure>(pageQueryKey);
+      if (!previousPage) return {};
 
-      if (previousPage) {
-        const blockToMove = previousPage.blocks.find((b) => b.id === variables.id);
-        if (blockToMove) {
-          const newPosition = generateKeyBetween(
-            variables.afterPosition ?? null,
-            variables.beforePosition ?? null,
-          );
-          const movedBlock = { ...blockToMove, position: newPosition };
-          const newBlocks = previousPage.blocks
-            .map((b) => (b.id === variables.id ? movedBlock : b))
-            .sort((a, b) => a.position.localeCompare(b.position));
+      const newPosition = generateKeyBetween(
+        variables.afterPosition ?? null,
+        variables.beforePosition ?? null,
+      );
 
-          // Re-derive blockIds from sorted page blocks
-          const pageBlockIdSet = new Set(previousPage.page.blockIds);
-          const newBlockIds = newBlocks.filter((b) => pageBlockIdSet.has(b.id)).map((b) => b.id);
-
-          queryClient.setQueryData<PageWithBlocks>(queryOptions.queryKey, {
-            ...previousPage,
-            page: { ...previousPage.page, blockIds: newBlockIds },
-            blocks: newBlocks,
-          });
-        }
+      // Update the moved block's position in its individual cache
+      const prevBundle = queryClient.getQueryData<BlockBundle>(queryKeys.blocks.get(variables.id));
+      if (prevBundle) {
+        queryClient.setQueryData(queryKeys.blocks.get(variables.id), {
+          ...prevBundle,
+          block: { ...prevBundle.block, position: newPosition },
+        });
       }
 
-      queryClient.cancelQueries({ queryKey: queryOptions.queryKey });
-      return { previousPage };
+      // Re-derive blockIds ordering from all block positions
+      const blockIds = previousPage.page.blockIds;
+      const positions = new Map<number, string>();
+      for (const id of blockIds) {
+        if (id === variables.id) {
+          positions.set(id, newPosition);
+        } else {
+          const bundle = queryClient.getQueryData<BlockBundle>(queryKeys.blocks.get(id));
+          if (bundle) positions.set(id, bundle.block.position);
+        }
+      }
+      const sortedIds = [...blockIds].sort((a, b) => {
+        const posA = positions.get(a) ?? "";
+        const posB = positions.get(b) ?? "";
+        return posA.localeCompare(posB);
+      });
+
+      queryClient.setQueryData<PageStructure>(pageQueryKey, {
+        ...previousPage,
+        page: { ...previousPage.page, blockIds: sortedIds },
+      });
+
+      queryClient.cancelQueries({ queryKey: pageQueryKey });
+      return { previousPage, prevBundle };
     },
-    onError: (_error, _variables, context) => {
+    onError: (_error, variables, context) => {
       if (context?.previousPage) {
-        queryClient.setQueryData(
-          pageQueries.getByPath(pagePathname).queryKey,
-          context.previousPage,
-        );
+        queryClient.setQueryData(queryKeys.pages.getByPath(pagePathname), context.previousPage);
+      }
+      if (context?.prevBundle) {
+        queryClient.setQueryData(queryKeys.blocks.get(variables.id), context.prevBundle);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: pageQueries.getByPath(pagePathname).queryKey });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pages.getByPath(pagePathname) });
     },
   });
 }

@@ -11,7 +11,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import type { CamoxApp } from "../../core/createApp";
 import { trackEvent } from "../../lib/analytics";
 import { seedBlockCaches } from "../../lib/normalized-data";
-import type { PageWithBlocks } from "../../lib/queries";
+import type { PageStructure } from "../../lib/queries";
 import { CamoxPreview, PageContent } from "../preview/CamoxPreview";
 
 /* -------------------------------------------------------------------------------------------------
@@ -101,7 +101,7 @@ export function createPageLoader(apiUrl: string) {
           queryFn: async () => {
             const data = await serverApi.pages.getByPath({ path: location.pathname });
             seedBlockCaches(context.queryClient, data);
-            return data;
+            return { page: data.page, layout: data.layout, projectName: data.projectName };
           },
           staleTime: Infinity,
         }),
@@ -119,7 +119,7 @@ export function createPageHead(camoxApp: CamoxApp) {
     loaderData,
   }: {
     loaderData?: {
-      page: PageWithBlocks;
+      page: PageStructure;
       origin: string;
     };
   }) => {

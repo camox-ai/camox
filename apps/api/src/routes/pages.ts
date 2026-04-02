@@ -441,6 +441,58 @@ const getByPath = pub.input(z.object({ path: z.string() })).handler(async ({ con
   };
 });
 
+/**
+ * Lightweight version of getByPath — returns only structural data (page, layout,
+ * project name, block ID arrays). No blocks, items, or files.
+ * Used by the frontend for client-side refetches after structural mutations.
+ */
+const getStructure = pub
+  .input(z.object({ path: z.string() }))
+  .handler(async ({ context, input }) => {
+    const { path: fullPath } = input;
+    const db = context.db;
+
+    const page = await db.select().from(pages).where(eq(pages.fullPath, fullPath)).get();
+    if (!page) throw new ORPCError("NOT_FOUND");
+
+    const project = await db.select().from(projects).where(eq(projects.id, page.projectId)).get();
+    if (!project) throw new ORPCError("NOT_FOUND");
+
+    // Only fetch block IDs and positions (no content, items, or files)
+    const pageBlocks = sortByPosition(
+      await db
+        .select({ id: blocks.id, position: blocks.position })
+        .from(blocks)
+        .where(eq(blocks.pageId, page.id)),
+    );
+
+    const layout = page.layoutId
+      ? await db.select().from(layouts).where(eq(layouts.id, page.layoutId)).get()
+      : null;
+
+    const layoutBlocks = layout
+      ? sortByPosition(
+          await db
+            .select({ id: blocks.id, position: blocks.position, placement: blocks.placement })
+            .from(blocks)
+            .where(eq(blocks.layoutId, layout.id)),
+        )
+      : [];
+
+    return {
+      page: { ...page, blockIds: pageBlocks.map((b) => b.id) },
+      projectName: project.name,
+      layout: layout
+        ? {
+            id: layout.id,
+            layoutId: layout.layoutId,
+            beforeBlockIds: layoutBlocks.filter((b) => b.placement === "before").map((b) => b.id),
+            afterBlockIds: layoutBlocks.filter((b) => b.placement === "after").map((b) => b.id),
+          }
+        : null,
+    };
+  });
+
 const list = pub.handler(async ({ context }) => {
   return await context.db.select().from(pages);
 });
@@ -736,6 +788,7 @@ const generateSeo = authed
 
 export const pageProcedures = {
   getByPath,
+  getStructure,
   list,
   get,
   create,

@@ -192,8 +192,19 @@ Backend changes to `repeatable-items.ts`:
 - `create`, `delete`, `duplicate` — invalidate `blocks.get(blockId)` + `blocks.getUsageCounts` (removed page query invalidation)
 - `generateSummary` — invalidates `blocks.get(blockId)` + `blocks.getUsageCounts`
 
+**3d. Slim page query — structure only**
+
+The page query cache (`queryKeys.pages.getByPath`) stores only `PageStructure` — `{ page, layout, projectName }` — no blocks, items, or files. All consumers read block data from individual block caches via `useQueries`.
+
+- `usePreviewedPage()` returns `PageStructure` — `pageStructureQueryFn()` fetches the full `getByPath` response, seeds block caches, returns only structural data
+- `usePageBlocks(pageStructure)` uses `useQueries` to subscribe to individual block caches, returns `{ pageBlocks, beforeBlocks, afterBlocks, layoutFiles, layoutItems }`
+- Layout blocks wrapped in `NormalizedDataProvider` built from merged layout block bundle files/items
+- `AddBlockSheet` optimistic updates: seeds optimistic block cache + updates `page.blockIds`
+- `useUpdateBlockPosition` optimistic updates: updates block position in its cache + re-derives sorted `blockIds`
+- `PageTree`, `Overlays`, `BlockActionsPopover` all read blocks from individual caches via `usePageBlocks`
+
+**Result:** Structural mutations (add/remove/reorder) refetch only lightweight page structure from the server, not all blocks + items + files. Block caches are re-seeded as part of the queryFn.
+
 **Design decisions:**
 
-- Page query still stores full `PageWithBlocks` — avoids refactoring all editing UI consumers (`PageTree`, `AddBlockSheet`, `useUpdateBlockPosition`, `BlockActionsPopover`, `Overlays`)
-- Layout blocks still render from page-level data — layout editing is less frequent and the layout rendering architecture would need a separate refactor
 - File mutations still invalidate page-level queries — file metadata edits are rare, and tracking which blocks reference a file would add complexity
