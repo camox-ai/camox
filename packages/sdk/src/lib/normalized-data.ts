@@ -1,3 +1,5 @@
+import { queryKeys } from "@camox/api/query-keys";
+import type { QueryClient } from "@tanstack/react-query";
 import * as React from "react";
 
 import type { PageWithBlocks } from "./queries";
@@ -109,6 +111,52 @@ export function isItemMarker(value: unknown): value is { _itemId: number } {
     "_itemId" in (value as Record<string, unknown>) &&
     (value as Record<string, unknown>)._itemId != null
   );
+}
+
+/* -------------------------------------------------------------------------------------------------
+ * Seed individual block caches from page response
+ * Each block gets its own cache entry matching the blocks.get endpoint shape.
+ * This enables granular invalidation — content edits refetch only the affected block.
+ * -----------------------------------------------------------------------------------------------*/
+
+function collectFileIdsFromContent(content: Record<string, unknown>, ids: Set<number>) {
+  for (const value of Object.values(content)) {
+    if (value != null && typeof value === "object") {
+      if ("_fileId" in value && typeof (value as any)._fileId === "number") {
+        ids.add((value as any)._fileId);
+      } else if (Array.isArray(value)) {
+        for (const item of value) {
+          if (item != null && typeof item === "object") {
+            collectFileIdsFromContent(item as Record<string, unknown>, ids);
+          }
+        }
+      } else {
+        collectFileIdsFromContent(value as Record<string, unknown>, ids);
+      }
+    }
+  }
+}
+
+export function seedBlockCaches(queryClient: QueryClient, pageData: PageWithBlocks) {
+  const filesById = new Map(pageData.files.map((f) => [f.id, f]));
+
+  for (const block of pageData.blocks) {
+    const blockItems = pageData.repeatableItems.filter((i) => i.blockId === block.id);
+
+    // Collect file IDs referenced by this block and its items
+    const fileIds = new Set<number>();
+    collectFileIdsFromContent(block.content as Record<string, unknown>, fileIds);
+    for (const item of blockItems) {
+      collectFileIdsFromContent(item.content as Record<string, unknown>, fileIds);
+    }
+    const blockFiles = [...fileIds].map((id) => filesById.get(id)).filter((f) => f != null);
+
+    queryClient.setQueryData(queryKeys.blocks.get(block.id), {
+      block,
+      repeatableItems: blockItems,
+      files: blockFiles,
+    });
+  }
 }
 
 /** Resolve a file marker to a full file object */

@@ -6,6 +6,7 @@ import { type ApiClient, getOrpc } from "./api-client";
 
 export type Page = Awaited<ReturnType<ApiClient["pages"]["list"]>>[number];
 export type PageWithBlocks = Awaited<ReturnType<ApiClient["pages"]["getByPath"]>>;
+export type BlockBundle = Awaited<ReturnType<ApiClient["blocks"]["get"]>>;
 export type File = Awaited<ReturnType<ApiClient["files"]["list"]>>[number];
 export type Project = Awaited<ReturnType<ApiClient["projects"]["getFirst"]>>;
 export type Layout = Awaited<ReturnType<ApiClient["layouts"]["list"]>>[number];

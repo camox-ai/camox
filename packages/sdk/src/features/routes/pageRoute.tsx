@@ -10,6 +10,7 @@ import { getRequest } from "@tanstack/react-start/server";
 
 import type { CamoxApp } from "../../core/createApp";
 import { trackEvent } from "../../lib/analytics";
+import { seedBlockCaches } from "../../lib/normalized-data";
 import type { PageWithBlocks } from "../../lib/queries";
 import { CamoxPreview, PageContent } from "../preview/CamoxPreview";
 
@@ -97,7 +98,11 @@ export function createPageLoader(apiUrl: string) {
       const [page, origin] = await Promise.all([
         context.queryClient.ensureQueryData({
           queryKey: queryKeys.pages.getByPath(location.pathname),
-          queryFn: () => serverApi.pages.getByPath({ path: location.pathname }),
+          queryFn: async () => {
+            const data = await serverApi.pages.getByPath({ path: location.pathname });
+            seedBlockCaches(context.queryClient, data);
+            return data;
+          },
           staleTime: Infinity,
         }),
         getOrigin(),
