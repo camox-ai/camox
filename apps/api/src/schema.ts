@@ -171,6 +171,8 @@ export const blockDefinitions = sqliteTable(
     description: text().notNull(),
     contentSchema: text("content_schema", { mode: "json" }).notNull(),
     settingsSchema: text("settings_schema", { mode: "json" }),
+    defaultContent: text("default_content", { mode: "json" }),
+    defaultSettings: text("default_settings", { mode: "json" }),
     layoutOnly: int("layout_only", { mode: "boolean" }),
     createdAt: int("created_at").notNull(),
     updatedAt: int("updated_at").notNull(),

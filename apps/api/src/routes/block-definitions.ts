@@ -14,6 +14,8 @@ const definitionSchema = z.object({
   description: z.string(),
   contentSchema: z.unknown(),
   settingsSchema: z.unknown().optional(),
+  defaultContent: z.unknown().optional(),
+  defaultSettings: z.unknown().optional(),
   layoutOnly: z.boolean().optional(),
 });
 
@@ -26,6 +28,8 @@ const syncSchema = z.object({
       description: z.string(),
       contentSchema: z.unknown(),
       settingsSchema: z.unknown().optional(),
+      defaultContent: z.unknown().optional(),
+      defaultSettings: z.unknown().optional(),
       layoutOnly: z.boolean().optional(),
     }),
   ),
@@ -63,6 +67,8 @@ const sync = pub.input(syncSchema).handler(async ({ context, input }) => {
           description: def.description,
           contentSchema: def.contentSchema,
           settingsSchema: def.settingsSchema ?? null,
+          defaultContent: def.defaultContent ?? null,
+          defaultSettings: def.defaultSettings ?? null,
           layoutOnly: def.layoutOnly ?? null,
           updatedAt: now,
         })
@@ -80,6 +86,8 @@ const sync = pub.input(syncSchema).handler(async ({ context, input }) => {
           description: def.description,
           contentSchema: def.contentSchema,
           settingsSchema: def.settingsSchema ?? null,
+          defaultContent: def.defaultContent ?? null,
+          defaultSettings: def.defaultSettings ?? null,
           layoutOnly: def.layoutOnly ?? null,
           createdAt: now,
           updatedAt: now,
@@ -121,6 +129,8 @@ const upsert = pub.input(definitionSchema).handler(async ({ context, input }) =>
         description: input.description,
         contentSchema: input.contentSchema,
         settingsSchema: input.settingsSchema ?? null,
+        defaultContent: input.defaultContent ?? null,
+        defaultSettings: input.defaultSettings ?? null,
         layoutOnly: input.layoutOnly ?? null,
         updatedAt: now,
       })
@@ -135,6 +145,8 @@ const upsert = pub.input(definitionSchema).handler(async ({ context, input }) =>
     .values({
       ...input,
       settingsSchema: input.settingsSchema ?? null,
+      defaultContent: input.defaultContent ?? null,
+      defaultSettings: input.defaultSettings ?? null,
       layoutOnly: input.layoutOnly ?? null,
       createdAt: now,
       updatedAt: now,
