@@ -76,6 +76,8 @@ export async function syncDefinitions(
       description: block.description,
       contentSchema: block.contentSchema,
       settingsSchema: block.settingsSchema,
+      defaultContent: block.getInitialContent(),
+      defaultSettings: block.getInitialSettings(),
       layoutOnly: block.layoutOnly || undefined,
     }));
 
@@ -134,6 +136,8 @@ export async function syncDefinitions(
       description: block.description,
       contentSchema: block.contentSchema,
       settingsSchema: block.settingsSchema,
+      defaultContent: block.getInitialContent(),
+      defaultSettings: block.getInitialSettings(),
       layoutOnly: block.layoutOnly || undefined,
     });
 
