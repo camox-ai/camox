@@ -1,3 +1,4 @@
+import { queryKeys } from "@camox/api/query-keys";
 import {
   Command,
   CommandEmpty,
@@ -17,7 +18,7 @@ import * as React from "react";
 import type { Block } from "@/core/createBlock";
 import { trackClientEvent } from "@/lib/analytics-client";
 import { usePageBlocks } from "@/lib/normalized-data";
-import { type PageWithBlocks, blockMutations, blockQueries, pageQueries } from "@/lib/queries";
+import { type BlockBundle, type PageStructure, blockMutations, blockQueries } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -34,77 +35,89 @@ const AddBlockSheet = () => {
   const createBlock = useMutation({
     ...blockMutations.create(),
     onMutate: (variables) => {
-      const queryOptions = pageQueries.getByPath(pagePathname);
-      const previousPage = queryClient.getQueryData<PageWithBlocks>(queryOptions.queryKey);
+      const pageQueryKey = queryKeys.pages.getByPath(pagePathname);
+      const previousPage = queryClient.getQueryData<PageStructure>(pageQueryKey);
+      if (!previousPage) return {};
 
-      if (previousPage) {
-        // Use page block IDs to filter page blocks for position calculation
-        const pageBlockIds = new Set(previousPage.page.blockIds);
-        const pageBlocks = previousPage.blocks.filter((b) => pageBlockIds.has(b.id));
-        const { afterPosition } = variables;
+      // Read block positions from individual caches for position computation
+      const blockIds = previousPage.page.blockIds;
+      const pageBlocks = blockIds
+        .map((id) => queryClient.getQueryData<BlockBundle>(queryKeys.blocks.get(id))?.block)
+        .filter((b) => b != null);
+      const { afterPosition } = variables;
 
-        let position: string;
-        if (afterPosition == null) {
-          const lastBlock = pageBlocks[pageBlocks.length - 1];
-          position = generateKeyBetween(lastBlock?.position ?? null, null);
-        } else if (afterPosition === "") {
-          const firstBlock = pageBlocks[0];
-          position = generateKeyBetween(null, firstBlock?.position ?? null);
-        } else {
-          let afterIndex = -1;
-          for (let i = pageBlocks.length - 1; i >= 0; i--) {
-            if (String(pageBlocks[i].position) <= afterPosition) {
-              afterIndex = i;
-              break;
-            }
+      let position: string;
+      if (afterPosition == null) {
+        const lastBlock = pageBlocks[pageBlocks.length - 1];
+        position = generateKeyBetween(lastBlock?.position ?? null, null);
+      } else if (afterPosition === "") {
+        const firstBlock = pageBlocks[0];
+        position = generateKeyBetween(null, firstBlock?.position ?? null);
+      } else {
+        let afterIndex = -1;
+        for (let i = pageBlocks.length - 1; i >= 0; i--) {
+          if (String(pageBlocks[i].position) <= afterPosition) {
+            afterIndex = i;
+            break;
           }
-          const nextBlock = afterIndex >= 0 ? pageBlocks[afterIndex + 1] : pageBlocks[0];
-          position = generateKeyBetween(
-            afterIndex >= 0 ? pageBlocks[afterIndex].position : null,
-            nextBlock?.position ?? null,
-          );
         }
-
-        const now = Date.now();
-        const optimisticBlock = {
-          id: -now,
-          pageId: variables.pageId,
-          layoutId: null,
-          type: variables.type,
-          content: variables.content as Record<string, unknown>,
-          settings: (variables.settings as Record<string, unknown>) ?? null,
-          placement: null,
-          summary: "",
-          position,
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        queryClient.setQueryData<PageWithBlocks>(queryOptions.queryKey, {
-          ...previousPage,
-          page: {
-            ...previousPage.page,
-            blockIds: [...previousPage.page.blockIds, optimisticBlock.id],
-          },
-          blocks: [...previousPage.blocks, optimisticBlock].sort((a, b) =>
-            a.position.localeCompare(b.position),
-          ),
-        });
+        const nextBlock = afterIndex >= 0 ? pageBlocks[afterIndex + 1] : pageBlocks[0];
+        position = generateKeyBetween(
+          afterIndex >= 0 ? pageBlocks[afterIndex].position : null,
+          nextBlock?.position ?? null,
+        );
       }
 
-      queryClient.cancelQueries({ queryKey: queryOptions.queryKey });
-      return { previousPage };
+      const now = Date.now();
+      const optimisticId = -now;
+      const optimisticBlock = {
+        id: optimisticId,
+        pageId: variables.pageId,
+        layoutId: null,
+        type: variables.type,
+        content: variables.content as Record<string, unknown>,
+        settings: (variables.settings as Record<string, unknown>) ?? null,
+        placement: null,
+        summary: "",
+        position,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Seed the optimistic block's individual cache
+      queryClient.setQueryData(queryKeys.blocks.get(optimisticId), {
+        block: optimisticBlock,
+        repeatableItems: [],
+        files: [],
+      });
+
+      // Insert at the correct position in blockIds
+      const insertIndex = pageBlocks.findIndex((b) => b.position > position);
+      const newBlockIds = [...blockIds];
+      if (insertIndex === -1) {
+        newBlockIds.push(optimisticId);
+      } else {
+        newBlockIds.splice(insertIndex, 0, optimisticId);
+      }
+
+      queryClient.setQueryData<PageStructure>(pageQueryKey, {
+        ...previousPage,
+        page: { ...previousPage.page, blockIds: newBlockIds },
+      });
+
+      queryClient.cancelQueries({ queryKey: pageQueryKey });
+      return { previousPage, optimisticId };
     },
     onError: (_error, _variables, context) => {
       if (context?.previousPage) {
-        queryClient.setQueryData(
-          pageQueries.getByPath(pagePathname).queryKey,
-          context.previousPage,
-        );
+        queryClient.setQueryData(queryKeys.pages.getByPath(pagePathname), context.previousPage);
+      }
+      if (context?.optimisticId) {
+        queryClient.removeQueries({ queryKey: queryKeys.blocks.get(context.optimisticId) });
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: pageQueries.getByPath(pagePathname).queryKey });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pages.getByPath(pagePathname) });
     },
   });
 

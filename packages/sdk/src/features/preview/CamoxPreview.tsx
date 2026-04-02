@@ -1,3 +1,4 @@
+import { queryKeys } from "@camox/api/query-keys";
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
 import {
   keepPreviousData,
@@ -9,9 +10,9 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
+import { getApiClient } from "@/lib/api-client";
 import { useIsAuthenticated } from "@/lib/auth";
 import { NormalizedDataProvider, seedBlockCaches, usePageBlocks } from "@/lib/normalized-data";
-import type { PageWithBlocks } from "@/lib/queries";
 import { blockQueries, pageQueries } from "@/lib/queries";
 import { formatPathSegment } from "@/lib/utils";
 
@@ -41,8 +42,29 @@ import { previewStore } from "./previewStore";
  * ensureQueryData. Live updates are gated by useProjectRoom only running in
  * AuthenticatedCamoxProvider — unauthenticated users get SSR data that never refetches.
  */
-export function usePreviewedPage(): PageWithBlocks {
+/**
+ * Lightweight queryFn for client-side refetches — only fetches structural data.
+ * Used after initial SSR load when block caches are already populated.
+ */
+function pageStructureQueryFn(path: string) {
+  return () => getApiClient().pages.getStructure({ path });
+}
+
+/**
+ * Full queryFn that fetches all page data and seeds block caches.
+ * Used for peeked pages where block caches may not be populated yet.
+ */
+function pageFullQueryFn(queryClient: ReturnType<typeof useQueryClient>, path: string) {
+  return async () => {
+    const data = await getApiClient().pages.getByPath({ path });
+    seedBlockCaches(queryClient, data);
+    return { page: data.page, layout: data.layout, projectName: data.projectName };
+  };
+}
+
+export function usePreviewedPage() {
   const { pathname } = useLocation();
+  const queryClient = useQueryClient();
   const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
 
   // When the actual route changes, clear any stale peeked page so it doesn't
@@ -56,13 +78,23 @@ export function usePreviewedPage(): PageWithBlocks {
     }
   }, [pathname]);
 
-  const { data: currentPage } = useSuspenseQuery(pageQueries.getByPath(pathname));
+  // Current page: SSR loader seeds block caches on first load.
+  // Client-side refetches (after invalidation) use the lightweight endpoint.
+  const { data: currentPage } = useSuspenseQuery({
+    queryKey: queryKeys.pages.getByPath(pathname),
+    queryFn: pageStructureQueryFn(pathname),
+    staleTime: Infinity,
+  });
 
+  // Peeked page: uses full endpoint to seed block caches on first fetch,
+  // since those blocks may not be in cache yet.
   const isAuthenticated = useIsAuthenticated();
   const { data: peekedPage } = useQuery({
-    ...pageQueries.getByPath(peekedPagePathname ?? ""),
+    queryKey: queryKeys.pages.getByPath(peekedPagePathname ?? ""),
+    queryFn: pageFullQueryFn(queryClient, peekedPagePathname ?? ""),
     enabled: isAuthenticated && !!peekedPagePathname,
     placeholderData: keepPreviousData,
+    staleTime: Infinity,
   });
 
   return peekedPage ?? currentPage;
@@ -113,20 +145,12 @@ const BlockRenderer = ({
 
 export const PageContent = () => {
   const pageData = usePreviewedPage();
-  const queryClient = useQueryClient();
-  const { pageBlocks, beforeBlocks, afterBlocks } = usePageBlocks(pageData);
+  const { pageBlocks, beforeBlocks, afterBlocks, layoutFiles, layoutItems } =
+    usePageBlocks(pageData);
   const peekedBlockPosition = useSelector(
     previewStore,
     (state) => state.context.peekedBlockPosition,
   );
-
-  // Seed block caches synchronously when page data changes.
-  // This ensures BlockRenderer components always find seeded data.
-  const lastSeededRef = React.useRef<PageWithBlocks | null>(null);
-  if (pageData !== lastSeededRef.current) {
-    lastSeededRef.current = pageData;
-    seedBlockCaches(queryClient, pageData);
-  }
 
   // Latch the last non-null position so the block doesn't jump during collapse
   const displayedPositionRef = React.useRef<string | null>(null);
@@ -223,23 +247,18 @@ export const PageContent = () => {
     </>
   );
 
-  // Outer NormalizedDataProvider serves layout blocks (which still render from page data)
-  const wrappedContent = (
-    <NormalizedDataProvider files={pageData.files} repeatableItems={pageData.repeatableItems}>
-      {pageBlocksContent}
-    </NormalizedDataProvider>
-  );
-
   if (layout && layoutBlocksMap) {
     const LayoutComponent = layout.component;
     return (
-      <layout.Provider layoutBlocks={layoutBlocksMap}>
-        <LayoutComponent>{wrappedContent}</LayoutComponent>
-      </layout.Provider>
+      <NormalizedDataProvider files={layoutFiles} repeatableItems={layoutItems}>
+        <layout.Provider layoutBlocks={layoutBlocksMap}>
+          <LayoutComponent>{pageBlocksContent}</LayoutComponent>
+        </layout.Provider>
+      </NormalizedDataProvider>
     );
   }
 
-  return <main className="flex min-h-screen flex-col">{wrappedContent}</main>;
+  return <main className="flex min-h-screen flex-col">{pageBlocksContent}</main>;
 };
 
 /* -------------------------------------------------------------------------------------------------

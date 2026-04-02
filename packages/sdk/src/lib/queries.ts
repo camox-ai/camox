@@ -8,6 +8,13 @@ export type Page = Awaited<ReturnType<ApiClient["pages"]["list"]>>[number];
 export type PageWithBlocks = Awaited<ReturnType<ApiClient["pages"]["getByPath"]>>;
 export type BlockBundle = Awaited<ReturnType<ApiClient["blocks"]["get"]>>;
 export type File = Awaited<ReturnType<ApiClient["files"]["list"]>>[number];
+
+/** Slim structural data stored in the page query cache (no blocks/items/files). */
+export type PageStructure = {
+  page: PageWithBlocks["page"];
+  layout: PageWithBlocks["layout"];
+  projectName: string;
+};
 export type Project = Awaited<ReturnType<ApiClient["projects"]["getFirst"]>>;
 export type Layout = Awaited<ReturnType<ApiClient["layouts"]["list"]>>[number];
 export type BlockUsageCounts = Awaited<ReturnType<ApiClient["blocks"]["getUsageCounts"]>>;

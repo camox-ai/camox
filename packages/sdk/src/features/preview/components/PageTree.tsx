@@ -27,8 +27,7 @@ import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react
 import * as React from "react";
 
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
-import { usePageBlocks } from "@/lib/normalized-data";
-import { type PageWithBlocks } from "@/lib/queries";
+import { type NormalizedBlock, usePageBlocks } from "@/lib/normalized-data";
 import { cn } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -128,7 +127,7 @@ const FieldItem = ({
  * -----------------------------------------------------------------------------------------------*/
 
 type BlockFieldsProps = {
-  block: PageWithBlocks["blocks"][number];
+  block: NormalizedBlock;
 };
 
 const BlockFields = ({ block }: BlockFieldsProps) => {
@@ -232,11 +231,7 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
  * useBlockTreeItem
  * -----------------------------------------------------------------------------------------------*/
 
-function useBlockTreeItem(
-  block: PageWithBlocks["blocks"][number],
-  isSelected: boolean,
-  isDragging = false,
-) {
+function useBlockTreeItem(block: NormalizedBlock, isSelected: boolean, isDragging = false) {
   const [ellipsisPopoverOpen, setEllipsisPopoverOpen] = React.useState(false);
   const selectionBreadcrumbs = useSelector(
     previewStore,
@@ -363,7 +358,7 @@ const BlockTreeItemEllipsis = ({
   </Button>
 );
 
-const BlockTreeItemContent = ({ block }: { block: PageWithBlocks["blocks"][number] }) => (
+const BlockTreeItemContent = ({ block }: { block: NormalizedBlock }) => (
   <Accordion.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down text-muted-foreground data-[state=open]:bg-accent/25 overflow-hidden rounded-b-lg text-sm">
     <BlockFields block={block} />
   </Accordion.Content>
@@ -374,7 +369,7 @@ const BlockTreeItemContent = ({ block }: { block: PageWithBlocks["blocks"][numbe
  * -----------------------------------------------------------------------------------------------*/
 
 interface SortableBlockProps {
-  block: PageWithBlocks["blocks"][number];
+  block: NormalizedBlock;
   isSelected: boolean;
 }
 
@@ -453,7 +448,7 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
  * -----------------------------------------------------------------------------------------------*/
 
 interface LayoutBlockItemProps {
-  block: PageWithBlocks["blocks"][number];
+  block: NormalizedBlock;
   isSelected: boolean;
   layoutName: string;
 }

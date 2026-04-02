@@ -16,14 +16,14 @@ import {
 import { Label } from "@camox/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { Switch } from "@camox/ui/switch";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
 import { actionsStore, type Action } from "@/features/provider/actionsStore";
 import { trackClientEvent } from "@/lib/analytics-client";
 import { isFileMarker } from "@/lib/normalized-data";
-import { blockMutations, blockQueries, repeatableItemMutations } from "@/lib/queries";
+import { blockMutations, blockQueries, fileQueries, repeatableItemMutations } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -189,10 +189,23 @@ const PageContentSheet = () => {
     () => new Map((blockBundle?.repeatableItems ?? []).map((i) => [i.id, i])),
     [blockBundle?.repeatableItems],
   );
-  const filesMap = React.useMemo(
-    () => new Map((blockBundle?.files ?? []).map((f) => [f.id, f])),
+  const fileIds = React.useMemo(
+    () => (blockBundle?.files ?? []).map((f) => f.id),
     [blockBundle?.files],
   );
+
+  const fileResults = useQueries({
+    queries: fileIds.map((id) => fileQueries.get(id)),
+  });
+
+  const filesMap = React.useMemo(() => {
+    const map = new Map((blockBundle?.files ?? []).map((f) => [f.id, f]));
+    for (let i = 0; i < fileIds.length; i++) {
+      const data = fileResults[i]?.data;
+      if (data) map.set(data.id, data);
+    }
+    return map;
+  }, [blockBundle?.files, fileIds, fileResults]);
 
   // Get block definition
   const blockDef = block ? camoxApp.getBlockById(block.type) : null;
