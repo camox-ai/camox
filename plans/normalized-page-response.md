@@ -104,7 +104,7 @@ This pattern is consistent, unambiguous (no conflict with regular numbers/object
 
 ---
 
-## Phase 2: Normalize the API Response
+## Phase 2: Normalize the API Response ✅ DONE
 
 **Goal:** `getByPath` returns the normalized shape (flat arrays, no assembly). The frontend still consumes it at page-level for now.
 

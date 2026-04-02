@@ -16,6 +16,7 @@ import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
 import { trackClientEvent } from "@/lib/analytics-client";
+import { usePageBlocks } from "@/lib/normalized-data";
 import { type PageWithBlocks, blockMutations, blockQueries, pageQueries } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -37,27 +38,29 @@ const AddBlockSheet = () => {
       const previousPage = queryClient.getQueryData<PageWithBlocks>(queryOptions.queryKey);
 
       if (previousPage) {
-        const blocks = previousPage.blocks;
+        // Use page block IDs to filter page blocks for position calculation
+        const pageBlockIds = new Set(previousPage.page.blockIds);
+        const pageBlocks = previousPage.blocks.filter((b) => pageBlockIds.has(b.id));
         const { afterPosition } = variables;
 
         let position: string;
         if (afterPosition == null) {
-          const lastBlock = blocks[blocks.length - 1];
+          const lastBlock = pageBlocks[pageBlocks.length - 1];
           position = generateKeyBetween(lastBlock?.position ?? null, null);
         } else if (afterPosition === "") {
-          const firstBlock = blocks[0];
+          const firstBlock = pageBlocks[0];
           position = generateKeyBetween(null, firstBlock?.position ?? null);
         } else {
           let afterIndex = -1;
-          for (let i = blocks.length - 1; i >= 0; i--) {
-            if (String(blocks[i].position) <= afterPosition) {
+          for (let i = pageBlocks.length - 1; i >= 0; i--) {
+            if (String(pageBlocks[i].position) <= afterPosition) {
               afterIndex = i;
               break;
             }
           }
-          const nextBlock = afterIndex >= 0 ? blocks[afterIndex + 1] : blocks[0];
+          const nextBlock = afterIndex >= 0 ? pageBlocks[afterIndex + 1] : pageBlocks[0];
           position = generateKeyBetween(
-            afterIndex >= 0 ? blocks[afterIndex].position : null,
+            afterIndex >= 0 ? pageBlocks[afterIndex].position : null,
             nextBlock?.position ?? null,
           );
         }
@@ -77,13 +80,15 @@ const AddBlockSheet = () => {
           updatedAt: now,
         };
 
-        const newBlocks = [...blocks, optimisticBlock].sort((a, b) =>
-          a.position.localeCompare(b.position),
-        );
-
         queryClient.setQueryData<PageWithBlocks>(queryOptions.queryKey, {
           ...previousPage,
-          blocks: newBlocks,
+          page: {
+            ...previousPage.page,
+            blockIds: [...previousPage.page.blockIds, optimisticBlock.id],
+          },
+          blocks: [...previousPage.blocks, optimisticBlock].sort((a, b) =>
+            a.position.localeCompare(b.position),
+          ),
         });
       }
 
@@ -107,16 +112,17 @@ const AddBlockSheet = () => {
     .getBlocks()
     .filter((b) => !b.layoutOnly);
   const page = usePreviewedPage();
+  const { pageBlocks } = usePageBlocks(page);
   const { data: totalCounts = {} } = useQuery(blockQueries.getUsageCounts());
 
   const pageCounts = React.useMemo(() => {
     const counts: Record<string, number> = {};
     if (!page) return counts;
-    for (const block of page.blocks) {
+    for (const block of pageBlocks) {
       counts[block.type] = (counts[block.type] ?? 0) + 1;
     }
     return counts;
-  }, [page]);
+  }, [page, pageBlocks]);
 
   const isOpen = useSelector(previewStore, (state) => state.context.isAddBlockSheetOpen);
   const peekedBlockPosition = useSelector(
@@ -130,7 +136,7 @@ const AddBlockSheet = () => {
     const afterPosition =
       peekedBlockPosition === ""
         ? ""
-        : (peekedBlockPosition ?? page.blocks[page.blocks.length - 1]?.position);
+        : (peekedBlockPosition ?? pageBlocks[pageBlocks.length - 1]?.position);
 
     const { id: blockId } = await createBlock.mutateAsync({
       pageId: page.page.id,
@@ -151,7 +157,7 @@ const AddBlockSheet = () => {
     const afterPosition =
       peekedBlockPosition === ""
         ? ""
-        : (peekedBlockPosition ?? page?.blocks[page.blocks.length - 1]?.position);
+        : (peekedBlockPosition ?? pageBlocks[pageBlocks.length - 1]?.position);
 
     previewStore.send({ type: "setPeekedBlock", block, afterPosition });
   };

@@ -76,6 +76,14 @@ export const layoutQueries = {
 };
 
 export const blockQueries = {
+  get: (id: number) => ({
+    ...getOrpc().blocks.get.queryOptions({
+      input: { id },
+      staleTime: Infinity,
+    }),
+    queryKey: queryKeys.blocks.get(id),
+  }),
+
   getUsageCounts: () => ({
     ...getOrpc().blocks.getUsageCounts.queryOptions({
       staleTime: Infinity,
@@ -97,6 +105,16 @@ export const blockQueries = {
     }),
     queryKey: queryKeys.blocks.getPageMarkdown(pageId),
     select: (data: { markdown: string }) => data.markdown,
+  }),
+};
+
+export const repeatableItemQueries = {
+  get: (id: number) => ({
+    ...getOrpc().repeatableItems.get.queryOptions({
+      input: { id },
+      staleTime: Infinity,
+    }),
+    queryKey: queryKeys.repeatableItems.get(id),
   }),
 };
 

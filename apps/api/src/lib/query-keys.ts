@@ -18,8 +18,12 @@ export const queryKeys = {
     get: (id: number) => ["camox", "files", "get", id],
   },
   blocks: {
+    get: (id: number) => ["camox", "blocks", "get", id],
     getUsageCounts: ["camox", "blocks", "getUsageCounts"],
     getPageMarkdown: (pageId: number) => ["camox", "blocks", "getPageMarkdown", pageId],
+  },
+  repeatableItems: {
+    get: (id: number) => ["camox", "repeatableItems", "get", id],
   },
   layouts: {
     all: ["camox", "layouts"],

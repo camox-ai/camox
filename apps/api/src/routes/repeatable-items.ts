@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { outdent } from "outdent";
 import { z } from "zod";
@@ -11,8 +11,9 @@ import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { queryKeys } from "../lib/query-keys";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
-import { authed } from "../orpc";
-import { blocks, repeatableItems } from "../schema";
+import { pub, authed } from "../orpc";
+import { blocks, files, repeatableItems } from "../schema";
+import { collectFileIds } from "./pages";
 
 function comparePositions(a: string, b: string): number {
   if (a < b) return -1;
@@ -394,7 +395,34 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
   return result;
 });
 
+const get = pub.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
+  const item = await context.db
+    .select()
+    .from(repeatableItems)
+    .where(eq(repeatableItems.id, input.id))
+    .get();
+  if (!item) throw new ORPCError("NOT_FOUND");
+
+  // Collect and fetch referenced files
+  const fileIds = new Set<number>();
+  collectFileIds(item.content as Record<string, unknown>, fileIds);
+
+  const fileRows =
+    fileIds.size > 0
+      ? await context.db
+          .select()
+          .from(files)
+          .where(inArray(files.id, [...fileIds]))
+      : [];
+
+  return {
+    item,
+    files: fileRows,
+  };
+});
+
 export const repeatableItemProcedures = {
+  get,
   create,
   updateContent,
   updatePosition,
