@@ -260,12 +260,13 @@ const getPageMarkdown = pub
       .where(eq(blockDefinitions.projectId, page.projectId));
     const schemaByType = new Map<
       string,
-      { properties: Record<string, any>; toMarkdown?: readonly string[] }
+      { title: string; properties: Record<string, any>; toMarkdown?: readonly string[] }
     >();
     for (const def of defs) {
       const schema = def.contentSchema as Record<string, unknown> | null;
       if (schema?.properties) {
         schemaByType.set(def.blockId, {
+          title: def.title,
           properties: schema.properties as Record<string, any>,
           toMarkdown: schema.toMarkdown as readonly string[] | undefined,
         });
@@ -334,7 +335,7 @@ const getPageMarkdown = pub
         for (const fieldName of new Set(items.map((i) => i.fieldName))) {
           content[fieldName] = items.filter((i) => i.fieldName === fieldName);
         }
-        const md = contentToMarkdown(schema.toMarkdown, schema.properties, content);
+        const md = `<!-- ${schema.title} -->\n${contentToMarkdown(schema.toMarkdown, schema.properties, content)}`;
         if (block.placement === "before") beforeParts.push(md);
         else afterParts.push(md);
       }
@@ -351,7 +352,8 @@ const getPageMarkdown = pub
       for (const fieldName of new Set(items.map((i) => i.fieldName))) {
         content[fieldName] = items.filter((i) => i.fieldName === fieldName);
       }
-      return contentToMarkdown(schema.toMarkdown, schema.properties, content);
+      const md = contentToMarkdown(schema.toMarkdown, schema.properties, content);
+      return `<!-- ${schema.title} -->\n${md}`;
     });
 
     const parts = [beforeMarkdown, ...pageParts, afterMarkdown].filter(Boolean);

@@ -287,6 +287,15 @@ export function createBlock<
     return `${blockId}__${fieldName}`;
   };
 
+  /**
+   * Get a stable identifier for a repeatable item. DB-backed items use their
+   * real ID; inline/default items fall back to a synthetic index-based ID.
+   */
+  const getRepeaterItemIdentifier = (ctx: RepeaterItemContextValue | null): string | undefined => {
+    if (!ctx) return undefined;
+    return ctx.itemId ?? `idx-${ctx.itemIndex}`;
+  };
+
   // Only allow string fields - not objects, arrays, or embed URLs
   type StringFields = {
     [K in keyof TContent as TContent[K] extends EmbedURL
@@ -417,7 +426,7 @@ export function createBlock<
       blockId,
       String(name),
       "String",
-      repeaterContext?.itemId,
+      getRepeaterItemIdentifier(repeaterContext),
     );
 
     const isFocused = isEditorFocused || isSelectedFromBreadcrumbs;
@@ -460,12 +469,15 @@ export function createBlock<
 
     const handleFocus = React.useCallback(() => {
       setIsEditorFocused(true);
-      if (repeaterContext && repeaterContext.itemId) {
+      const itemId = getRepeaterItemIdentifier(repeaterContext);
+      if (repeaterContext && itemId) {
         previewStore.send({
           type: "setSelectedRepeatableItem",
           blockId,
-          itemId: repeaterContext.itemId,
+          itemId,
           fieldName: repeaterContext.arrayFieldName,
+          childFieldName: name.toString(),
+          childFieldType: "String",
         });
       } else {
         previewStore.send({
@@ -476,7 +488,7 @@ export function createBlock<
         });
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [blockId, name, repeaterContext?.itemId]);
+    }, [blockId, name, repeaterContext?.itemId, repeaterContext?.itemIndex]);
 
     const handleBlur = React.useCallback(() => {
       setIsEditorFocused(false);
@@ -640,13 +652,16 @@ export function createBlock<
             itemId: repeaterContext.nested.parentItemId,
             fieldName: repeaterContext.nested.parentArrayFieldName,
           });
-        } else if (repeaterContext?.itemId) {
-          previewStore.send({
-            type: "setSelectedRepeatableItem",
-            blockId,
-            itemId: repeaterContext.itemId,
-            fieldName: repeaterContext.arrayFieldName,
-          });
+        } else if (repeaterContext) {
+          const itemId = getRepeaterItemIdentifier(repeaterContext);
+          if (itemId) {
+            previewStore.send({
+              type: "setSelectedRepeatableItem",
+              blockId,
+              itemId,
+              fieldName: repeaterContext.arrayFieldName,
+            });
+          }
         } else {
           previewStore.send({
             type: "setSelectedField",
@@ -757,7 +772,7 @@ export function createBlock<
       blockId,
       String(name),
       "Link",
-      repeaterContext?.itemId,
+      getRepeaterItemIdentifier(repeaterContext),
     );
 
     const isFocused = isEditorFocused || isSelectedFromBreadcrumbs;
@@ -830,12 +845,15 @@ export function createBlock<
           id: `idx:${repeaterContext.nested.nestedIndex}`,
           fieldName: repeaterContext.nested.nestedFieldName,
         });
-      } else if (repeaterContext?.itemId) {
-        crumbs.push({
-          type: "RepeatableObject",
-          id: repeaterContext.itemId,
-          fieldName: repeaterContext.arrayFieldName,
-        });
+      } else {
+        const itemId = getRepeaterItemIdentifier(repeaterContext);
+        if (itemId) {
+          crumbs.push({
+            type: "RepeatableObject",
+            id: itemId,
+            fieldName: repeaterContext!.arrayFieldName,
+          });
+        }
       }
 
       crumbs.push({
@@ -956,7 +974,12 @@ export function createBlock<
     const [isHovered, setIsHovered] = React.useState(false);
 
     // Derive selected state from selectionBreadcrumbs
-    const isFocused = useFieldSelection(blockId, String(name), "Image", repeaterContext?.itemId);
+    const isFocused = useFieldSelection(
+      blockId,
+      String(name),
+      "Image",
+      getRepeaterItemIdentifier(repeaterContext),
+    );
 
     // Keep sidebar hover via postMessage (transient state)
     const isHoveredFromSidebar = useOverlayMessage(
@@ -978,11 +1001,12 @@ export function createBlock<
         fieldName?: string;
       }> = [{ type: "Block", id: blockId }];
 
-      if (repeaterContext?.itemId) {
+      const itemId = getRepeaterItemIdentifier(repeaterContext);
+      if (itemId) {
         crumbs.push({
           type: "RepeatableObject",
-          id: repeaterContext.itemId,
-          fieldName: repeaterContext.arrayFieldName,
+          id: itemId,
+          fieldName: repeaterContext!.arrayFieldName,
         });
       }
 
