@@ -251,13 +251,6 @@ export function createBlock<
     itemIndex: number;
     itemContent: any;
     itemId?: string;
-    nested?: {
-      parentItemId: string;
-      parentContent: any;
-      parentArrayFieldName: string;
-      nestedFieldName: string;
-      nestedIndex: number;
-    };
   }
 
   const Context = React.createContext<BlockContextValue | null>(null);
@@ -270,7 +263,6 @@ export function createBlock<
    * Build a field ID that matches the sidebar's `getFieldId` format.
    * Root fields:          blockId__fieldName
    * Repeater item fields: blockId__itemId__fieldName
-   * Nested item fields:   blockId__parentItemId:nestedFieldName:index__fieldName
    */
   const getOverlayFieldId = (
     blockId: string,
@@ -280,20 +272,7 @@ export function createBlock<
     if (repeaterContext?.itemId) {
       return `${blockId}__${repeaterContext.itemId}__${fieldName}`;
     }
-    if (repeaterContext?.nested) {
-      const { parentItemId, nestedFieldName, nestedIndex } = repeaterContext.nested;
-      return `${blockId}__${parentItemId}:${nestedFieldName}:${nestedIndex}__${fieldName}`;
-    }
     return `${blockId}__${fieldName}`;
-  };
-
-  /**
-   * Get a stable identifier for a repeatable item. DB-backed items use their
-   * real ID; inline/default items fall back to a synthetic index-based ID.
-   */
-  const getRepeaterItemIdentifier = (ctx: RepeaterItemContextValue | null): string | undefined => {
-    if (!ctx) return undefined;
-    return ctx.itemId ?? `idx-${ctx.itemIndex}`;
   };
 
   // Only allow string fields - not objects, arrays, or embed URLs
@@ -421,12 +400,12 @@ export function createBlock<
     const [isHovered, setIsHovered] = React.useState(false);
     const [isEditorFocused, setIsEditorFocused] = React.useState(false);
 
-    // Derive selected state from selectionBreadcrumbs
+    // Derive selected state from selection
     const isSelectedFromBreadcrumbs = useFieldSelection(
       blockId,
       String(name),
       "String",
-      getRepeaterItemIdentifier(repeaterContext),
+      repeaterContext?.itemId,
     );
 
     const isFocused = isEditorFocused || isSelectedFromBreadcrumbs;
@@ -469,26 +448,24 @@ export function createBlock<
 
     const handleFocus = React.useCallback(() => {
       setIsEditorFocused(true);
-      const itemId = getRepeaterItemIdentifier(repeaterContext);
-      if (repeaterContext && itemId) {
+      if (repeaterContext?.itemId) {
         previewStore.send({
-          type: "setSelectedRepeatableItem",
+          type: "selectItemField",
           blockId,
-          itemId,
-          fieldName: repeaterContext.arrayFieldName,
-          childFieldName: name.toString(),
-          childFieldType: "String",
+          itemId: repeaterContext.itemId,
+          fieldName: name.toString(),
+          fieldType: "String",
         });
       } else {
         previewStore.send({
-          type: "setSelectedField",
+          type: "selectBlockField",
           blockId,
           fieldName: name.toString(),
           fieldType: "String",
         });
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [blockId, name, repeaterContext?.itemId, repeaterContext?.itemIndex]);
+    }, [blockId, name, repeaterContext?.itemId]);
 
     const handleBlur = React.useCallback(() => {
       setIsEditorFocused(false);
@@ -616,19 +593,7 @@ export function createBlock<
       }
 
       timerRef.current = window.setTimeout(() => {
-        if (repeaterContext?.nested) {
-          const { parentItemId, parentContent, nestedFieldName, nestedIndex } =
-            repeaterContext.nested;
-          const nestedArray = [...(parentContent[nestedFieldName] || [])];
-          nestedArray[nestedIndex] = {
-            ...nestedArray[nestedIndex],
-            [name]: newValue,
-          };
-          updateRepeatableContent.mutate({
-            id: Number(parentItemId),
-            content: { [nestedFieldName]: nestedArray },
-          });
-        } else if (repeaterContext?.itemId) {
+        if (repeaterContext?.itemId) {
           updateRepeatableContent.mutate({
             id: Number(repeaterContext.itemId),
             content: { [name]: newValue },
@@ -645,26 +610,17 @@ export function createBlock<
     const handleOpenChange = (open: boolean) => {
       setIsOpen(open);
       if (open) {
-        if (repeaterContext?.nested) {
+        if (repeaterContext?.itemId) {
           previewStore.send({
-            type: "setSelectedRepeatableItem",
+            type: "selectItemField",
             blockId,
-            itemId: repeaterContext.nested.parentItemId,
-            fieldName: repeaterContext.nested.parentArrayFieldName,
+            itemId: repeaterContext.itemId,
+            fieldName: name.toString(),
+            fieldType: "Embed",
           });
-        } else if (repeaterContext) {
-          const itemId = getRepeaterItemIdentifier(repeaterContext);
-          if (itemId) {
-            previewStore.send({
-              type: "setSelectedRepeatableItem",
-              blockId,
-              itemId,
-              fieldName: repeaterContext.arrayFieldName,
-            });
-          }
         } else {
           previewStore.send({
-            type: "setSelectedField",
+            type: "selectBlockField",
             blockId,
             fieldName: name.toString(),
             fieldType: "Embed",
@@ -767,12 +723,12 @@ export function createBlock<
     const [isHovered, setIsHovered] = React.useState(false);
     const [isEditorFocused, setIsEditorFocused] = React.useState(false);
 
-    // Derive selected state from selectionBreadcrumbs
+    // Derive selected state from selection
     const isSelectedFromBreadcrumbs = useFieldSelection(
       blockId,
       String(name),
       "Link",
-      getRepeaterItemIdentifier(repeaterContext),
+      repeaterContext?.itemId,
     );
 
     const isFocused = isEditorFocused || isSelectedFromBreadcrumbs;
@@ -797,19 +753,7 @@ export function createBlock<
     }, [isHoveredFromSidebar]);
 
     const saveLinkValue = (newLinkValue: Record<string, unknown>) => {
-      if (repeaterContext?.nested) {
-        const { parentItemId, parentContent, nestedFieldName, nestedIndex } =
-          repeaterContext.nested;
-        const nestedArray = [...(parentContent[nestedFieldName] || [])];
-        nestedArray[nestedIndex] = {
-          ...nestedArray[nestedIndex],
-          [name]: newLinkValue,
-        };
-        updateRepeatableContent.mutate({
-          id: Number(parentItemId),
-          content: { [nestedFieldName]: nestedArray },
-        });
-      } else if (repeaterContext?.itemId) {
+      if (repeaterContext?.itemId) {
         updateRepeatableContent.mutate({
           id: Number(repeaterContext.itemId),
           content: { [name]: newLinkValue },
@@ -827,51 +771,25 @@ export function createBlock<
       saveLinkValue({ ...fieldValue, text: newText });
     };
 
-    const buildLinkBreadcrumbs = () => {
-      const crumbs: Array<{
-        type: "Block" | "RepeatableObject" | "Link";
-        id: string;
-        fieldName?: string;
-      }> = [{ type: "Block", id: blockId }];
-
-      if (repeaterContext?.nested) {
-        crumbs.push({
-          type: "RepeatableObject",
-          id: repeaterContext.nested.parentItemId,
-          fieldName: repeaterContext.nested.parentArrayFieldName,
-        });
-        crumbs.push({
-          type: "RepeatableObject",
-          id: `idx:${repeaterContext.nested.nestedIndex}`,
-          fieldName: repeaterContext.nested.nestedFieldName,
-        });
-      } else {
-        const itemId = getRepeaterItemIdentifier(repeaterContext);
-        if (itemId) {
-          crumbs.push({
-            type: "RepeatableObject",
-            id: itemId,
-            fieldName: repeaterContext!.arrayFieldName,
-          });
-        }
-      }
-
-      crumbs.push({
-        type: "Link",
-        id: String(name),
-        fieldName: String(name),
-      });
-
-      return crumbs;
-    };
-
     const handleFocus = () => {
       setIsEditing(true);
       setIsEditorFocused(true);
-      previewStore.send({
-        type: "setSelectionBreadcrumbs",
-        breadcrumbs: buildLinkBreadcrumbs(),
-      });
+      if (repeaterContext?.itemId) {
+        previewStore.send({
+          type: "selectItemField",
+          blockId,
+          itemId: repeaterContext.itemId,
+          fieldName: String(name),
+          fieldType: "Link",
+        });
+      } else {
+        previewStore.send({
+          type: "selectBlockField",
+          blockId,
+          fieldName: String(name),
+          fieldType: "Link",
+        });
+      }
     };
 
     const handleBlur = () => {
@@ -973,13 +891,8 @@ export function createBlock<
 
     const [isHovered, setIsHovered] = React.useState(false);
 
-    // Derive selected state from selectionBreadcrumbs
-    const isFocused = useFieldSelection(
-      blockId,
-      String(name),
-      "Image",
-      getRepeaterItemIdentifier(repeaterContext),
-    );
+    // Derive selected state from selection
+    const isFocused = useFieldSelection(blockId, String(name), "Image", repeaterContext?.itemId);
 
     // Keep sidebar hover via postMessage (transient state)
     const isHoveredFromSidebar = useOverlayMessage(
@@ -994,42 +907,29 @@ export function createBlock<
       setIsHovered(isHoveredFromSidebar);
     }, [isHoveredFromSidebar]);
 
-    const buildImageBreadcrumbs = () => {
-      const crumbs: Array<{
-        type: "Block" | "RepeatableObject" | "Image";
-        id: string;
-        fieldName?: string;
-      }> = [{ type: "Block", id: blockId }];
-
-      const itemId = getRepeaterItemIdentifier(repeaterContext);
-      if (itemId) {
-        crumbs.push({
-          type: "RepeatableObject",
-          id: itemId,
-          fieldName: repeaterContext!.arrayFieldName,
-        });
-      }
-
-      // For inline array items (no itemId), use the array field name
-      // so the sidebar identifies this as a multiple-asset field
+    const handleClick = () => {
+      if (!isContentEditable) return;
+      // For inline array items (no itemId, e.g. multi-asset gallery),
+      // use the array field name so the sidebar shows the gallery editor
       const imageFieldName =
         repeaterContext && !repeaterContext.itemId ? repeaterContext.arrayFieldName : String(name);
 
-      crumbs.push({
-        type: "Image",
-        id: imageFieldName,
-        fieldName: imageFieldName,
-      });
-
-      return crumbs;
-    };
-
-    const handleClick = () => {
-      if (!isContentEditable) return;
-      previewStore.send({
-        type: "setSelectionBreadcrumbs",
-        breadcrumbs: buildImageBreadcrumbs(),
-      });
+      if (repeaterContext?.itemId) {
+        previewStore.send({
+          type: "selectItemField",
+          blockId,
+          itemId: repeaterContext.itemId,
+          fieldName: imageFieldName,
+          fieldType: "Image",
+        });
+      } else {
+        previewStore.send({
+          type: "selectBlockField",
+          blockId,
+          fieldName: imageFieldName,
+          fieldType: "Image",
+        });
+      }
       previewStore.send({ type: "toggleContentSheet" });
     };
 
@@ -1385,10 +1285,7 @@ export function createBlock<
     const [isHovered, setIsHovered] = React.useState(false);
 
     // Scroll into view when editing in preview
-    const selectionBreadcrumbs = useSelector(
-      previewStore,
-      (state) => state.context.selectionBreadcrumbs,
-    );
+    const selection = useSelector(previewStore, (state) => state.context.selection);
     const isPageContentSheetOpen = useSelector(
       previewStore,
       (state) => state.context.isPageContentSheetOpen,
@@ -1398,8 +1295,7 @@ export function createBlock<
       (state) => state.context.isAddBlockSheetOpen,
     );
     const isAnySideSheetOpen = useIsPreviewSheetOpen();
-    const focusedBlockId = selectionBreadcrumbs[0]?.id ?? null;
-    const isBlockSelected = focusedBlockId === blockData._id;
+    const isBlockSelected = selection?.blockId === blockData._id;
     const ref = React.useRef<HTMLDivElement>(null);
 
     // Track first render because we won't animate the scroll into view for it
@@ -1629,10 +1525,7 @@ export function createBlock<
     const isContentEditable = useIsEditable(mode);
     const { window: iframeWindow } = useFrame();
 
-    const selectionBreadcrumbs = useSelector(
-      previewStore,
-      (state) => state.context.selectionBreadcrumbs,
-    );
+    const selection = useSelector(previewStore, (state) => state.context.selection);
     const isAddBlockSheetOpen = useSelector(
       previewStore,
       (state) => state.context.isAddBlockSheetOpen,
@@ -1641,8 +1534,7 @@ export function createBlock<
       previewStore,
       (state) => state.context.isPageContentSheetOpen,
     );
-    const focusedBlockId = selectionBreadcrumbs[0]?.id ?? null;
-    const isBlockSelected = focusedBlockId === blockId;
+    const isBlockSelected = selection?.blockId === blockId;
 
     const isHoveredFromSidebar = useOverlayMessage(
       iframeWindow,

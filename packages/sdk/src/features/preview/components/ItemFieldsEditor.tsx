@@ -76,10 +76,6 @@ interface ItemFieldsEditorProps {
   blockId: string;
   /** When editing a repeatable item's fields, pass its ID for correct overlay targeting */
   itemId?: string;
-  /** For nested inline items, the parent DB document's ID */
-  parentItemId?: string;
-  /** For nested inline items, the parent's array field name */
-  parentFieldName?: string;
   onFieldChange: (fieldName: string, value: unknown) => void;
   postToIframe: (message: OverlayMessage) => void;
   /** Lookup maps for resolving _fileId and _itemId markers */
@@ -92,8 +88,6 @@ const ItemFieldsEditor = ({
   data,
   blockId,
   itemId,
-  parentItemId,
-  parentFieldName,
   onFieldChange,
   postToIframe,
   filesMap,
@@ -105,14 +99,7 @@ const ItemFieldsEditor = ({
 
   // Build field ID matching the iframe's getOverlayFieldId format
   const getFieldId = (fieldName: string) => {
-    if (itemId && parentItemId && parentFieldName) {
-      // Nested inline item: parentItemId:parentFieldName:index__fieldName
-      const index = parseInt(itemId.slice(4), 10);
-      return `${blockId}__${parentItemId}:${parentFieldName}:${index}__${fieldName}`;
-    }
-    if (itemId) {
-      return `${blockId}__${itemId}__${fieldName}`;
-    }
+    if (itemId) return `${blockId}__${itemId}__${fieldName}`;
     return `${blockId}__${fieldName}`;
   };
 
@@ -174,6 +161,26 @@ const ItemFieldsEditor = ({
     const fieldId = getFieldId(fieldName);
     focusedFieldIdRef.current = null;
     postToIframe({ type: "CAMOX_FOCUS_FIELD_END", fieldId });
+  };
+
+  /** Dispatch the correct drill-into event depending on whether we're at block or item level. */
+  const drillIntoField = (fieldName: string, fieldType: "Link" | "Image" | "File") => {
+    if (itemId) {
+      previewStore.send({
+        type: "selectItemField",
+        blockId,
+        itemId,
+        fieldName,
+        fieldType,
+      });
+    } else {
+      previewStore.send({
+        type: "selectBlockField",
+        blockId,
+        fieldName,
+        fieldType,
+      });
+    }
   };
 
   return (
@@ -276,12 +283,7 @@ const ItemFieldsEditor = ({
               <button
                 type="button"
                 className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
-                onClick={() =>
-                  previewStore.send({
-                    type: "drillIntoLink",
-                    fieldName: field.name,
-                  })
-                }
+                onClick={() => drillIntoField(field.name, "Link")}
               >
                 <Link2Icon className="text-muted-foreground h-4 w-4 shrink-0" />
                 <span className="truncate">{preview}</span>
@@ -325,12 +327,7 @@ const ItemFieldsEditor = ({
               <button
                 type="button"
                 className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
-                onClick={() =>
-                  previewStore.send({
-                    type: "drillIntoImage",
-                    fieldName: field.name,
-                  })
-                }
+                onClick={() => drillIntoField(field.name, "Image")}
               >
                 <ImagesIcon className="text-muted-foreground h-4 w-4 shrink-0" />
                 <span className="truncate">{preview}</span>
@@ -374,12 +371,7 @@ const ItemFieldsEditor = ({
               <button
                 type="button"
                 className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
-                onClick={() =>
-                  previewStore.send({
-                    type: "drillIntoFile",
-                    fieldName: field.name,
-                  })
-                }
+                onClick={() => drillIntoField(field.name, "File")}
               >
                 <FileIcon className="text-muted-foreground h-4 w-4 shrink-0" />
                 <span className="truncate">{preview}</span>
@@ -416,12 +408,7 @@ const ItemFieldsEditor = ({
               <button
                 type="button"
                 className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
-                onClick={() =>
-                  previewStore.send({
-                    type: "drillIntoImage",
-                    fieldName: field.name,
-                  })
-                }
+                onClick={() => drillIntoField(field.name, "Image")}
               >
                 <ImageIcon className="text-muted-foreground h-4 w-4 shrink-0" />
                 <span className="truncate">{preview}</span>
@@ -458,12 +445,7 @@ const ItemFieldsEditor = ({
               <button
                 type="button"
                 className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
-                onClick={() =>
-                  previewStore.send({
-                    type: "drillIntoFile",
-                    fieldName: field.name,
-                  })
-                }
+                onClick={() => drillIntoField(field.name, "File")}
               >
                 <FileIcon className="text-muted-foreground h-4 w-4 shrink-0" />
                 <span className="truncate">{preview}</span>
@@ -482,7 +464,12 @@ const ItemFieldsEditor = ({
               }
               return item;
             })
-            .filter(Boolean) as Record<string, unknown>[];
+            .filter(Boolean) as Array<{
+            id: number;
+            summary: string;
+            position: string;
+            content: Record<string, unknown>;
+          }>;
           const fieldSchema = (schema as any)?.properties?.[field.name];
 
           return (
@@ -495,7 +482,6 @@ const ItemFieldsEditor = ({
                 minItems={field.minItems}
                 maxItems={field.maxItems}
                 schema={fieldSchema}
-                parentItemId={itemId}
               />
             </div>
           );

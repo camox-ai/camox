@@ -135,21 +135,18 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
   const blockDef = camoxApp.getBlockById(block.type);
   const schemaProperties = blockDef?.contentSchema.properties;
 
-  const selectionBreadcrumbs = useSelector(
-    previewStore,
-    (state) => state.context.selectionBreadcrumbs,
-  );
+  const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
 
-  // Check if a field is selected (breadcrumbs has block + field)
+  // Check if a field is selected at block level
   const selectedFieldName =
-    selectionBreadcrumbs.length === 2 && selectionBreadcrumbs[0]?.id === String(block.id)
-      ? selectionBreadcrumbs[1]?.id
+    selection?.type === "block-field" && selection.blockId === String(block.id)
+      ? selection.fieldName
       : null;
 
   const handleFieldClick = (fieldName: string, fieldType: string) => {
     previewStore.send({
-      type: "setSelectedField",
+      type: "selectBlockField",
       blockId: String(block.id),
       fieldName,
       fieldType: fieldType as "String" | "RepeatableObject",
@@ -233,12 +230,10 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
 
 function useBlockTreeItem(block: NormalizedBlock, isSelected: boolean, isDragging = false) {
   const [ellipsisPopoverOpen, setEllipsisPopoverOpen] = React.useState(false);
-  const selectionBreadcrumbs = useSelector(
-    previewStore,
-    (state) => state.context.selectionBreadcrumbs,
-  );
+  const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
-  const isParentOfSelection = selectionBreadcrumbs.at(-2)?.id === String(block.id);
+  // Block is "parent of selection" when we're viewing an item or field within it
+  const isParentOfSelection = isSelected && selection != null && selection.type !== "block";
   const shouldShowHover = !isDragging && !isSelected;
   const shouldShowActive = isDragging || (isSelected && !isParentOfSelection);
 
@@ -508,12 +503,8 @@ const LayoutBlockItem = ({ block, isSelected, layoutName }: LayoutBlockItemProps
  * -----------------------------------------------------------------------------------------------*/
 
 const PageTree = () => {
-  const selectionBreadcrumbs = useSelector(
-    previewStore,
-    (state) => state.context.selectionBreadcrumbs,
-  );
-  // Get the block ID from breadcrumbs for selection state
-  const focusedBlockId = selectionBreadcrumbs[0]?.id ?? null;
+  const selection = useSelector(previewStore, (state) => state.context.selection);
+  const focusedBlockId = selection?.blockId ?? null;
   const page = usePreviewedPage();
   const {
     pageBlocks,

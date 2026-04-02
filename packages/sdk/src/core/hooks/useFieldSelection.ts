@@ -4,12 +4,9 @@ import { previewStore } from "../../features/preview/previewStore";
 import type { FieldType } from "../lib/fieldTypes.tsx";
 
 /**
- * Returns whether the given field is currently selected based on selectionBreadcrumbs.
+ * Returns whether the given field is currently selected based on the normalized selection state.
  *
- * Matches when the breadcrumb trail contains:
- * 1. A Block crumb matching `blockId`
- * 2. (Optionally) a RepeatableObject crumb matching the repeater context
- * 3. A crumb matching `fieldType` and `fieldName`
+ * Matches when the selection points to this exact field (type + name + optional repeater item).
  */
 export function useFieldSelection(
   blockId: string,
@@ -18,26 +15,22 @@ export function useFieldSelection(
   repeaterItemId?: string,
 ): boolean {
   return useSelector(previewStore, (state) => {
-    const crumbs = state.context.selectionBreadcrumbs;
-    if (crumbs.length === 0) return false;
+    const sel = state.context.selection;
+    if (!sel || sel.blockId !== blockId) return false;
 
-    // First crumb must be our block
-    if (crumbs[0]?.type !== "Block" || crumbs[0]?.id !== blockId) return false;
-
-    // Find a crumb matching our field type and name
-    const fieldCrumb = crumbs.find(
-      (c) => c.type === fieldType && (c.id === fieldName || c.fieldName === fieldName),
-    );
-    if (!fieldCrumb) return false;
-
-    // If we're in a repeater, verify the repeater item matches
-    if (repeaterItemId) {
-      const repeaterCrumb = crumbs.find(
-        (c) => c.type === "RepeatableObject" && c.id === repeaterItemId,
-      );
-      if (!repeaterCrumb) return false;
+    // Check for field-level selections
+    if (sel.type === "block-field") {
+      if (repeaterItemId) return false; // Field is in a repeater but selection is at block level
+      return sel.fieldType === fieldType && sel.fieldName === fieldName;
     }
 
-    return true;
+    if (sel.type === "item-field") {
+      if (!repeaterItemId) return false; // Field is at block level but selection is in an item
+      return (
+        sel.itemId === repeaterItemId && sel.fieldType === fieldType && sel.fieldName === fieldName
+      );
+    }
+
+    return false;
   });
 }
