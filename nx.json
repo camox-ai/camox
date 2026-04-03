@@ -20,7 +20,7 @@
   "targetDefaults": {
     "build": {
       "inputs": ["production", "^production"],
-      "outputs": ["{projectRoot}/dist", "{projectRoot}/.output", "{projectRoot}/convex/_generated"],
+      "outputs": ["{projectRoot}/dist", "{projectRoot}/.output"],
       "dependsOn": ["^build"],
       "cache": true
     },

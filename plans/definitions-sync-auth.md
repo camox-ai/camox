@@ -39,7 +39,7 @@ These are synced alongside the existing definition fields. Both methods are plai
 2. **DB**: Add `initialContent` (json, nullable) and `initialSettings` (json, nullable) columns to `blockDefinitions`
 3. **API routes**: Accept and store the new fields in sync/upsert
 4. **Vite plugin** (`definitionsSync.ts`): Send `x-api-secret` header, include `initialContent`/`initialSettings` in the sync payload
-5. **Env**: Add `CAMOX_API_SECRET` to `.dev.vars` and production secrets
+5. **Env**: Add `CAMOX_API_SECRET` to `.env` and production secrets
 
 ### Phase 2: Dynamic block creation from definitions
 

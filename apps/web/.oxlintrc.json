@@ -4,5 +4,5 @@
   "rules": {
     "no-nested-ternary": "error"
   },
-  "ignorePatterns": ["src/routeTree.gen.ts", "**/convex/_generated/**"]
+  "ignorePatterns": ["src/routeTree.gen.ts"]
 }
