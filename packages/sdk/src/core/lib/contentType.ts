@@ -113,7 +113,7 @@ function _imageType(options: {
     default: [],
     defaultItems,
     title: options.title,
-    fieldType: "RepeatableObject" as const,
+    fieldType: "RepeatableItem" as const,
     arrayItemType: "Image" as const,
   });
 }
@@ -168,7 +168,7 @@ function _fileType(options: {
     default: [],
     defaultItems,
     title: options.title,
-    fieldType: "RepeatableObject" as const,
+    fieldType: "RepeatableItem" as const,
     arrayItemType: "File" as const,
   });
 }

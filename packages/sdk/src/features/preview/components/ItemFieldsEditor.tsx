@@ -5,6 +5,7 @@ import { Link2 as Link2Icon, Images as ImagesIcon, ImageIcon, FileIcon } from "l
 import * as React from "react";
 
 import { SidebarLexicalEditor } from "@/core/components/lexical/SidebarLexicalEditor";
+import type { FieldType } from "@/core/lib/fieldTypes";
 import { isLexicalState, plainTextToLexicalState } from "@/core/lib/lexicalState";
 import {
   isFileMarker,
@@ -24,15 +25,7 @@ import { RepeatableItemsList } from "./RepeatableItemsList";
 
 export interface SchemaField {
   name: string;
-  fieldType:
-    | "String"
-    | "RepeatableObject"
-    | "Enum"
-    | "Boolean"
-    | "Embed"
-    | "Link"
-    | "Image"
-    | "File";
+  fieldType: "String" | "RepeatableItem" | "Enum" | "Boolean" | "Embed" | "Link" | "Image" | "File";
   label?: string;
   enumLabels?: Record<string, string>;
   enumValues?: string[];
@@ -151,16 +144,28 @@ const ItemFieldsEditor = ({
     }, 500);
   };
 
-  const handleFieldFocus = (fieldName: string) => {
+  const handleFieldFocus = (fieldName: string, fieldType: FieldType) => {
     const fieldId = getFieldId(fieldName);
     focusedFieldIdRef.current = fieldId;
     postToIframe({ type: "CAMOX_FOCUS_FIELD", fieldId });
+    if (itemId) {
+      previewStore.send({ type: "selectItemField", blockId, itemId, fieldName, fieldType });
+    } else {
+      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType });
+    }
   };
 
   const handleFieldBlur = (fieldName: string) => {
     const fieldId = getFieldId(fieldName);
     focusedFieldIdRef.current = null;
     postToIframe({ type: "CAMOX_FOCUS_FIELD_END", fieldId });
+    // Defer so that if another field immediately takes focus, its handleFieldFocus
+    // sets focusedFieldIdRef before this fires — avoiding a flash to parent.
+    requestAnimationFrame(() => {
+      if (!focusedFieldIdRef.current) {
+        previewStore.send({ type: "selectParent" });
+      }
+    });
   };
 
   /** Dispatch the correct drill-into event depending on whether we're at block or item level. */
@@ -212,7 +217,7 @@ const ItemFieldsEditor = ({
                   <SidebarLexicalEditor
                     value={fieldApi.state.value as string | Record<string, unknown>}
                     onChange={(value) => handleScalarChange(field.name, value, fieldApi)}
-                    onFocus={() => handleFieldFocus(field.name)}
+                    onFocus={() => handleFieldFocus(field.name, field.fieldType as FieldType)}
                     onBlur={() => handleFieldBlur(field.name)}
                   />
                 </div>
@@ -246,7 +251,7 @@ const ItemFieldsEditor = ({
                     type="url"
                     value={fieldApi.state.value as string}
                     onChange={(e) => handleScalarChange(field.name, e.target.value, fieldApi)}
-                    onFocus={() => handleFieldFocus(field.name)}
+                    onFocus={() => handleFieldFocus(field.name, field.fieldType as FieldType)}
                     onBlur={() => handleFieldBlur(field.name)}
                   />
                 </div>
@@ -292,7 +297,7 @@ const ItemFieldsEditor = ({
           );
         }
 
-        if (field.fieldType === "RepeatableObject" && field.arrayItemType === "Image") {
+        if (field.fieldType === "RepeatableItem" && field.arrayItemType === "Image") {
           const items = (data[field.name] ?? []) as unknown[];
           const count = items.length;
           let preview: string;
@@ -336,7 +341,7 @@ const ItemFieldsEditor = ({
           );
         }
 
-        if (field.fieldType === "RepeatableObject" && field.arrayItemType === "File") {
+        if (field.fieldType === "RepeatableItem" && field.arrayItemType === "File") {
           const items = (data[field.name] ?? []) as unknown[];
           const count = items.length;
           let preview: string;
@@ -454,7 +459,7 @@ const ItemFieldsEditor = ({
           );
         }
 
-        if (field.fieldType === "RepeatableObject") {
+        if (field.fieldType === "RepeatableItem") {
           const rawItems = (data[field.name] ?? []) as any[];
           // Resolve _itemId markers to full item objects
           const items = rawItems

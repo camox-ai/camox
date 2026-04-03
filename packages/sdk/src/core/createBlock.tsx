@@ -513,7 +513,6 @@ export function createBlock<
     const handleChange = React.useCallback(
       (newValue: Record<string, unknown>) => {
         if (repeaterContext) {
-          console.log("has repeater context", repeaterContext);
           const { itemId } = repeaterContext;
           if (itemId) {
             updateRepeatableContent.mutate({

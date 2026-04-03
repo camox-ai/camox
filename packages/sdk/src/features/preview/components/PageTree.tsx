@@ -203,7 +203,7 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
         const fieldSchema = schemaProperties?.[fieldName];
         if (!fieldSchema) return null;
         const fieldType = fieldSchema.fieldType;
-        const isRepeatable = fieldType === "RepeatableObject";
+        const isRepeatable = fieldType === "RepeatableItem";
         return (
           <FieldItem
             key={fieldName}
