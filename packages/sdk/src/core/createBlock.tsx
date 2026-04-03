@@ -192,10 +192,17 @@ export function createBlock<
   for (const [key, prop] of Object.entries(typeboxSchema.properties)) {
     if ("default" in prop) {
       contentDefaults[key] = prop.default;
-      // Exclude asset fields from storage defaults — placeholders should only exist at the rendering layer
+      // Exclude asset fields and repeatable arrays from storage defaults —
+      // assets use placeholders at the rendering layer, repeatables are stored as separate DB rows
       const ft = (prop as any).fieldType;
       const ait = (prop as any).arrayItemType;
-      if (ft === "Image" || ft === "File" || ait === "Image" || ait === "File") {
+      if (
+        ft === "Image" ||
+        ft === "File" ||
+        ft === "RepeatableItem" ||
+        ait === "Image" ||
+        ait === "File"
+      ) {
         continue;
       }
       contentDefaultsForStorage[key] = prop.default;
@@ -429,6 +436,7 @@ export function createBlock<
     const handleChange = React.useCallback(
       (newValue: Record<string, unknown>) => {
         if (repeaterContext) {
+          console.log("has repeater context", repeaterContext);
           const { itemId } = repeaterContext;
           if (itemId) {
             updateRepeatableContent.mutate({
@@ -1230,11 +1238,13 @@ export function createBlock<
       })
       .filter(Boolean);
 
-    // When the array is empty, fill with placeholder items for rendering only
-    const defaults = repeatableItemDefaults[fieldName];
-    const defaultCount = repeatableDefaultItemCounts[fieldName] ?? 0;
-    if (arrayValue.length === 0 && defaults && defaultCount > 0) {
-      arrayValue = Array.from({ length: defaultCount }, () => ({ ...defaults }));
+    // In peek mode (frontend simulation), fill empty arrays with placeholder items for rendering
+    if (mode === "peek" && arrayValue.length === 0) {
+      const defaults = repeatableItemDefaults[fieldName];
+      const defaultCount = repeatableDefaultItemCounts[fieldName] ?? 0;
+      if (defaults && defaultCount > 0) {
+        arrayValue = Array.from({ length: defaultCount }, () => ({ ...defaults }));
+      }
     }
 
     type TItem = RepeatableItemType<K>;

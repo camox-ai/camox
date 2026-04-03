@@ -138,6 +138,68 @@ function findLastIndexLe<T extends { position: string }>(items: T[], target: str
   return result;
 }
 
+/**
+ * Recursively creates default repeatable items for array fields that specify
+ * defaultItems or minItems. Handles nested repeatables by inserting parents
+ * first, then recursing into their child repeatable fields.
+ */
+export async function createDefaultRepeatableItems(
+  db: Database,
+  blockId: number,
+  parentItemId: number | null,
+  properties: Record<string, any>,
+  now: number,
+) {
+  for (const [fieldName, fieldSchema] of Object.entries(properties)) {
+    if (fieldSchema.type !== "array" || !fieldSchema.items?.properties) continue;
+    const defaultCount = fieldSchema.defaultItems ?? fieldSchema.minItems ?? 0;
+    if (defaultCount <= 0) continue;
+
+    // Build default content from item property defaults, excluding nested repeatable fields
+    const itemContent: Record<string, unknown> = {};
+    const itemProperties = fieldSchema.items.properties as Record<string, any>;
+    for (const [propName, propSchema] of Object.entries(itemProperties)) {
+      if (propSchema.type === "array" && propSchema.items?.properties) continue;
+      if ("default" in propSchema) {
+        itemContent[propName] = propSchema.default;
+      }
+    }
+
+    // Compute positions upfront
+    const positions: string[] = [];
+    let prevPosition: string | null = null;
+    for (let i = 0; i < defaultCount; i++) {
+      const position = generateKeyBetween(prevPosition, null);
+      positions.push(position);
+      prevPosition = position;
+    }
+
+    // Bulk insert all items for this field
+    const rows = positions.map((position) => ({
+      blockId,
+      parentItemId,
+      fieldName,
+      content: itemContent,
+      summary: "",
+      position,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    const inserted = await db.insert(repeatableItems).values(rows).returning();
+
+    // Recurse into nested repeatable fields for each inserted item
+    const nestedRepeatableFields = Object.entries(itemProperties).filter(
+      ([, schema]: [string, any]) => schema.type === "array" && schema.items?.properties,
+    );
+    if (nestedRepeatableFields.length > 0) {
+      const nestedProperties = Object.fromEntries(nestedRepeatableFields);
+      for (const item of inserted) {
+        await createDefaultRepeatableItems(db, blockId, item.id, nestedProperties, now);
+      }
+    }
+  }
+}
+
 async function assembleBlockContent(db: Database, blockId: number) {
   const block = await db.select().from(blocks).where(eq(blocks.id, blockId)).get();
   if (!block) return null;
@@ -416,6 +478,24 @@ const create = authed.input(createBlockSchema).handler(async ({ context, input }
     })
     .returning()
     .get();
+
+  // Create default repeatable items based on the block definition's contentSchema
+  const def = await context.db
+    .select()
+    .from(blockDefinitions)
+    .where(
+      and(
+        eq(blockDefinitions.projectId, access.page.projectId),
+        eq(blockDefinitions.blockId, type),
+      ),
+    )
+    .get();
+
+  if (def?.contentSchema) {
+    const schema = def.contentSchema as Record<string, any>;
+    const properties = (schema.properties ?? {}) as Record<string, any>;
+    await createDefaultRepeatableItems(context.db, result.id, null, properties, now);
+  }
 
   scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
     entityTable: "blocks",

@@ -12,7 +12,8 @@ import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { queryKeys } from "../lib/query-keys";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
-import { blocks, files, repeatableItems } from "../schema";
+import { blockDefinitions, blocks, files, repeatableItems } from "../schema";
+import { createDefaultRepeatableItems } from "./blocks";
 import { collectFileIds } from "./pages";
 
 function comparePositions(a: string, b: string): number {
@@ -136,13 +137,14 @@ export async function executeRepeatableItemSummary(
 
 const createItemSchema = z.object({
   blockId: z.number(),
+  parentItemId: z.number().nullable().optional(),
   fieldName: z.string(),
   content: z.unknown(),
   afterPosition: z.string().nullable().optional(),
 });
 
 const create = authed.input(createItemSchema).handler(async ({ context, input }) => {
-  const { blockId, fieldName, content, afterPosition } = input;
+  const { blockId, parentItemId, fieldName, content, afterPosition } = input;
   const access = await assertBlockAccess(context.db, blockId, context.orgSlug);
   if (!access) throw new ORPCError("NOT_FOUND");
 
@@ -176,6 +178,7 @@ const create = authed.input(createItemSchema).handler(async ({ context, input })
     .insert(repeatableItems)
     .values({
       blockId,
+      parentItemId: parentItemId ?? null,
       fieldName,
       content,
       summary: "",
@@ -185,6 +188,47 @@ const create = authed.input(createItemSchema).handler(async ({ context, input })
     })
     .returning()
     .get();
+
+  // Create default nested repeatable items if the item's schema has nested repeatable fields
+  const def = await context.db
+    .select()
+    .from(blockDefinitions)
+    .where(
+      and(
+        eq(blockDefinitions.projectId, access.projectId),
+        eq(blockDefinitions.blockId, access.block.type),
+      ),
+    )
+    .get();
+
+  if (def?.contentSchema) {
+    // Walk the parent chain to find the schema path for this item's field.
+    // Each ancestor item contributes: ancestor.fieldName → .items.properties
+    const ancestors: string[] = [];
+    let currentParentId = parentItemId ?? null;
+    while (currentParentId !== null) {
+      const parent = await context.db
+        .select()
+        .from(repeatableItems)
+        .where(eq(repeatableItems.id, currentParentId))
+        .get();
+      if (!parent) break;
+      ancestors.unshift(parent.fieldName);
+      currentParentId = parent.parentItemId;
+    }
+
+    // Navigate the schema: root → ancestors[0].items.properties → ... → fieldName.items.properties
+    let schema: Record<string, any> | undefined = (def.contentSchema as any)?.properties;
+    for (const ancestorField of ancestors) {
+      schema = schema?.[ancestorField]?.items?.properties;
+    }
+    const itemProperties = schema?.[fieldName]?.items?.properties as
+      | Record<string, any>
+      | undefined;
+    if (itemProperties) {
+      await createDefaultRepeatableItems(context.db, blockId, result.id, itemProperties, now);
+    }
+  }
 
   scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
     entityTable: "repeatableItems",
