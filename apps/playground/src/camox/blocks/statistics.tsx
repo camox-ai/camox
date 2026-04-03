@@ -21,7 +21,7 @@ const statistics = createBlock({
         "Camox empowers developers to build and deploy websites with unprecedented speed and flexibility. Our platform handles millions of page views and serves content globally with enterprise-grade reliability.",
       title: "Description",
     }),
-    statistics: Type.RepeatableObject(
+    statistics: Type.RepeatableItem(
       {
         number: Type.String({
           default: "100M+",

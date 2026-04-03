@@ -149,7 +149,7 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
       type: "selectBlockField",
       blockId: String(block.id),
       fieldName,
-      fieldType: fieldType as "String" | "RepeatableObject",
+      fieldType: fieldType as "String" | "RepeatableItem",
     });
   };
 

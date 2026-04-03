@@ -90,12 +90,12 @@ interface CreateBlockOptions<
   /**
    * Schema defining the structure of the block's editable content.
    * All fields must have default values.
-   * Use Type.String() and Type.RepeatableObject() to define the schema.
+   * Use Type.String() and Type.RepeatableItem() to define the schema.
    *
    * @example
    * content: {
    *   title: Type.String({ default: 'Hello' }),
-   *   items: Type.RepeatableObject({
+   *   items: Type.RepeatableItem({
    *     name: Type.String({ default: 'Item' })
    *   }, { minItems: 1, maxItems: 10 })
    * }
@@ -312,7 +312,7 @@ export function createBlock<
       : never]: TContent[K];
   };
 
-  // Only allow array fields (from repeatableObject)
+  // Only allow array fields (from RepeatableItem)
   type RepeatableFields = {
     [K in keyof TContent as TContent[K] extends Array<any> ? K : never]: TContent[K];
   };

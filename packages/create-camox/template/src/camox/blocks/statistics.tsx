@@ -21,7 +21,7 @@ const statistics = createBlock({
         "Our platform empowers teams to build and ship faster. Here are some numbers we're proud of.",
       title: "Description",
     }),
-    statistics: Type.RepeatableObject(
+    statistics: Type.RepeatableItem(
       {
         number: Type.String({
           default: "100+",

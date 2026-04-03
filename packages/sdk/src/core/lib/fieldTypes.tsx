@@ -46,8 +46,8 @@ const fieldTypesDictionary = {
       previewStore.send({ type: "openBlockContentSheet", blockId });
     },
   },
-  RepeatableObject: {
-    label: "Repeatable object",
+  RepeatableItem: {
+    label: "Repeatable item",
     isScalar: false,
     isContentEditable: false,
     getIcon: ({ arrayItemType }: SchemaFieldMeta) => {

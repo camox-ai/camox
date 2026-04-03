@@ -9,7 +9,7 @@ const footer = createBlock({
   toMarkdown: ["{{title}}", "{{links}}"],
   content: {
     title: Type.String({ default: "{{projectName}}" }),
-    links: Type.RepeatableObject(
+    links: Type.RepeatableItem(
       {
         link: Type.Link({
           default: { text: "Link", href: "#", newTab: false },

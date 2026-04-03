@@ -93,7 +93,7 @@ createBlock({
   content: {
     subtitle: Type.String({ default: "..." }),
     description: Type.String({ default: "..." }),
-    statistics: Type.RepeatableObject(
+    statistics: Type.RepeatableItem(
       {
         number: Type.String({ default: "100M+" }),
         label: Type.String({ default: "pages served" }),
@@ -202,12 +202,12 @@ Type.Embed({
 
 The `default` must match the `pattern` — an error is thrown at definition time otherwise.
 
-### Type.RepeatableObject
+### Type.RepeatableItem
 
 An array of structured items. Each item is an object with its own fields. This is how you create lists of things (testimonials, features, stats, links...).
 
 ```tsx
-Type.RepeatableObject(
+Type.RepeatableItem(
   {
     name: Type.String({ default: "Feature" }),
     description: Type.String({ default: "Description" }),
@@ -226,10 +226,10 @@ The `toMarkdown` option on RepeatableObject defines how each item is rendered as
 RepeatableObjects can be nested — an item can contain another RepeatableObject:
 
 ```tsx
-columns: Type.RepeatableObject(
+columns: Type.RepeatableItem(
   {
     title: Type.String({ default: "Column" }),
-    links: Type.RepeatableObject(
+    links: Type.RepeatableItem(
       {
         link: Type.Link({ default: { text: "Link", href: "#", newTab: false } }),
       },

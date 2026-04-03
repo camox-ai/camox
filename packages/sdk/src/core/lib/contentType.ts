@@ -201,12 +201,11 @@ export const Type = {
   },
 
   /**
-   * Creates a repeatable array of objects.
-   * Arrays and objects must always be used together - no standalone arrays or objects.
+   * Creates a repeatable array of object items.
    * The default array is auto-generated based on minItems.
    *
    * @example
-   * Type.RepeatableObject({
+   * Type.RepeatableItem({
    *   title: Type.String({ default: 'Item' }),
    *   description: Type.String({ default: 'Description' })
    * }, {
@@ -215,7 +214,7 @@ export const Type = {
    *   title: 'Items'
    * })
    */
-  RepeatableObject: <
+  RepeatableItem: <
     T extends Record<string, TSchema>,
     const TMarkdown extends readonly string[] = readonly string[],
   >(
@@ -252,7 +251,7 @@ export const Type = {
       maxItems: options.maxItems,
       default: defaultArray,
       title: options.title,
-      fieldType: "RepeatableObject" as const,
+      fieldType: "RepeatableItem" as const,
       ...("toMarkdown" in options && options.toMarkdown ? { toMarkdown: options.toMarkdown } : {}),
     });
   },

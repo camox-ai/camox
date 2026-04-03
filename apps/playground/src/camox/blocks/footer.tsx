@@ -10,10 +10,10 @@ const footer = createBlock({
   toMarkdown: ["{{title}}", "{{columns}}"],
   content: {
     title: Type.String({ default: "Acme" }),
-    columns: Type.RepeatableObject(
+    columns: Type.RepeatableItem(
       {
         title: Type.String({ default: "Column Title" }),
-        links: Type.RepeatableObject(
+        links: Type.RepeatableItem(
           {
             link: Type.Link({
               default: {
