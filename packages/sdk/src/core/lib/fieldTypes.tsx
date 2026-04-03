@@ -35,6 +35,7 @@ const fieldTypesDictionary = {
     label: "String",
     isScalar: true,
     isContentEditable: true,
+    hasOwnView: false,
     getIcon: () => (props: LucideProps) => <TypeIcon {...props} />,
     getLabel: (value: unknown) => {
       if (isLexicalState(value))
@@ -50,6 +51,7 @@ const fieldTypesDictionary = {
     label: "Repeatable item",
     isScalar: false,
     isContentEditable: false,
+    hasOwnView: false,
     getIcon: ({ arrayItemType }: SchemaFieldMeta) => {
       if (arrayItemType === "Image") return (props: LucideProps) => <ImagesIcon {...props} />;
       if (arrayItemType === "File") return (props: LucideProps) => <FileIcon {...props} />;
@@ -66,6 +68,7 @@ const fieldTypesDictionary = {
     label: "Enum",
     isScalar: true,
     isContentEditable: false,
+    hasOwnView: false,
     getIcon: () => (props: LucideProps) => <ChevronDownIcon {...props} />,
     getLabel: (value: unknown) => value as string,
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
@@ -77,6 +80,7 @@ const fieldTypesDictionary = {
     label: "Boolean",
     isScalar: true,
     isContentEditable: false,
+    hasOwnView: false,
     getIcon: () => (props: LucideProps) => <ToggleLeftIcon {...props} />,
     getLabel: (value: unknown) => JSON.stringify(value),
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
@@ -88,6 +92,7 @@ const fieldTypesDictionary = {
     label: "Embed",
     isScalar: true,
     isContentEditable: false,
+    hasOwnView: false,
     getIcon: () => (props: LucideProps) => <FrameIcon {...props} />,
     getLabel: (value: unknown, { schemaTitle, fieldName, fetchedTitle }: FieldLabelMeta) => {
       let domain: string | null = null;
@@ -105,6 +110,7 @@ const fieldTypesDictionary = {
     label: "Link",
     isScalar: false,
     isContentEditable: false,
+    hasOwnView: true,
     getIcon: () => (props: LucideProps) => <Link2Icon {...props} />,
     getLabel: (value: unknown) => (value as { text: string } | undefined)?.text ?? "",
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
@@ -116,6 +122,7 @@ const fieldTypesDictionary = {
     label: "Image",
     isScalar: false,
     isContentEditable: false,
+    hasOwnView: true,
     getIcon: () => (props: LucideProps) => <ImageIcon {...props} />,
     getLabel: (value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) => {
       const filename = (value as { filename?: string } | null | undefined)?.filename;
@@ -131,6 +138,7 @@ const fieldTypesDictionary = {
     label: "File",
     isScalar: false,
     isContentEditable: false,
+    hasOwnView: true,
     getIcon: () => (props: LucideProps) => <FileIcon {...props} />,
     getLabel: (value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) => {
       const filename = (value as { filename?: string } | null | undefined)?.filename;
@@ -147,8 +155,9 @@ const fieldTypesDictionary = {
   {
     label: string;
     isScalar: boolean;
-    getIcon: (meta: SchemaFieldMeta) => (props: LucideProps) => React.ReactNode;
     isContentEditable: boolean;
+    hasOwnView: boolean;
+    getIcon: (meta: SchemaFieldMeta) => (props: LucideProps) => React.ReactNode;
     getLabel: (value: unknown, meta: FieldLabelMeta) => string;
     onTreeDoubleClick: (params: TreeDoubleClickParams) => void;
   }

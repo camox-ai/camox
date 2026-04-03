@@ -20,6 +20,7 @@ import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
+import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
 import { actionsStore, type Action } from "@/features/provider/actionsStore";
 import { trackClientEvent } from "@/lib/analytics-client";
 import { isFileMarker, type NormalizedItem } from "@/lib/normalized-data";
@@ -233,14 +234,10 @@ const PageContentSheet = () => {
   const assetType: "Image" | "File" = isViewingImage ? "Image" : "File";
 
   const isMultipleAsset = React.useMemo(() => {
-    if (!isViewingAsset || !assetFieldName || !blockDef) return false;
-    // Get the schema at the current level (block or item)
-    const schema = currentItemId
-      ? getSchemaForItem(blockDef.contentSchema, Number(currentItemId), itemsMap)
-      : blockDef.contentSchema;
-    const prop = (schema as any)?.properties?.[assetFieldName];
+    if (!isViewingAsset || !assetFieldName) return false;
+    const prop = (currentSchema as any)?.properties?.[assetFieldName];
     return prop?.arrayItemType === "Image" || prop?.arrayItemType === "File";
-  }, [isViewingAsset, assetFieldName, blockDef, currentItemId, itemsMap]);
+  }, [isViewingAsset, assetFieldName, currentSchema]);
 
   // Track content sheet open
   React.useEffect(() => {
@@ -331,13 +328,18 @@ const PageContentSheet = () => {
     previewStore.send({ type: "closeBlockContentSheet" });
   };
 
+  // Build breadcrumb display from the ancestor chain
+  const ancestorChain = React.useMemo(
+    () => (currentItemId ? buildAncestorChain(Number(currentItemId), itemsMap) : []),
+    [currentItemId, itemsMap],
+  );
+
   if (!block || !blockDef || !currentSchema) {
     return null;
   }
 
-  // Build breadcrumb display from the ancestor chain
-  const ancestorChain = currentItemId ? buildAncestorChain(Number(currentItemId), itemsMap) : [];
-  const isAtBlockLevel = ancestorChain.length === 0 && !fieldInfo;
+  const fieldHasOwnView = fieldInfo ? fieldTypesDictionary[fieldInfo.fieldType].hasOwnView : false;
+  const isAtBlockLevel = ancestorChain.length === 0 && !fieldHasOwnView;
 
   return (
     <PreviewSideSheet
@@ -404,8 +406,8 @@ const PageContentSheet = () => {
                     const crumbLabel =
                       lastAncestor.summary || formatFieldName(lastAncestor.fieldName);
 
-                    if (fieldInfo) {
-                      // Viewing a field within this item — item is clickable
+                    if (fieldHasOwnView) {
+                      // Viewing a terminal field within this item — item is clickable
                       return (
                         <BreadcrumbItem className="min-w-0">
                           <BreadcrumbLink
@@ -429,22 +431,13 @@ const PageContentSheet = () => {
               )}
 
               {/* Terminal field (Link/Image/File) */}
-              {fieldInfo && (
+              {fieldHasOwnView && fieldInfo && (
                 <>
                   <BreadcrumbSeparator />
                   <BreadcrumbItem className="min-w-0">
                     <BreadcrumbPage className="truncate">
-                      {(() => {
-                        const schema = currentItemId
-                          ? getSchemaForItem(
-                              blockDef.contentSchema,
-                              Number(currentItemId),
-                              itemsMap,
-                            )
-                          : blockDef.contentSchema;
-                        const prop = (schema as any)?.properties?.[fieldInfo.fieldName];
-                        return prop?.title ?? formatFieldName(fieldInfo.fieldName);
-                      })()}
+                      {(currentSchema as any)?.properties?.[fieldInfo.fieldName]?.title ??
+                        formatFieldName(fieldInfo.fieldName)}
                     </BreadcrumbPage>
                   </BreadcrumbItem>
                 </>

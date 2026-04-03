@@ -2,14 +2,28 @@
 
 ### One Package: `camox` = SDK + CLI
 
-The `camox` package ships both the SDK (blocks, layouts, preview UI) and the CLI. One dependency, always version-matched. The CLI entry point lazy-imports heavy dependencies so SDK imports stay light.
+The `camox` package ships both the SDK (blocks, layouts, preview UI) and the CLI. One dependency, always version-matched.
+
+CLI source lives in a separate `packages/cli/` package (`@camox/cli`) to keep the SDK package lean. The `camox` package re-exports it via a thin bin wrapper:
+
+```js
+// packages/sdk/bin/camox.mjs
+#!/usr/bin/env node
+import '@camox/cli';
+```
 
 ```json
+// packages/sdk/package.json
 {
   "name": "camox",
-  "bin": { "camox": "./dist/cli.mjs" }
+  "bin": { "camox": "./bin/camox.mjs" },
+  "dependencies": {
+    "@camox/cli": "workspace:*"
+  }
 }
 ```
+
+Users still see one package and one `bin` — the split is purely internal.
 
 ### `create-camox` is eliminated
 
