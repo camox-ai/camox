@@ -17,7 +17,13 @@ interface SidebarLexicalEditorProps {
   onBlur?: () => void;
 }
 
-function ExternalStateSync({ value }: { value: string | Record<string, unknown> }) {
+function ExternalStateSync({
+  value,
+  isSyncingRef,
+}: {
+  value: string | Record<string, unknown>;
+  isSyncingRef: React.RefObject<boolean>;
+}) {
   const [editor] = useLexicalComposerContext();
   const isFocusedRef = React.useRef(false);
 
@@ -44,11 +50,12 @@ function ExternalStateSync({ value }: { value: string | Record<string, unknown> 
     try {
       const normalized = normalizeLexicalState(value);
       const newState = editor.parseEditorState(normalized);
+      isSyncingRef.current = true;
       editor.setEditorState(newState);
     } catch {
       // ignore parse errors
     }
-  }, [editor, value]);
+  }, [editor, value, isSyncingRef]);
 
   return null;
 }
@@ -60,6 +67,9 @@ export function SidebarLexicalEditor({
   onBlur,
 }: SidebarLexicalEditorProps) {
   const timerRef = React.useRef<number | null>(null);
+  const onChangeRef = React.useRef(onChange);
+  onChangeRef.current = onChange;
+  const isSyncingRef = React.useRef(false);
 
   const config = React.useMemo(
     () => createEditorConfig(value),
@@ -67,15 +77,17 @@ export function SidebarLexicalEditor({
     [],
   );
 
-  const handleChange = React.useCallback(
-    (editorState: EditorState) => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = window.setTimeout(() => {
-        onChange(editorState.toJSON() as unknown as Record<string, unknown>);
-      }, 300);
-    },
-    [onChange],
-  );
+  const handleChange = React.useCallback((editorState: EditorState) => {
+    // Ignore editor updates triggered by ExternalStateSync to avoid loops
+    if (isSyncingRef.current) {
+      isSyncingRef.current = false;
+      return;
+    }
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
+      onChangeRef.current(editorState.toJSON() as unknown as Record<string, unknown>);
+    }, 300);
+  }, []);
 
   React.useEffect(() => {
     return () => {
@@ -100,7 +112,7 @@ export function SidebarLexicalEditor({
         ErrorBoundary={LexicalErrorBoundary}
       />
       <OnChangePlugin onChange={handleChange} />
-      <ExternalStateSync value={value} />
+      <ExternalStateSync value={value} isSyncingRef={isSyncingRef} />
     </LexicalComposer>
   );
 }

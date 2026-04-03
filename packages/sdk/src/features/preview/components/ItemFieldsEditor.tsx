@@ -138,7 +138,9 @@ const ItemFieldsEditor = ({
 
   const handleScalarChange = (fieldName: string, value: unknown, fieldApi: any) => {
     fieldApi.handleChange(value);
-    if (timerRef.current) clearTimeout(timerRef.current);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
     timerRef.current = window.setTimeout(() => {
       onFieldChange(fieldName, value);
     }, 500);

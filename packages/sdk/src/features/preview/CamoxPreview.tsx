@@ -66,8 +66,6 @@ export function usePreviewedPage() {
   const { pathname } = useLocation();
   const queryClient = useQueryClient();
   const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
-  const selection = useSelector(previewStore, (state) => state.context.selection);
-  console.log("selection", selection);
 
   // When the actual route changes, clear any stale peeked page so it doesn't
   // override the new pathname. This handles the race condition where the
