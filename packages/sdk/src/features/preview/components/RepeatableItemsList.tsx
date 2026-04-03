@@ -19,6 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
+import { generateKeyBetween } from "fractional-indexing";
 import { CircleMinus, CirclePlus, GripVertical } from "lucide-react";
 
 import { repeatableItemMutations } from "@/lib/queries";
@@ -192,15 +193,67 @@ const RepeatableItemsList = ({
       for (const [key, prop] of Object.entries(itemsSchema.properties)) {
         const ft = (prop as any).fieldType;
         if (ft === "Image" || ft === "File") continue;
+        // Skip nested repeatable fields — they are handled as nestedItems
+        if ((prop as any).type === "array" && (prop as any).items?.properties) continue;
         if ("default" in (prop as any)) {
           defaultContent[key] = (prop as { default: unknown }).default;
         }
       }
     }
+
+    // Build nested item seeds for any nested repeatable fields in this item's schema
+    const nestedItems: Array<{
+      tempId: string;
+      parentTempId: string | null;
+      fieldName: string;
+      content: Record<string, unknown>;
+      position: string;
+    }> = [];
+
+    if (itemsSchema?.properties) {
+      let seedCounter = 0;
+      const buildNestedSeeds = (properties: Record<string, any>, parentTempId: string | null) => {
+        for (const [nestedFieldName, fieldSchemaDef] of Object.entries(properties)) {
+          const fs = fieldSchemaDef as any;
+          if (fs.type !== "array" || !fs.items?.properties) continue;
+          const defaultCount = fs.defaultItems ?? fs.minItems ?? 0;
+          if (defaultCount <= 0) continue;
+
+          const nestedItemProps = fs.items.properties as Record<string, any>;
+          const nestedContent: Record<string, unknown> = {};
+          for (const [propName, propSchema] of Object.entries(nestedItemProps)) {
+            const ps = propSchema as any;
+            if (ps.type === "array" && ps.items?.properties) continue;
+            if ("default" in ps) {
+              nestedContent[propName] = ps.default;
+            }
+          }
+
+          let prevPos: string | null = null;
+          for (let i = 0; i < defaultCount; i++) {
+            const tempId = `nested_${++seedCounter}`;
+            const position = generateKeyBetween(prevPos, null);
+            prevPos = position;
+            nestedItems.push({
+              tempId,
+              parentTempId,
+              fieldName: nestedFieldName,
+              content: { ...nestedContent },
+              position,
+            });
+            // Recurse for deeper nesting
+            buildNestedSeeds(nestedItemProps, tempId);
+          }
+        }
+      };
+      buildNestedSeeds(itemsSchema.properties, null);
+    }
+
     createRepeatableItem.mutate({
       blockId: Number(blockId),
       fieldName,
       content: defaultContent,
+      nestedItems: nestedItems.length > 0 ? nestedItems : undefined,
     });
   };
 

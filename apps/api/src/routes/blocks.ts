@@ -138,68 +138,6 @@ function findLastIndexLe<T extends { position: string }>(items: T[], target: str
   return result;
 }
 
-/**
- * Recursively creates default repeatable items for array fields that specify
- * defaultItems or minItems. Handles nested repeatables by inserting parents
- * first, then recursing into their child repeatable fields.
- */
-export async function createDefaultRepeatableItems(
-  db: Database,
-  blockId: number,
-  parentItemId: number | null,
-  properties: Record<string, any>,
-  now: number,
-) {
-  for (const [fieldName, fieldSchema] of Object.entries(properties)) {
-    if (fieldSchema.type !== "array" || !fieldSchema.items?.properties) continue;
-    const defaultCount = fieldSchema.defaultItems ?? fieldSchema.minItems ?? 0;
-    if (defaultCount <= 0) continue;
-
-    // Build default content from item property defaults, excluding nested repeatable fields
-    const itemContent: Record<string, unknown> = {};
-    const itemProperties = fieldSchema.items.properties as Record<string, any>;
-    for (const [propName, propSchema] of Object.entries(itemProperties)) {
-      if (propSchema.type === "array" && propSchema.items?.properties) continue;
-      if ("default" in propSchema) {
-        itemContent[propName] = propSchema.default;
-      }
-    }
-
-    // Compute positions upfront
-    const positions: string[] = [];
-    let prevPosition: string | null = null;
-    for (let i = 0; i < defaultCount; i++) {
-      const position = generateKeyBetween(prevPosition, null);
-      positions.push(position);
-      prevPosition = position;
-    }
-
-    // Bulk insert all items for this field
-    const rows = positions.map((position) => ({
-      blockId,
-      parentItemId,
-      fieldName,
-      content: itemContent,
-      summary: "",
-      position,
-      createdAt: now,
-      updatedAt: now,
-    }));
-    const inserted = await db.insert(repeatableItems).values(rows).returning();
-
-    // Recurse into nested repeatable fields for each inserted item
-    const nestedRepeatableFields = Object.entries(itemProperties).filter(
-      ([, schema]: [string, any]) => schema.type === "array" && schema.items?.properties,
-    );
-    if (nestedRepeatableFields.length > 0) {
-      const nestedProperties = Object.fromEntries(nestedRepeatableFields);
-      for (const item of inserted) {
-        await createDefaultRepeatableItems(db, blockId, item.id, nestedProperties, now);
-      }
-    }
-  }
-}
-
 async function assembleBlockContent(db: Database, blockId: number) {
   const block = await db.select().from(blocks).where(eq(blocks.id, blockId)).get();
   if (!block) return null;
@@ -299,12 +237,21 @@ export async function executeBlockSummary(
 
 // --- Procedures ---
 
+const repeatableItemSeedSchema = z.object({
+  tempId: z.string(),
+  parentTempId: z.string().nullable(),
+  fieldName: z.string(),
+  content: z.unknown(),
+  position: z.string(),
+});
+
 const createBlockSchema = z.object({
   pageId: z.number(),
   type: z.string(),
   content: z.unknown(),
   settings: z.unknown().optional(),
   afterPosition: z.string().nullable().optional(),
+  repeatableItems: z.array(repeatableItemSeedSchema).optional(),
 });
 
 const getPageMarkdown = pub
@@ -435,7 +382,7 @@ const getUsageCounts = pub.handler(async ({ context }) => {
 
 const create = authed.input(createBlockSchema).handler(async ({ context, input }) => {
   const orgSlug = context.orgSlug;
-  const { pageId, type, content, settings, afterPosition } = input;
+  const { pageId, type, content, settings, afterPosition, repeatableItems: itemSeeds } = input;
   const access = await assertPageAccess(context.db, pageId, orgSlug);
   if (!access) throw new ORPCError("NOT_FOUND");
 
@@ -479,22 +426,30 @@ const create = authed.input(createBlockSchema).handler(async ({ context, input }
     .returning()
     .get();
 
-  // Create default repeatable items based on the block definition's contentSchema
-  const def = await context.db
-    .select()
-    .from(blockDefinitions)
-    .where(
-      and(
-        eq(blockDefinitions.projectId, access.page.projectId),
-        eq(blockDefinitions.blockId, type),
-      ),
-    )
-    .get();
+  // Insert client-provided repeatable item seeds in topological order (parents before children)
+  if (itemSeeds && itemSeeds.length > 0) {
+    const tempIdToRealId = new Map<string, number>();
 
-  if (def?.contentSchema) {
-    const schema = def.contentSchema as Record<string, any>;
-    const properties = (schema.properties ?? {}) as Record<string, any>;
-    await createDefaultRepeatableItems(context.db, result.id, null, properties, now);
+    for (const seed of itemSeeds) {
+      const parentItemId = seed.parentTempId
+        ? (tempIdToRealId.get(seed.parentTempId) ?? null)
+        : null;
+      const inserted = await context.db
+        .insert(repeatableItems)
+        .values({
+          blockId: result.id,
+          parentItemId,
+          fieldName: seed.fieldName,
+          content: seed.content,
+          summary: "",
+          position: seed.position,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning()
+        .get();
+      tempIdToRealId.set(seed.tempId, inserted.id);
+    }
   }
 
   scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
@@ -758,17 +713,37 @@ const get = pub.input(z.object({ id: z.number() })).handler(async ({ context, in
     .where(eq(repeatableItems.blockId, block.id));
   const sorted = items.sort((a, b) => comparePositions(a.position, b.position));
 
-  // Add _itemId markers to block content
-  const content = { ...(block.content as Record<string, unknown>) };
-  const topLevelByField = new Map<string, typeof sorted>();
+  // Build a map of parentItemId → grouped children by fieldName
+  const childrenByParent = new Map<number | null, Map<string, typeof sorted>>();
   for (const item of sorted) {
-    if (item.parentItemId !== null) continue;
-    const list = topLevelByField.get(item.fieldName) ?? [];
+    let fieldMap = childrenByParent.get(item.parentItemId);
+    if (!fieldMap) {
+      fieldMap = new Map();
+      childrenByParent.set(item.parentItemId, fieldMap);
+    }
+    const list = fieldMap.get(item.fieldName) ?? [];
     list.push(item);
-    topLevelByField.set(item.fieldName, list);
+    fieldMap.set(item.fieldName, list);
   }
-  for (const [fieldName, fieldItems] of topLevelByField) {
-    content[fieldName] = fieldItems.map((i) => ({ _itemId: i.id }));
+
+  // Add _itemId markers to block content for top-level items
+  const content = { ...(block.content as Record<string, unknown>) };
+  const topLevelFields = childrenByParent.get(null);
+  if (topLevelFields) {
+    for (const [fieldName, fieldItems] of topLevelFields) {
+      content[fieldName] = fieldItems.map((i) => ({ _itemId: i.id }));
+    }
+  }
+
+  // Add _itemId markers to each item's content for its nested children
+  for (const item of sorted) {
+    const nestedFields = childrenByParent.get(item.id);
+    if (!nestedFields) continue;
+    const itemContent = { ...(item.content as Record<string, unknown>) };
+    for (const [fieldName, fieldItems] of nestedFields) {
+      itemContent[fieldName] = fieldItems.map((i) => ({ _itemId: i.id }));
+    }
+    (item as any).content = itemContent;
   }
 
   // Collect and fetch referenced files

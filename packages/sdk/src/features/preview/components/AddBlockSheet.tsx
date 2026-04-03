@@ -151,12 +151,14 @@ const AddBlockSheet = () => {
         ? ""
         : (peekedBlockPosition ?? pageBlocks[pageBlocks.length - 1]?.position);
 
+    const bundle = block.getInitialBundle();
     const { id: blockId } = await createBlock.mutateAsync({
       pageId: page.page.id,
       type: block.id,
-      content: block.getInitialContent(),
-      settings: block.getInitialSettings(),
+      content: bundle.content,
+      settings: bundle.settings,
       afterPosition,
+      repeatableItems: bundle.repeatableItems,
     });
     trackClientEvent("block_added", {
       projectId: page.page.projectId,

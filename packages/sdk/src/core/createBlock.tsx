@@ -174,6 +174,70 @@ export interface PeekItem {
   updatedAt: number;
 }
 
+export interface RepeatableItemSeed {
+  tempId: string;
+  parentTempId: string | null;
+  fieldName: string;
+  content: Record<string, unknown>;
+  position: string;
+}
+
+/**
+ * Recursively walks schema properties to generate RepeatableItemSeed objects.
+ * Sets `_itemId` placeholder markers on `content` for each repeatable field,
+ * and pushes seed objects into `allSeeds`.
+ */
+function buildInitialSeeds(
+  properties: Record<string, any>,
+  parentTempId: string | null,
+  content: Record<string, unknown>,
+  allSeeds: RepeatableItemSeed[],
+  counter: { value: number },
+) {
+  for (const [fieldName, fieldSchema] of Object.entries(properties)) {
+    if (fieldSchema.type !== "array" || !fieldSchema.items?.properties) continue;
+    const defaultCount = fieldSchema.defaultItems ?? fieldSchema.minItems ?? 0;
+    if (defaultCount <= 0) continue;
+
+    const itemProperties = fieldSchema.items.properties as Record<string, any>;
+
+    // Build default item content, excluding nested repeatable sub-fields
+    const itemContent: Record<string, unknown> = {};
+    for (const [propName, propSchema] of Object.entries(itemProperties)) {
+      if (propSchema.type === "array" && propSchema.items?.properties) continue;
+      if ("default" in propSchema) {
+        itemContent[propName] = propSchema.default;
+      }
+    }
+
+    const markers: { _itemId: string }[] = [];
+    let prevPosition: string | null = null;
+
+    for (let i = 0; i < defaultCount; i++) {
+      const tempId = `seed_${++counter.value}`;
+      const position = generateKeyBetween(prevPosition, null);
+      prevPosition = position;
+
+      allSeeds.push({
+        tempId,
+        parentTempId,
+        fieldName,
+        content: { ...itemContent },
+        position,
+      });
+
+      markers.push({ _itemId: tempId });
+
+      // Recurse into nested repeatable fields within this item.
+      // Use a throwaway object so nested _itemId markers don't pollute the seed's stored content.
+      const nestedDiscard: Record<string, unknown> = {};
+      buildInitialSeeds(itemProperties, tempId, nestedDiscard, allSeeds, counter);
+    }
+
+    content[fieldName] = markers;
+  }
+}
+
 /**
  * Recursively walks schema properties to generate fake repeatable items for peek mode.
  * Sets `_itemId` markers on `content` for each repeatable field,
@@ -1721,6 +1785,39 @@ export function createBlock<
     description: options.description,
     contentSchema,
     settingsSchema,
+    getInitialBundle: () => {
+      const counter = { value: 0 };
+      const allSeeds: RepeatableItemSeed[] = [];
+
+      // Build content with _itemId markers for repeatable fields, scalar defaults for the rest
+      const content: Record<string, unknown> = { ...contentDefaults };
+      buildInitialSeeds(typeboxSchema.properties, null, content, allSeeds, counter);
+
+      // Strip repeatable markers and asset placeholders for storage-safe content
+      const storageContent: Record<string, unknown> = {};
+      for (const [key, prop] of Object.entries(typeboxSchema.properties)) {
+        const ft = (prop as any).fieldType;
+        const ait = (prop as any).arrayItemType;
+        if (
+          ft === "Image" ||
+          ft === "File" ||
+          ft === "RepeatableItem" ||
+          ait === "Image" ||
+          ait === "File"
+        ) {
+          continue;
+        }
+        if ("default" in prop) {
+          storageContent[key] = prop.default;
+        }
+      }
+
+      return {
+        content: storageContent as Record<string, unknown>,
+        settings: { ...settingsDefaults },
+        repeatableItems: allSeeds,
+      };
+    },
     getInitialContent: () => {
       return { ...contentDefaultsForStorage } as TContent;
     },
