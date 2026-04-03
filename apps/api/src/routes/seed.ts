@@ -3,6 +3,7 @@ import { generateKeyBetween } from "fractional-indexing";
 import { Hono } from "hono";
 
 import type { Database } from "../db";
+import { plainTextToLexicalState } from "../lib/lexical-state";
 import {
   blockDefinitions,
   blocks,
@@ -102,8 +103,9 @@ async function seedContent(db: Database) {
   const navbarPos = generateKeyBetween(null, null);
   const footerPos = generateKeyBetween(navbarPos, null);
 
-  await db.insert(blocks).values([
-    {
+  const navbarBlock = await db
+    .insert(blocks)
+    .values({
       layoutId: layout.id,
       type: "navbar",
       content: {
@@ -116,14 +118,131 @@ async function seedContent(db: Database) {
       position: navbarPos,
       createdAt: now,
       updatedAt: now,
-    },
-    {
+    })
+    .returning()
+    .get();
+
+  const footerBlock = await db
+    .insert(blocks)
+    .values({
       layoutId: layout.id,
       type: "footer",
-      content: { title: "Acme" },
+      content: { title: plainTextToLexicalState("Acme") },
       placement: "after" as const,
       summary: "Footer with Acme title",
       position: footerPos,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+    .get();
+
+  // Navbar repeatable items: links
+  await db.insert(repeatableItems).values([
+    {
+      blockId: navbarBlock.id,
+      fieldName: "links",
+      content: { link: { text: "Features", href: "/features", newTab: false } },
+      summary: "Features link",
+      position: generateKeyBetween(null, null),
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      blockId: navbarBlock.id,
+      fieldName: "links",
+      content: { link: { text: "Pricing", href: "/pricing", newTab: false } },
+      summary: "Pricing link",
+      position: generateKeyBetween(generateKeyBetween(null, null), null),
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      blockId: navbarBlock.id,
+      fieldName: "links",
+      content: { link: { text: "Docs", href: "/docs", newTab: false } },
+      summary: "Docs link",
+      position: generateKeyBetween(generateKeyBetween(generateKeyBetween(null, null), null), null),
+      createdAt: now,
+      updatedAt: now,
+    },
+  ]);
+
+  // Footer repeatable items: columns with nested links
+  const colPos0 = generateKeyBetween(null, null);
+  const colPos1 = generateKeyBetween(colPos0, null);
+
+  const footerColumns = await db
+    .insert(repeatableItems)
+    .values([
+      {
+        blockId: footerBlock.id,
+        fieldName: "columns",
+        content: { title: plainTextToLexicalState("Product") },
+        summary: "Product column",
+        position: colPos0,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        blockId: footerBlock.id,
+        fieldName: "columns",
+        content: { title: plainTextToLexicalState("Company") },
+        summary: "Company column",
+        position: colPos1,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ])
+    .returning();
+
+  // Nested links for Product column
+  const productLinkPos0 = generateKeyBetween(null, null);
+  const productLinkPos1 = generateKeyBetween(productLinkPos0, null);
+  await db.insert(repeatableItems).values([
+    {
+      blockId: footerBlock.id,
+      parentItemId: footerColumns[0].id,
+      fieldName: "links",
+      content: { link: { text: "Features", href: "/features", newTab: false } },
+      summary: "Features link",
+      position: productLinkPos0,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      blockId: footerBlock.id,
+      parentItemId: footerColumns[0].id,
+      fieldName: "links",
+      content: { link: { text: "Pricing", href: "/pricing", newTab: false } },
+      summary: "Pricing link",
+      position: productLinkPos1,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ]);
+
+  // Nested links for Company column
+  const companyLinkPos0 = generateKeyBetween(null, null);
+  const companyLinkPos1 = generateKeyBetween(companyLinkPos0, null);
+  await db.insert(repeatableItems).values([
+    {
+      blockId: footerBlock.id,
+      parentItemId: footerColumns[1].id,
+      fieldName: "links",
+      content: { link: { text: "About", href: "/about", newTab: false } },
+      summary: "About link",
+      position: companyLinkPos0,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      blockId: footerBlock.id,
+      parentItemId: footerColumns[1].id,
+      fieldName: "links",
+      content: { link: { text: "Blog", href: "/blog", newTab: false } },
+      summary: "Blog link",
+      position: companyLinkPos1,
       createdAt: now,
       updatedAt: now,
     },
@@ -172,8 +291,10 @@ async function seedContent(db: Database) {
     pageId: page.id,
     type: "hero",
     content: {
-      title: "Websites you'll love to maintain",
-      description: "Meet Camox, the web toolkit designed for developers, LLMs and content editors.",
+      title: plainTextToLexicalState("Websites you'll love to maintain"),
+      description: plainTextToLexicalState(
+        "Meet Camox, the web toolkit designed for developers, LLMs and content editors.",
+      ),
       ctaButton: { label: "Start building", url: "/get-started" },
       illustration: { _fileId: demoFile.id },
     },
@@ -189,10 +310,11 @@ async function seedContent(db: Database) {
       pageId: page.id,
       type: "statistics",
       content: {
-        title: "Platform performance",
-        subtitle: "Built for modern web development",
-        description:
+        title: plainTextToLexicalState("Platform performance"),
+        subtitle: plainTextToLexicalState("Built for modern web development"),
+        description: plainTextToLexicalState(
           "Camox combines the power of a headless CMS with the developer experience of a modern framework.",
+        ),
       },
       summary: "Statistics section with 4 stats",
       position: statsPos,
@@ -204,10 +326,10 @@ async function seedContent(db: Database) {
 
   // Repeatable items for statistics block
   const stats = [
-    "100M+ pages served monthly across all projects.",
-    "99.9% uptime with global CDN infrastructure.",
-    "50+ countries served worldwide.",
-    "10ms average response time for content delivery.",
+    { number: "100M+", label: "pages served monthly across all projects." },
+    { number: "99.9%", label: "uptime with global CDN infrastructure." },
+    { number: "50+", label: "countries served worldwide." },
+    { number: "10ms", label: "average response time for content delivery." },
   ];
 
   let prevPos: string | null = null;
@@ -215,9 +337,12 @@ async function seedContent(db: Database) {
     const pos = generateKeyBetween(prevPos, null);
     await db.insert(repeatableItems).values({
       blockId: statsBlock.id,
-      fieldName: "items",
-      content: { text: stat },
-      summary: stat,
+      fieldName: "statistics",
+      content: {
+        number: plainTextToLexicalState(stat.number),
+        label: plainTextToLexicalState(stat.label),
+      },
+      summary: `${stat.number} ${stat.label}`,
       position: pos,
       createdAt: now,
       updatedAt: now,
