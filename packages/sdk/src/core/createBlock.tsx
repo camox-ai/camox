@@ -8,6 +8,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
+import { generateKeyBetween } from "fractional-indexing";
 import * as React from "react";
 import { createPortal } from "react-dom";
 
@@ -157,6 +158,86 @@ export interface BlockComponentProps<TContent> {
   addBlockAfterPosition?: string | null;
 }
 
+/* -------------------------------------------------------------------------------------------------
+ * Peek bundle helpers — generate fake normalized data for block previews
+ * -----------------------------------------------------------------------------------------------*/
+
+export interface PeekItem {
+  id: number;
+  blockId: number;
+  parentItemId: number | null;
+  fieldName: string;
+  content: unknown;
+  summary: string;
+  position: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * Recursively walks schema properties to generate fake repeatable items for peek mode.
+ * Sets `_itemId` markers on `content` for each repeatable field,
+ * and pushes the corresponding fake items into `allItems`.
+ */
+function buildPeekItems(
+  properties: Record<string, any>,
+  blockId: number,
+  parentItemId: number | null,
+  content: Record<string, unknown>,
+  allItems: PeekItem[],
+  counter: { value: number },
+) {
+  for (const [fieldName, fieldSchema] of Object.entries(properties)) {
+    if (fieldSchema.type !== "array" || !fieldSchema.items?.properties) continue;
+    const defaultCount = fieldSchema.defaultItems ?? fieldSchema.minItems ?? 0;
+    if (defaultCount <= 0) continue;
+
+    const itemProperties = fieldSchema.items.properties as Record<string, any>;
+
+    // Build default item content, excluding nested repeatable sub-fields
+    const itemContent: Record<string, unknown> = {};
+    for (const [propName, propSchema] of Object.entries(itemProperties)) {
+      if (propSchema.type === "array" && propSchema.items?.properties) continue;
+      if ("default" in propSchema) {
+        itemContent[propName] = propSchema.default;
+      }
+    }
+
+    const markers: { _itemId: number }[] = [];
+    let prevPosition: string | null = null;
+
+    for (let i = 0; i < defaultCount; i++) {
+      const itemId = --counter.value;
+      const position = generateKeyBetween(prevPosition, null);
+      prevPosition = position;
+
+      allItems.push({
+        id: itemId,
+        blockId,
+        parentItemId,
+        fieldName,
+        content: { ...itemContent },
+        summary: "",
+        position,
+        createdAt: 0,
+        updatedAt: 0,
+      });
+
+      markers.push({ _itemId: itemId });
+
+      // Recurse into nested repeatable fields within this item
+      const nestedContent: Record<string, unknown> = {};
+      buildPeekItems(itemProperties, blockId, itemId, nestedContent, allItems, counter);
+
+      // Merge nested _itemId markers into the item's content
+      const item = allItems.find((it) => it.id === itemId)!;
+      item.content = { ...(item.content as Record<string, unknown>), ...nestedContent };
+    }
+
+    content[fieldName] = markers;
+  }
+}
+
 export function createBlock<
   TSchemaShape extends Record<string, TSchema>,
   TSettingsShape extends Record<string, TSchema> = Record<string, never>,
@@ -209,9 +290,8 @@ export function createBlock<
     }
   }
 
-  // Extract per-item defaults and defaultItems count for repeatable (array) fields
+  // Extract per-item defaults for repeatable (array) fields
   const repeatableItemDefaults: Record<string, Record<string, unknown>> = {};
-  const repeatableDefaultItemCounts: Record<string, number> = {};
   for (const [key, prop] of Object.entries(typeboxSchema.properties)) {
     const p = prop as any;
     if (p.type === "array" && p.items?.properties) {
@@ -223,9 +303,6 @@ export function createBlock<
       }
       if (Object.keys(itemDefaults).length > 0) {
         repeatableItemDefaults[key] = itemDefaults;
-      }
-      if (typeof p.defaultItems === "number" && p.defaultItems > 0) {
-        repeatableDefaultItemCounts[key] = p.defaultItems;
       }
     }
   }
@@ -1238,15 +1315,6 @@ export function createBlock<
       })
       .filter(Boolean);
 
-    // In peek mode (frontend simulation), fill empty arrays with placeholder items for rendering
-    if (mode === "peek" && arrayValue.length === 0) {
-      const defaults = repeatableItemDefaults[fieldName];
-      const defaultCount = repeatableDefaultItemCounts[fieldName] ?? 0;
-      if (defaults && defaultCount > 0) {
-        arrayValue = Array.from({ length: defaultCount }, () => ({ ...defaults }));
-      }
-    }
-
     type TItem = RepeatableItemType<K>;
 
     return (
@@ -1659,6 +1727,33 @@ export function createBlock<
     },
     getInitialSettings: () => {
       return { ...settingsDefaults };
+    },
+    getPeekBundle: () => {
+      const PEEK_BLOCK_ID = -1;
+      const counter = { value: 0 };
+      const allItems: PeekItem[] = [];
+
+      // Build content with _itemId markers for repeatable fields, scalar defaults for the rest
+      const content: Record<string, unknown> = { ...contentDefaults };
+      buildPeekItems(typeboxSchema.properties, PEEK_BLOCK_ID, null, content, allItems, counter);
+
+      return {
+        block: {
+          id: PEEK_BLOCK_ID,
+          pageId: null,
+          layoutId: null,
+          type: options.id,
+          content,
+          settings: settingsDefaults,
+          placement: null,
+          summary: "",
+          position: "",
+          createdAt: 0,
+          updatedAt: 0,
+        },
+        repeatableItems: allItems,
+        files: [],
+      };
     },
     layoutOnly: options.layoutOnly ?? false,
   };

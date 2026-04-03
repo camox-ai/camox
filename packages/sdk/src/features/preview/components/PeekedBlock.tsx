@@ -2,6 +2,7 @@ import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
 import type { Block } from "../../../core/createBlock";
+import { NormalizedDataProvider } from "../../../lib/normalized-data";
 import { previewStore } from "../previewStore";
 
 interface PeekedBlockProps {
@@ -75,30 +76,12 @@ export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
     [isExpanded, onExitComplete],
   );
 
-  // Normalize content to handle repeatableObject arrays
-  const normalizedContent = React.useMemo(() => {
+  const peekBundle = React.useMemo(() => {
     if (!displayedBlock) return null;
-
-    const initialContent = displayedBlock.getInitialContent();
-    const result = { ...initialContent } as any;
-
-    for (const key in result) {
-      const value = result[key];
-      if (Array.isArray(value) && value.length > 0) {
-        const firstItem = value[0];
-        if (firstItem && typeof firstItem === "object" && !firstItem.content && !firstItem.id) {
-          result[key] = value.map((item: any) => ({
-            content: item,
-            id: undefined,
-          }));
-        }
-      }
-    }
-
-    return result;
+    return displayedBlock.getPeekBundle();
   }, [displayedBlock]);
 
-  if (!displayedBlock || !normalizedContent) {
+  if (!displayedBlock || !peekBundle) {
     return null;
   }
 
@@ -115,18 +98,21 @@ export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
       onTransitionEnd={handleTransitionEnd}
     >
       <div style={{ overflow: "hidden" }}>
-        {/*<div style={{ opacity: 0.5, background: "var(--background)" }}>*/}
-        <displayedBlock.Component
-          blockData={{
-            _id: "__preview__",
-            type: displayedBlock.id,
-            content: normalizedContent,
-            settings: displayedBlock.getInitialSettings(),
-            position: "",
-          }}
-          mode="peek"
-        />
-        {/*</div>*/}
+        <NormalizedDataProvider
+          files={peekBundle.files}
+          repeatableItems={peekBundle.repeatableItems}
+        >
+          <displayedBlock.Component
+            blockData={{
+              _id: "__peek__",
+              type: displayedBlock.id,
+              content: peekBundle.block.content as Record<string, unknown>,
+              settings: peekBundle.block.settings as Record<string, unknown> | undefined,
+              position: "",
+            }}
+            mode="peek"
+          />
+        </NormalizedDataProvider>
       </div>
     </div>
   );
