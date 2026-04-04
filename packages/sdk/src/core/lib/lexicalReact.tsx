@@ -1,37 +1,49 @@
 import * as React from "react";
 
-import { applyModifierRendering } from "./modifiers";
+/**
+ * Parse a markdown string with **bold** and *italic* into React nodes.
+ * Falls back to rendering the raw string if it's not a string value.
+ */
+export function markdownToReactNodes(value: unknown): React.ReactNode {
+  if (typeof value !== "string") return null;
+  if (!value) return null;
 
-export function lexicalStateToReactNodes(
-  serialized: string | Record<string, unknown>,
-): React.ReactNode {
-  try {
-    const parsed = typeof serialized === "object" ? serialized : JSON.parse(serialized);
-    return renderNode(parsed.root);
-  } catch {
-    return typeof serialized === "string" ? serialized : null;
-  }
-}
+  // Match ***bold+italic***, **bold**, or *italic*
+  const regex = /(\*{1,3})((?:(?!\1).)+)\1/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+  let key = 0;
 
-function renderNode(node: any): React.ReactNode {
-  if (node.type === "text") {
-    return applyModifierRendering(node.text ?? "", node.format ?? 0);
-  }
-  if (node.type === "linebreak") return <br />;
-  if (!node.children) return null;
-
-  const children = node.children.map((child: any, i: number) => (
-    <React.Fragment key={i}>{renderNode(child)}</React.Fragment>
-  ));
-
-  if (node.type === "root") {
-    // For root with a single paragraph, return children directly (no wrapper)
-    if (node.children.length === 1) {
-      return renderNode(node.children[0]);
+  while ((match = regex.exec(value)) !== null) {
+    // Add plain text before this match
+    if (match.index > lastIndex) {
+      parts.push(value.slice(lastIndex, match.index));
     }
-    return children;
+
+    const stars = match[1].length;
+    const content = match[2];
+
+    if (stars === 3) {
+      parts.push(
+        <strong key={key++}>
+          <em>{content}</em>
+        </strong>,
+      );
+    } else if (stars === 2) {
+      parts.push(<strong key={key++}>{content}</strong>);
+    } else {
+      parts.push(<em key={key++}>{content}</em>);
+    }
+
+    lastIndex = match.index + match[0].length;
   }
 
-  // For paragraph/heading nodes, return inline content directly
-  return children;
+  // Add remaining plain text
+  if (lastIndex < value.length) {
+    parts.push(value.slice(lastIndex));
+  }
+
+  if (parts.length === 0) return value;
+  return <>{parts}</>;
 }

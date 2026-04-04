@@ -42,12 +42,14 @@ type RepeatableItem = {
 interface SortableRepeatableItemProps {
   item: RepeatableItem;
   blockId: string;
+  fieldName: string;
   canRemove: boolean;
   onRemove: (itemId: string) => void;
 }
 
 const SortableRepeatableItem = ({
   item,
+  fieldName,
   blockId,
   canRemove,
   onRemove,
@@ -130,7 +132,7 @@ const SortableRepeatableItem = ({
               });
             }}
           >
-            {item.summary}
+            {item.summary || `${fieldName} (${item.id})`}
           </p>
         </div>
 
@@ -313,6 +315,7 @@ const RepeatableItemsList = ({
                   key={String(item.id)}
                   item={item}
                   blockId={blockId}
+                  fieldName={fieldName}
                   canRemove={canRemove}
                   onRemove={handleRemoveItem}
                 />

@@ -42,7 +42,7 @@ import {
   type FileValue,
   type ExtractAllPlaceholders,
 } from "./lib/contentType.ts";
-import { lexicalStateToReactNodes } from "./lib/lexicalReact";
+import { markdownToReactNodes } from "./lib/lexicalReact";
 
 export { Type };
 
@@ -575,7 +575,7 @@ export function createBlock<
     const updateRepeatableContent = useMutation(repeatableItemMutations.updateContent());
 
     const handleChange = React.useCallback(
-      (newValue: Record<string, unknown>) => {
+      (newValue: string) => {
         if (repeaterContext) {
           const { itemId } = repeaterContext;
           if (itemId) {
@@ -646,7 +646,7 @@ export function createBlock<
         : undefined;
 
     if (!isContentEditable) {
-      const reactContent = lexicalStateToReactNodes(fieldValue);
+      const reactContent = markdownToReactNodes(fieldValue);
       return <>{children(reactContent)}</>;
     }
 

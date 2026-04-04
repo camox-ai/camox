@@ -1,5 +1,3 @@
-import { isLexicalState, lexicalStateToMarkdown } from "./lexical-state";
-
 export function contentToMarkdown(
   toMarkdown: readonly string[],
   schemaProperties: Record<string, any>,
@@ -41,8 +39,6 @@ function resolveField(schema: any, value: unknown): string | undefined {
   const fieldType: string | undefined = schema?.fieldType;
 
   if (fieldType === "String") {
-    if (isLexicalState(value))
-      return lexicalStateToMarkdown(value as string | Record<string, unknown>) || undefined;
     const text = String(value);
     if (!text) return undefined;
     return text;

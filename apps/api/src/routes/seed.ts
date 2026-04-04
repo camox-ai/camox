@@ -3,7 +3,6 @@ import { generateKeyBetween } from "fractional-indexing";
 import { Hono } from "hono";
 
 import type { Database } from "../db";
-import { plainTextToLexicalState } from "../lib/lexical-state";
 import {
   blockDefinitions,
   blocks,
@@ -127,7 +126,7 @@ async function seedContent(db: Database) {
     .values({
       layoutId: layout.id,
       type: "footer",
-      content: { title: plainTextToLexicalState("Acme") },
+      content: { title: "Acme" },
       placement: "after" as const,
       summary: "Footer with Acme title",
       position: footerPos,
@@ -178,7 +177,7 @@ async function seedContent(db: Database) {
       {
         blockId: footerBlock.id,
         fieldName: "columns",
-        content: { title: plainTextToLexicalState("Product") },
+        content: { title: "Product" },
         summary: "Product column",
         position: colPos0,
         createdAt: now,
@@ -187,7 +186,7 @@ async function seedContent(db: Database) {
       {
         blockId: footerBlock.id,
         fieldName: "columns",
-        content: { title: plainTextToLexicalState("Company") },
+        content: { title: "Company" },
         summary: "Company column",
         position: colPos1,
         createdAt: now,
@@ -291,10 +290,8 @@ async function seedContent(db: Database) {
     pageId: page.id,
     type: "hero",
     content: {
-      title: plainTextToLexicalState("Websites you'll love to maintain"),
-      description: plainTextToLexicalState(
-        "Meet Camox, the web toolkit designed for developers, LLMs and content editors.",
-      ),
+      title: "Websites you'll love to maintain",
+      description: "Meet Camox, the web toolkit designed for developers, LLMs and content editors.",
       ctaButton: { label: "Start building", url: "/get-started" },
       illustration: { _fileId: demoFile.id },
     },
@@ -310,11 +307,10 @@ async function seedContent(db: Database) {
       pageId: page.id,
       type: "statistics",
       content: {
-        title: plainTextToLexicalState("Platform performance"),
-        subtitle: plainTextToLexicalState("Built for modern web development"),
-        description: plainTextToLexicalState(
+        title: "Platform performance",
+        subtitle: "Built for modern web development",
+        description:
           "Camox combines the power of a headless CMS with the developer experience of a modern framework.",
-        ),
       },
       summary: "Statistics section with 4 stats",
       position: statsPos,
@@ -339,8 +335,8 @@ async function seedContent(db: Database) {
       blockId: statsBlock.id,
       fieldName: "statistics",
       content: {
-        number: plainTextToLexicalState(stat.number),
-        label: plainTextToLexicalState(stat.label),
+        number: stat.number,
+        label: stat.label,
       },
       summary: `${stat.number} ${stat.label}`,
       position: pos,

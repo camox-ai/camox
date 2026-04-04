@@ -13,8 +13,6 @@ import {
 
 import { previewStore } from "@/features/preview/previewStore";
 
-import { isLexicalState, lexicalStateToPlainText } from "./lexicalState";
-
 type FieldLabelMeta = {
   schemaTitle?: string;
   fieldName: string;
@@ -38,9 +36,9 @@ const fieldTypesDictionary = {
     hasOwnView: false,
     getIcon: () => (props: LucideProps) => <TypeIcon {...props} />,
     getLabel: (value: unknown) => {
-      if (isLexicalState(value))
-        return lexicalStateToPlainText(value as string | Record<string, unknown>);
-      return typeof value === "string" ? value : "";
+      if (typeof value !== "string") return "";
+      // Strip markdown bold/italic markers for display
+      return value.replace(/\*{1,3}(.+?)\*{1,3}/g, "$1");
     },
     onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
       previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType: "String" });

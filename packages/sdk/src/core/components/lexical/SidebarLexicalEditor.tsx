@@ -6,13 +6,14 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import type { EditorState } from "lexical";
 import * as React from "react";
 
+import { lexicalStateToMarkdown } from "@/core/lib/lexicalState";
 import { INPUT_BASE_STYLES, INPUT_FOCUS_STYLES, cn } from "@/lib/utils";
 
 import { createEditorConfig, normalizeLexicalState } from "./editorConfig";
 
 interface SidebarLexicalEditorProps {
   value: string | Record<string, unknown>;
-  onChange: (state: Record<string, unknown>) => void;
+  onChange: (markdown: string) => void;
   onFocus?: () => void;
   onBlur?: () => void;
 }
@@ -85,7 +86,9 @@ export function SidebarLexicalEditor({
     }
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
-      onChangeRef.current(editorState.toJSON() as unknown as Record<string, unknown>);
+      onChangeRef.current(
+        lexicalStateToMarkdown(editorState.toJSON() as unknown as Record<string, unknown>),
+      );
     }, 300);
   }, []);
 

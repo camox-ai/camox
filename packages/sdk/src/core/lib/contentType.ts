@@ -7,7 +7,6 @@ import {
 } from "@sinclair/typebox";
 
 import type { FieldType } from "./fieldTypes.tsx";
-import { plainTextToLexicalState } from "./lexicalState";
 
 /* -------------------------------------------------------------------------------------------------
  * Template literal types for toMarkdown validation
@@ -195,7 +194,7 @@ export const Type = {
     return TypeBoxType.Unsafe<string>({
       type: "string",
       ...options,
-      default: plainTextToLexicalState(options.default),
+      default: options.default,
       fieldType: "String" as const,
     });
   },

@@ -10,7 +10,6 @@ import { assertPageAccess, getAuthorizedProject } from "../authorization";
 import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { contentToMarkdown } from "../lib/content-markdown";
-import { markdownToLexicalState, plainTextToLexicalState } from "../lib/lexical-state";
 import { queryKeys } from "../lib/query-keys";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
@@ -336,8 +335,8 @@ const updatePageSchema = z.object({
 const DEFAULT_HERO_BLOCK = {
   type: "hero",
   content: {
-    title: plainTextToLexicalState("A page title"),
-    description: plainTextToLexicalState("An engaging block description"),
+    title: "A page title",
+    description: "An engaging block description",
     cta: { type: "external", text: "Get started", href: "/", newTab: false },
   },
 };
@@ -537,22 +536,6 @@ const create = authed.input(createPageSchema).handler(async ({ context, input })
             settingsSchema: d.settingsSchema ?? undefined,
           })),
         });
-
-        // Convert markdown string fields to Lexical JSON
-        const defsByType = new Map(defs.map((d) => [d.blockId, d]));
-        for (const block of generatedBlocks) {
-          const def = defsByType.get(block.type);
-          const props = (def?.contentSchema as any)?.properties;
-          if (!props) continue;
-          for (const [key, schemaProp] of Object.entries(props)) {
-            if (
-              (schemaProp as any)?.fieldType === "String" &&
-              typeof block.content[key] === "string"
-            ) {
-              block.content[key] = markdownToLexicalState(block.content[key] as string);
-            }
-          }
-        }
       }
     } catch (error) {
       console.error("AI generation failed, using default block:", error);

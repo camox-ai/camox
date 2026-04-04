@@ -7,6 +7,7 @@ import type { EditorState } from "lexical";
 import { COMMAND_PRIORITY_LOW, KEY_ESCAPE_COMMAND } from "lexical";
 import * as React from "react";
 
+import { lexicalStateToMarkdown } from "../../lib/lexicalState";
 import { createEditorConfig, normalizeLexicalState } from "./editorConfig";
 import { InlineContentEditable } from "./InlineContentEditable";
 import { SelectionBroadcaster } from "./SelectionBroadcaster";
@@ -14,7 +15,7 @@ import { SelectionBroadcaster } from "./SelectionBroadcaster";
 interface InlineLexicalEditorProps {
   initialState: string | Record<string, unknown>;
   externalState: string | Record<string, unknown>;
-  onChange: (state: Record<string, unknown>) => void;
+  onChange: (markdown: string) => void;
   onFocus: () => void;
   onBlur: () => void;
   activateRef?: React.RefObject<(() => void) | null>;
@@ -132,7 +133,9 @@ export function InlineLexicalEditor({
       if (!isDirtyRef.current) return;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = window.setTimeout(() => {
-        onChange(editorState.toJSON() as unknown as Record<string, unknown>);
+        onChange(
+          lexicalStateToMarkdown(editorState.toJSON() as unknown as Record<string, unknown>),
+        );
       }, 300);
     },
     [onChange],

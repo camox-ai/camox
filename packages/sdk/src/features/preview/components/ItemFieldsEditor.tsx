@@ -6,7 +6,6 @@ import * as React from "react";
 
 import { SidebarLexicalEditor } from "@/core/components/lexical/SidebarLexicalEditor";
 import type { FieldType } from "@/core/lib/fieldTypes";
-import { isLexicalState, plainTextToLexicalState } from "@/core/lib/lexicalState";
 import {
   isFileMarker,
   isItemMarker,
@@ -105,17 +104,10 @@ const ItemFieldsEditor = ({
   const defaultValues = React.useMemo(() => {
     const values: Record<string, unknown> = {};
     for (const fieldName of scalarFields) {
-      const raw = data[fieldName] ?? "";
-      // Find the field definition to check if it's a String field
-      const fieldDef = fields.find((f) => f.name === fieldName);
-      if (fieldDef?.fieldType === "String" && raw && !isLexicalState(raw)) {
-        values[fieldName] = plainTextToLexicalState(typeof raw === "string" ? raw : "");
-      } else {
-        values[fieldName] = raw;
-      }
+      values[fieldName] = data[fieldName] ?? "";
     }
     return values;
-  }, [data, scalarFields, fields]);
+  }, [data, scalarFields]);
 
   const form = useForm({ defaultValues });
 
