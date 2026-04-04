@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import type { ViteDevServer } from "vite";
+import type { Logger, ViteDevServer } from "vite";
 
 import type { CamoxApp } from "@/core/createApp";
 import type { Block } from "@/core/createBlock";
@@ -16,6 +16,58 @@ export interface DefinitionsSyncOptions {
   camoxAppPath?: string;
   /** URL of the Camox API backend */
   apiUrl?: string;
+}
+
+/**
+ * Sync block and layout definitions to the API.
+ * This is the core sync logic, independent of ViteDevServer.
+ */
+export async function syncDefinitionsToApi(options: {
+  camoxApp: CamoxApp;
+  projectSlug: string;
+  apiUrl: string;
+  logger: Logger;
+}): Promise<void> {
+  const { camoxApp, projectSlug, apiUrl, logger } = options;
+  const client = createServerApiClient(apiUrl);
+
+  const project = await client.projects.getBySlug({ slug: projectSlug });
+  const projectId = project.id;
+
+  const blocks = camoxApp.getBlocks();
+  const definitions = blocks.map((block: Block) => ({
+    blockId: block.id,
+    title: block.title,
+    description: block.description,
+    contentSchema: block.contentSchema,
+    settingsSchema: block.settingsSchema,
+    defaultContent: block.getInitialContent(),
+    defaultSettings: block.getInitialSettings(),
+    layoutOnly: block.layoutOnly || undefined,
+  }));
+
+  await client.blockDefinitions.sync({
+    projectId,
+    definitions,
+  });
+
+  logger.info(
+    `[camox] Synced ${definitions.length} block definition${definitions.length === 1 ? "" : "s"}`,
+    { timestamp: true },
+  );
+
+  // Sync layouts
+  const layoutDefinitions = camoxApp.getSerializableLayoutDefinitions();
+  if (layoutDefinitions.length > 0) {
+    await client.layouts.sync({
+      projectId,
+      layouts: layoutDefinitions,
+    });
+    logger.info(
+      `[camox] Synced ${layoutDefinitions.length} layout${layoutDefinitions.length === 1 ? "" : "s"}`,
+      { timestamp: true },
+    );
+  }
 }
 
 function getBlockIdFromFilePath(filePath: string): string {
@@ -66,43 +118,12 @@ export async function syncDefinitions(
       return;
     }
 
-    const projectId = await getProjectId();
-    if (!projectId) return;
-
-    const blocks = camoxModule.camoxApp.getBlocks();
-    const definitions = blocks.map((block: Block) => ({
-      blockId: block.id,
-      title: block.title,
-      description: block.description,
-      contentSchema: block.contentSchema,
-      settingsSchema: block.settingsSchema,
-      defaultContent: block.getInitialContent(),
-      defaultSettings: block.getInitialSettings(),
-      layoutOnly: block.layoutOnly || undefined,
-    }));
-
-    await client.blockDefinitions.sync({
-      projectId,
-      definitions,
+    await syncDefinitionsToApi({
+      camoxApp: camoxModule.camoxApp,
+      projectSlug,
+      apiUrl,
+      logger: server.config.logger,
     });
-
-    server.config.logger.info(
-      `[camox] Synced ${definitions.length} block definition${definitions.length === 1 ? "" : "s"}`,
-      { timestamp: true },
-    );
-
-    // Sync layouts
-    const layoutDefinitions = camoxModule.camoxApp.getSerializableLayoutDefinitions();
-    if (layoutDefinitions.length > 0) {
-      await client.layouts.sync({
-        projectId,
-        layouts: layoutDefinitions,
-      });
-      server.config.logger.info(
-        `[camox] Synced ${layoutDefinitions.length} layout${layoutDefinitions.length === 1 ? "" : "s"}`,
-        { timestamp: true },
-      );
-    }
   }
 
   async function upsertBlock(filePath: string): Promise<void> {

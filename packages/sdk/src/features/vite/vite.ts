@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { Plugin, ViteDevServer } from "vite";
+import type { Plugin, ResolvedConfig, ViteDevServer } from "vite";
 
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
@@ -12,7 +12,11 @@ import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
 
 const LOCAL_API_URL = "http://localhost:8787";
-import { syncDefinitions, type DefinitionsSyncOptions } from "./definitionsSync";
+import {
+  syncDefinitions,
+  syncDefinitionsToApi,
+  type DefinitionsSyncOptions,
+} from "./definitionsSync";
 import { generateRouteFiles, watchRouteFiles } from "./routeGeneration";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
@@ -43,6 +47,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
   const enableTanstackDevtools = options._internal?.enableTanstackDevtools ?? false;
 
   let isBuild = false;
+  let resolvedConfig: ResolvedConfig;
 
   return {
     name: "camox",
@@ -70,6 +75,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
       };
     },
     configResolved(config) {
+      resolvedConfig = config;
       const routesDir = resolve(config.root, "src/routes");
       generateAppFile(config.root);
       generateRouteFiles({
@@ -101,6 +107,40 @@ export function camox(options: CamoxPluginOptions): Plugin {
           apiUrl,
         });
       });
+    },
+
+    async closeBundle() {
+      if (!isBuild) return;
+
+      const { createServer } = await import("vite");
+      const camoxAppPath = options.definitionsSync?.camoxAppPath ?? "./src/camox/app.ts";
+
+      const tempServer = await createServer({
+        configFile: false,
+        root: resolvedConfig.root,
+        resolve: resolvedConfig.resolve,
+        server: { middlewareMode: true },
+        logLevel: "silent",
+      });
+
+      try {
+        const camoxModule = (await tempServer.ssrLoadModule(camoxAppPath)) as {
+          camoxApp?: import("@/core/createApp").CamoxApp;
+        };
+
+        if (!camoxModule.camoxApp) {
+          throw new Error(`No camoxApp export found in ${camoxAppPath}`);
+        }
+
+        await syncDefinitionsToApi({
+          camoxApp: camoxModule.camoxApp,
+          projectSlug: options.projectSlug,
+          apiUrl,
+          logger: resolvedConfig.logger,
+        });
+      } finally {
+        await tempServer.close();
+      }
     },
   };
 }
