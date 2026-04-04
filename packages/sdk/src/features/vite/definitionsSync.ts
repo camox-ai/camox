@@ -16,20 +16,33 @@ export interface DefinitionsSyncOptions {
   camoxAppPath?: string;
   /** URL of the Camox API backend */
   apiUrl?: string;
+  /** Secret used to authenticate sync requests with the API */
+  syncSecret?: string;
 }
 
 /**
  * Sync block and layout definitions to the API.
  * This is the core sync logic, independent of ViteDevServer.
  */
+function throwIfSyncAuthError(error: unknown): void {
+  if (
+    error instanceof Error &&
+    error.name === "ORPCError" &&
+    error.message.toLowerCase().includes("unauthorized")
+  ) {
+    throw new Error("[camox] Definition sync failed: invalid syncSecret.");
+  }
+}
+
 export async function syncDefinitionsToApi(options: {
   camoxApp: CamoxApp;
   projectSlug: string;
   apiUrl: string;
+  syncSecret: string;
   logger: Logger;
 }): Promise<void> {
-  const { camoxApp, projectSlug, apiUrl, logger } = options;
-  const client = createServerApiClient(apiUrl);
+  const { camoxApp, projectSlug, apiUrl, syncSecret, logger } = options;
+  const client = createServerApiClient(apiUrl, syncSecret);
 
   const project = await client.projects.getBySlug({ slug: projectSlug });
   const projectId = project.id;
@@ -46,25 +59,35 @@ export async function syncDefinitionsToApi(options: {
     layoutOnly: block.layoutOnly || undefined,
   }));
 
-  await client.blockDefinitions.sync({
-    projectId,
-    definitions,
-  });
+  try {
+    await client.blockDefinitions.sync({
+      projectId,
+      definitions,
+    });
+  } catch (error) {
+    throwIfSyncAuthError(error);
+    throw error;
+  }
 
   logger.info(
-    `[camox] Synced ${definitions.length} block definition${definitions.length === 1 ? "" : "s"}`,
+    `[camox] Synced ${definitions.length} block definition${definitions.length === 1 ? "" : "s"} to Camox API`,
     { timestamp: true },
   );
 
   // Sync layouts
   const layoutDefinitions = camoxApp.getSerializableLayoutDefinitions();
   if (layoutDefinitions.length > 0) {
-    await client.layouts.sync({
-      projectId,
-      layouts: layoutDefinitions,
-    });
+    try {
+      await client.layouts.sync({
+        projectId,
+        layouts: layoutDefinitions,
+      });
+    } catch (error) {
+      throwIfSyncAuthError(error);
+      throw error;
+    }
     logger.info(
-      `[camox] Synced ${layoutDefinitions.length} layout${layoutDefinitions.length === 1 ? "" : "s"}`,
+      `[camox] Synced ${layoutDefinitions.length} layout${layoutDefinitions.length === 1 ? "" : "s"} to Camox API`,
       { timestamp: true },
     );
   }
@@ -91,7 +114,14 @@ export async function syncDefinitions(
   const projectSlug: string = options.projectSlug;
 
   const apiUrl = options.apiUrl ?? "http://localhost:8787";
-  const client = createServerApiClient(apiUrl);
+  if (!options.syncSecret) {
+    server.config.logger.warn("[camox] No syncSecret provided, skipping definitions sync", {
+      timestamp: true,
+    });
+    return;
+  }
+  const syncSecret = options.syncSecret;
+  const client = createServerApiClient(apiUrl, syncSecret);
 
   async function getProjectId(): Promise<number | null> {
     try {
@@ -122,6 +152,7 @@ export async function syncDefinitions(
       camoxApp: camoxModule.camoxApp,
       projectSlug,
       apiUrl,
+      syncSecret,
       logger: server.config.logger,
     });
   }
@@ -150,17 +181,23 @@ export async function syncDefinitions(
     const projectId = await getProjectId();
     if (!projectId) return;
 
-    const result = await client.blockDefinitions.upsert({
-      projectId,
-      blockId: block.id,
-      title: block.title,
-      description: block.description,
-      contentSchema: block.contentSchema,
-      settingsSchema: block.settingsSchema,
-      defaultContent: block.getInitialContent(),
-      defaultSettings: block.getInitialSettings(),
-      layoutOnly: block.layoutOnly || undefined,
-    });
+    let result;
+    try {
+      result = await client.blockDefinitions.upsert({
+        projectId,
+        blockId: block.id,
+        title: block.title,
+        description: block.description,
+        contentSchema: block.contentSchema,
+        settingsSchema: block.settingsSchema,
+        defaultContent: block.getInitialContent(),
+        defaultSettings: block.getInitialSettings(),
+        layoutOnly: block.layoutOnly || undefined,
+      });
+    } catch (error) {
+      throwIfSyncAuthError(error);
+      throw error;
+    }
 
     server.config.logger.info(
       `[camox] ${result.action === "created" ? "Created" : "Updated"} block "${block.id}"`,
@@ -173,10 +210,16 @@ export async function syncDefinitions(
     const projectId = await getProjectId();
     if (!projectId) return;
 
-    const result = await client.blockDefinitions.delete({
-      projectId,
-      blockId,
-    });
+    let result;
+    try {
+      result = await client.blockDefinitions.delete({
+        projectId,
+        blockId,
+      });
+    } catch (error) {
+      throwIfSyncAuthError(error);
+      throw error;
+    }
 
     if (result.deleted) {
       server.config.logger.info(`[camox] Deleted block "${blockId}"`, {

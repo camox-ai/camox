@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { pub } from "../orpc";
+import { pub, synced } from "../orpc";
 import { blockDefinitions, projects } from "../schema";
 
 // --- Procedures ---
@@ -43,7 +43,7 @@ const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ con
   return result;
 });
 
-const sync = pub.input(syncSchema).handler(async ({ context, input }) => {
+const sync = synced.input(syncSchema).handler(async ({ context, input }) => {
   const { projectId, definitions } = input;
   const project = await context.db.select().from(projects).where(eq(projects.id, projectId)).get();
   if (!project) throw new ORPCError("NOT_FOUND");
@@ -101,7 +101,7 @@ const sync = pub.input(syncSchema).handler(async ({ context, input }) => {
   return results;
 });
 
-const upsert = pub.input(definitionSchema).handler(async ({ context, input }) => {
+const upsert = synced.input(definitionSchema).handler(async ({ context, input }) => {
   const project = await context.db
     .select()
     .from(projects)
@@ -156,7 +156,7 @@ const upsert = pub.input(definitionSchema).handler(async ({ context, input }) =>
   return { ...result, action: "created" as const };
 });
 
-const deleteFn = pub
+const deleteFn = synced
   .input(z.object({ projectId: z.number(), blockId: z.string() }))
   .handler(async ({ context, input }) => {
     const { projectId, blockId } = input;

@@ -61,6 +61,7 @@ const config = defineConfig({
     tailwindcss(),
     camox({
       projectSlug: "camox-demo-01",
+      syncSecret: "camox-dev-sync-secret",
       _internal: {
         enableTanstackDevtools: true,
         authenticationUrl: "http://localhost:3274",

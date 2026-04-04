@@ -16,6 +16,7 @@ export type Bindings = {
   ProjectRoom: DurableObjectNamespace;
   FILES_BUCKET: R2Bucket;
   SEED_SECRET: string;
+  SYNC_SECRET: string;
 };
 
 export type AppEnv = {

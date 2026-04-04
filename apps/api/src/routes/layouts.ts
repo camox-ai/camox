@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { queryKeys } from "../lib/query-keys";
-import { pub } from "../orpc";
+import { pub, synced } from "../orpc";
 import { layouts, projects } from "../schema";
 
 // --- Procedures ---
@@ -32,7 +32,7 @@ const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ con
   return context.db.select().from(layouts).where(eq(layouts.projectId, projectId));
 });
 
-const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => {
+const sync = synced.input(syncLayoutsSchema).handler(async ({ context, input }) => {
   const { projectId, layouts: layoutDefs } = input;
   const project = await context.db.select().from(projects).where(eq(projects.id, projectId)).get();
 

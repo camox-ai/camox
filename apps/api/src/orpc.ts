@@ -13,6 +13,7 @@ export type BaseContext = {
   user: Auth["$Infer"]["Session"]["user"] | null;
   session: Auth["$Infer"]["Session"]["session"] | null;
   env: Bindings;
+  headers: Headers;
 };
 
 export type AuthedContext = BaseContext & {
@@ -34,6 +35,20 @@ export const pub = os.$context<BaseContext>().use(async ({ next, path }) => {
     console.error(`[oRPC] ${path.join(".")} →`, error);
     throw error;
   }
+});
+
+/** Sync procedure — requires either a valid session or the x-sync-secret header */
+export const synced = pub.use(async ({ context, next }) => {
+  if (context.user && context.session) {
+    return next({ context });
+  }
+
+  const secret = context.headers.get("x-sync-secret");
+  if (!secret || secret !== context.env.SYNC_SECRET) {
+    throw new ORPCError("UNAUTHORIZED");
+  }
+
+  return next({ context });
 });
 
 /** Authed procedure — requires authenticated user with org membership */

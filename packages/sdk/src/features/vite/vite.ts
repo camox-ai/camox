@@ -26,6 +26,8 @@ const DEFAULT_AUTHENTICATION_URL = "https://camox.ai";
 export interface CamoxPluginOptions {
   /** Stable, human-readable slug identifying this project (e.g. "prestigious-impala-84") */
   projectSlug: string;
+  /** Secret used to authenticate definition sync requests with the API */
+  syncSecret: string;
   /** Options for definitions sync */
   definitionsSync?: DefinitionsSyncOptions;
   /** Disable PostHog analytics collection (default: false) */
@@ -104,6 +106,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
         syncDefinitions(server, {
           ...options.definitionsSync,
           projectSlug: options.projectSlug,
+          syncSecret: options.syncSecret,
           apiUrl,
         });
       });
@@ -136,6 +139,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
           camoxApp: camoxModule.camoxApp,
           projectSlug: options.projectSlug,
           apiUrl,
+          syncSecret: options.syncSecret,
           logger: resolvedConfig.logger,
         });
       } finally {
