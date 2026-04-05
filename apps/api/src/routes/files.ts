@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
@@ -12,7 +12,7 @@ import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { queryKeys } from "../lib/query-keys";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
-import { blocks, files, repeatableItems } from "../schema";
+import { blocks, files, projects, repeatableItems } from "../schema";
 import type { AppEnv } from "../types";
 
 // --- AI Executor ---
@@ -141,6 +141,7 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
   const access = await assertFileAccess(context.db, input.id, context.orgSlug);
   if (!access) throw new ORPCError("NOT_FOUND");
 
+  await context.env.FILES_BUCKET.delete(access.file.blobId);
   const result = await context.db.delete(files).where(eq(files.id, input.id)).returning().get();
   broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
     queryKeys.files.list,
@@ -148,6 +149,33 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
   ]);
   return result;
 });
+
+const deleteMany = authed
+  .input(z.object({ ids: z.array(z.number()) }))
+  .handler(async ({ context, input }) => {
+    const { ids } = input;
+    if (ids.length === 0) return [];
+
+    const authorizedFiles = await context.db
+      .select({ id: files.id, blobId: files.blobId, projectId: files.projectId })
+      .from(files)
+      .innerJoin(projects, eq(projects.id, files.projectId))
+      .where(and(inArray(files.id, ids), eq(projects.organizationSlug, context.orgSlug)));
+
+    if (authorizedFiles.length !== ids.length) {
+      throw new ORPCError("FORBIDDEN");
+    }
+
+    await Promise.all(authorizedFiles.map((f) => context.env.FILES_BUCKET.delete(f.blobId)));
+    await context.db.delete(files).where(inArray(files.id, ids));
+
+    const projectId = authorizedFiles[0]!.projectId!;
+    broadcastInvalidation(context.env.ProjectRoom, projectId, [
+      queryKeys.files.list,
+      ...ids.map((id) => queryKeys.files.get(id)),
+    ]);
+    return ids;
+  });
 
 const replace = authed
   .input(z.object({ id: z.number(), newFileId: z.number() }))
@@ -217,6 +245,7 @@ export const fileProcedures = {
   setAlt,
   setFilename,
   delete: deleteFn,
+  deleteMany,
   replace,
   setAiMetadata,
   generateMetadata,

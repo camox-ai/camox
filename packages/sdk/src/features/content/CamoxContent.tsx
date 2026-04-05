@@ -1,13 +1,13 @@
 import { Button } from "@camox/ui/button";
 import { FloatingToolbar } from "@camox/ui/floating-toolbar";
 import { PanelContent } from "@camox/ui/panel";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 
 import { AssetLightbox } from "@/features/preview/components/AssetLightbox";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
-import { fileQueries, projectQueries } from "@/lib/queries";
+import { fileMutations, fileQueries, projectQueries } from "@/lib/queries";
 
 import { AssetCard } from "./components/AssetCard";
 import { AssetCardSkeleton } from "./components/AssetCardSkeleton";
@@ -21,6 +21,10 @@ export const CamoxContent = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lightboxFileId, setLightboxFileId] = useState<number | null>(null);
   const { uploads, uploadFiles, clearAll } = useFileUpload({ projectId: project?.id });
+  const deleteFiles = useMutation({
+    ...fileMutations.deleteMany(),
+    onSuccess: () => setSelectedIds(new Set()),
+  });
   const containerRef = useRef<HTMLElement | null>(null);
   const { selectionRect, didDragRef, handlers } = useMarqueeSelection(
     containerRef,
@@ -102,7 +106,13 @@ export const CamoxContent = () => {
             <span className="font-semibold">{selectedIds.size}</span> asset
             {selectedIds.size > 1 ? "s" : ""} selected
           </span>
-          <Button variant="destructive">Delete</Button>
+          <Button
+            variant="destructive"
+            disabled={deleteFiles.isPending}
+            onClick={() => deleteFiles.mutate({ ids: [...selectedIds].map(Number) })}
+          >
+            {deleteFiles.isPending ? "Deleting…" : "Delete"}
+          </Button>
         </FloatingToolbar>
       )}
       {lightboxFileId && (
