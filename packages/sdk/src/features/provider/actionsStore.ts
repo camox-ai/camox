@@ -1,7 +1,5 @@
 import { createStore } from "@xstate/store";
-import type * as icons from "lucide-react";
 
-type IconKey = keyof typeof icons;
 export type ActionGroupLabel = "Preview" | "Studio" | "Navigation" | "Invisible";
 
 export interface Action {
@@ -9,7 +7,6 @@ export interface Action {
   label: string;
   groupLabel: ActionGroupLabel;
   shortcut?: { key: string; withMeta?: boolean; withAlt?: boolean; withShift?: boolean };
-  icon?: IconKey;
   parentActionId?: string;
   hasChildren?: boolean;
   execute: () => void;

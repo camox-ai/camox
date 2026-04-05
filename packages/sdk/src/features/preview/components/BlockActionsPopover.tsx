@@ -386,7 +386,6 @@ function useBlockActionsShortcuts() {
         label: "Delete selected",
         groupLabel: "Preview",
         shortcut: { key: "Backspace", withMeta: true },
-        icon: "Trash2",
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
@@ -440,7 +439,6 @@ function useBlockActionsShortcuts() {
         label: "Duplicate selected",
         groupLabel: "Preview",
         shortcut: { key: "d", withMeta: true },
-        icon: "Copy",
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
@@ -474,7 +472,6 @@ function useBlockActionsShortcuts() {
         label: "Move block up",
         groupLabel: "Preview",
         shortcut: { key: "ArrowUp", withAlt: true },
-        icon: "ArrowUp",
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;
@@ -506,7 +503,6 @@ function useBlockActionsShortcuts() {
         label: "Move block down",
         groupLabel: "Preview",
         shortcut: { key: "ArrowDown", withAlt: true },
-        icon: "ArrowDown",
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
           if (ctx.isContentLocked || ctx.isPresentationMode) return false;

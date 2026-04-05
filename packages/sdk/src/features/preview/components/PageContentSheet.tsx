@@ -275,7 +275,6 @@ const PageContentSheet = () => {
       id: "open-content-sheet",
       label: isOpen ? "Close content sheet" : "Open content sheet",
       groupLabel: "Preview",
-      icon: "PanelLeft",
       shortcut: { key: "j", withMeta: true },
       checkIfAvailable: () => isOpen || !!blockId,
       execute: () => {

@@ -164,7 +164,6 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
         checkIfAvailable: () => true,
         execute: () => previewStore.send({ type: "toggleSidebar" }),
         shortcut: { key: "b", withAlt: true },
-        icon: "PanelRight",
       },
       {
         id: "toggle-lock-content",
@@ -172,7 +171,6 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
         groupLabel: "Preview",
         checkIfAvailable: () => true,
         execute: () => previewStore.send({ type: "toggleLockContent" }),
-        icon: "Lock",
       },
       {
         id: "toggle-mobile-mode",
@@ -181,7 +179,6 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
         checkIfAvailable: () => true,
         execute: () => previewStore.send({ type: "toggleMobileMode" }),
         shortcut: { key: "m" },
-        icon: "TabletSmartphone",
       },
       {
         id: "open-agent-chat",
@@ -190,7 +187,6 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
         checkIfAvailable: () => !isAgentChatSheetOpen,
         execute: () => previewStore.send({ type: "openAgentChatSheet" }),
         shortcut: { key: "i", withAlt: true },
-        icon: "MessageSquare",
       },
     ] satisfies Action[];
 
@@ -206,7 +202,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <>
-      <PanelContent className="relative overflow-hidden">
+      <PanelContent className="relative overflow-hidden bg-black">
         <div
           ref={wrapperRef}
           className="absolute inset-0 transition-[transform,height] duration-500 ease-in-out will-change-transform"

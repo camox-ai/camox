@@ -53,10 +53,11 @@ export const TextFormatToolbar = () => {
     <FloatingToolbar
       onMouseDown={(e) => e.preventDefault()}
       className={cn(
-        "bottom-16 gap-1",
+        "bottom-17 gap-2",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 pointer-events-none translate-y-2",
       )}
     >
+      <span className="text-muted-foreground text-sm">Selected text</span>
       <ButtonGroup>
         {FORMAT_BUTTONS.map(({ key, flag, icon: Icon, label, shortcut }) => {
           const isActive = !!(activeFormats & flag);

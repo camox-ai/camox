@@ -123,7 +123,6 @@ export function useAuthActions() {
           execute: () => {
             window.open(`${authenticationUrl}/profile`, "_blank");
           },
-          icon: "User",
         },
         {
           id: "log-out",
@@ -131,7 +130,6 @@ export function useAuthActions() {
           groupLabel: "Studio",
           checkIfAvailable: () => true,
           execute: () => (authClient as any).signOut(),
-          icon: "LogOut",
         },
       ],
     });

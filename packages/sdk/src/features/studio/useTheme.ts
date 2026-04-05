@@ -5,17 +5,6 @@ import { actionsStore } from "../provider/actionsStore";
 
 type Theme = "dark" | "light" | "system";
 
-const getThemeIcon = (theme: Theme): NonNullable<Action["icon"]> => {
-  switch (theme) {
-    case "dark":
-      return "Moon";
-    case "light":
-      return "Sun";
-    case "system":
-      return "Monitor";
-  }
-};
-
 export function useTheme() {
   const [theme, setTheme] = React.useState<Theme>(() => {
     if (typeof window !== "undefined") {
@@ -80,7 +69,6 @@ export function useThemeActions() {
         checkIfAvailable: () => true,
         hasChildren: true,
         execute: () => {},
-        icon: getThemeIcon(theme),
       },
       {
         id: "switch-to-light-theme",
@@ -89,7 +77,6 @@ export function useThemeActions() {
         groupLabel: "Studio",
         checkIfAvailable: () => theme !== "light",
         execute: () => setTheme("light"),
-        icon: "Sun",
       },
       {
         id: "switch-to-dark-theme",
@@ -98,7 +85,6 @@ export function useThemeActions() {
         groupLabel: "Studio",
         checkIfAvailable: () => theme !== "dark",
         execute: () => setTheme("dark"),
-        icon: "Moon",
       },
       {
         id: "switch-to-system-theme",
@@ -107,7 +93,6 @@ export function useThemeActions() {
         groupLabel: "Studio",
         checkIfAvailable: () => theme !== "system",
         execute: () => setTheme("system"),
-        icon: "Monitor",
       },
     ] satisfies Action[];
 

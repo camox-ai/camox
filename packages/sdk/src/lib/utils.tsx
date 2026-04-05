@@ -1,4 +1,4 @@
-import { Kbd, KbdGroup } from "@camox/ui/kbd";
+import { Kbd } from "@camox/ui/kbd";
 
 import type { Action } from "../features/provider/actionsStore";
 
@@ -46,18 +46,11 @@ export function formatShortcut(shortcut: Action["shortcut"]) {
     return shortcut.key.toUpperCase();
   })();
 
-  if (modifiers.length > 0) {
-    return (
-      <KbdGroup>
-        {modifiers.map((mod) => (
-          <Kbd key={mod}>{mod}</Kbd>
-        ))}
-        <Kbd>{formattedKey}</Kbd>
-      </KbdGroup>
-    );
-  }
-
-  return <Kbd>{formattedKey}</Kbd>;
+  return (
+    <Kbd>
+      {modifiers.join()} {formattedKey}
+    </Kbd>
+  );
 }
 
 /**

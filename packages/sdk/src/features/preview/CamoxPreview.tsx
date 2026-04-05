@@ -279,7 +279,6 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         checkIfAvailable: () => isAuthenticated && !isPresentationMode,
         execute: () => previewStore.send({ type: "enterPresentationMode" }),
         shortcut: { key: "Enter", withMeta: true },
-        icon: "MonitorPlay",
       },
       {
         id: "exit-presentation-mode",
@@ -288,7 +287,6 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         checkIfAvailable: () => isAuthenticated && isPresentationMode,
         execute: () => previewStore.send({ type: "exitPresentationMode" }),
         shortcut: { key: "Escape", withMeta: true },
-        icon: "MonitorOff",
       },
     ] satisfies Action[];
 
@@ -357,7 +355,6 @@ export function usePreviewPagesActions() {
         id: "create-page",
         label: "Create page",
         groupLabel: "Preview",
-        icon: "FilePlus",
         checkIfAvailable: () => true,
         execute: () => previewStore.send({ type: "openCreatePageSheet" }),
       },
@@ -365,7 +362,6 @@ export function usePreviewPagesActions() {
         id: "edit-current-page",
         label: "Edit current page",
         groupLabel: "Preview",
-        icon: "Pencil",
         checkIfAvailable: () => !!currentPage,
         execute: () => {
           if (!currentPage) return;
@@ -382,7 +378,6 @@ export function usePreviewPagesActions() {
         checkIfAvailable: () => !!pages,
         hasChildren: true,
         execute: () => {},
-        icon: "File",
       },
       // One action per page
       ...(pages
@@ -395,7 +390,6 @@ export function usePreviewPagesActions() {
                 groupLabel: "Preview",
                 checkIfAvailable: () => true,
                 execute: () => navigate({ to: page.fullPath }),
-                icon: "File",
               }) as Action,
           )
         : []),

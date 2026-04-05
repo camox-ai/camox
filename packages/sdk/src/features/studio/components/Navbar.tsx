@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { LinkProps } from "@tanstack/react-router";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Globe, SearchIcon, Database } from "lucide-react";
-import * as icons from "lucide-react";
+import type * as icons from "lucide-react";
 import * as React from "react";
 
 import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet";

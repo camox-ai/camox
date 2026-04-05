@@ -7,10 +7,9 @@ import {
   CommandList,
 } from "@camox/ui/command";
 import { useSelector } from "@xstate/store/react";
-import * as icons from "lucide-react";
 import * as React from "react";
 
-import { cn, formatShortcut } from "@/lib/utils";
+import { formatShortcut } from "@/lib/utils";
 
 import { studioStore } from "../../studio/studioStore";
 import { actionsStore, type ActionGroupLabel } from "../actionsStore";
@@ -119,17 +118,13 @@ export function CommandPalette() {
         {Array.from(groupedActions.entries()).map(([groupLabel, groupActions]) => (
           <CommandGroup key={groupLabel} heading={groupLabel}>
             {groupActions.map((action) => {
-              const Icon = action.icon ? (icons[action.icon] as React.ElementType) : null;
               return (
                 <CommandItem
                   key={action.id}
                   onSelect={() => handleSelect(action.id)}
                   className="justify-between"
                 >
-                  <div className="flex items-center gap-2">
-                    {Icon && <Icon className="size-4" />}
-                    <span className={cn(!Icon && "ml-7")}>{action.label}</span>
-                  </div>
+                  {action.label}
                   {action.shortcut && formatShortcut(action.shortcut)}
                 </CommandItem>
               );

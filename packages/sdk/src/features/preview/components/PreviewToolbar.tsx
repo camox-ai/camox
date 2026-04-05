@@ -98,7 +98,7 @@ export const PreviewToolbar = () => {
             </Toggle>
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent>
-            Hide all admin interface {getActionShortcut(actions, "enter-presentation-mode")}
+            Hide all Camox UI {getActionShortcut(actions, "enter-presentation-mode")}
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>
       </ButtonGroup>

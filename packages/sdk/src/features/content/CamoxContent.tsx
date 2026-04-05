@@ -1,3 +1,5 @@
+import { Button } from "@camox/ui/button";
+import { FloatingToolbar } from "@camox/ui/floating-toolbar";
 import { PanelContent } from "@camox/ui/panel";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
@@ -94,6 +96,15 @@ export const CamoxContent = () => {
         </UploadDropZone>
       </div>
       <UploadProgressDrawer uploads={uploads} onClose={clearAll} />
+      {selectedIds.size > 0 && (
+        <FloatingToolbar className="bottom-4 min-w-xs justify-between gap-4">
+          <span className="text-muted-foreground">
+            <span className="font-semibold">{selectedIds.size}</span> asset
+            {selectedIds.size > 1 ? "s" : ""} selected
+          </span>
+          <Button variant="destructive">Delete</Button>
+        </FloatingToolbar>
+      )}
       {lightboxFileId && (
         <AssetLightbox
           open
