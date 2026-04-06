@@ -1,0 +1,32 @@
+{
+  "name": "@camox/cli",
+  "version": "0.1.2-alpha.2",
+  "bin": {
+    "camox": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "template"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "oxlint",
+    "check": "tsgo --noEmit && oxlint --fix"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.2",
+    "@typescript/native-preview": "^7.0.0-dev",
+    "oxlint": "^0.15.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.2"
+  }
+}
