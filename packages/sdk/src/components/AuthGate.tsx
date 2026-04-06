@@ -8,6 +8,6 @@ interface AuthGateProps {
 export function AuthGate({ authenticated, unauthenticated }: AuthGateProps) {
   const { isAuthenticated, isLoading } = useAuthState();
 
-  if (isLoading) return null;
+  if (isLoading) return unauthenticated;
   return isAuthenticated ? authenticated : unauthenticated;
 }
