@@ -56,14 +56,14 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish camox
+      - name: Publish @camox/cli
         run: pnpm publish --no-git-checks --access public --tag alpha
-        working-directory: packages/sdk
+        working-directory: packages/cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish create-camox
+      - name: Publish camox
         run: pnpm publish --no-git-checks --access public --tag alpha
-        working-directory: packages/create-camox
+        working-directory: packages/sdk
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

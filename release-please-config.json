@@ -23,8 +23,8 @@
       "skip-github-release": true,
       "prerelease-type": "alpha"
     },
-    "packages/create-camox": {
-      "component": "create-camox",
+    "packages/cli": {
+      "component": "@camox/cli",
       "changelog-path": "CHANGELOG.md",
       "skip-github-release": true,
       "prerelease-type": "alpha"
@@ -46,7 +46,7 @@
     {
       "type": "linked-versions",
       "groupName": "camox",
-      "components": ["camox", "camox-sdk", "create-camox", "@camox/ui", "@camox/backend-content"]
+      "components": ["camox", "camox-sdk", "@camox/cli", "@camox/ui", "@camox/backend-content"]
     }
   ]
 }
