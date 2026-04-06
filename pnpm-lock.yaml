@@ -273,28 +273,12 @@ importers:
       '@clack/prompts':
         specifier: ^0.10.0
         version: 0.10.1
-    devDependencies:
-      '@types/node':
-        specifier: ^24.6.2
-        version: 24.6.2
-      '@typescript/native-preview':
-        specifier: ^7.0.0-dev
-        version: 7.0.0-dev.20260311.1
-      oxlint:
-        specifier: ^0.15.0
-        version: 0.15.15
-      tsup:
-        specifier: ^8.4.0
-        version: 8.5.1(@microsoft/api-extractor@7.57.7(@types/node@24.6.2))(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.2)(yaml@2.8.1)
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.2
-
-  packages/create-camox:
-    dependencies:
-      '@clack/prompts':
-        specifier: ^0.10.0
-        version: 0.10.1
+      '@optique/core':
+        specifier: '*'
+        version: 0.10.7
+      '@optique/run':
+        specifier: '*'
+        version: 0.10.7
     devDependencies:
       '@types/node':
         specifier: ^24.6.2
@@ -2516,6 +2500,14 @@ packages:
   '@opentelemetry/semantic-conventions@1.40.0':
     resolution: {integrity: sha512-cifvXDhcqMwwTlTK04GBNeIe7yyo28Mfby85QXFe1Yk8nmi36Ab/5UQwptOx84SsoGNRg+EVSjwzfSZMy6pmlw==}
     engines: {node: '>=14'}
+
+  '@optique/core@0.10.7':
+    resolution: {integrity: sha512-FwSX8ILFqzcCqZi6Xetsa4flJp/yyqFG4d4eFD98BtqdzxxuylzdrKvsXj/ow8mcoVjYkTuaIkqHSBxonqMcQg==}
+    engines: {bun: '>=1.2.0', deno: '>=2.3.0', node: '>=20.0.0'}
+
+  '@optique/run@0.10.7':
+    resolution: {integrity: sha512-1CVdH8uyptj1nFGS2MLacSmZceRClez4LD/G/Gm38wrAVnJq6I+9Fvyh2bVHErsZLQzR0a12CYMUWIgDKY3X1w==}
+    engines: {bun: '>=1.2.0', deno: '>=2.3.0', node: '>=20.0.0'}
 
   '@orpc/client@1.13.13':
     resolution: {integrity: sha512-jagx/Sa+9K4HEC5lBrUlMSrmR/06hvZctWh93/sKZc8GBk4zM0+71oT1kXQVw1oRYFV2XAq3xy3m6NdM6gfKYA==}
@@ -9920,6 +9912,12 @@ snapshots:
       '@opentelemetry/semantic-conventions': 1.40.0
 
   '@opentelemetry/semantic-conventions@1.40.0': {}
+
+  '@optique/core@0.10.7': {}
+
+  '@optique/run@0.10.7':
+    dependencies:
+      '@optique/core': 0.10.7
 
   '@orpc/client@1.13.13(@opentelemetry/api@1.9.0)':
     dependencies:

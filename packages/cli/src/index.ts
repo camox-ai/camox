@@ -1,22 +1,26 @@
-import * as p from "@clack/prompts";
+import { object } from "@optique/core/constructs";
+import { message } from "@optique/core/message";
+import { command, constant } from "@optique/core/primitives";
+import { defineProgram } from "@optique/core/program";
+import { run } from "@optique/run";
 
-const command = process.argv[2];
+import { init } from "./commands/init";
 
-async function main() {
-  switch (command) {
-    case "init": {
-      const { init } = await import("./commands/init.js");
-      await init();
-      break;
-    }
-    default: {
-      p.intro("camox");
-      p.log.info("Available commands:");
-      p.log.message("  camox init    Scaffold a new Camox project");
-      p.outro("Run `camox <command> --help` for more info.");
-      break;
-    }
-  }
-}
+const parser = command(
+  "init",
+  object({
+    command: constant("init"),
+  }),
+);
 
-main().catch(console.error);
+const program = defineProgram({
+  parser,
+  metadata: {
+    name: "camox",
+    brief: message`Scaffold a new Camox project`,
+  },
+});
+
+run(program, { help: "both" });
+
+await init();
