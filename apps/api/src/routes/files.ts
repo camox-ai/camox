@@ -67,6 +67,99 @@ export async function executeFileMetadata(db: Database, apiKey: string, fileId: 
     .where(eq(files.id, fileId));
 }
 
+// --- File reference cleanup ---
+
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+function cleanFileReferences(value: JsonValue, fileId: number): JsonValue {
+  if (value === null || typeof value !== "object") return value;
+
+  if (Array.isArray(value)) {
+    return value
+      .filter((entry) => !containsFileRef(entry, fileId))
+      .map((entry) => cleanFileReferences(entry, fileId) as JsonValue);
+  }
+
+  // Object with _fileId — direct file reference
+  if ("_fileId" in value && value._fileId === fileId) return null;
+
+  // Recurse into object properties
+  const cleaned: Record<string, JsonValue> = {};
+  for (const [k, v] of Object.entries(value)) {
+    cleaned[k] = cleanFileReferences(v as JsonValue, fileId);
+  }
+  return cleaned;
+}
+
+function containsFileRef(value: JsonValue, fileId: number): boolean {
+  if (value === null || typeof value !== "object") return false;
+  if (Array.isArray(value)) return value.some((v) => containsFileRef(v, fileId));
+  if ("_fileId" in value && value._fileId === fileId) return true;
+  return Object.values(value).some((v) => containsFileRef(v as JsonValue, fileId));
+}
+
+async function removeFileReferences(db: Database, fileId: number) {
+  const marker = `"_fileId":${fileId}`;
+  const now = Date.now();
+
+  const affectedBlocks = await db
+    .select({ id: blocks.id, content: blocks.content, pageId: blocks.pageId })
+    .from(blocks)
+    .where(sql`INSTR(${blocks.content}, ${marker}) > 0`);
+
+  const affectedItems = await db
+    .select({
+      id: repeatableItems.id,
+      content: repeatableItems.content,
+      blockId: repeatableItems.blockId,
+    })
+    .from(repeatableItems)
+    .where(sql`INSTR(${repeatableItems.content}, ${marker}) > 0`);
+
+  for (const block of affectedBlocks) {
+    const cleaned = cleanFileReferences(block.content as JsonValue, fileId);
+    await db
+      .update(blocks)
+      .set({ content: cleaned, updatedAt: now })
+      .where(eq(blocks.id, block.id));
+  }
+
+  for (const item of affectedItems) {
+    const cleaned = cleanFileReferences(item.content as JsonValue, fileId);
+    await db
+      .update(repeatableItems)
+      .set({ content: cleaned, updatedAt: now })
+      .where(eq(repeatableItems.id, item.id));
+  }
+
+  const itemBlockIds = affectedItems.map((i) => i.blockId);
+  const allBlockIds = [...new Set([...affectedBlocks.map((b) => b.id), ...itemBlockIds])];
+
+  // Look up pageIds for blocks referenced by affected repeatable items
+  let itemBlockPageIds: number[] = [];
+  if (itemBlockIds.length > 0) {
+    const uniqueItemBlockIds = [...new Set(itemBlockIds)];
+    const parentBlocks = await db
+      .select({ id: blocks.id, pageId: blocks.pageId })
+      .from(blocks)
+      .where(inArray(blocks.id, uniqueItemBlockIds));
+    itemBlockPageIds = parentBlocks.map((b) => b.pageId).filter((id) => id != null);
+  }
+
+  const allPageIds = [
+    ...new Set([
+      ...affectedBlocks.map((b) => b.pageId).filter((id) => id != null),
+      ...itemBlockPageIds,
+    ]),
+  ];
+
+  return {
+    blockIds: allBlockIds,
+    blockPageIds: allPageIds,
+    itemIds: affectedItems.map((i) => i.id),
+  };
+}
+
 // --- oRPC Procedures ---
 
 const list = pub.handler(async ({ context }) => {
@@ -141,11 +234,19 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
   const access = await assertFileAccess(context.db, input.id, context.orgSlug);
   if (!access) throw new ORPCError("NOT_FOUND");
 
+  const { blockIds, blockPageIds, itemIds } = await removeFileReferences(context.db, input.id);
+
   await context.env.FILES_BUCKET.delete(access.file.blobId);
   const result = await context.db.delete(files).where(eq(files.id, input.id)).returning().get();
   broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
     queryKeys.files.list,
     queryKeys.files.get(input.id),
+    ...blockIds.map((id) => queryKeys.blocks.get(id)),
+    ...blockPageIds.map((id) => queryKeys.blocks.getPageMarkdown(id)),
+    ...itemIds.map((id) => queryKeys.repeatableItems.get(id)),
+    ...(blockIds.length > 0 || itemIds.length > 0
+      ? [queryKeys.blocks.getUsageCounts, queryKeys.pages.getByPathAll]
+      : []),
   ]);
   return result;
 });
@@ -166,13 +267,32 @@ const deleteMany = authed
       throw new ORPCError("FORBIDDEN");
     }
 
+    const allBlockIds: number[] = [];
+    const allBlockPageIds: number[] = [];
+    const allItemIds: number[] = [];
+    for (const id of ids) {
+      const { blockIds, blockPageIds, itemIds } = await removeFileReferences(context.db, id);
+      allBlockIds.push(...blockIds);
+      allBlockPageIds.push(...blockPageIds);
+      allItemIds.push(...itemIds);
+    }
+
     await Promise.all(authorizedFiles.map((f) => context.env.FILES_BUCKET.delete(f.blobId)));
     await context.db.delete(files).where(inArray(files.id, ids));
 
     const projectId = authorizedFiles[0]!.projectId!;
+    const uniqueBlockIds = [...new Set(allBlockIds)];
+    const uniqueBlockPageIds = [...new Set(allBlockPageIds)];
+    const uniqueItemIds = [...new Set(allItemIds)];
     broadcastInvalidation(context.env.ProjectRoom, projectId, [
       queryKeys.files.list,
       ...ids.map((id) => queryKeys.files.get(id)),
+      ...uniqueBlockIds.map((id) => queryKeys.blocks.get(id)),
+      ...uniqueBlockPageIds.map((id) => queryKeys.blocks.getPageMarkdown(id)),
+      ...uniqueItemIds.map((id) => queryKeys.repeatableItems.get(id)),
+      ...(uniqueBlockIds.length > 0 || uniqueItemIds.length > 0
+        ? [queryKeys.blocks.getUsageCounts, queryKeys.pages.getByPathAll]
+        : []),
     ]);
     return ids;
   });
