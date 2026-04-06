@@ -292,7 +292,7 @@ async function seedContent(db: Database) {
     content: {
       title: "Websites you'll love to maintain",
       description: "Meet Camox, the web toolkit designed for developers, LLMs and content editors.",
-      ctaButton: { label: "Start building", url: "/get-started" },
+      cta: { text: "Start building", href: "/get-started", newTab: false },
       illustration: { _fileId: demoFile.id },
     },
     summary: "Hero section with title, description and CTA",

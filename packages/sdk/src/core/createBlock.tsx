@@ -196,6 +196,10 @@ function buildInitialSeeds(
 ) {
   for (const [fieldName, fieldSchema] of Object.entries(properties)) {
     if (fieldSchema.type !== "array" || !fieldSchema.items?.properties) continue;
+    // Skip multi-asset fields (Image/File) — defaultItems is only for peek previews,
+    // not for creating real DB rows with placeholder content
+    const ait = fieldSchema.arrayItemType;
+    if (ait === "Image" || ait === "File") continue;
     const defaultCount = fieldSchema.defaultItems ?? fieldSchema.minItems ?? 0;
     if (defaultCount <= 0) continue;
 
@@ -1369,6 +1373,29 @@ export function createBlock<
         return item;
       })
       .filter(Boolean);
+
+    // For multi-asset fields (Image/File) with no items yet, generate inline
+    // placeholder items so the component renders a visual preview
+    if (arrayValue.length === 0) {
+      const fieldSchema = parentRepeaterContext
+        ? (typeboxSchema.properties as any)[parentRepeaterContext.arrayFieldName]?.items
+            ?.properties?.[fieldName]
+        : (typeboxSchema.properties as any)[fieldName];
+      const ait = fieldSchema?.arrayItemType;
+      if (ait === "Image" || ait === "File") {
+        const defaultCount = fieldSchema.defaultItems ?? 0;
+        const itemProps = fieldSchema.items?.properties as Record<string, any> | undefined;
+        if (defaultCount > 0 && itemProps) {
+          const itemContent: Record<string, unknown> = {};
+          for (const [propName, propSchema] of Object.entries(itemProps)) {
+            if (propSchema && typeof propSchema === "object" && "default" in propSchema) {
+              itemContent[propName] = (propSchema as any).default;
+            }
+          }
+          arrayValue = Array.from({ length: defaultCount }, () => ({ ...itemContent }));
+        }
+      }
+    }
 
     type TItem = RepeatableItemType<K>;
 

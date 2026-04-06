@@ -493,7 +493,7 @@ const PageContentSheet = () => {
             itemsMap={itemsMap}
           />
         )}
-        {!currentItemId && !fieldInfo && settingsFields.length > 0 && (
+        {!currentItemId && !fieldHasOwnView && settingsFields.length > 0 && (
           <div className="border-border space-y-4 border-t px-4 py-4">
             <Label className="text-muted-foreground">Settings</Label>
             {settingsFields.map((field) => {
