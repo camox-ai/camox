@@ -4,8 +4,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import * as p from "@clack/prompts";
+import { object } from "@optique/core/constructs";
+import { command, constant } from "@optique/core/primitives";
 
-import { getOrAuthenticate } from "../lib/auth.js";
+import { getOrAuthenticate } from "../lib/auth";
 import {
   type PackageManager,
   copyDir,
@@ -13,7 +15,16 @@ import {
   isInsideGitRepo,
   pmCommands,
   slugify,
-} from "../lib/utils.js";
+} from "../lib/utils";
+
+export const parser = command(
+  "init",
+  object({
+    command: constant("init"),
+  }),
+);
+
+export const handler = init;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ownPkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf-8"));
