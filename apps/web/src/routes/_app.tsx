@@ -1,5 +1,5 @@
 import { AuthUIProvider } from "@daveyplate/better-auth-ui";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import {
   Link as RouterLink,
   Outlet,
@@ -11,8 +11,6 @@ import { type ComponentProps, useCallback } from "react";
 import { z } from "zod";
 
 import { authClient, getServerSession } from "@/lib/auth-client";
-
-const queryClient = new QueryClient();
 
 function isSafeRedirect(url: string) {
   try {
@@ -58,6 +56,7 @@ function LinkAdapter({ href, ...props }: ComponentProps<"a"> & { href: string })
 
 function AppLayout() {
   const router = useRouter();
+  const { queryClient } = Route.useRouteContext();
 
   const onSessionChange = useCallback(async () => {
     await router.invalidate();

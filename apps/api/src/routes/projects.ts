@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { getAuthorizedProject } from "../authorization";
 import { generateUniqueSlug } from "../lib/slug";
-import { authed, pub } from "../orpc";
+import { authed } from "../orpc";
 import { projects } from "../schema";
 
 // --- Procedures ---
@@ -18,30 +18,44 @@ const updateProjectSchema = z.object({
   name: z.string(),
 });
 
-const list = pub.handler(async ({ context }) => {
-  const result = await context.db.select().from(projects);
-  return result;
-});
-
-const getFirst = pub.handler(async ({ context }) => {
-  const result = await context.db.select().from(projects).limit(1).get();
-  if (!result) throw new ORPCError("NOT_FOUND");
-  return result;
-});
-
-const getBySlug = pub.input(z.object({ slug: z.string() })).handler(async ({ context, input }) => {
+const list = authed.handler(async ({ context }) => {
   const result = await context.db
     .select()
     .from(projects)
-    .where(eq(projects.slug, input.slug))
+    .where(eq(projects.organizationSlug, context.orgSlug));
+  return result;
+});
+
+const getFirst = authed.handler(async ({ context }) => {
+  const result = await context.db
+    .select()
+    .from(projects)
+    .where(eq(projects.organizationSlug, context.orgSlug))
+    .limit(1)
     .get();
   if (!result) throw new ORPCError("NOT_FOUND");
   return result;
 });
 
-const get = pub.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
+const getBySlug = authed
+  .input(z.object({ slug: z.string() }))
+  .handler(async ({ context, input }) => {
+    const result = await context.db
+      .select()
+      .from(projects)
+      .where(eq(projects.slug, input.slug))
+      .get();
+    if (!result || result.organizationSlug !== context.orgSlug) {
+      throw new ORPCError("NOT_FOUND");
+    }
+    return result;
+  });
+
+const get = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
   const result = await context.db.select().from(projects).where(eq(projects.id, input.id)).get();
-  if (!result) throw new ORPCError("NOT_FOUND");
+  if (!result || result.organizationSlug !== context.orgSlug) {
+    throw new ORPCError("NOT_FOUND");
+  }
   return result;
 });
 

@@ -1,7 +1,6 @@
-import { useCurrentOrganization } from "@daveyplate/better-auth-ui";
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRightIcon } from "lucide-react";
+import { Navigate, createFileRoute } from "@tanstack/react-router";
+import { FolderIcon } from "lucide-react";
 
 import { api } from "@/lib/api";
 
@@ -13,39 +12,23 @@ export const Route = createFileRoute("/_app/dashboard/")({
 });
 
 function DashboardIndex() {
-  const { data: organization } = useCurrentOrganization();
-
-  return <div className="mx-auto max-w-2xl px-6 py-10">{organization && <ProjectList />}</div>;
-}
-
-function ProjectList() {
-  const { data: projects } = useQuery({
+  const { data: projects, isLoading } = useQuery({
     queryKey: ["projects", "list"],
     queryFn: () => api.projects.list(),
   });
 
-  if (!projects) return null;
-  if (projects.length === 0) {
-    return <p className="text-muted-foreground text-sm">No projects yet.</p>;
+  if (isLoading || !projects) return null;
+
+  if (projects.length > 0) {
+    return <Navigate to="/dashboard/$slug/overview" params={{ slug: projects[0]!.slug }} replace />;
   }
 
   return (
-    <div>
-      <h2 className="mb-4 text-lg font-semibold">Projects</h2>
-      <div className="grid gap-3">
-        {projects.map((project) => (
-          <Link
-            key={project.id}
-            to="/dashboard/$slug/overview"
-            params={{ slug: project.slug }}
-            className="border-border hover:border-foreground/20 flex items-center justify-between rounded-lg border p-4 transition-colors"
-          >
-            <div>
-              <p className="font-medium">{project.name}</p>
-            </div>
-            <ArrowRightIcon className="text-muted-foreground h-4 w-4 shrink-0" />
-          </Link>
-        ))}
+    <div className="mx-auto max-w-2xl px-6 py-10">
+      <div className="text-muted-foreground flex flex-col items-center gap-3 py-20 text-center">
+        <FolderIcon className="h-10 w-10" />
+        <h2 className="text-foreground text-lg font-semibold">No projects yet</h2>
+        <p className="text-sm">Projects are created via the CLI.</p>
       </div>
     </div>
   );
