@@ -1,9 +1,5 @@
 import { cn } from "@camox/ui/utils";
-import {
-  OrganizationMembersCard,
-  OrganizationSettingsCards,
-  OrganizationSwitcher,
-} from "@daveyplate/better-auth-ui";
+import { OrganizationMembersCard, OrganizationSettingsCards } from "@daveyplate/better-auth-ui";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
@@ -39,9 +35,6 @@ function TeamPage() {
     <div>
       <div className="border-b px-6">
         <nav className="-mb-px flex items-center gap-4">
-          <div className="py-2">
-            <OrganizationSwitcher variant="ghost" size="sm" hidePersonal />
-          </div>
           <Link
             to="/dashboard/team"
             search={{ tab: "members" }}

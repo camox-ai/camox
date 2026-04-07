@@ -1,4 +1,4 @@
-import { OrganizationSwitcher, useCurrentOrganization } from "@daveyplate/better-auth-ui";
+import { useCurrentOrganization } from "@daveyplate/better-auth-ui";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRightIcon } from "lucide-react";
@@ -15,16 +15,7 @@ export const Route = createFileRoute("/_app/dashboard/")({
 function DashboardIndex() {
   const { data: organization } = useCurrentOrganization();
 
-  return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
-      <div className="mb-8">
-        <h1 className="mb-4 text-lg font-semibold">Team projects</h1>
-        <OrganizationSwitcher variant="ghost" size="default" className="min-w-64" hidePersonal />
-      </div>
-
-      {organization && <ProjectList />}
-    </div>
-  );
+  return <div className="mx-auto max-w-2xl px-6 py-10">{organization && <ProjectList />}</div>;
 }
 
 function ProjectList() {

@@ -5,7 +5,6 @@ export const Route = createFileRoute("/_app/dashboard/$slug")({
 });
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
-import { cn } from "@camox/ui/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
@@ -79,13 +78,6 @@ function RouteComponent() {
             inactiveProps={{ className: inactiveClass }}
           >
             Usage
-          </Link>
-          <Link
-            to="/dashboard/team"
-            search={{ tab: "members" }}
-            className={cn(tabClass, inactiveClass)}
-          >
-            Team
           </Link>
         </nav>
       </div>
