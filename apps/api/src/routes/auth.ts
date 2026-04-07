@@ -29,8 +29,17 @@ const authSchema = {
   invitation,
 };
 
+function generateSlug(name: string): string {
+  const base = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  const suffix = crypto.randomUUID().slice(0, 8);
+  return `${base}-${suffix}`;
+}
+
 export function createAuth(db: Database, env: Bindings) {
-  return betterAuth({
+  const auth = betterAuth({
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema: authSchema,
@@ -54,7 +63,25 @@ export function createAuth(db: Database, env: Bindings) {
     // Accept requests from any origin — Camox sites run on arbitrary customer domains
     trustedOrigins: ["*"],
     plugins: [organization(), crossDomain({ siteUrl: env.SITE_URL }), oneTimeToken(), bearer()],
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            const orgName = `${user.name}'s team`;
+            const slug = generateSlug(orgName);
+            await auth.api.createOrganization({
+              body: {
+                name: orgName,
+                slug,
+                userId: user.id,
+              },
+            });
+          },
+        },
+      },
+    },
   });
+  return auth;
 }
 
 export type Auth = ReturnType<typeof createAuth>;

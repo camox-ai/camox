@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
 
-export const Route = createFileRoute("/_app/dashboard/cli-authorize")({
+export const Route = createFileRoute("/_app/_auth/cli-authorize")({
   validateSearch: z.object({
     callback: z.string(),
   }),
