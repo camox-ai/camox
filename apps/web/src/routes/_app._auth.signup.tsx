@@ -10,7 +10,20 @@ export const Route = createFileRoute("/_app/_auth/signup")({
 
 function SignupPage() {
   const { redirect } = Route.useSearch();
-  const callbackURL = redirect ? `/dashboard?redirect=${encodeURIComponent(redirect)}` : undefined;
 
-  return <AuthView view="SIGN_UP" redirectTo="/dashboard" callbackURL={callbackURL} />;
+  // Internal paths (e.g. /dashboard/cli-authorize): redirect there directly after signup
+  // via both redirectTo (email/password) and callbackURL (OAuth).
+  // External URLs (e.g. SDK cross-domain auth): route through /dashboard?redirect=... so
+  // _app.tsx's beforeLoad can generate an OTT before redirecting.
+  const isInternalRedirect = redirect?.startsWith("/");
+  const redirectTo = isInternalRedirect ? redirect : "/dashboard";
+
+  let callbackURL: string | undefined;
+  if (isInternalRedirect) {
+    callbackURL = redirect;
+  } else if (redirect) {
+    callbackURL = `/dashboard?redirect=${encodeURIComponent(redirect)}`;
+  }
+
+  return <AuthView view="SIGN_UP" redirectTo={redirectTo} callbackURL={callbackURL} />;
 }

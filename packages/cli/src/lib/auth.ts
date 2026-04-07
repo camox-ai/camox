@@ -86,7 +86,7 @@ function startCallbackServer(): Promise<{
         return;
       }
 
-      res.writeHead(302, { Location: `${CAMOX_URL}/cli-authenticated` });
+      res.writeHead(302, { Location: `${CAMOX_URL}/cli-authorized` });
       res.end();
       resolveOtt(ott);
     });
@@ -142,7 +142,7 @@ async function verifyOtt(token: string): Promise<VerifyResult> {
 async function authenticateUser(): Promise<AuthToken> {
   const { port, ottPromise, close } = await startCallbackServer();
 
-  const loginUrl = `${CAMOX_URL}/login?redirect=${encodeURIComponent(`http://localhost:${port}/callback`)}`;
+  const loginUrl = `${CAMOX_URL}/dashboard/cli-authorize?callback=${encodeURIComponent(`http://localhost:${port}/callback`)}`;
 
   const action = await p.select({
     message: "Log in to Camox",

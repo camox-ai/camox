@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Terminal } from "lucide-react";
 
-export const Route = createFileRoute("/_app/_auth/cli-authenticated")({
-  component: CliAuthenticatedPage,
+export const Route = createFileRoute("/_app/_auth/cli-authorized")({
+  component: CliAuthorizedPage,
 });
 
-function CliAuthenticatedPage() {
+function CliAuthorizedPage() {
   return (
     <div className="flex flex-col items-center gap-6 text-center">
       <div className="bg-muted flex size-16 items-center justify-center rounded-full">

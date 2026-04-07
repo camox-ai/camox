@@ -30,6 +30,7 @@ export function crossDomain({ siteUrl }: { siteUrl: string }) {
   const rewriteCallbackURL = (callbackURL?: string) => {
     if (!callbackURL) return callbackURL;
     if (!callbackURL.startsWith("/")) return callbackURL;
+    if (!siteUrl) return callbackURL;
     return new URL(callbackURL, siteUrl).toString();
   };
 
