@@ -108,7 +108,11 @@ function startCallbackServer(): Promise<{
   });
 }
 
-async function verifyOtt(token: string): Promise<AuthResult> {
+interface VerifyResult extends AuthResult {
+  sessionToken: string;
+}
+
+async function verifyOtt(token: string): Promise<VerifyResult> {
   const res = await fetch(`${CAMOX_API_URL}/api/auth/one-time-token/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -119,14 +123,20 @@ async function verifyOtt(token: string): Promise<AuthResult> {
     throw new Error(`OTT verification failed: ${res.status}`);
   }
 
-  const data = await res.json();
+  const data: { user?: { name?: string; email?: string }; session?: { token?: string } } =
+    await res.json();
 
   const user = data.user;
   if (!user?.name) {
     throw new Error("No user info in verification response");
   }
 
-  return { name: user.name, email: user.email ?? "" };
+  const sessionToken = data.session?.token;
+  if (!sessionToken) {
+    throw new Error("No session token in verification response");
+  }
+
+  return { name: user.name, email: user.email ?? "", sessionToken };
 }
 
 async function authenticateUser(): Promise<AuthToken> {
@@ -165,12 +175,16 @@ async function authenticateUser(): Promise<AuthToken> {
     ]);
 
     s.message("Verifying...");
-    const user = await verifyOtt(ott);
+    const result = await verifyOtt(ott);
 
-    const authToken: AuthToken = { token: ott, name: user.name, email: user.email };
+    const authToken: AuthToken = {
+      token: result.sessionToken,
+      name: result.name,
+      email: result.email,
+    };
     writeAuthToken(authToken);
 
-    s.stop(`Authenticated as ${user.name}`);
+    s.stop(`Authenticated as ${result.name}`);
     return authToken;
   } catch (err) {
     s.stop("Authentication failed.");

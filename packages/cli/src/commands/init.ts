@@ -7,6 +7,13 @@ import * as p from "@clack/prompts";
 import { object } from "@optique/core/constructs";
 import { command, constant } from "@optique/core/primitives";
 
+import {
+  type Organization,
+  createOrganization,
+  createProject,
+  listOrganizations,
+  setActiveOrganization,
+} from "../lib/api";
 import { getOrAuthenticate } from "../lib/auth";
 import {
   type PackageManager,
@@ -34,6 +41,53 @@ function onCancel() {
   process.exit(0);
 }
 
+const CREATE_NEW_ORG = "__create_new__" as const;
+
+async function selectOrCreateOrganization(token: string): Promise<string> {
+  const orgs = await listOrganizations(token);
+
+  if (orgs.length === 0) {
+    // No orgs — prompt to create one
+    p.log.info("You don't have any organizations yet. Let's create one.");
+    return promptCreateOrganization(token);
+  }
+
+  // Has orgs — let user pick or create new
+  const selected = await p.select({
+    message: "Select an organization for your new project",
+    options: [
+      ...orgs.map((org: Organization) => ({ value: org.id, label: `${org.name} (${org.slug})` })),
+      { value: CREATE_NEW_ORG, label: "Create a new organization" },
+    ],
+  });
+  if (p.isCancel(selected)) return onCancel() as never;
+
+  if (selected === CREATE_NEW_ORG) {
+    return promptCreateOrganization(token);
+  }
+
+  // Set active org and return slug
+  const org = orgs.find((o: Organization) => o.id === selected)!;
+  await setActiveOrganization(token, org.id);
+  return org.slug;
+}
+
+async function promptCreateOrganization(token: string): Promise<string> {
+  const orgName = await p.text({
+    message: "Organization name",
+    placeholder: "My Company",
+    validate: (value) => {
+      if (!value.trim()) return "Organization name is required";
+    },
+  });
+  if (p.isCancel(orgName)) return onCancel() as never;
+
+  const orgSlug = slugify(orgName);
+  const org = await createOrganization(token, orgName, orgSlug);
+  p.log.success(`Created organization: ${org.name}`);
+  return org.slug;
+}
+
 export async function init() {
   p.intro("camox init");
 
@@ -47,21 +101,10 @@ export async function init() {
             if (!value.trim()) return "Project name is required";
           },
         }),
-      slug: ({ results }) =>
-        p.text({
-          message: "Project slug",
-          initialValue: slugify(results.name ?? ""),
-          validate: (value) => {
-            if (!value.trim()) return "Slug is required";
-            if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(value) && !/^[a-z0-9]$/.test(value)) {
-              return "Slug must be lowercase alphanumeric with hyphens";
-            }
-          },
-        }),
       path: ({ results }) =>
         p.text({
           message: "Project path",
-          initialValue: `./${results.slug ?? "my-site"}`,
+          initialValue: `./${slugify(results.name ?? "") || "my-site"}`,
           validate: (value) => {
             if (!value.trim()) return "Path is required";
           },
@@ -73,10 +116,22 @@ export async function init() {
   const targetDir = path.resolve(result.path as string);
 
   // Authenticate with camox.ai
+  const auth = await getOrAuthenticate();
+
+  // Organization selection
+  const orgSlug = await selectOrCreateOrganization(auth.token);
+
+  // Create project on API
+  const s0 = p.spinner();
+  s0.start("Creating project...");
+  let project: { slug: string; syncSecret: string };
   try {
-    await getOrAuthenticate();
-  } catch {
-    p.log.warn("Continuing without authentication.");
+    project = await createProject(auth.token, result.name as string, orgSlug);
+    s0.stop(`Project created with slug: ${project.slug}`);
+  } catch (err) {
+    s0.stop("Failed to create project.");
+    p.log.error(err instanceof Error ? err.message : "Unknown error");
+    process.exit(1);
   }
 
   if (fs.existsSync(targetDir) && fs.readdirSync(targetDir).length > 0) {
@@ -124,7 +179,8 @@ export async function init() {
   const templateDir = path.resolve(__dirname, "..", "template");
   copyDir(templateDir, targetDir, {
     "{{projectName}}": result.name as string,
-    "{{projectSlug}}": result.slug as string,
+    "{{projectSlug}}": project.slug,
+    "{{syncSecret}}": project.syncSecret,
     "{{camoxVersion}}": ownPkg.version,
   });
 

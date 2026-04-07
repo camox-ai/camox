@@ -29,6 +29,7 @@
     "hono-party": "^2.0.3",
     "outdent": "^0.8.0",
     "partyserver": "^0.4.1",
+    "unique-names-generator": "^4.7.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {

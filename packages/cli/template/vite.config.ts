@@ -6,5 +6,10 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   resolve: { tsconfigPaths: true },
-  plugins: [tailwindcss(), camox({ projectSlug: "{{projectSlug}}" }), tanstackStart(), viteReact()],
+  plugins: [
+    tailwindcss(),
+    camox({ projectSlug: "{{projectSlug}}", syncSecret: "{{syncSecret}}" }),
+    tanstackStart(),
+    viteReact(),
+  ],
 });

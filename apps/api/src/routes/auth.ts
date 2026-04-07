@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { oneTimeToken, organization } from "better-auth/plugins";
+import { bearer, oneTimeToken, organization } from "better-auth/plugins";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
@@ -53,7 +53,7 @@ export function createAuth(db: Database, env: Bindings) {
     },
     // Accept requests from any origin — Camox sites run on arbitrary customer domains
     trustedOrigins: ["*"],
-    plugins: [organization(), crossDomain({ siteUrl: env.SITE_URL }), oneTimeToken()],
+    plugins: [organization(), crossDomain({ siteUrl: env.SITE_URL }), oneTimeToken(), bearer()],
   });
 }
 

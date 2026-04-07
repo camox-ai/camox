@@ -3,16 +3,14 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { getAuthorizedProject } from "../authorization";
+import { generateUniqueSlug } from "../lib/slug";
 import { authed, pub } from "../orpc";
 import { projects } from "../schema";
 
 // --- Procedures ---
 
 const createProjectSchema = z.object({
-  slug: z.string(),
   name: z.string(),
-  description: z.string().optional(),
-  domain: z.string(),
   organizationSlug: z.string(),
 });
 
@@ -53,10 +51,21 @@ const create = authed.input(createProjectSchema).handler(async ({ context, input
   if (input.organizationSlug !== context.orgSlug) {
     throw new ORPCError("NOT_FOUND");
   }
+
+  const slug = await generateUniqueSlug(context.db);
+  const syncSecret = crypto.randomUUID();
   const now = Date.now();
+
   const result = await context.db
     .insert(projects)
-    .values({ ...input, createdAt: now, updatedAt: now })
+    .values({
+      name: input.name,
+      slug,
+      syncSecret,
+      organizationSlug: input.organizationSlug,
+      createdAt: now,
+      updatedAt: now,
+    })
     .returning()
     .get();
   return result;

@@ -36,6 +36,13 @@
       "when": 1775146400000,
       "tag": "0004_add_repeatable_items_parent",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1775250000000,
+      "tag": "0005_add_sync_secret",
+      "breakpoints": true
     }
   ]
 }
