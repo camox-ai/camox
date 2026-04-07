@@ -10,7 +10,7 @@ import {
 import { type ComponentProps, useCallback } from "react";
 import { z } from "zod";
 
-import { authClient } from "@/lib/auth-client";
+import { authClient, getServerSession } from "@/lib/auth-client";
 
 const queryClient = new QueryClient();
 
@@ -36,9 +36,9 @@ export const Route = createFileRoute("/_app")({
     ],
   }),
   beforeLoad: async ({ search }) => {
-    const session = await authClient.getSession();
+    const session = await getServerSession();
 
-    if (session.data && search.redirect && isSafeRedirect(search.redirect)) {
+    if (session && search.redirect && isSafeRedirect(search.redirect)) {
       const ottResult = await authClient.oneTimeToken.generate();
       const url = new URL(search.redirect);
       if (ottResult?.data?.token) {
@@ -47,7 +47,7 @@ export const Route = createFileRoute("/_app")({
       throw redirect({ href: url.toString() });
     }
 
-    return { session: session.data };
+    return { session };
   },
   component: AppLayout,
 });
