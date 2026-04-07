@@ -246,13 +246,11 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
               />
               <SearchEnginePreview
                 page={page}
-                domain={project?.domain}
                 metaTitle={metaTitle}
                 metaDescription={page.metaDescription ?? ""}
               />
               <SocialPreviewSection
                 page={page}
-                domain={project?.domain}
                 metaTitle={metaTitle}
                 metaDescription={page.metaDescription ?? ""}
                 layoutId={pageLayoutRecord?.layoutId}
@@ -288,16 +286,15 @@ function truncateText(text: string, maxLen: number) {
 
 const SearchEnginePreview = ({
   page,
-  domain,
   metaTitle,
   metaDescription,
 }: {
   page: Page;
-  domain?: string;
   metaTitle: string;
   metaDescription: string;
 }) => {
-  const url = domain ? `${domain}${page.fullPath}` : page.fullPath;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${origin}${page.fullPath}`;
 
   return (
     <div className="space-y-1 pt-2">
@@ -328,14 +325,12 @@ const SearchEnginePreview = ({
 
 const SocialPreviewSection = ({
   page,
-  domain,
   metaTitle,
   metaDescription,
   layoutId,
   projectName,
 }: {
   page: Page;
-  domain?: string;
   metaTitle: string;
   metaDescription: string;
   layoutId?: string;
@@ -349,7 +344,8 @@ const SocialPreviewSection = ({
     ...(projectName && { projectName }),
   });
   const ogImage = `/og?${ogImageParams.toString()}`;
-  const url = domain ? `${domain}${page.fullPath}` : page.fullPath;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${origin}${page.fullPath}`;
 
   return (
     <div className="space-y-2 pt-2">

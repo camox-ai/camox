@@ -51,9 +51,6 @@ function ProjectList() {
           >
             <div>
               <p className="font-medium">{project.name}</p>
-              {project.description && (
-                <p className="text-muted-foreground text-sm">{project.description}</p>
-              )}
             </div>
             <ArrowRightIcon className="text-muted-foreground h-4 w-4 shrink-0" />
           </Link>

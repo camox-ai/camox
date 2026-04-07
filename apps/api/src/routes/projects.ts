@@ -16,8 +16,6 @@ const createProjectSchema = z.object({
 
 const updateProjectSchema = z.object({
   name: z.string(),
-  description: z.string().optional(),
-  domain: z.string(),
 });
 
 const list = pub.handler(async ({ context }) => {

@@ -96,8 +96,6 @@ export const projects = sqliteTable(
     id: int().primaryKey({ autoIncrement: true }),
     slug: text().notNull(),
     name: text().notNull(),
-    description: text(),
-    domain: text().notNull().default(""),
     syncSecret: text("sync_secret").notNull().default(""),
     organizationSlug: text("organization_slug").notNull(),
     createdAt: int("created_at").notNull(),
@@ -105,7 +103,6 @@ export const projects = sqliteTable(
   },
   (table) => [
     uniqueIndex("projects_slug_idx").on(table.slug),
-    index("projects_domain_idx").on(table.domain),
     index("projects_organization_idx").on(table.organizationSlug),
   ],
 );

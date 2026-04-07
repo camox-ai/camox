@@ -2,7 +2,6 @@ import { Button } from "@camox/ui/button";
 import { Input } from "@camox/ui/input";
 import { Label } from "@camox/ui/label";
 import { Spinner } from "@camox/ui/spinner";
-import { Textarea } from "@camox/ui/textarea";
 import { toast } from "@camox/ui/toaster";
 import { useForm } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -21,16 +20,12 @@ function ProjectSettingsFormInner({ project }: { project: Project }) {
   const form = useForm({
     defaultValues: {
       name: project.name,
-      description: project.description ?? "",
-      domain: project.domain,
     },
     onSubmit: async ({ value }) => {
       try {
         await api.projects.update({
           id: project.id,
           name: value.name,
-          description: value.description,
-          domain: value.domain,
         });
         toast.success("Project settings updated");
       } catch (error) {
@@ -74,49 +69,6 @@ function ProjectSettingsFormInner({ project }: { project: Project }) {
               {field.state.meta.errors.length > 0 && (
                 <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
               )}
-            </div>
-          )}
-        </form.Field>
-
-        <form.Field name="description">
-          {(field) => (
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                rows={3}
-              />
-              <p className="text-muted-foreground text-xs">A brief description of your project</p>
-            </div>
-          )}
-        </form.Field>
-
-        <form.Field
-          name="domain"
-          validators={{
-            onSubmit: ({ value }) => {
-              if (!value || value.trim().length === 0) {
-                return "Domain is required";
-              }
-              return undefined;
-            },
-          }}
-        >
-          {(field) => (
-            <div className="space-y-2">
-              <Label htmlFor="domain">Domain</Label>
-              <Input
-                id="domain"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                aria-invalid={!!field.state.meta.errors.length}
-              />
-              {field.state.meta.errors.length > 0 && (
-                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
-              )}
-              <p className="text-muted-foreground text-xs">Your project's domain name</p>
             </div>
           )}
         </form.Field>

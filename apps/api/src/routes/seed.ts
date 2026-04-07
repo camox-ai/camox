@@ -77,7 +77,6 @@ async function seedContent(db: Database) {
     .values({
       name: "Camox Demo",
       slug: "camox-demo-01",
-      domain: "demo.camox.dev",
       organizationSlug: "camox-demo",
       createdAt: now,
       updatedAt: now,

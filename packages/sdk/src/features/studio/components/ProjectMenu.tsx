@@ -92,7 +92,7 @@ export const ProjectMenu = () => {
         <PopoverContent className="w-72 p-0" align="start" side="bottom">
           <div className="flex flex-col">
             <div className="flex flex-col gap-2 p-4">
-              <h3 className="font-mono text-sm leading-none">{project.domain}</h3>
+              <h3 className="font-mono text-sm leading-none">{project.name}</h3>
             </div>
             <Separator />
             <div className="flex flex-col gap-1 p-2">
