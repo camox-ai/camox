@@ -63,7 +63,7 @@ The `toMarkdown` array controls how block content is rendered as markdown for AI
 - **Image**: `![alt](filename)`
 - **File**: `[filename](url)`
 - **Embed**: raw URL string
-- **RepeatableObject**: each item rendered via its own `toMarkdown` (if set on the RepeatableObject options), items joined with `\n\n`
+- **RepeatableItem**: each item rendered via its own `toMarkdown` (if set on the RepeatableObject options), items joined with `\n\n`
 - **Boolean/Enum**: raw string value
 
 Lines where ALL placeholders resolve to empty are omitted from output.
@@ -83,7 +83,7 @@ createBlock({
   content: { ... },
 })
 
-// Statistics — RepeatableObject with its own toMarkdown
+// Statistics — RepeatableItem with its own toMarkdown
 createBlock({
   toMarkdown: ["## {{subtitle}}", "{{description}}", "{{statistics}}"],
   content: {
@@ -217,9 +217,9 @@ Type.RepeatableItem(
 );
 ```
 
-The `toMarkdown` option on RepeatableObject defines how each item is rendered as markdown when the parent block's `toMarkdown` references this field. If omitted, fields are joined with " — " as a fallback.
+The `toMarkdown` option on RepeatableItem defines how each item is rendered as markdown when the parent block's `toMarkdown` references this field. If omitted, fields are joined with " — " as a fallback.
 
-RepeatableObjects can be nested — an item can contain another RepeatableObject:
+Repeatable items can be nested — an item can contain another RepeatableItem:
 
 ```tsx
 columns: Type.RepeatableItem(
@@ -288,7 +288,7 @@ import { Link } from "@tanstack/react-router";
 <myBlock.Embed name="videoUrl">{(url) => <iframe src={url} />}</myBlock.Embed>
 ```
 
-### Rendering RepeatableObject fields — `block.Repeater`
+### Rendering RepeatableItem fields — `block.Repeater`
 
 ```tsx
 <myBlock.Repeater name="features">
@@ -352,6 +352,6 @@ Renders content outside the block's DOM container. Useful for fixed/floating ele
 5. **Description is for the AI.** Write the `description` as guidance for an LLM — explain when to use this block, what kind of content it's for, and where it fits on a page.
 6. **`toMarkdown` is required.** Every block must define how its content renders as markdown. Use `{{fieldName}}` placeholders matching content keys.
 7. **Settings = Enum and Boolean only.** Keep settings simple. Use `content` for everything the user edits inline.
-8. **RepeatableObject minItems >= 1.** You can't have an empty repeatable — there's always at least one item.
+8. **RepeatableItem minItems >= 1.** You can't have an empty repeatable — there's always at least one item.
 9. **Import path is `"camox/createBlock"`.** Both `Type` and `createBlock` come from this import.
 10. **Use Tailwind CSS for styling.** All example blocks use Tailwind utility classes. Follow the same patterns: `container mx-auto px-4` for centered content, responsive breakpoints, etc.

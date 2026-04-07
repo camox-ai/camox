@@ -71,7 +71,7 @@ function resolveField(schema: any, value: unknown): string | undefined {
     return url || undefined;
   }
 
-  if (fieldType === "RepeatableItem" || fieldType === "RepeatableObject") {
+  if (fieldType === "RepeatableItem") {
     if (!Array.isArray(value)) return undefined;
     const itemSchema = schema?.items?.properties;
     if (!itemSchema) return undefined;

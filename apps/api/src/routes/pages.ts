@@ -160,7 +160,7 @@ async function generatePageDraftFromAi(
             - "settings" (optional): an object matching the settingsSchema for that block type, if it has one
 
             Only use blocks from available_blocks. Ensure content matches schema constraints (maxLength, etc.).
-            For RepeatableObject fields (arrays), provide an array of objects matching the nested schema.
+            For RepeatableItems fields (arrays), provide an array of objects matching the nested schema.
             For settings, pick values from the enum options or boolean values defined in the settingsSchema.
             For String fields, you may use markdown formatting: **bold** and *italic*.
 

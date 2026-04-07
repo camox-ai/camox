@@ -229,7 +229,7 @@ export const Type = {
         }),
   ) => {
     if (options.minItems < 1) {
-      throw new Error("RepeatableObject requires minItems to be at least 1");
+      throw new Error("RepeatableItem requires minItems to be at least 1");
     }
 
     const objectSchema = TypeBoxType.Object(shape);
