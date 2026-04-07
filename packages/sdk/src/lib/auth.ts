@@ -1,9 +1,209 @@
-import { crossDomainClient } from "@convex-dev/better-auth/client/plugins";
+import type { BetterAuthClientPlugin, ClientStore } from "better-auth";
 import { oneTimeTokenClient, organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import * as React from "react";
 
 import { actionsStore } from "@/features/provider/actionsStore";
+
+/* -------------------------------------------------------------------------------------------------
+ * Cross-domain client plugin
+ *
+ * Stores session cookies in localStorage and sends them via a custom
+ * `Better-Auth-Cookie` header, since browsers won't send real cookies across
+ * different origins. Companion to the server-side `crossDomain` plugin.
+ *
+ * Adapted from `@convex-dev/better-auth/client/plugins`.
+ * -----------------------------------------------------------------------------------------------*/
+
+interface CookieAttributes {
+  value: string;
+  expires?: Date;
+  "max-age"?: number;
+  domain?: string;
+  path?: string;
+  secure?: boolean;
+  httpOnly?: boolean;
+  sameSite?: "Strict" | "Lax" | "None";
+}
+
+interface StoredCookie {
+  value: string;
+  expires: string | null;
+}
+
+function parseSetCookieHeader(header: string): Map<string, CookieAttributes> {
+  const cookieMap = new Map<string, CookieAttributes>();
+  const cookies = header.split(", ");
+  cookies.forEach((cookie) => {
+    const [nameValue, ...attributes] = cookie.split("; ");
+    const [name, value] = nameValue.split("=");
+
+    const cookieObj: CookieAttributes = { value };
+
+    attributes.forEach((attr) => {
+      const [attrName, attrValue] = attr.split("=");
+      cookieObj[attrName.toLowerCase() as "value"] = attrValue;
+    });
+
+    cookieMap.set(name, cookieObj);
+  });
+
+  return cookieMap;
+}
+
+function getSetCookie(header: string, prevCookie?: string) {
+  const parsed = parseSetCookieHeader(header);
+  let toSetCookie: Record<string, StoredCookie> = {};
+  parsed.forEach((cookie, key) => {
+    const expiresAt = cookie["expires"];
+    const maxAge = cookie["max-age"];
+    let expires: Date | null = null;
+    if (expiresAt) {
+      expires = new Date(String(expiresAt));
+    } else if (maxAge) {
+      expires = new Date(Date.now() + Number(maxAge) * 1000);
+    }
+    toSetCookie[key] = {
+      value: cookie["value"],
+      expires: expires ? expires.toISOString() : null,
+    };
+  });
+  if (prevCookie) {
+    try {
+      const prevCookieParsed = JSON.parse(prevCookie);
+      toSetCookie = {
+        ...prevCookieParsed,
+        ...toSetCookie,
+      };
+    } catch {
+      //
+    }
+  }
+  return JSON.stringify(toSetCookie);
+}
+
+function getCookie(cookie: string) {
+  let parsed = {} as Record<string, StoredCookie>;
+  try {
+    parsed = JSON.parse(cookie) as Record<string, StoredCookie>;
+  } catch {
+    // noop
+  }
+  const toSend = Object.entries(parsed).reduce((acc, [key, value]) => {
+    if (value.expires && new Date(value.expires) < new Date()) {
+      return acc;
+    }
+    return `${acc}; ${key}=${value.value}`;
+  }, "");
+  return toSend;
+}
+
+function crossDomainClient(
+  opts: {
+    storage?: {
+      setItem: (key: string, value: string) => any;
+      getItem: (key: string) => string | null;
+    };
+    storagePrefix?: string;
+    disableCache?: boolean;
+  } = {},
+) {
+  let store: ClientStore | null = null;
+  const cookieName = `${opts?.storagePrefix || "better-auth"}_cookie`;
+  const localCacheName = `${opts?.storagePrefix || "better-auth"}_session_data`;
+  const storage = opts?.storage || (typeof window !== "undefined" ? localStorage : undefined);
+
+  return {
+    id: "cross-domain",
+    getActions(_: any, $store: ClientStore) {
+      store = $store;
+      return {
+        getCookie: () => {
+          const cookie = storage?.getItem(cookieName);
+          return getCookie(cookie || "{}");
+        },
+        updateSession: () => {
+          $store.notify("$sessionSignal");
+        },
+        getSessionData: (): Record<string, unknown> | null => {
+          const sessionData = storage?.getItem(localCacheName);
+          if (!sessionData) return null;
+          try {
+            const parsed = JSON.parse(sessionData);
+            if (parsed && typeof parsed === "object" && Object.keys(parsed).length === 0)
+              return null;
+            return parsed;
+          } catch {
+            return null;
+          }
+        },
+      };
+    },
+    fetchPlugins: [
+      {
+        id: "cross-domain",
+        name: "Cross Domain",
+        hooks: {
+          async onSuccess(context: any) {
+            if (!storage) return;
+
+            const setCookie = context.response.headers.get("set-better-auth-cookie");
+            if (setCookie) {
+              const prevCookie = storage.getItem(cookieName);
+              const toSetCookie = getSetCookie(setCookie || "", prevCookie ?? undefined);
+              await storage.setItem(cookieName, toSetCookie);
+
+              if (setCookie.includes(".session_token=")) {
+                const parsed = parseSetCookieHeader(setCookie);
+                let prevParsed: Record<string, StoredCookie> = {};
+                try {
+                  prevParsed = JSON.parse(prevCookie || "{}");
+                } catch {
+                  // noop
+                }
+                const tokenKey = [...parsed.keys()].find((k) => k.includes("session_token"));
+                if (tokenKey && prevParsed[tokenKey]?.value !== parsed.get(tokenKey)?.value) {
+                  store?.notify("$sessionSignal");
+                }
+              }
+            }
+
+            if (context.request.url.toString().includes("/get-session") && !opts?.disableCache) {
+              const data = context.data;
+              storage.setItem(localCacheName, JSON.stringify(data));
+              if (data === null) {
+                storage.setItem(cookieName, "{}");
+              }
+            }
+          },
+        },
+        async init(url: string, options: any) {
+          if (!storage) {
+            return { url, options };
+          }
+          options = options || {};
+          const storedCookie = storage.getItem(cookieName);
+          const cookie = getCookie(storedCookie || "{}");
+          options.credentials = "omit";
+          options.headers = {
+            ...options.headers,
+            "Better-Auth-Cookie": cookie,
+          };
+          if (url.includes("/sign-out")) {
+            await storage.setItem(cookieName, "{}");
+            store?.atoms.session?.set({
+              data: null,
+              error: null,
+              isPending: false,
+            });
+            storage.setItem(localCacheName, "{}");
+          }
+          return { url, options };
+        },
+      },
+    ],
+  } satisfies BetterAuthClientPlugin;
+}
 
 /* -------------------------------------------------------------------------------------------------
  * Auth client factory

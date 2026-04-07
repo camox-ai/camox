@@ -18,7 +18,6 @@
     "check": "tsgo --noEmit && oxlint --fix"
   },
   "dependencies": {
-    "@convex-dev/better-auth": "^0.11.2",
     "@hono/zod-validator": "^0.7.6",
     "@orpc/server": "^1.13.13",
     "@tanstack/ai": "^0.8.1",

@@ -1,4 +1,3 @@
-import { crossDomain } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { oneTimeToken, organization } from "better-auth/plugins";
@@ -6,6 +5,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 
 import type { Database } from "../db";
+import { crossDomain } from "../lib/cross-domain";
 import {
   user,
   session,
