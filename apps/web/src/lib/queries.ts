@@ -6,15 +6,6 @@ import { authClient } from "@/lib/auth-client";
 export const organizationQueries = {
   all: () => ["organization"] as const,
 
-  active: () =>
-    queryOptions({
-      queryKey: [...organizationQueries.all(), "active"] as const,
-      queryFn: async () => {
-        const { data } = await authClient.organization.getFullOrganization();
-        return data;
-      },
-    }),
-
   list: () =>
     queryOptions({
       queryKey: [...organizationQueries.all(), "list"] as const,

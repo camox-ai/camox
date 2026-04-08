@@ -1,9 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { FolderIcon } from "lucide-react";
-import { useEffect } from "react";
 
-import { authClient } from "@/lib/auth-client";
 import { organizationQueries, projectQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard/")({
@@ -14,35 +12,43 @@ export const Route = createFileRoute("/_app/dashboard/")({
 });
 
 function DashboardIndex() {
-  const queryClient = useQueryClient();
-
-  const { data: activeOrg } = useQuery(organizationQueries.active());
   const { data: organizations } = useQuery(organizationQueries.list());
 
-  useEffect(() => {
-    if (activeOrg || !organizations?.length) return;
-    authClient.organization.setActive({ organizationId: organizations[0]!.id }).then(() => {
-      queryClient.invalidateQueries({ queryKey: organizationQueries.active().queryKey });
-    });
-  }, [activeOrg, organizations, queryClient]);
+  const firstOrgSlug = organizations?.[0]?.slug;
 
   const { data: projects, isLoading } = useQuery({
-    ...projectQueries.list(activeOrg?.slug ?? ""),
-    enabled: !!activeOrg?.slug,
+    ...projectQueries.list(firstOrgSlug ?? ""),
+    enabled: !!firstOrgSlug,
   });
 
-  if (isLoading || !activeOrg || !projects) return null;
+  if (isLoading || !organizations || !projects) return null;
 
   if (projects.length > 0) {
-    return <Navigate to="/dashboard/$slug/overview" params={{ slug: projects[0]!.slug }} replace />;
+    return (
+      <Navigate
+        to="/dashboard/$orgSlug/$slug/overview"
+        params={{ orgSlug: firstOrgSlug!, slug: projects[0]!.slug }}
+        replace
+      />
+    );
+  }
+
+  if (firstOrgSlug) {
+    return (
+      <Navigate
+        to="/dashboard/$orgSlug/team"
+        params={{ orgSlug: firstOrgSlug }}
+        search={{ tab: "members" }}
+        replace
+      />
+    );
   }
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
       <div className="text-muted-foreground flex flex-col items-center gap-3 py-20 text-center">
         <FolderIcon className="h-10 w-10" />
-        <h2 className="text-foreground text-lg font-semibold">No projects yet</h2>
-        <p className="text-sm">Projects are created via the CLI.</p>
+        <h2 className="text-foreground text-lg font-semibold">No organizations found</h2>
       </div>
     </div>
   );

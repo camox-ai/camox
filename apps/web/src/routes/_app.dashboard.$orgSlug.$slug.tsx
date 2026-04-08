@@ -1,26 +1,24 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 
-import { organizationQueries, projectQueries } from "@/lib/queries";
+import { projectQueries } from "@/lib/queries";
 
-export const Route = createFileRoute("/_app/dashboard/$slug")({
+export const Route = createFileRoute("/_app/dashboard/$orgSlug/$slug")({
   component: RouteComponent,
 });
 
 function ProjectSelector() {
-  const { slug: selectedSlug } = useParams({ strict: false }) as { slug?: string };
+  const { orgSlug, slug: selectedSlug } = Route.useParams();
   const navigate = useNavigate();
 
-  const { data: activeOrg } = useSuspenseQuery(organizationQueries.active());
-
-  const { data: projects } = useSuspenseQuery(projectQueries.list(activeOrg!.slug));
+  const { data: projects } = useSuspenseQuery(projectQueries.list(orgSlug));
 
   return (
     <Select
       value={selectedSlug}
       onValueChange={(slug) =>
-        navigate({ to: "/dashboard/$slug", params: { slug }, replace: true })
+        navigate({ to: "/dashboard/$orgSlug/$slug", params: { orgSlug, slug }, replace: true })
       }
     >
       <SelectTrigger className="w-40">
@@ -38,7 +36,7 @@ function ProjectSelector() {
 }
 
 function RouteComponent() {
-  const { slug } = Route.useParams();
+  const { orgSlug, slug } = Route.useParams();
 
   const { data: project } = useSuspenseQuery(projectQueries.getBySlug(slug));
 
@@ -57,8 +55,8 @@ function RouteComponent() {
             <ProjectSelector />
           </div>
           <Link
-            to="/dashboard/$slug/overview"
-            params={{ slug }}
+            to="/dashboard/$orgSlug/$slug/overview"
+            params={{ orgSlug, slug }}
             className={tabClass}
             activeProps={{ className: activeClass }}
             inactiveProps={{ className: inactiveClass }}
@@ -66,8 +64,8 @@ function RouteComponent() {
             Overview
           </Link>
           <Link
-            to="/dashboard/$slug/usage"
-            params={{ slug }}
+            to="/dashboard/$orgSlug/$slug/usage"
+            params={{ orgSlug, slug }}
             className={tabClass}
             activeProps={{ className: activeClass }}
             inactiveProps={{ className: inactiveClass }}

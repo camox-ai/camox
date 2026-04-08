@@ -10,7 +10,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { api, type Project } from "@/lib/api";
 import { projectQueries } from "@/lib/queries";
 
-export const Route = createFileRoute("/_app/dashboard/$slug/overview")({
+export const Route = createFileRoute("/_app/dashboard/$orgSlug/$slug/overview")({
   component: ProjectSettingsPage,
   head: () => ({
     meta: [{ title: "Camox Dashboard" }],

@@ -20,13 +20,20 @@ import { Label } from "@camox/ui/label";
 import { Toaster } from "@camox/ui/toaster";
 import { UserButton } from "@daveyplate/better-auth-ui";
 import { useForm } from "@tanstack/react-form";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Outlet, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  redirect,
+  useNavigate,
+  useParams,
+} from "@tanstack/react-router";
 import { ChevronsUpDownIcon, PlusIcon, SettingsIcon, UsersIcon } from "lucide-react";
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
-import { organizationQueries, projectQueries } from "@/lib/queries";
+import { organizationQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard")({
   beforeLoad: ({ context, location }) => {
@@ -38,19 +45,16 @@ export const Route = createFileRoute("/_app/dashboard")({
 });
 
 function OrganizationPicker() {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { orgSlug } = useParams({ strict: false });
 
-  const { data: activeOrg } = useQuery(organizationQueries.active());
   const { data: organizations } = useQuery(organizationQueries.list());
 
-  const otherOrgs = organizations?.filter((org) => org.id !== activeOrg?.id);
+  const activeOrg = organizations?.find((org) => org.slug === orgSlug);
+  const otherOrgs = organizations?.filter((org) => org.slug !== orgSlug);
 
-  const handleSetActive = async (orgId: string) => {
-    await authClient.organization.setActive({ organizationId: orgId });
-    queryClient.removeQueries({ queryKey: projectQueries.all() });
-    await queryClient.invalidateQueries({ queryKey: organizationQueries.active().queryKey });
-    navigate({ to: "/dashboard" });
+  const handleSetActive = (newOrgSlug: string) => {
+    navigate({ to: "/dashboard/$orgSlug", params: { orgSlug: newOrgSlug } });
   };
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -73,13 +77,21 @@ function OrganizationPicker() {
           </DropdownMenuLabel>
 
           <DropdownMenuItem asChild>
-            <Link to="/dashboard/team" search={{ tab: "members" }}>
+            <Link
+              to="/dashboard/$orgSlug/team"
+              params={{ orgSlug: orgSlug! }}
+              search={{ tab: "members" }}
+            >
               <UsersIcon className="mr-2 h-4 w-4" />
               Members
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link to="/dashboard/team" search={{ tab: "settings" }}>
+            <Link
+              to="/dashboard/$orgSlug/team"
+              params={{ orgSlug: orgSlug! }}
+              search={{ tab: "settings" }}
+            >
               <SettingsIcon className="mr-2 h-4 w-4" />
               Settings
             </Link>
@@ -92,7 +104,7 @@ function OrganizationPicker() {
                 Switch organization
               </DropdownMenuLabel>
               {otherOrgs.map((org) => (
-                <DropdownMenuItem key={org.id} onSelect={() => handleSetActive(org.id)}>
+                <DropdownMenuItem key={org.id} onSelect={() => handleSetActive(org.slug)}>
                   {org.name}
                 </DropdownMenuItem>
               ))}
@@ -125,15 +137,15 @@ function CreateOrganizationDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const form = useForm({
     defaultValues: { name: "", slug: "" },
     onSubmit: async ({ value }) => {
       await authClient.organization.create({ name: value.name, slug: value.slug });
-      queryClient.invalidateQueries({ queryKey: organizationQueries.all() });
       onOpenChange(false);
       form.reset();
+      navigate({ to: "/dashboard/$orgSlug", params: { orgSlug: value.slug } });
     },
   });
 
@@ -240,10 +252,15 @@ function CreateOrganizationDialog({
 }
 
 function DashboardNavbar() {
+  const { orgSlug } = useParams({ strict: false }) as { orgSlug?: string };
+
   return (
     <header className="border-b">
       <div className="flex h-14 items-center gap-4 px-6">
-        <Link to="/dashboard">
+        <Link
+          to={orgSlug ? "/dashboard/$orgSlug" : "/dashboard"}
+          params={orgSlug ? { orgSlug } : {}}
+        >
           <img src="/logo-shape.svg" alt="camox logo" className="h-8 py-1" />
         </Link>
         <OrganizationPicker />
