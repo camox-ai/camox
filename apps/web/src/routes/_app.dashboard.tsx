@@ -21,11 +21,12 @@ import { Toaster } from "@camox/ui/toaster";
 import { UserButton } from "@daveyplate/better-auth-ui";
 import { useForm } from "@tanstack/react-form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { ChevronsUpDownIcon, PlusIcon, SettingsIcon, UsersIcon } from "lucide-react";
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { organizationQueries, projectQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard")({
   beforeLoad: ({ context, location }) => {
@@ -38,28 +39,18 @@ export const Route = createFileRoute("/_app/dashboard")({
 
 function OrganizationPicker() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const { data: activeOrg } = useQuery({
-    queryKey: ["organization", "active"],
-    queryFn: async () => {
-      const { data } = await authClient.organization.getFullOrganization();
-      return data;
-    },
-  });
-
-  const { data: organizations } = useQuery({
-    queryKey: ["organization", "list"],
-    queryFn: async () => {
-      const { data } = await authClient.organization.list();
-      return data;
-    },
-  });
+  const { data: activeOrg } = useQuery(organizationQueries.active());
+  const { data: organizations } = useQuery(organizationQueries.list());
 
   const otherOrgs = organizations?.filter((org) => org.id !== activeOrg?.id);
 
   const handleSetActive = async (orgId: string) => {
     await authClient.organization.setActive({ organizationId: orgId });
-    await queryClient.invalidateQueries({ queryKey: ["organization"] });
+    queryClient.removeQueries({ queryKey: projectQueries.all() });
+    await queryClient.invalidateQueries({ queryKey: organizationQueries.active().queryKey });
+    navigate({ to: "/dashboard" });
   };
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -140,7 +131,7 @@ function CreateOrganizationDialog({
     defaultValues: { name: "", slug: "" },
     onSubmit: async ({ value }) => {
       await authClient.organization.create({ name: value.name, slug: value.slug });
-      queryClient.invalidateQueries({ queryKey: ["organization"] });
+      queryClient.invalidateQueries({ queryKey: organizationQueries.all() });
       onOpenChange(false);
       form.reset();
     },

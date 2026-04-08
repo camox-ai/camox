@@ -1,22 +1,20 @@
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
+
+import { organizationQueries, projectQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard/$slug")({
   component: RouteComponent,
 });
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
-import { useSuspenseQuery } from "@tanstack/react-query";
-
-import { api } from "@/lib/api";
-
 function ProjectSelector() {
   const { slug: selectedSlug } = useParams({ strict: false }) as { slug?: string };
   const navigate = useNavigate();
 
-  const { data: projects } = useSuspenseQuery({
-    queryKey: ["projects", "list"],
-    queryFn: () => api.projects.list(),
-  });
+  const { data: activeOrg } = useSuspenseQuery(organizationQueries.active());
+
+  const { data: projects } = useSuspenseQuery(projectQueries.list(activeOrg!.slug));
 
   return (
     <Select
@@ -42,10 +40,7 @@ function ProjectSelector() {
 function RouteComponent() {
   const { slug } = Route.useParams();
 
-  const { data: project } = useSuspenseQuery({
-    queryKey: ["projects", "getBySlug", slug],
-    queryFn: () => api.projects.getBySlug({ slug }),
-  });
+  const { data: project } = useSuspenseQuery(projectQueries.getBySlug(slug));
 
   const tabClass = "border-b-2 px-1 py-4 text-sm font-medium";
   const activeClass = "border-foreground text-foreground";

@@ -69,7 +69,10 @@ export const fileQueries = {
 
 export const projectQueries = {
   getFirst: () => ({
-    ...getOrpc().projects.getFirst.queryOptions({ staleTime: Infinity }),
+    ...getOrpc().projects.getFirst.queryOptions({
+      input: {},
+      staleTime: Infinity,
+    }),
   }),
 };
 

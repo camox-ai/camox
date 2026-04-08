@@ -1,3 +1,4 @@
+import { ORPCError } from "@orpc/server";
 import { and, eq, or } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 
@@ -45,6 +46,18 @@ export const requireOrg = createMiddleware<AppEnv>(async (c, next) => {
   c.set("orgSlug", result.slug);
   await next();
 });
+
+// --- Membership Helpers ---
+
+export async function assertOrgMembership(db: Database, userId: string, orgSlug: string) {
+  const result = await db
+    .select({ id: member.id })
+    .from(member)
+    .innerJoin(organizationTable, eq(organizationTable.id, member.organizationId))
+    .where(and(eq(organizationTable.slug, orgSlug), eq(member.userId, userId)))
+    .get();
+  if (!result) throw new ORPCError("FORBIDDEN");
+}
 
 // --- Authorization Helpers ---
 

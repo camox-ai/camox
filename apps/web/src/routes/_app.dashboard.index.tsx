@@ -1,8 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { FolderIcon } from "lucide-react";
+import { useEffect } from "react";
 
-import { api } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
+import { organizationQueries, projectQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard/")({
   head: () => ({
@@ -12,12 +14,24 @@ export const Route = createFileRoute("/_app/dashboard/")({
 });
 
 function DashboardIndex() {
+  const queryClient = useQueryClient();
+
+  const { data: activeOrg } = useQuery(organizationQueries.active());
+  const { data: organizations } = useQuery(organizationQueries.list());
+
+  useEffect(() => {
+    if (activeOrg || !organizations?.length) return;
+    authClient.organization.setActive({ organizationId: organizations[0]!.id }).then(() => {
+      queryClient.invalidateQueries({ queryKey: organizationQueries.active().queryKey });
+    });
+  }, [activeOrg, organizations, queryClient]);
+
   const { data: projects, isLoading } = useQuery({
-    queryKey: ["projects", "list"],
-    queryFn: () => api.projects.list(),
+    ...projectQueries.list(activeOrg?.slug ?? ""),
+    enabled: !!activeOrg?.slug,
   });
 
-  if (isLoading || !projects) return null;
+  if (isLoading || !activeOrg || !projects) return null;
 
   if (projects.length > 0) {
     return <Navigate to="/dashboard/$slug/overview" params={{ slug: projects[0]!.slug }} replace />;

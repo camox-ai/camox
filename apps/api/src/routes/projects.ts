@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { getAuthorizedProject } from "../authorization";
+import { assertOrgMembership, getAuthorizedProject } from "../authorization";
 import { generateUniqueSlug } from "../lib/slug";
 import { authed } from "../orpc";
 import { projects } from "../schema";
@@ -18,24 +18,32 @@ const updateProjectSchema = z.object({
   name: z.string(),
 });
 
-const list = authed.handler(async ({ context }) => {
-  const result = await context.db
-    .select()
-    .from(projects)
-    .where(eq(projects.organizationSlug, context.orgSlug));
-  return result;
-});
+const list = authed
+  .input(z.object({ organizationSlug: z.string() }))
+  .handler(async ({ context, input }) => {
+    await assertOrgMembership(context.db, context.user.id, input.organizationSlug);
+    return context.db
+      .select()
+      .from(projects)
+      .where(eq(projects.organizationSlug, input.organizationSlug));
+  });
 
-const getFirst = authed.handler(async ({ context }) => {
-  const result = await context.db
-    .select()
-    .from(projects)
-    .where(eq(projects.organizationSlug, context.orgSlug))
-    .limit(1)
-    .get();
-  if (!result) throw new ORPCError("NOT_FOUND");
-  return result;
-});
+const getFirst = authed
+  .input(z.object({ organizationSlug: z.string().optional() }))
+  .handler(async ({ context, input }) => {
+    const orgSlug = input.organizationSlug ?? context.orgSlug;
+    if (input.organizationSlug) {
+      await assertOrgMembership(context.db, context.user.id, orgSlug);
+    }
+    const result = await context.db
+      .select()
+      .from(projects)
+      .where(eq(projects.organizationSlug, orgSlug))
+      .limit(1)
+      .get();
+    if (!result) throw new ORPCError("NOT_FOUND");
+    return result;
+  });
 
 const getBySlug = authed
   .input(z.object({ slug: z.string() }))
@@ -45,17 +53,15 @@ const getBySlug = authed
       .from(projects)
       .where(eq(projects.slug, input.slug))
       .get();
-    if (!result || result.organizationSlug !== context.orgSlug) {
-      throw new ORPCError("NOT_FOUND");
-    }
+    if (!result) throw new ORPCError("NOT_FOUND");
+    await assertOrgMembership(context.db, context.user.id, result.organizationSlug);
     return result;
   });
 
 const get = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
   const result = await context.db.select().from(projects).where(eq(projects.id, input.id)).get();
-  if (!result || result.organizationSlug !== context.orgSlug) {
-    throw new ORPCError("NOT_FOUND");
-  }
+  if (!result) throw new ORPCError("NOT_FOUND");
+  await assertOrgMembership(context.db, context.user.id, result.organizationSlug);
   return result;
 });
 

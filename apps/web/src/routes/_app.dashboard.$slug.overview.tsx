@@ -8,6 +8,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { api, type Project } from "@/lib/api";
+import { projectQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard/$slug/overview")({
   component: ProjectSettingsPage,
@@ -89,10 +90,7 @@ function ProjectSettingsFormInner({ project }: { project: Project }) {
 function ProjectSettingsPage() {
   const { slug } = Route.useParams();
 
-  const { data: project } = useSuspenseQuery({
-    queryKey: ["projects", "getBySlug", slug],
-    queryFn: () => api.projects.getBySlug({ slug }),
-  });
+  const { data: project } = useSuspenseQuery(projectQueries.getBySlug(slug));
 
   if (!project) return null;
 
