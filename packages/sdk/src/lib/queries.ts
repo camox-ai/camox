@@ -15,7 +15,7 @@ export type PageStructure = {
   layout: PageWithBlocks["layout"];
   projectName: string;
 };
-export type Project = Awaited<ReturnType<ApiClient["projects"]["getFirst"]>>;
+export type Project = Awaited<ReturnType<ApiClient["projects"]["getBySlug"]>>;
 export type Layout = Awaited<ReturnType<ApiClient["layouts"]["list"]>>[number];
 export type BlockUsageCounts = Awaited<ReturnType<ApiClient["blocks"]["getUsageCounts"]>>;
 
@@ -68,9 +68,9 @@ export const fileQueries = {
 };
 
 export const projectQueries = {
-  getFirst: () => ({
-    ...getOrpc().projects.getFirst.queryOptions({
-      input: {},
+  getBySlug: (slug: string) => ({
+    ...getOrpc().projects.getBySlug.queryOptions({
+      input: { slug },
       staleTime: Infinity,
     }),
   }),

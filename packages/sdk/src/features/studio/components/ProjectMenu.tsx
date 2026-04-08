@@ -66,7 +66,7 @@ const Favicon = ({ size = 16 }: { size?: number }) => {
 export const ProjectMenu = () => {
   const [open, setOpen] = React.useState(false);
   const authCtx = React.useContext(AuthContext);
-  const { data: project } = useQuery(projectQueries.getFirst());
+  const { data: project } = useQuery(projectQueries.getBySlug(authCtx!.projectSlug));
 
   if (!project) {
     return (
@@ -101,7 +101,10 @@ export const ProjectMenu = () => {
                 className="w-full justify-start"
                 onClick={() => {
                   if (authCtx) {
-                    window.open(`${authCtx.authenticationUrl}/dashboard/${project.slug}`, "_blank");
+                    window.open(
+                      `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/${project.slug}/overview`,
+                      "_blank",
+                    );
                   }
                   setOpen(false);
                 }}
@@ -118,7 +121,7 @@ export const ProjectMenu = () => {
                 onClick={() => {
                   if (authCtx) {
                     window.open(
-                      `${authCtx.authenticationUrl}/dashboard/team?tab=members`,
+                      `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=members`,
                       "_blank",
                     );
                   }
@@ -134,7 +137,7 @@ export const ProjectMenu = () => {
                 onClick={() => {
                   if (authCtx) {
                     window.open(
-                      `${authCtx.authenticationUrl}/dashboard/team?tab=settings`,
+                      `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=settings`,
                       "_blank",
                     );
                   }

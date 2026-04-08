@@ -22,6 +22,7 @@ import * as React from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { useFileUpload } from "@/hooks/use-file-upload";
+import { useProjectSlug } from "@/lib/auth";
 import { type File, projectQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -139,7 +140,8 @@ const MultipleAssetFieldEditor = ({
   const contentKey = assetType === "Image" ? "image" : "file";
   const isImage = assetType === "Image";
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const { data: project } = useQuery(projectQueries.getFirst());
+  const projectSlug = useProjectSlug();
+  const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
 
   // Resolved array: [{ image: { url, alt, ..., _fileId } }, ...] or [{ file: { ... } }, ...]
   const rawItems = (currentData[fieldName] ?? []) as Record<string, ResolvedAsset>[];

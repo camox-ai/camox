@@ -16,6 +16,7 @@ import { useSelector } from "@xstate/store/react";
 import { useEffect } from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
+import { useProjectSlug } from "@/lib/auth";
 import { layoutQueries, pageMutations, pageQueries, projectQueries } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -23,10 +24,11 @@ import { previewStore } from "../previewStore";
 import { PageLocationFieldset } from "./PageLocationFieldset";
 
 const CreatePageSheet = () => {
+  const projectSlug = useProjectSlug();
   const open = useSelector(previewStore, (state) => state.context.isCreatePageSheetOpen);
   const createPage = useMutation(pageMutations.create());
   const { data: pages } = useQuery(pageQueries.list());
-  const { data: project } = useQuery(projectQueries.getFirst());
+  const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   const { data: layouts } = useQuery({
     ...layoutQueries.list(project?.id ?? 0),
     enabled: !!project,

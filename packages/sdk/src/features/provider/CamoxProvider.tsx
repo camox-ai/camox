@@ -40,8 +40,8 @@ const AuthenticatedCamoxProvider = ({ children }: AuthenticatedCamoxProviderProp
   usePreviewPagesActions();
 
   // Real-time invalidation via WebSocket
-  const { apiUrl } = React.useContext(AuthContext)!;
-  const { data: project } = useQuery(projectQueries.getFirst());
+  const { apiUrl, projectSlug } = React.useContext(AuthContext)!;
+  const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   useProjectRoom(apiUrl, project?.id);
 
   const { theme } = useTheme();
@@ -85,6 +85,7 @@ interface CamoxProviderProps {
   camoxApp: CamoxApp;
   authenticationUrl: string;
   apiUrl: string;
+  projectSlug: string;
 }
 
 export function CamoxProvider({
@@ -92,6 +93,7 @@ export function CamoxProvider({
   camoxApp,
   authenticationUrl,
   apiUrl,
+  projectSlug,
 }: CamoxProviderProps) {
   const authClient = React.useMemo(() => createCamoxAuthClient(apiUrl), [apiUrl]);
 
@@ -106,7 +108,7 @@ export function CamoxProvider({
   if (!ottReady) return null;
 
   return (
-    <AuthContext.Provider value={{ authClient, authenticationUrl, apiUrl }}>
+    <AuthContext.Provider value={{ authClient, authenticationUrl, apiUrl, projectSlug }}>
       <CamoxAppProvider app={camoxApp}>
         {__ENABLE_TANSTACK_DEVTOOLS__ && <ReactQueryDevtools initialIsOpen={false} />}
         <AuthGate

@@ -18,7 +18,11 @@ const HEADER = `/* =============================================================
 
 `;
 
-function generateCamoxLayout(authenticationUrl: string, apiUrl: string): string {
+function generateCamoxLayout(
+  authenticationUrl: string,
+  apiUrl: string,
+  projectSlug: string,
+): string {
   return (
     HEADER +
     `import { Outlet, createFileRoute } from "@tanstack/react-router";
@@ -31,7 +35,7 @@ export const Route = createFileRoute("/_camox")({
 
 function CamoxPathlessLayout() {
   return (
-    <CamoxProvider camoxApp={camoxApp} authenticationUrl="${authenticationUrl}" apiUrl="${apiUrl}">
+    <CamoxProvider camoxApp={camoxApp} authenticationUrl="${authenticationUrl}" apiUrl="${apiUrl}" projectSlug="${projectSlug}">
       <Outlet />
     </CamoxProvider>
   );
@@ -168,14 +172,20 @@ type RouteFilesOptions = {
   routesDir: string;
   authenticationUrl: string;
   apiUrl: string;
+  projectSlug: string;
 };
 
-function getRouteFileEntries({ routesDir, authenticationUrl, apiUrl }: RouteFilesOptions) {
+function getRouteFileEntries({
+  routesDir,
+  authenticationUrl,
+  apiUrl,
+  projectSlug,
+}: RouteFilesOptions) {
   const camoxDir = resolve(routesDir, "_camox");
   return [
     {
       path: resolve(routesDir, "_camox.tsx"),
-      content: generateCamoxLayout(authenticationUrl, apiUrl),
+      content: generateCamoxLayout(authenticationUrl, apiUrl, projectSlug),
     },
     { path: resolve(camoxDir, "$.tsx"), content: generatePageRoute(apiUrl) },
     { path: resolve(camoxDir, "og.tsx"), content: generateOgRoute() },

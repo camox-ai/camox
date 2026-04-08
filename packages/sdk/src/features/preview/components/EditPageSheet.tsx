@@ -18,6 +18,7 @@ import { Globe, Info } from "lucide-react";
 import * as React from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
+import { useProjectSlug } from "@/lib/auth";
 import type { Page } from "@/lib/queries";
 import {
   blockQueries,
@@ -43,6 +44,7 @@ const EditPageSheet = () => {
 };
 
 const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
+  const projectSlug = useProjectSlug();
   const updatePage = useMutation(pageMutations.update());
   const setLayout = useMutation(pageMutations.setLayout());
   const setAiSeo = useMutation(pageMutations.setAiSeo());
@@ -52,7 +54,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
   const page = livePage ?? pageToEdit;
   const isRootPage = page.fullPath === "/";
   const { data: pages } = useQuery(pageQueries.list());
-  const { data: project } = useQuery(projectQueries.getFirst());
+  const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   const { data: layouts } = useQuery({
     ...layoutQueries.list(project?.id ?? 0),
     enabled: !!project,

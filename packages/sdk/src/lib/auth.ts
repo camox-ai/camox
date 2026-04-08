@@ -268,6 +268,7 @@ interface AuthContextValue {
   authClient: CamoxAuthClient;
   authenticationUrl: string;
   apiUrl: string;
+  projectSlug: string;
 }
 
 export const AuthContext = React.createContext<AuthContextValue | null>(null);
@@ -281,6 +282,10 @@ function useAuthContext() {
 /* -------------------------------------------------------------------------------------------------
  * Hooks
  * -----------------------------------------------------------------------------------------------*/
+
+export function useProjectSlug() {
+  return useAuthContext().projectSlug;
+}
 
 export function useAuthState() {
   const { authClient } = useAuthContext();

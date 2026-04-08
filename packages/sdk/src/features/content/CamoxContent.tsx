@@ -7,6 +7,7 @@ import { useCallback, useRef, useState } from "react";
 import { AssetLightbox } from "@/features/preview/components/AssetLightbox";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
+import { useProjectSlug } from "@/lib/auth";
 import { fileMutations, fileQueries, projectQueries } from "@/lib/queries";
 
 import { AssetCard } from "./components/AssetCard";
@@ -16,8 +17,9 @@ import { UploadDropZone } from "./components/UploadDropZone";
 import { UploadProgressDrawer } from "./components/UploadProgressDrawer";
 
 export const CamoxContent = () => {
+  const projectSlug = useProjectSlug();
   const { data: files } = useQuery(fileQueries.list());
-  const { data: project } = useQuery(projectQueries.getFirst());
+  const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lightboxFileId, setLightboxFileId] = useState<number | null>(null);
   const { uploads, uploadFiles, clearAll } = useFileUpload({ projectId: project?.id });

@@ -84,6 +84,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
         routesDir,
         authenticationUrl,
         apiUrl,
+        projectSlug: options.projectSlug,
       });
       generateSkillFiles(config.root);
 
@@ -97,7 +98,13 @@ export function camox(options: CamoxPluginOptions): Plugin {
     configureServer(server: ViteDevServer) {
       const routesDir = resolve(server.config.root, "src/routes");
       watchAppFile(server, server.config.root);
-      watchRouteFiles({ server, routesDir, authenticationUrl, apiUrl });
+      watchRouteFiles({
+        server,
+        routesDir,
+        authenticationUrl,
+        apiUrl,
+        projectSlug: options.projectSlug,
+      });
       watchSkillFiles(server, server.config.root);
 
       watchNewBlockFiles(server);
