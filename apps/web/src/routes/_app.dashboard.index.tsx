@@ -34,14 +34,7 @@ function DashboardIndex() {
   }
 
   if (firstOrgSlug) {
-    return (
-      <Navigate
-        to="/dashboard/$orgSlug/team"
-        params={{ orgSlug: firstOrgSlug }}
-        search={{ tab: "members" }}
-        replace
-      />
-    );
+    return <Navigate to="/dashboard/$orgSlug" params={{ orgSlug: firstOrgSlug }} replace />;
   }
 
   return (

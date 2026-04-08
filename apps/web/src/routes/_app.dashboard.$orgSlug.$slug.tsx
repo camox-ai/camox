@@ -1,39 +1,11 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 
 import { projectQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard/$orgSlug/$slug")({
   component: RouteComponent,
 });
-
-function ProjectSelector() {
-  const { orgSlug, slug: selectedSlug } = Route.useParams();
-  const navigate = useNavigate();
-
-  const { data: projects } = useSuspenseQuery(projectQueries.list(orgSlug));
-
-  return (
-    <Select
-      value={selectedSlug}
-      onValueChange={(slug) =>
-        navigate({ to: "/dashboard/$orgSlug/$slug", params: { orgSlug, slug }, replace: true })
-      }
-    >
-      <SelectTrigger className="w-40">
-        <SelectValue placeholder="Select a project..." />
-      </SelectTrigger>
-      <SelectContent>
-        {projects.map((project) => (
-          <SelectItem key={project.id} value={project.slug}>
-            {project.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
 
 function RouteComponent() {
   const { orgSlug, slug } = Route.useParams();
@@ -51,9 +23,6 @@ function RouteComponent() {
     <div>
       <div className="border-b px-6">
         <nav className="-mb-px flex items-center gap-4">
-          <div className="py-2">
-            <ProjectSelector />
-          </div>
           <Link
             to="/dashboard/$orgSlug/$slug/overview"
             params={{ orgSlug, slug }}

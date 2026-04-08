@@ -29,11 +29,12 @@ import {
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
-import { ChevronsUpDownIcon, PlusIcon, SettingsIcon, UsersIcon } from "lucide-react";
+import { ChevronRight, ChevronsUpDownIcon, PlusIcon, SettingsIcon, UsersIcon } from "lucide-react";
 import { useState } from "react";
 
+import { CreateProjectGuide } from "@/components/CreateProjectGuide";
 import { authClient } from "@/lib/auth-client";
-import { organizationQueries } from "@/lib/queries";
+import { organizationQueries, projectQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard")({
   beforeLoad: ({ context, location }) => {
@@ -63,6 +64,7 @@ function OrganizationPicker() {
 
   return (
     <>
+      <ChevronRight className="text-muted-foreground/50 h-4 w-4" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="gap-1.5">
@@ -251,19 +253,81 @@ function CreateOrganizationDialog({
   );
 }
 
+function ProjectPicker() {
+  const navigate = useNavigate();
+  const { orgSlug, slug } = useParams({ strict: false });
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const { data: projects } = useQuery({
+    ...projectQueries.list(orgSlug ?? ""),
+    enabled: !!orgSlug,
+  });
+
+  if (!orgSlug || !slug) return null;
+
+  const activeProject = projects?.find((p) => p.slug === slug);
+
+  if (!activeProject) return null;
+
+  return (
+    <>
+      <ChevronRight className="text-muted-foreground/50 h-4 w-4" />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="gap-1.5">
+            <span className="max-w-32 truncate font-medium">{activeProject.name}</span>
+            <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="start" className="w-56">
+          {projects?.map((project) => (
+            <DropdownMenuItem
+              key={project.id}
+              className={project.slug === slug ? "bg-accent" : ""}
+              onSelect={() =>
+                navigate({
+                  to: "/dashboard/$orgSlug/$slug",
+                  params: { orgSlug: orgSlug!, slug: project.slug },
+                  replace: true,
+                })
+              }
+            >
+              {project.name}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => setCreateOpen(true)}>
+            <PlusIcon className="mr-2 h-4 w-4" />
+            Create project
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <CreateProjectGuide />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function DashboardNavbar() {
   const { orgSlug } = useParams({ strict: false }) as { orgSlug?: string };
 
   return (
     <header className="border-b">
-      <div className="flex h-14 items-center gap-4 px-6">
+      <div className="flex h-14 items-center gap-2 px-6">
         <Link
           to={orgSlug ? "/dashboard/$orgSlug" : "/dashboard"}
           params={orgSlug ? { orgSlug } : {}}
+          className="pr-4"
         >
           <img src="/logo-shape.svg" alt="camox logo" className="h-8 py-1" />
         </Link>
         <OrganizationPicker />
+        <ProjectPicker />
         <div className="ml-auto flex items-center gap-2">
           <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
             <Link to="/">camox.ai</Link>
@@ -280,7 +344,7 @@ function DashboardLayout() {
     <div className="flex min-h-svh flex-col">
       <Toaster />
       <DashboardNavbar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex flex-1 flex-col overflow-auto">
         <Outlet />
       </main>
     </div>

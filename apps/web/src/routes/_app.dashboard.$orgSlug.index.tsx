@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 
+import { CreateProjectGuide } from "@/components/CreateProjectGuide";
 import { projectQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard/$orgSlug/")({
@@ -25,11 +26,8 @@ function OrgIndex() {
   }
 
   return (
-    <Navigate
-      to="/dashboard/$orgSlug/team"
-      params={{ orgSlug }}
-      search={{ tab: "members" }}
-      replace
-    />
+    <div className="flex flex-1 items-center justify-center">
+      <CreateProjectGuide />
+    </div>
   );
 }
