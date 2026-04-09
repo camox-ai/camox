@@ -349,9 +349,8 @@ async function seedContent(db: Database) {
 }
 
 export const seedRoutes = new Hono<AppEnv>().post("/", async (c) => {
-  const secret = c.req.header("x-seed-secret");
-  if (!secret || secret !== c.env.SEED_SECRET) {
-    return c.json({ error: "Unauthorized" }, 401);
+  if (process.env.NODE_ENV !== "development") {
+    throw new Error("Seed route is only available in development");
   }
 
   const db = c.var.db;
