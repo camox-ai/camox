@@ -18,6 +18,8 @@ import {
   blocks,
   files,
   layouts,
+  member,
+  organizationTable,
   pages,
   projects,
   repeatableItems,
@@ -381,9 +383,9 @@ const getUsageCounts = pub.handler(async ({ context }) => {
 });
 
 const create = authed.input(createBlockSchema).handler(async ({ context, input }) => {
-  const orgSlug = context.orgSlug;
+  const userId = context.user.id;
   const { pageId, type, content, settings, afterPosition, repeatableItems: itemSeeds } = input;
-  const access = await assertPageAccess(context.db, pageId, orgSlug);
+  const access = await assertPageAccess(context.db, pageId, userId);
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const now = Date.now();
@@ -470,9 +472,9 @@ const create = authed.input(createBlockSchema).handler(async ({ context, input }
 const updateContent = authed
   .input(z.object({ id: z.number(), content: z.unknown() }))
   .handler(async ({ context, input }) => {
-    const orgSlug = context.orgSlug;
+    const userId = context.user.id;
     const { id, content } = input;
-    const access = await assertBlockAccess(context.db, id, orgSlug);
+    const access = await assertBlockAccess(context.db, id, userId);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     // Merge partial content into existing content (frontend sends single-field patches)
@@ -505,9 +507,9 @@ const updateContent = authed
 const updateSettings = authed
   .input(z.object({ id: z.number(), settings: z.unknown() }))
   .handler(async ({ context, input }) => {
-    const orgSlug = context.orgSlug;
+    const userId = context.user.id;
     const { id, settings } = input;
-    const access = await assertBlockAccess(context.db, id, orgSlug);
+    const access = await assertBlockAccess(context.db, id, userId);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const result = await context.db
@@ -533,9 +535,9 @@ const updatePosition = authed
     }),
   )
   .handler(async ({ context, input }) => {
-    const orgSlug = context.orgSlug;
+    const userId = context.user.id;
     const { id, afterPosition, beforePosition } = input;
-    const access = await assertBlockAccess(context.db, id, orgSlug);
+    const access = await assertBlockAccess(context.db, id, userId);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     // Query siblings (excluding the block being moved) to compute a correct position
@@ -583,9 +585,9 @@ const updatePosition = authed
   });
 
 const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
-  const orgSlug = context.orgSlug;
+  const userId = context.user.id;
   const { id } = input;
-  const access = await assertBlockAccess(context.db, id, orgSlug);
+  const access = await assertBlockAccess(context.db, id, userId);
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const result = await context.db.delete(blocks).where(eq(blocks.id, id)).returning().get();
@@ -602,18 +604,22 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
 const deleteMany = authed
   .input(z.object({ blockIds: z.array(z.number()) }))
   .handler(async ({ context, input }) => {
-    const orgSlug = context.orgSlug;
     const { blockIds } = input;
     if (blockIds.length === 0) return [];
 
-    // Verify all blocks belong to the user's org
+    // Verify all blocks belong to an org the user is a member of
     const authorizedBlocks = await context.db
       .select({ id: blocks.id, projectId: projects.id })
       .from(blocks)
       .leftJoin(pages, eq(blocks.pageId, pages.id))
       .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
       .innerJoin(projects, or(eq(projects.id, pages.projectId), eq(projects.id, layouts.projectId)))
-      .where(and(inArray(blocks.id, blockIds), eq(projects.organizationSlug, orgSlug)));
+      .innerJoin(organizationTable, eq(organizationTable.slug, projects.organizationSlug))
+      .innerJoin(
+        member,
+        and(eq(member.organizationId, organizationTable.id), eq(member.userId, context.user.id)),
+      )
+      .where(inArray(blocks.id, blockIds));
     if (authorizedBlocks.length !== blockIds.length) {
       throw new ORPCError("NOT_FOUND");
     }
@@ -631,9 +637,9 @@ const deleteMany = authed
 const generateSummary = authed
   .input(z.object({ id: z.number() }))
   .handler(async ({ context, input }) => {
-    const orgSlug = context.orgSlug;
+    const userId = context.user.id;
     const { id } = input;
-    const access = await assertBlockAccess(context.db, id, orgSlug);
+    const access = await assertBlockAccess(context.db, id, userId);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const seoStale = await executeBlockSummary(context.db, context.env.OPEN_ROUTER_API_KEY, id);
@@ -658,9 +664,9 @@ const generateSummary = authed
   });
 
 const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
-  const orgSlug = context.orgSlug;
+  const userId = context.user.id;
   const { id } = input;
-  const access = await assertBlockAccess(context.db, id, orgSlug);
+  const access = await assertBlockAccess(context.db, id, userId);
   if (!access) throw new ORPCError("NOT_FOUND");
   const original = access.block;
 

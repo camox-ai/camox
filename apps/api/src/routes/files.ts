@@ -6,13 +6,13 @@ import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { assertFileAccess, getAuthorizedProject, requireOrg } from "../authorization";
+import { assertFileAccess, getAuthorizedProject } from "../authorization";
 import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { queryKeys } from "../lib/query-keys";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
-import { blocks, files, projects, repeatableItems } from "../schema";
+import { blocks, files, member, organizationTable, projects, repeatableItems } from "../schema";
 import type { AppEnv } from "../types";
 
 // --- AI Executor ---
@@ -195,7 +195,7 @@ const getUsageCount = pub
 const setAlt = authed
   .input(z.object({ id: z.number(), alt: z.string() }))
   .handler(async ({ context, input }) => {
-    const access = await assertFileAccess(context.db, input.id, context.orgSlug);
+    const access = await assertFileAccess(context.db, input.id, context.user.id);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const result = await context.db
@@ -214,7 +214,7 @@ const setAlt = authed
 const setFilename = authed
   .input(z.object({ id: z.number(), filename: z.string() }))
   .handler(async ({ context, input }) => {
-    const access = await assertFileAccess(context.db, input.id, context.orgSlug);
+    const access = await assertFileAccess(context.db, input.id, context.user.id);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const result = await context.db
@@ -231,7 +231,7 @@ const setFilename = authed
   });
 
 const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
-  const access = await assertFileAccess(context.db, input.id, context.orgSlug);
+  const access = await assertFileAccess(context.db, input.id, context.user.id);
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const { blockIds, blockPageIds, itemIds } = await removeFileReferences(context.db, input.id);
@@ -261,7 +261,12 @@ const deleteMany = authed
       .select({ id: files.id, blobId: files.blobId, projectId: files.projectId })
       .from(files)
       .innerJoin(projects, eq(projects.id, files.projectId))
-      .where(and(inArray(files.id, ids), eq(projects.organizationSlug, context.orgSlug)));
+      .innerJoin(organizationTable, eq(organizationTable.slug, projects.organizationSlug))
+      .innerJoin(
+        member,
+        and(eq(member.organizationId, organizationTable.id), eq(member.userId, context.user.id)),
+      )
+      .where(inArray(files.id, ids));
 
     if (authorizedFiles.length !== ids.length) {
       throw new ORPCError("FORBIDDEN");
@@ -300,8 +305,8 @@ const deleteMany = authed
 const replace = authed
   .input(z.object({ id: z.number(), newFileId: z.number() }))
   .handler(async ({ context, input }) => {
-    const oldAccess = await assertFileAccess(context.db, input.id, context.orgSlug);
-    const newAccess = await assertFileAccess(context.db, input.newFileId, context.orgSlug);
+    const oldAccess = await assertFileAccess(context.db, input.id, context.user.id);
+    const newAccess = await assertFileAccess(context.db, input.newFileId, context.user.id);
     if (!oldAccess || !newAccess) throw new ORPCError("NOT_FOUND");
 
     // Update all blocks that reference the old file URL
@@ -319,7 +324,7 @@ const replace = authed
 const setAiMetadata = authed
   .input(z.object({ id: z.number(), enabled: z.boolean() }))
   .handler(async ({ context, input }) => {
-    const access = await assertFileAccess(context.db, input.id, context.orgSlug);
+    const access = await assertFileAccess(context.db, input.id, context.user.id);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const result = await context.db
@@ -346,7 +351,7 @@ const setAiMetadata = authed
 const generateMetadata = authed
   .input(z.object({ id: z.number() }))
   .handler(async ({ context, input }) => {
-    const access = await assertFileAccess(context.db, input.id, context.orgSlug);
+    const access = await assertFileAccess(context.db, input.id, context.user.id);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     await executeFileMetadata(context.db, context.env.OPEN_ROUTER_API_KEY, input.id);
@@ -391,59 +396,56 @@ fileHonoRoutes.get("/serve/*", async (c) => {
   });
 });
 
-fileHonoRoutes.post(
-  "/upload",
-  (c, next) => requireOrg(c, next),
-  async (c) => {
-    const orgSlug = c.var.orgSlug!;
-    const body = await c.req.parseBody();
-    const file = body["file"];
-    const projectId = Number(body["projectId"]);
+fileHonoRoutes.post("/upload", async (c) => {
+  if (!c.var.user) return c.json({ error: "Unauthorized" }, 401);
 
-    if (!(file instanceof File)) return c.json({ error: "Missing file" }, 400);
-    if (!projectId || Number.isNaN(projectId)) return c.json({ error: "Missing projectId" }, 400);
+  const body = await c.req.parseBody();
+  const file = body["file"];
+  const projectId = Number(body["projectId"]);
 
-    const project = await getAuthorizedProject(c.var.db, projectId, orgSlug);
-    if (!project) return c.json({ error: "Not found" }, 404);
+  if (!(file instanceof File)) return c.json({ error: "Missing file" }, 400);
+  if (!projectId || Number.isNaN(projectId)) return c.json({ error: "Missing projectId" }, 400);
 
-    const now = Date.now();
-    const key = `${projectId}/${now}-${file.name}`;
+  const project = await getAuthorizedProject(c.var.db, projectId, c.var.user.id);
+  if (!project) return c.json({ error: "Not found" }, 404);
 
-    await c.env.FILES_BUCKET.put(key, file.stream(), {
-      httpMetadata: { contentType: file.type },
-    });
+  const now = Date.now();
+  const key = `${projectId}/${now}-${file.name}`;
 
-    const apiOrigin = new URL(c.req.url).origin;
-    const url = `${apiOrigin}/files/serve/${key}`;
+  await c.env.FILES_BUCKET.put(key, file.stream(), {
+    httpMetadata: { contentType: file.type },
+  });
 
-    const result = await c.var.db
-      .insert(files)
-      .values({
-        projectId,
-        blobId: key,
-        filename: file.name,
-        mimeType: file.type,
-        size: file.size,
-        path: key,
-        url,
-        alt: "",
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning()
-      .get();
+  const apiOrigin = new URL(c.req.url).origin;
+  const url = `${apiOrigin}/files/serve/${key}`;
 
-    scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
-      entityTable: "files",
-      entityId: result.id,
-      type: "fileMetadata",
-      delayMs: 0,
-    });
-    broadcastInvalidation(c.env.ProjectRoom, projectId, [
-      queryKeys.files.list,
-      queryKeys.files.get(result.id),
-    ]);
+  const result = await c.var.db
+    .insert(files)
+    .values({
+      projectId,
+      blobId: key,
+      filename: file.name,
+      mimeType: file.type,
+      size: file.size,
+      path: key,
+      url,
+      alt: "",
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+    .get();
 
-    return c.json(result, 201);
-  },
-);
+  scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
+    entityTable: "files",
+    entityId: result.id,
+    type: "fileMetadata",
+    delayMs: 0,
+  });
+  broadcastInvalidation(c.env.ProjectRoom, projectId, [
+    queryKeys.files.list,
+    queryKeys.files.get(result.id),
+  ]);
+
+  return c.json(result, 201);
+});

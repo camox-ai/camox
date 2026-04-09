@@ -29,16 +29,13 @@ const list = authed
   });
 
 const getFirst = authed
-  .input(z.object({ organizationSlug: z.string().optional() }))
+  .input(z.object({ organizationSlug: z.string() }))
   .handler(async ({ context, input }) => {
-    const orgSlug = input.organizationSlug ?? context.orgSlug;
-    if (input.organizationSlug) {
-      await assertOrgMembership(context.db, context.user.id, orgSlug);
-    }
+    await assertOrgMembership(context.db, context.user.id, input.organizationSlug);
     const result = await context.db
       .select()
       .from(projects)
-      .where(eq(projects.organizationSlug, orgSlug))
+      .where(eq(projects.organizationSlug, input.organizationSlug))
       .limit(1)
       .get();
     if (!result) throw new ORPCError("NOT_FOUND");
@@ -66,9 +63,7 @@ const get = authed.input(z.object({ id: z.number() })).handler(async ({ context,
 });
 
 const create = authed.input(createProjectSchema).handler(async ({ context, input }) => {
-  if (input.organizationSlug !== context.orgSlug) {
-    throw new ORPCError("NOT_FOUND");
-  }
+  await assertOrgMembership(context.db, context.user.id, input.organizationSlug);
 
   const slug = await generateUniqueSlug(context.db);
   const syncSecret = crypto.randomUUID();
@@ -93,7 +88,7 @@ const update = authed
   .input(updateProjectSchema.extend({ id: z.number() }))
   .handler(async ({ context, input }) => {
     const { id, ...body } = input;
-    const project = await getAuthorizedProject(context.db, id, context.orgSlug);
+    const project = await getAuthorizedProject(context.db, id, context.user.id);
     if (!project) throw new ORPCError("NOT_FOUND");
     const result = await context.db
       .update(projects)
@@ -105,7 +100,7 @@ const update = authed
   });
 
 const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
-  const project = await getAuthorizedProject(context.db, input.id, context.orgSlug);
+  const project = await getAuthorizedProject(context.db, input.id, context.user.id);
   if (!project) throw new ORPCError("NOT_FOUND");
   const result = await context.db
     .delete(projects)

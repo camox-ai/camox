@@ -153,7 +153,7 @@ const createItemSchema = z.object({
 
 const create = authed.input(createItemSchema).handler(async ({ context, input }) => {
   const { blockId, parentItemId, fieldName, content, afterPosition, nestedItems } = input;
-  const access = await assertBlockAccess(context.db, blockId, context.orgSlug);
+  const access = await assertBlockAccess(context.db, blockId, context.user.id);
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const now = Date.now();
@@ -243,7 +243,7 @@ const updateContent = authed
   .input(z.object({ id: z.number(), content: z.unknown() }))
   .handler(async ({ context, input }) => {
     const { id, content } = input;
-    const access = await assertRepeatableItemAccess(context.db, id, context.orgSlug);
+    const access = await assertRepeatableItemAccess(context.db, id, context.user.id);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     // Merge partial content into existing content (frontend sends single-field patches)
@@ -282,7 +282,7 @@ const updatePosition = authed
   )
   .handler(async ({ context, input }) => {
     const { id, afterPosition, beforePosition } = input;
-    const access = await assertRepeatableItemAccess(context.db, id, context.orgSlug);
+    const access = await assertRepeatableItemAccess(context.db, id, context.user.id);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const item = access.item;
@@ -331,7 +331,7 @@ const updatePosition = authed
 
 const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
   const { id } = input;
-  const access = await assertRepeatableItemAccess(context.db, id, context.orgSlug);
+  const access = await assertRepeatableItemAccess(context.db, id, context.user.id);
   if (!access) throw new ORPCError("NOT_FOUND");
   const original = access.item;
 
@@ -378,7 +378,7 @@ const generateSummary = authed
   .input(z.object({ id: z.number() }))
   .handler(async ({ context, input }) => {
     const { id } = input;
-    const access = await assertRepeatableItemAccess(context.db, id, context.orgSlug);
+    const access = await assertRepeatableItemAccess(context.db, id, context.user.id);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const cascade = await executeRepeatableItemSummary(
@@ -409,7 +409,7 @@ const generateSummary = authed
 
 const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
   const { id } = input;
-  const access = await assertRepeatableItemAccess(context.db, id, context.orgSlug);
+  const access = await assertRepeatableItemAccess(context.db, id, context.user.id);
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const blockId = access.item.blockId;

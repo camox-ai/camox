@@ -506,9 +506,9 @@ const get = pub.input(z.object({ id: z.number() })).handler(async ({ context, in
 // Protected procedures
 
 const create = authed.input(createPageSchema).handler(async ({ context, input }) => {
-  const orgSlug = context.orgSlug;
+  const userId = context.user.id;
   const { projectId, pathSegment, parentPageId, layoutId, contentDescription } = input;
-  const project = await getAuthorizedProject(context.db, projectId, orgSlug);
+  const project = await getAuthorizedProject(context.db, projectId, userId);
   if (!project) throw new ORPCError("NOT_FOUND");
 
   let generatedBlocks: {
@@ -636,9 +636,9 @@ const create = authed.input(createPageSchema).handler(async ({ context, input })
 const update = authed
   .input(updatePageSchema.extend({ id: z.number() }))
   .handler(async ({ context, input }) => {
-    const orgSlug = context.orgSlug;
+    const userId = context.user.id;
     const { id, ...body } = input;
-    const access = await assertPageAccess(context.db, id, orgSlug);
+    const access = await assertPageAccess(context.db, id, userId);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const result = await context.db
@@ -655,9 +655,9 @@ const update = authed
   });
 
 const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
-  const orgSlug = context.orgSlug;
+  const userId = context.user.id;
   const { id } = input;
-  const access = await assertPageAccess(context.db, id, orgSlug);
+  const access = await assertPageAccess(context.db, id, userId);
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const result = await context.db.delete(pages).where(eq(pages.id, id)).returning().get();
@@ -671,9 +671,9 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
 const setAiSeo = authed
   .input(z.object({ id: z.number(), enabled: z.boolean() }))
   .handler(async ({ context, input }) => {
-    const orgSlug = context.orgSlug;
+    const userId = context.user.id;
     const { id, enabled } = input;
-    const access = await assertPageAccess(context.db, id, orgSlug);
+    const access = await assertPageAccess(context.db, id, userId);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const result = await context.db
@@ -700,9 +700,9 @@ const setAiSeo = authed
 const setMetaTitle = authed
   .input(z.object({ id: z.number(), metaTitle: z.string() }))
   .handler(async ({ context, input }) => {
-    const orgSlug = context.orgSlug;
+    const userId = context.user.id;
     const { id, metaTitle } = input;
-    const access = await assertPageAccess(context.db, id, orgSlug);
+    const access = await assertPageAccess(context.db, id, userId);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const result = await context.db
@@ -721,9 +721,9 @@ const setMetaTitle = authed
 const setMetaDescription = authed
   .input(z.object({ id: z.number(), metaDescription: z.string() }))
   .handler(async ({ context, input }) => {
-    const orgSlug = context.orgSlug;
+    const userId = context.user.id;
     const { id, metaDescription } = input;
-    const access = await assertPageAccess(context.db, id, orgSlug);
+    const access = await assertPageAccess(context.db, id, userId);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const result = await context.db
@@ -742,9 +742,9 @@ const setMetaDescription = authed
 const setLayout = authed
   .input(z.object({ id: z.number(), layoutId: z.number() }))
   .handler(async ({ context, input }) => {
-    const orgSlug = context.orgSlug;
+    const userId = context.user.id;
     const { id, layoutId } = input;
-    const access = await assertPageAccess(context.db, id, orgSlug);
+    const access = await assertPageAccess(context.db, id, userId);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const result = await context.db
@@ -763,9 +763,9 @@ const setLayout = authed
 const generateSeo = authed
   .input(z.object({ id: z.number() }))
   .handler(async ({ context, input }) => {
-    const orgSlug = context.orgSlug;
+    const userId = context.user.id;
     const { id } = input;
-    const access = await assertPageAccess(context.db, id, orgSlug);
+    const access = await assertPageAccess(context.db, id, userId);
     if (!access) throw new ORPCError("NOT_FOUND");
 
     await executePageSeo(context.db, context.env.OPEN_ROUTER_API_KEY, id);

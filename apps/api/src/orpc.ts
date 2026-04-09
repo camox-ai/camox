@@ -1,9 +1,7 @@
 import { os, ORPCError } from "@orpc/server";
-import { and, eq } from "drizzle-orm";
 
 import type { Database } from "./db";
 import type { Auth } from "./routes/auth";
-import { member, organizationTable } from "./schema";
 import type { Bindings } from "./types";
 
 // --- Context types ---
@@ -19,7 +17,6 @@ export type BaseContext = {
 export type AuthedContext = BaseContext & {
   user: Auth["$Infer"]["Session"]["user"];
   session: Auth["$Infer"]["Session"]["session"];
-  orgSlug: string;
 };
 
 // --- Base procedures ---
@@ -51,30 +48,10 @@ export const synced = pub.use(async ({ context, next }) => {
   return next({ context });
 });
 
-/** Authed procedure — requires authenticated user with org membership */
+/** Authed procedure — requires authenticated user */
 export const authed = pub.use(async ({ context, next }) => {
   if (!context.user || !context.session) {
     throw new ORPCError("UNAUTHORIZED");
-  }
-
-  const activeOrgId = context.session.activeOrganizationId;
-
-  const result = activeOrgId
-    ? await context.db
-        .select({ slug: organizationTable.slug })
-        .from(member)
-        .innerJoin(organizationTable, eq(organizationTable.id, member.organizationId))
-        .where(and(eq(member.organizationId, activeOrgId), eq(member.userId, context.user.id)))
-        .get()
-    : await context.db
-        .select({ slug: organizationTable.slug })
-        .from(member)
-        .innerJoin(organizationTable, eq(organizationTable.id, member.organizationId))
-        .where(eq(member.userId, context.user.id))
-        .get();
-
-  if (!result?.slug) {
-    throw new ORPCError("FORBIDDEN");
   }
 
   return next({
@@ -82,7 +59,6 @@ export const authed = pub.use(async ({ context, next }) => {
       ...context,
       user: context.user,
       session: context.session,
-      orgSlug: result.slug,
     },
   });
 });
