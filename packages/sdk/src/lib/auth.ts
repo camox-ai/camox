@@ -273,7 +273,7 @@ interface AuthContextValue {
 
 export const AuthContext = React.createContext<AuthContextValue | null>(null);
 
-function useAuthContext() {
+export function useAuthContext() {
   const ctx = React.useContext(AuthContext);
   if (!ctx) throw new Error("Missing CamoxProvider");
   return ctx;
@@ -305,8 +305,10 @@ export function useSignInRedirect() {
   const { authenticationUrl } = useAuthContext();
 
   return React.useCallback(() => {
-    const redirect = encodeURIComponent(window.location.href);
-    window.location.href = `${authenticationUrl}/login?redirect=${redirect}`;
+    if (typeof window !== "undefined") {
+      const redirect = encodeURIComponent(window.location.href);
+      window.location.href = `${authenticationUrl}/login?redirect=${redirect}`;
+    }
   }, [authenticationUrl]);
 }
 

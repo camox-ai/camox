@@ -75,9 +75,10 @@ async function seedContent(db: Database) {
   const project = await db
     .insert(projects)
     .values({
-      name: "Camox Demo",
-      slug: "camox-demo-01",
+      name: "Camox Playground",
+      slug: "camox-playground-01",
       organizationSlug: "camox-demo",
+      syncSecret: "camox-dev-sync-secret",
       createdAt: now,
       updatedAt: now,
     })

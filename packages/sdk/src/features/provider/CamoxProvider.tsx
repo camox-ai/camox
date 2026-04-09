@@ -11,6 +11,7 @@ import {
   AuthContext,
   createCamoxAuthClient,
   useAuthActions,
+  useAuthContext,
   useProcessOtt,
   useSignInRedirect,
 } from "@/lib/auth";
@@ -57,6 +58,7 @@ const AuthenticatedCamoxProvider = ({ children }: AuthenticatedCamoxProviderProp
 
 const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode }) => {
   const signInRedirect = useSignInRedirect();
+  const { authenticationUrl } = useAuthContext();
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -71,7 +73,7 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [signInRedirect]);
+  }, [signInRedirect, authenticationUrl]);
 
   return (
     <>

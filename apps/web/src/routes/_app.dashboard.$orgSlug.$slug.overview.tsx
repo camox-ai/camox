@@ -3,9 +3,12 @@ import { Input } from "@camox/ui/input";
 import { Label } from "@camox/ui/label";
 import { Spinner } from "@camox/ui/spinner";
 import { toast } from "@camox/ui/toaster";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useForm } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { CopyIcon, EyeIcon, EyeOffIcon } from "lucide-react";
+import { useState } from "react";
 
 import { api, type Project } from "@/lib/api";
 import { projectQueries } from "@/lib/queries";
@@ -87,6 +90,49 @@ function ProjectSettingsFormInner({ project }: { project: Project }) {
   );
 }
 
+function SyncSecretSection({ secret }: { secret: string }) {
+  const [revealed, setRevealed] = useState(false);
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold">Sync secret</h2>
+      <div className="mt-4 flex items-center gap-2">
+        <Input
+          readOnly
+          value={revealed ? secret : "*".repeat(secret.length)}
+          className="font-mono"
+        />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setRevealed((v) => !v)}
+              aria-label={revealed ? "Hide secret" : "Reveal secret"}
+            >
+              {revealed ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{revealed ? "Hide secret" : "Reveal secret"}</TooltipContent>
+        </Tooltip>
+      </div>
+      <Button
+        type="button"
+        variant="secondary"
+        className="mt-2"
+        onClick={() => {
+          navigator.clipboard.writeText(secret);
+          toast.success("Secret copied to clipboard");
+        }}
+      >
+        <CopyIcon className="size-4" />
+        Copy secret
+      </Button>
+    </div>
+  );
+}
+
 function ProjectSettingsPage() {
   const { slug } = Route.useParams();
 
@@ -97,6 +143,7 @@ function ProjectSettingsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <ProjectSettingsFormInner key={project.id} project={project} />
+      <SyncSecretSection secret={project.syncSecret} />
     </div>
   );
 }

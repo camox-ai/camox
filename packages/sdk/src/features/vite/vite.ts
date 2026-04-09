@@ -11,7 +11,7 @@ const RESOLVED_VIRTUAL_STUDIO_CSS = "\0" + VIRTUAL_STUDIO_CSS;
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
 
-const LOCAL_API_URL = "http://localhost:8787";
+const PRODUCTION_API_URL = "https://api.camox.ai";
 import {
   syncDefinitions,
   syncDefinitionsToApi,
@@ -44,7 +44,7 @@ export interface CamoxPluginOptions {
 }
 
 export function camox(options: CamoxPluginOptions): Plugin {
-  const apiUrl = options._internal?.apiUrl ?? LOCAL_API_URL;
+  const apiUrl = options._internal?.apiUrl ?? PRODUCTION_API_URL;
   const authenticationUrl = options._internal?.authenticationUrl ?? DEFAULT_AUTHENTICATION_URL;
   const enableTanstackDevtools = options._internal?.enableTanstackDevtools ?? false;
 

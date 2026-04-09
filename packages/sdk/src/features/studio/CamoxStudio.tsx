@@ -1,7 +1,7 @@
-import { useLocation, useNavigate } from "@tanstack/react-router";
+import { Navigate, useLocation } from "@tanstack/react-router";
 import * as React from "react";
 
-import { useIsAuthenticated, useSignInRedirect } from "@/lib/auth";
+import { useAuthState, useSignInRedirect } from "@/lib/auth";
 
 import { Navbar } from "./components/Navbar";
 
@@ -10,19 +10,18 @@ interface CamoxStudioProps {
 }
 
 const CamoxStudio = ({ children }: CamoxStudioProps) => {
-  const isAuthenticated = useIsAuthenticated();
+  const { isAuthenticated, isLoading: isLoadingAuth } = useAuthState();
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const signInRedirect = useSignInRedirect();
 
-  if (!isAuthenticated) {
-    signInRedirect();
-    return null;
-  }
+  React.useEffect(() => {
+    if (!isAuthenticated && !isLoadingAuth) {
+      signInRedirect();
+    }
+  }, [isAuthenticated, signInRedirect]);
 
   if (pathname === "cmx-studio") {
-    // @ts-expect-error the route exists but is managed in the user's app so TS doesn't know about it
-    navigate("/");
+    return <Navigate to="/" />;
   }
 
   return (
