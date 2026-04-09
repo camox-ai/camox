@@ -10,7 +10,7 @@ import { layouts, projects } from "../schema";
 // --- Procedures ---
 
 const syncLayoutsSchema = z.object({
-  projectId: z.number(),
+  projectSlug: z.string(),
   layouts: z.array(
     z.object({
       layoutId: z.string(),
@@ -33,13 +33,18 @@ const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ con
 });
 
 const sync = synced.input(syncLayoutsSchema).handler(async ({ context, input }) => {
-  const { projectId, layouts: layoutDefs } = input;
-  const project = await context.db.select().from(projects).where(eq(projects.id, projectId)).get();
+  const { projectSlug, layouts: layoutDefs } = input;
+  const project = await context.db
+    .select()
+    .from(projects)
+    .where(eq(projects.slug, projectSlug))
+    .get();
 
   if (!project) {
     throw new ORPCError("NOT_FOUND");
   }
 
+  const projectId = project.id;
   const now = Date.now();
   const results = [];
 

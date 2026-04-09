@@ -8,7 +8,7 @@ import { blockDefinitions, projects } from "../schema";
 // --- Procedures ---
 
 const definitionSchema = z.object({
-  projectId: z.number(),
+  projectSlug: z.string(),
   blockId: z.string(),
   title: z.string(),
   description: z.string(),
@@ -20,7 +20,7 @@ const definitionSchema = z.object({
 });
 
 const syncSchema = z.object({
-  projectId: z.number(),
+  projectSlug: z.string(),
   definitions: z.array(
     z.object({
       blockId: z.string(),
@@ -44,9 +44,14 @@ const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ con
 });
 
 const sync = synced.input(syncSchema).handler(async ({ context, input }) => {
-  const { projectId, definitions } = input;
-  const project = await context.db.select().from(projects).where(eq(projects.id, projectId)).get();
+  const { projectSlug, definitions } = input;
+  const project = await context.db
+    .select()
+    .from(projects)
+    .where(eq(projects.slug, projectSlug))
+    .get();
   if (!project) throw new ORPCError("NOT_FOUND");
+  const projectId = project.id;
   const now = Date.now();
   const results = [];
 
@@ -102,22 +107,21 @@ const sync = synced.input(syncSchema).handler(async ({ context, input }) => {
 });
 
 const upsert = synced.input(definitionSchema).handler(async ({ context, input }) => {
+  const { projectSlug, ...body } = input;
   const project = await context.db
     .select()
     .from(projects)
-    .where(eq(projects.id, input.projectId))
+    .where(eq(projects.slug, projectSlug))
     .get();
   if (!project) throw new ORPCError("NOT_FOUND");
+  const projectId = project.id;
   const now = Date.now();
 
   const existing = await context.db
     .select()
     .from(blockDefinitions)
     .where(
-      and(
-        eq(blockDefinitions.projectId, input.projectId),
-        eq(blockDefinitions.blockId, input.blockId),
-      ),
+      and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, body.blockId)),
     )
     .get();
 
@@ -125,13 +129,13 @@ const upsert = synced.input(definitionSchema).handler(async ({ context, input })
     const result = await context.db
       .update(blockDefinitions)
       .set({
-        title: input.title,
-        description: input.description,
-        contentSchema: input.contentSchema,
-        settingsSchema: input.settingsSchema ?? null,
-        defaultContent: input.defaultContent ?? null,
-        defaultSettings: input.defaultSettings ?? null,
-        layoutOnly: input.layoutOnly ?? null,
+        title: body.title,
+        description: body.description,
+        contentSchema: body.contentSchema,
+        settingsSchema: body.settingsSchema ?? null,
+        defaultContent: body.defaultContent ?? null,
+        defaultSettings: body.defaultSettings ?? null,
+        layoutOnly: body.layoutOnly ?? null,
         updatedAt: now,
       })
       .where(eq(blockDefinitions.id, existing.id))
@@ -143,11 +147,12 @@ const upsert = synced.input(definitionSchema).handler(async ({ context, input })
   const result = await context.db
     .insert(blockDefinitions)
     .values({
-      ...input,
-      settingsSchema: input.settingsSchema ?? null,
-      defaultContent: input.defaultContent ?? null,
-      defaultSettings: input.defaultSettings ?? null,
-      layoutOnly: input.layoutOnly ?? null,
+      ...body,
+      projectId,
+      settingsSchema: body.settingsSchema ?? null,
+      defaultContent: body.defaultContent ?? null,
+      defaultSettings: body.defaultSettings ?? null,
+      layoutOnly: body.layoutOnly ?? null,
       createdAt: now,
       updatedAt: now,
     })
@@ -157,12 +162,18 @@ const upsert = synced.input(definitionSchema).handler(async ({ context, input })
 });
 
 const deleteFn = synced
-  .input(z.object({ projectId: z.number(), blockId: z.string() }))
+  .input(z.object({ projectSlug: z.string(), blockId: z.string() }))
   .handler(async ({ context, input }) => {
-    const { projectId, blockId } = input;
+    const { projectSlug, blockId } = input;
+    const project = await context.db
+      .select()
+      .from(projects)
+      .where(eq(projects.slug, projectSlug))
+      .get();
+    if (!project) throw new ORPCError("NOT_FOUND");
     const result = await context.db
       .delete(blockDefinitions)
-      .where(and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, blockId)))
+      .where(and(eq(blockDefinitions.projectId, project.id), eq(blockDefinitions.blockId, blockId)))
       .returning()
       .get();
     return { deleted: !!result, blockId };

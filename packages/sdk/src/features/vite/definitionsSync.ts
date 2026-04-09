@@ -44,9 +44,6 @@ export async function syncDefinitionsToApi(options: {
   const { camoxApp, projectSlug, apiUrl, syncSecret, logger } = options;
   const client = createServerApiClient(apiUrl, syncSecret);
 
-  const project = await client.projects.getBySlug({ slug: projectSlug });
-  const projectId = project.id;
-
   const blocks = camoxApp.getBlocks();
   const definitions = blocks.map((block: Block) => ({
     blockId: block.id,
@@ -61,7 +58,7 @@ export async function syncDefinitionsToApi(options: {
 
   try {
     await client.blockDefinitions.sync({
-      projectId,
+      projectSlug,
       definitions,
     });
   } catch (error) {
@@ -79,7 +76,7 @@ export async function syncDefinitionsToApi(options: {
   if (layoutDefinitions.length > 0) {
     try {
       await client.layouts.sync({
-        projectId,
+        projectSlug,
         layouts: layoutDefinitions,
       });
     } catch (error) {
@@ -123,19 +120,6 @@ export async function syncDefinitions(
   const syncSecret = options.syncSecret;
   const client = createServerApiClient(apiUrl, syncSecret);
 
-  async function getProjectId(): Promise<number | null> {
-    try {
-      const project = await client.projects.getBySlug({ slug: projectSlug });
-      return project.id;
-    } catch {
-      server.config.logger.warn(
-        `[camox] No project found with slug "${projectSlug}", skipping block definitions sync`,
-        { timestamp: true },
-      );
-      return null;
-    }
-  }
-
   async function performInitialSync(): Promise<void> {
     const camoxModule = (await server.ssrLoadModule(camoxAppPath)) as {
       camoxApp?: CamoxApp;
@@ -178,13 +162,11 @@ export async function syncDefinitions(
     }
 
     const block = blockModule.block;
-    const projectId = await getProjectId();
-    if (!projectId) return;
 
     let result;
     try {
       result = await client.blockDefinitions.upsert({
-        projectId,
+        projectSlug,
         blockId: block.id,
         title: block.title,
         description: block.description,
@@ -207,13 +189,11 @@ export async function syncDefinitions(
 
   async function deleteBlock(filePath: string): Promise<void> {
     const blockId = getBlockIdFromFilePath(filePath);
-    const projectId = await getProjectId();
-    if (!projectId) return;
 
     let result;
     try {
       result = await client.blockDefinitions.delete({
-        projectId,
+        projectSlug,
         blockId,
       });
     } catch (error) {
