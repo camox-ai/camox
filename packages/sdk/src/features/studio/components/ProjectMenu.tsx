@@ -1,7 +1,12 @@
-import { Badge } from "@camox/ui/badge";
 import { Button } from "@camox/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
-import { Separator } from "@camox/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@camox/ui/dropdown-menu";
 import { Skeleton } from "@camox/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Globe, Settings, Users } from "lucide-react";
@@ -65,7 +70,6 @@ const Favicon = ({ size = 16 }: { size?: number }) => {
 };
 
 export const ProjectMenu = () => {
-  const [open, setOpen] = React.useState(false);
   const authCtx = React.useContext(AuthContext);
   const { data: project } = useQuery(projectQueries.getBySlug(authCtx!.projectSlug));
 
@@ -79,87 +83,61 @@ export const ProjectMenu = () => {
   }
 
   return (
-    <>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" className="min-w-[150px] justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Favicon size={16} />
-              <span>{project.name}</span>
-              {authCtx?.environmentName && authCtx.environmentName !== "production" && (
-                <Badge variant="secondary" className="font-mono text-xs">
-                  {authCtx.environmentName}
-                </Badge>
-              )}
-            </div>
-            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-72 p-0" align="start" side="bottom">
-          <div className="flex flex-col">
-            <div className="flex flex-col gap-2 p-4">
-              <h3 className="font-mono text-sm leading-none">{project.name}</h3>
-              {authCtx?.environmentName && authCtx.environmentName !== "production" && (
-                <span className="text-muted-foreground text-xs">{authCtx.environmentName}</span>
-              )}
-            </div>
-            <Separator />
-            <div className="flex flex-col gap-1 p-2">
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => {
-                  if (authCtx) {
-                    window.open(
-                      `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/${project.slug}/overview`,
-                      "_blank",
-                    );
-                  }
-                  setOpen(false);
-                }}
-              >
-                <Settings className="text-muted-foreground size-4" />
-                Project settings
-              </Button>
-            </div>
-            <Separator />
-            <div className="flex flex-col gap-1 p-2">
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => {
-                  if (authCtx) {
-                    window.open(
-                      `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=members`,
-                      "_blank",
-                    );
-                  }
-                  setOpen(false);
-                }}
-              >
-                <Users className="text-muted-foreground size-4" />
-                Team members
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => {
-                  if (authCtx) {
-                    window.open(
-                      `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=settings`,
-                      "_blank",
-                    );
-                  }
-                  setOpen(false);
-                }}
-              >
-                <Settings className="text-muted-foreground size-4" />
-                Team settings
-              </Button>
-            </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost">
+          <div className="flex items-center gap-2">
+            <Favicon size={16} />
+            <span className="select-none">{project.name}</span>
           </div>
-        </PopoverContent>
-      </Popover>
-    </>
+          <ChevronDown className="ml-1 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-72" align="start" side="bottom">
+        <DropdownMenuItem
+          onSelect={() => {
+            if (authCtx) {
+              window.open(
+                `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/${project.slug}/overview`,
+                "_blank",
+              );
+            }
+          }}
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          Project settings
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
+          {project.organizationSlug}
+        </DropdownMenuLabel>
+        <DropdownMenuItem
+          onSelect={() => {
+            if (authCtx) {
+              window.open(
+                `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=members`,
+                "_blank",
+              );
+            }
+          }}
+        >
+          <Users className="mr-2 h-4 w-4" />
+          Team members
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => {
+            if (authCtx) {
+              window.open(
+                `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=settings`,
+                "_blank",
+              );
+            }
+          }}
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          Team settings
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };

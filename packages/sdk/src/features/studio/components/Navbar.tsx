@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import type { Action } from "../../provider/actionsStore";
 import { actionsStore } from "../../provider/actionsStore";
 import { studioStore } from "../studioStore";
+import { EnvironmentMenu } from "./EnvironmentMenu";
 import { ProjectMenu } from "./ProjectMenu";
 import { UserButton } from "./UserButton";
 
@@ -71,7 +72,10 @@ const Navbar = () => {
         )}
       />
       <div className="flex flex-row gap-2">
-        <ProjectMenu />
+        <div className="flew-row flex gap-1">
+          <ProjectMenu />
+          <EnvironmentMenu />
+        </div>
         <ul className="flex items-center gap-1">
           {links.map((link, index) => (
             <li key={link.to}>
