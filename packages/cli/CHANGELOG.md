@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0-alpha.4](https://github.com/camox-ai/camox/compare/camox-v0.2.0-alpha.3...@camox/cli-v0.2.0-alpha.4) (2026-04-10)
+
+
+### Bug Fixes
+
+* release ci ([f44eff1](https://github.com/camox-ai/camox/commit/f44eff17c23a9ea0d10314ae0340f6a93f8c831f))
+
 ## [0.2.0-alpha.3](https://github.com/camox-ai/camox/compare/camox-v0.2.0-alpha.2...@camox/cli-v0.2.0-alpha.3) (2026-04-10)
 
 
