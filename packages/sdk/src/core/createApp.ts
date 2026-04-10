@@ -18,6 +18,15 @@ export function createApp({ blocks, layouts = [] }: CreateAppOptions) {
     layoutsMap.set(layout.id, layout);
   }
 
+  // Validate that at most one layout defines initialBlocks
+  const layoutsWithInitialBlocks = layouts.filter((l) => l.initialBlockBundles);
+  if (layoutsWithInitialBlocks.length > 1) {
+    const ids = layoutsWithInitialBlocks.map((l) => `"${l.id}"`).join(", ");
+    throw new Error(
+      `[camox] Only one layout can define initialBlocks, but found ${layoutsWithInitialBlocks.length}: ${ids}`,
+    );
+  }
+
   return {
     getBlocks() {
       return Array.from(blocksMap.values());
@@ -47,6 +56,15 @@ export function createApp({ blocks, layouts = [] }: CreateAppOptions) {
         description: layout.description,
         blocks: layout.blockDefinitions,
       }));
+    },
+    getInitialPageBundles() {
+      const layout = layoutsWithInitialBlocks[0];
+      if (layout) {
+        return { layoutId: layout.id, blocks: layout.initialBlockBundles!, hasInitialBlocks: true };
+      }
+      const fallback = layouts[0];
+      if (!fallback) return null;
+      return { layoutId: fallback.id, blocks: [], hasInitialBlocks: false };
     },
   };
 }

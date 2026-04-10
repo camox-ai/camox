@@ -101,32 +101,32 @@ export async function syncDefinitionsToApi(options: {
   }
 
   // Initialize content for fresh environments (no-ops if pages already exist)
-  const pageBlocks = blocks
-    .filter((b: Block) => !b.layoutOnly)
-    .map((b: Block) => {
-      const bundle = b.getInitialBundle();
-      return {
-        type: b.id,
-        content: bundle.content,
-        settings: bundle.settings,
-        repeatableItems: bundle.repeatableItems,
-      };
-    });
-
-  try {
-    const result = await client.projects.initializeContent({
-      projectSlug,
-      blocks: pageBlocks,
-    });
-    if (result.created) {
-      logger.info(
-        `[camox] Initialized content: homepage with ${result.blockCount} block${result.blockCount === 1 ? "" : "s"}`,
-        { timestamp: true },
-      );
+  const initialPage = camoxApp.getInitialPageBundles();
+  if (initialPage) {
+    try {
+      const result = await client.projects.initializeContent({
+        projectSlug,
+        layoutId: initialPage.layoutId,
+        blocks: initialPage.blocks,
+      });
+      if (result.created) {
+        if (initialPage.hasInitialBlocks) {
+          logger.info(
+            `[camox] Initialized content: homepage with ${result.blockCount} block${result.blockCount === 1 ? "" : "s"}`,
+            { timestamp: true },
+          );
+        } else {
+          logger.info("[camox] Created empty homepage (using first layout)", { timestamp: true });
+          logger.info(
+            "[camox] Tip: add initialBlocks to your layout to pre-populate pages with content",
+            { timestamp: true },
+          );
+        }
+      }
+    } catch (error) {
+      throwIfSyncAuthError(error);
+      throw error;
     }
-  } catch (error) {
-    throwIfSyncAuthError(error);
-    throw error;
   }
 }
 

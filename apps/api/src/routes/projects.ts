@@ -131,6 +131,7 @@ const repeatableItemSeedSchema = z.object({
 
 const initializeContentSchema = z.object({
   projectSlug: z.string(),
+  layoutId: z.string(),
   blocks: z.array(
     z.object({
       type: z.string(),
@@ -166,14 +167,19 @@ const initializeContent = synced
 
     const now = Date.now();
 
-    // Pick the first layout for the homepage — required for page creation
-    const firstLayout = await context.db
+    // Find the specified layout
+    const layout = await context.db
       .select()
       .from(layouts)
-      .where(and(eq(layouts.projectId, project.id), eq(layouts.environmentId, environment.id)))
-      .limit(1)
+      .where(
+        and(
+          eq(layouts.projectId, project.id),
+          eq(layouts.environmentId, environment.id),
+          eq(layouts.layoutId, input.layoutId),
+        ),
+      )
       .get();
-    if (!firstLayout) {
+    if (!layout) {
       return { created: false };
     }
 
@@ -185,7 +191,7 @@ const initializeContent = synced
         environmentId: environment.id,
         pathSegment: "",
         fullPath: "/",
-        layoutId: firstLayout.id,
+        layoutId: layout.id,
         createdAt: now,
         updatedAt: now,
       })

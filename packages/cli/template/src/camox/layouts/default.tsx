@@ -1,13 +1,16 @@
 import { createLayout } from "camox/createLayout";
 
 import { block as footerBlock } from "../blocks/footer";
+import { block as heroBlock } from "../blocks/hero";
 import { block as navbarBlock } from "../blocks/navbar";
+import { block as statisticsBlock } from "../blocks/statistics";
 
 const defaultLayout = createLayout({
   id: "default",
   title: "Default",
   description: "Default page layout with a navbar and footer",
   blocks: { before: [navbarBlock], after: [footerBlock] },
+  initialBlocks: [heroBlock, statisticsBlock],
   component: DefaultLayout,
   buildMetaTitle: ({ pageMetaTitle, projectName }) => `${pageMetaTitle} | ${projectName}`,
   buildOgImage: ({ title, description, projectName }) => (

@@ -15,6 +15,7 @@ A layout file lives in the app's `src/camox/layouts/` folder, is a `.tsx` file, 
 import { createLayout } from "camox/createLayout";
 import { block as navbarBlock } from "../blocks/navbar";
 import { block as footerBlock } from "../blocks/footer";
+import { block as heroBlock } from "../blocks/hero";
 
 const myLayout = createLayout({
   id: "my-layout", // Must match filename (kebab-case)
@@ -24,6 +25,7 @@ const myLayout = createLayout({
     before: [navbarBlock], // Blocks rendered before page content
     after: [footerBlock], // Blocks rendered after page content
   },
+  initialBlocks: [heroBlock], // Blocks to pre-populate on the homepage
   component: MyLayoutComponent,
   buildMetaTitle: ({ pageMetaTitle, projectName }) => `${pageMetaTitle} | ${projectName}`,
 });
@@ -51,6 +53,7 @@ export { myLayout as layout };
 | `blocks`         | yes      | An object with `before` and `after` arrays. Each array contains block instances (imported from block files). `before` blocks render above the page content, `after` blocks render below it. |
 | `component`      | yes      | A named React function component that renders the layout shell. Receives `{ children }` — the page content.                                                                                 |
 | `buildMetaTitle` | yes      | A function that builds the `<title>` tag. Receives `{ pageMetaTitle, projectName, pageFullPath }` and returns a string.                                                                     |
+| `initialBlocks`  | no       | Ordered array of block instances to pre-populate on the homepage when a project is first created. See [Initial Blocks](#initial-blocks--initialblocks-optional) below.                      |
 | `buildOgImage`   | no       | A function that returns a JSX element for generating Open Graph images. Receives `{ title, description, projectName }`.                                                                     |
 
 ## Block Placement — `before` and `after`
@@ -120,6 +123,25 @@ buildMetaTitle: ({ pageMetaTitle, projectName }) =>
 // Just the page title
 buildMetaTitle: ({ pageMetaTitle }) => pageMetaTitle,
 ```
+
+## Initial Blocks — `initialBlocks` (optional)
+
+When a project is first set up, Camox creates a homepage automatically. The `initialBlocks` option lets you specify which blocks (and in what order) should be pre-populated on that page. Each block is created with its default content from the block definition.
+
+```tsx
+import { block as heroBlock } from "../blocks/hero";
+import { block as statisticsBlock } from "../blocks/statistics";
+
+const myLayout = createLayout({
+  // ...
+  initialBlocks: [heroBlock, statisticsBlock],
+});
+```
+
+- **Only non-layout blocks.** These are page content blocks — layout blocks (`before`/`after`) are created separately as part of the layout itself.
+- **At most one layout per app can define `initialBlocks`.** If multiple layouts define it, the app will crash with a clear error at startup. This is enforced in `createApp`.
+- **Order matters.** The blocks appear on the homepage in the order listed.
+- **If no layout defines `initialBlocks`**, Camox still creates an empty homepage using the first available layout (with its layout blocks like navbar/footer), but no page blocks are added.
 
 ## OG Image — `buildOgImage` (optional)
 

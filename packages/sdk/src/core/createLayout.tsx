@@ -47,6 +47,8 @@ interface CreateLayoutOptions {
   title: string;
   description: string;
   blocks: { before: LayoutBlock[]; after: LayoutBlock[] };
+  /** Ordered list of blocks to create on the initial page when a project is first set up. */
+  initialBlocks?: LayoutBlock[];
   component: React.ComponentType<{ children: React.ReactNode }>;
   buildMetaTitle: (params: {
     pageMetaTitle: string;
@@ -154,6 +156,16 @@ export function createLayout(options: CreateLayoutOptions) {
       }
     : undefined;
 
+  const initialBlockBundles = options.initialBlocks?.map((block) => {
+    const bundle = block.getInitialBundle();
+    return {
+      type: block.id,
+      content: bundle.content,
+      settings: bundle.settings,
+      repeatableItems: bundle.repeatableItems,
+    };
+  });
+
   return {
     id: options.id,
     title: options.title,
@@ -161,6 +173,7 @@ export function createLayout(options: CreateLayoutOptions) {
     buildMetaTitle: options.buildMetaTitle,
     buildOgImage,
     blockDefinitions,
+    initialBlockBundles,
     component: options.component,
     Provider,
     blocks: slotComponents as Record<string, React.ComponentType>,
