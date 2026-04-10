@@ -22,14 +22,14 @@ export type BlockUsageCounts = Awaited<ReturnType<ApiClient["blocks"]["getUsageC
 // --- Query factories ---
 
 export const pageQueries = {
-  list: () => ({
-    ...getOrpc().pages.list.queryOptions({ staleTime: Infinity }),
+  list: (projectId: number) => ({
+    ...getOrpc().pages.list.queryOptions({ input: { projectId }, staleTime: Infinity }),
     queryKey: queryKeys.pages.list,
   }),
 
-  getByPath: (fullPath: string) => ({
+  getByPath: (fullPath: string, projectSlug: string) => ({
     ...getOrpc().pages.getByPath.queryOptions({
-      input: { path: fullPath },
+      input: { path: fullPath, projectSlug },
       staleTime: Infinity,
     }),
     queryKey: queryKeys.pages.getByPath(fullPath),
@@ -45,8 +45,8 @@ export const pageQueries = {
 };
 
 export const fileQueries = {
-  list: () => ({
-    ...getOrpc().files.list.queryOptions({ staleTime: Infinity }),
+  list: (projectId: number) => ({
+    ...getOrpc().files.list.queryOptions({ input: { projectId }, staleTime: Infinity }),
     queryKey: queryKeys.files.list,
   }),
 
@@ -95,8 +95,9 @@ export const blockQueries = {
     queryKey: queryKeys.blocks.get(id),
   }),
 
-  getUsageCounts: () => ({
+  getUsageCounts: (projectId: number) => ({
     ...getOrpc().blocks.getUsageCounts.queryOptions({
+      input: { projectId },
       staleTime: Infinity,
     }),
     queryKey: queryKeys.blocks.getUsageCounts,

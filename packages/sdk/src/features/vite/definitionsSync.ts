@@ -18,6 +18,8 @@ export interface DefinitionsSyncOptions {
   apiUrl?: string;
   /** Secret used to authenticate sync requests with the API */
   syncSecret?: string;
+  /** Environment name to scope definitions to (e.g. "production", "alice-dev") */
+  environmentName?: string;
 }
 
 /**
@@ -39,10 +41,11 @@ export async function syncDefinitionsToApi(options: {
   projectSlug: string;
   apiUrl: string;
   syncSecret: string;
+  environmentName?: string;
   logger: Logger;
 }): Promise<void> {
-  const { camoxApp, projectSlug, apiUrl, syncSecret, logger } = options;
-  const client = createServerApiClient(apiUrl, syncSecret);
+  const { camoxApp, projectSlug, apiUrl, syncSecret, environmentName, logger } = options;
+  const client = createServerApiClient(apiUrl, syncSecret, environmentName);
 
   const blocks = camoxApp.getBlocks();
   const definitions = blocks.map((block: Block) => ({
@@ -56,18 +59,26 @@ export async function syncDefinitionsToApi(options: {
     layoutOnly: block.layoutOnly || undefined,
   }));
 
+  let environmentCreated = false;
   try {
-    await client.blockDefinitions.sync({
+    const result = await client.blockDefinitions.sync({
       projectSlug,
       definitions,
     });
+    environmentCreated = result.environmentCreated;
   } catch (error) {
     throwIfSyncAuthError(error);
     throw error;
   }
 
+  if (environmentCreated && environmentName) {
+    logger.info(`[camox] Created environment "${environmentName}" (forked from production)`, {
+      timestamp: true,
+    });
+  }
+
   logger.info(
-    `[camox] Synced ${definitions.length} block definition${definitions.length === 1 ? "" : "s"} to Camox API`,
+    `[camox] Synced ${definitions.length} block definition${definitions.length === 1 ? "" : "s"}`,
     { timestamp: true },
   );
 
@@ -118,7 +129,8 @@ export async function syncDefinitions(
     return;
   }
   const syncSecret = options.syncSecret;
-  const client = createServerApiClient(apiUrl, syncSecret);
+  const environmentName = options.environmentName;
+  const client = createServerApiClient(apiUrl, syncSecret, environmentName);
 
   async function performInitialSync(): Promise<void> {
     const camoxModule = (await server.ssrLoadModule(camoxAppPath)) as {
@@ -137,6 +149,7 @@ export async function syncDefinitions(
       projectSlug,
       apiUrl,
       syncSecret,
+      environmentName,
       logger: server.config.logger,
     });
   }

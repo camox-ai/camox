@@ -53,8 +53,11 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
   const { data: livePage } = useQuery(pageQueries.getById(pageToEdit.id));
   const page = livePage ?? pageToEdit;
   const isRootPage = page.fullPath === "/";
-  const { data: pages } = useQuery(pageQueries.list());
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
+  const { data: pages } = useQuery({
+    ...pageQueries.list(project?.id ?? 0),
+    enabled: !!project,
+  });
   const { data: layouts } = useQuery({
     ...layoutQueries.list(project?.id ?? 0),
     enabled: !!project,

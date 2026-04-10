@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { resolveEnvironment } from "../lib/resolve-environment";
 import { pub, synced } from "../orpc";
 import { blockDefinitions, projects } from "../schema";
 
@@ -36,10 +37,20 @@ const syncSchema = z.object({
 });
 
 const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ context, input }) => {
+  const environment = await resolveEnvironment(
+    context.db,
+    input.projectId,
+    context.environmentName,
+  );
   const result = await context.db
     .select()
     .from(blockDefinitions)
-    .where(eq(blockDefinitions.projectId, input.projectId));
+    .where(
+      and(
+        eq(blockDefinitions.projectId, input.projectId),
+        eq(blockDefinitions.environmentId, environment.id),
+      ),
+    );
   return result;
 });
 
@@ -52,6 +63,9 @@ const sync = synced.input(syncSchema).handler(async ({ context, input }) => {
     .get();
   if (!project) throw new ORPCError("NOT_FOUND");
   const projectId = project.id;
+  const environment = await resolveEnvironment(context.db, projectId, context.environmentName, {
+    autoCreate: true,
+  });
   const now = Date.now();
   const results = [];
 
@@ -60,7 +74,11 @@ const sync = synced.input(syncSchema).handler(async ({ context, input }) => {
       .select()
       .from(blockDefinitions)
       .where(
-        and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, def.blockId)),
+        and(
+          eq(blockDefinitions.projectId, projectId),
+          eq(blockDefinitions.environmentId, environment.id),
+          eq(blockDefinitions.blockId, def.blockId),
+        ),
       )
       .get();
 
@@ -86,6 +104,7 @@ const sync = synced.input(syncSchema).handler(async ({ context, input }) => {
         .insert(blockDefinitions)
         .values({
           projectId,
+          environmentId: environment.id,
           blockId: def.blockId,
           title: def.title,
           description: def.description,
@@ -103,7 +122,7 @@ const sync = synced.input(syncSchema).handler(async ({ context, input }) => {
     }
   }
 
-  return results;
+  return { results, environmentCreated: environment.created };
 });
 
 const upsert = synced.input(definitionSchema).handler(async ({ context, input }) => {
@@ -115,13 +134,20 @@ const upsert = synced.input(definitionSchema).handler(async ({ context, input })
     .get();
   if (!project) throw new ORPCError("NOT_FOUND");
   const projectId = project.id;
+  const environment = await resolveEnvironment(context.db, projectId, context.environmentName, {
+    autoCreate: true,
+  });
   const now = Date.now();
 
   const existing = await context.db
     .select()
     .from(blockDefinitions)
     .where(
-      and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, body.blockId)),
+      and(
+        eq(blockDefinitions.projectId, projectId),
+        eq(blockDefinitions.environmentId, environment.id),
+        eq(blockDefinitions.blockId, body.blockId),
+      ),
     )
     .get();
 
@@ -149,6 +175,7 @@ const upsert = synced.input(definitionSchema).handler(async ({ context, input })
     .values({
       ...body,
       projectId,
+      environmentId: environment.id,
       settingsSchema: body.settingsSchema ?? null,
       defaultContent: body.defaultContent ?? null,
       defaultSettings: body.defaultSettings ?? null,
@@ -171,9 +198,16 @@ const deleteFn = synced
       .where(eq(projects.slug, projectSlug))
       .get();
     if (!project) throw new ORPCError("NOT_FOUND");
+    const environment = await resolveEnvironment(context.db, project.id, context.environmentName);
     const result = await context.db
       .delete(blockDefinitions)
-      .where(and(eq(blockDefinitions.projectId, project.id), eq(blockDefinitions.blockId, blockId)))
+      .where(
+        and(
+          eq(blockDefinitions.projectId, project.id),
+          eq(blockDefinitions.environmentId, environment.id),
+          eq(blockDefinitions.blockId, blockId),
+        ),
+      )
       .returning()
       .get();
     return { deleted: !!result, blockId };

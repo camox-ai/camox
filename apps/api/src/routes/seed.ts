@@ -6,6 +6,7 @@ import type { Database } from "../db";
 import {
   blockDefinitions,
   blocks,
+  environments,
   files,
   layouts,
   member,
@@ -24,6 +25,7 @@ async function clearAll(db: Database) {
   await db.delete(layouts).run();
   await db.delete(blockDefinitions).run();
   await db.delete(files).run();
+  await db.delete(environments).run();
   await db.delete(projects).run();
   await db.run(sql`DELETE FROM member`);
   await db.run(sql`DELETE FROM invitation`);
@@ -85,11 +87,25 @@ async function seedContent(db: Database) {
     .returning()
     .get();
 
+  // Production environment
+  const environment = await db
+    .insert(environments)
+    .values({
+      projectId: project.id,
+      name: "production",
+      type: "production",
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+    .get();
+
   // Layout
   const layout = await db
     .insert(layouts)
     .values({
       projectId: project.id,
+      environmentId: environment.id,
       layoutId: "landing-page",
       description: "Landing page layout with navbar and footer",
       createdAt: now,
@@ -252,6 +268,7 @@ async function seedContent(db: Database) {
     .insert(pages)
     .values({
       projectId: project.id,
+      environmentId: environment.id,
       pathSegment: "",
       fullPath: "/",
       layoutId: layout.id,
@@ -269,6 +286,7 @@ async function seedContent(db: Database) {
     .insert(files)
     .values({
       projectId: project.id,
+      environmentId: environment.id,
       url: "https://placehold.co/1200x800/18181b/fafafa.png?text=Demo+Image",
       alt: "Demo placeholder image",
       filename: "demo-image",

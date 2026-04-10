@@ -1,3 +1,4 @@
+import { Badge } from "@camox/ui/badge";
 import { Button } from "@camox/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { Separator } from "@camox/ui/separator";
@@ -85,6 +86,11 @@ export const ProjectMenu = () => {
             <div className="flex items-center gap-2">
               <Favicon size={16} />
               <span>{project.name}</span>
+              {authCtx?.environmentName && authCtx.environmentName !== "production" && (
+                <Badge variant="secondary" className="font-mono text-xs">
+                  {authCtx.environmentName}
+                </Badge>
+              )}
             </div>
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -93,6 +99,9 @@ export const ProjectMenu = () => {
           <div className="flex flex-col">
             <div className="flex flex-col gap-2 p-4">
               <h3 className="font-mono text-sm leading-none">{project.name}</h3>
+              {authCtx?.environmentName && authCtx.environmentName !== "production" && (
+                <span className="text-muted-foreground text-xs">{authCtx.environmentName}</span>
+              )}
             </div>
             <Separator />
             <div className="flex flex-col gap-1 p-2">

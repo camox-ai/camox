@@ -18,8 +18,11 @@ import { UploadProgressDrawer } from "./components/UploadProgressDrawer";
 
 export const CamoxContent = () => {
   const projectSlug = useProjectSlug();
-  const { data: files } = useQuery(fileQueries.list());
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
+  const { data: files } = useQuery({
+    ...fileQueries.list(project?.id ?? 0),
+    enabled: !!project,
+  });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lightboxFileId, setLightboxFileId] = useState<number | null>(null);
   const { uploads, uploadFiles, clearAll } = useFileUpload({ projectId: project?.id });

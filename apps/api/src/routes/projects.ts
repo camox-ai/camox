@@ -5,7 +5,7 @@ import { z } from "zod";
 import { assertOrgMembership, getAuthorizedProject } from "../authorization";
 import { generateUniqueSlug } from "../lib/slug";
 import { authed } from "../orpc";
-import { projects } from "../schema";
+import { environments, projects } from "../schema";
 
 // --- Procedures ---
 
@@ -81,6 +81,15 @@ const create = authed.input(createProjectSchema).handler(async ({ context, input
     })
     .returning()
     .get();
+
+  await context.db.insert(environments).values({
+    projectId: result.id,
+    name: "production",
+    type: "production",
+    createdAt: now,
+    updatedAt: now,
+  });
+
   return result;
 });
 

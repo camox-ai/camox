@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { queryKeys } from "../lib/query-keys";
+import { resolveEnvironment } from "../lib/resolve-environment";
 import { pub, synced } from "../orpc";
 import { layouts, projects } from "../schema";
 
@@ -29,7 +30,11 @@ const syncLayoutsSchema = z.object({
 
 const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ context, input }) => {
   const { projectId } = input;
-  return context.db.select().from(layouts).where(eq(layouts.projectId, projectId));
+  const environment = await resolveEnvironment(context.db, projectId, context.environmentName);
+  return context.db
+    .select()
+    .from(layouts)
+    .where(and(eq(layouts.projectId, projectId), eq(layouts.environmentId, environment.id)));
 });
 
 const sync = synced.input(syncLayoutsSchema).handler(async ({ context, input }) => {
@@ -45,6 +50,9 @@ const sync = synced.input(syncLayoutsSchema).handler(async ({ context, input }) 
   }
 
   const projectId = project.id;
+  const environment = await resolveEnvironment(context.db, projectId, context.environmentName, {
+    autoCreate: true,
+  });
   const now = Date.now();
   const results = [];
 
@@ -52,7 +60,13 @@ const sync = synced.input(syncLayoutsSchema).handler(async ({ context, input }) 
     const existing = await context.db
       .select()
       .from(layouts)
-      .where(and(eq(layouts.projectId, projectId), eq(layouts.layoutId, def.layoutId)))
+      .where(
+        and(
+          eq(layouts.projectId, projectId),
+          eq(layouts.environmentId, environment.id),
+          eq(layouts.layoutId, def.layoutId),
+        ),
+      )
       .get();
 
     if (existing) {
@@ -68,6 +82,7 @@ const sync = synced.input(syncLayoutsSchema).handler(async ({ context, input }) 
         .insert(layouts)
         .values({
           projectId,
+          environmentId: environment.id,
           layoutId: def.layoutId,
           description: def.description,
           createdAt: now,

@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { outdent } from "outdent";
 import { z } from "zod";
@@ -11,6 +11,7 @@ import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { contentToMarkdown } from "../lib/content-markdown";
 import { queryKeys } from "../lib/query-keys";
+import { resolveEnvironment } from "../lib/resolve-environment";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
 import {
@@ -351,94 +352,102 @@ const createPageSchema = z.object({
 
 // Public procedures
 
-const getByPath = pub.input(z.object({ path: z.string() })).handler(async ({ context, input }) => {
-  const { path: fullPath } = input;
-  const db = context.db;
+const getByPath = pub
+  .input(z.object({ path: z.string(), projectSlug: z.string() }))
+  .handler(async ({ context, input }) => {
+    const { path: fullPath, projectSlug } = input;
+    const db = context.db;
 
-  const page = await db.select().from(pages).where(eq(pages.fullPath, fullPath)).get();
-  if (!page) throw new ORPCError("NOT_FOUND");
+    const project = await db.select().from(projects).where(eq(projects.slug, projectSlug)).get();
+    if (!project) throw new ORPCError("NOT_FOUND");
 
-  const project = await db.select().from(projects).where(eq(projects.id, page.projectId)).get();
-  if (!project) throw new ORPCError("NOT_FOUND");
+    const environment = await resolveEnvironment(db, project.id, context.environmentName);
 
-  // Fetch page blocks sorted by position
-  const pageBlocks = sortByPosition(
-    await db.select().from(blocks).where(eq(blocks.pageId, page.id)),
-  );
+    const page = await db
+      .select()
+      .from(pages)
+      .where(and(eq(pages.fullPath, fullPath), eq(pages.environmentId, environment.id)))
+      .get();
+    if (!page) throw new ORPCError("NOT_FOUND");
 
-  // Fetch layout and its blocks
-  const layout = page.layoutId
-    ? await db.select().from(layouts).where(eq(layouts.id, page.layoutId)).get()
-    : null;
+    // Fetch page blocks sorted by position
+    const pageBlocks = sortByPosition(
+      await db.select().from(blocks).where(eq(blocks.pageId, page.id)),
+    );
 
-  const layoutBlocks = layout
-    ? sortByPosition(await db.select().from(blocks).where(eq(blocks.layoutId, layout.id)))
-    : [];
+    // Fetch layout and its blocks
+    const layout = page.layoutId
+      ? await db.select().from(layouts).where(eq(layouts.id, page.layoutId)).get()
+      : null;
 
-  // Merge all blocks into a single array
-  const allBlocks = [...pageBlocks, ...layoutBlocks];
-  const allBlockIds = allBlocks.map((b) => b.id);
-
-  // Fetch all repeatable items for all blocks (top-level + nested)
-  const allItems =
-    allBlockIds.length > 0
-      ? sortByPosition(
-          await db
-            .select()
-            .from(repeatableItems)
-            .where(inArray(repeatableItems.blockId, allBlockIds)),
-        )
+    const layoutBlocks = layout
+      ? sortByPosition(await db.select().from(blocks).where(eq(blocks.layoutId, layout.id)))
       : [];
 
-  // Group top-level items by block:fieldName for _itemId markers
-  const topLevelItemsByBlockField = new Map<string, typeof allItems>();
-  for (const item of allItems) {
-    if (item.parentItemId !== null) continue;
-    const key = `${item.blockId}:${item.fieldName}`;
-    const list = topLevelItemsByBlockField.get(key) ?? [];
-    list.push(item);
-    topLevelItemsByBlockField.set(key, list);
-  }
+    // Merge all blocks into a single array
+    const allBlocks = [...pageBlocks, ...layoutBlocks];
+    const allBlockIds = allBlocks.map((b) => b.id);
 
-  // Add _itemId markers to block content for repeatable fields
-  const blocksWithMarkers = allBlocks.map((block) => {
-    const content = { ...(block.content as Record<string, unknown>) };
-    for (const [key, items] of topLevelItemsByBlockField) {
-      if (!key.startsWith(`${block.id}:`)) continue;
-      const fieldName = key.slice(String(block.id).length + 1);
-      content[fieldName] = items.map((item) => ({ _itemId: item.id }));
+    // Fetch all repeatable items for all blocks (top-level + nested)
+    const allItems =
+      allBlockIds.length > 0
+        ? sortByPosition(
+            await db
+              .select()
+              .from(repeatableItems)
+              .where(inArray(repeatableItems.blockId, allBlockIds)),
+          )
+        : [];
+
+    // Group top-level items by block:fieldName for _itemId markers
+    const topLevelItemsByBlockField = new Map<string, typeof allItems>();
+    for (const item of allItems) {
+      if (item.parentItemId !== null) continue;
+      const key = `${item.blockId}:${item.fieldName}`;
+      const list = topLevelItemsByBlockField.get(key) ?? [];
+      list.push(item);
+      topLevelItemsByBlockField.set(key, list);
     }
-    return { ...block, content };
+
+    // Add _itemId markers to block content for repeatable fields
+    const blocksWithMarkers = allBlocks.map((block) => {
+      const content = { ...(block.content as Record<string, unknown>) };
+      for (const [key, items] of topLevelItemsByBlockField) {
+        if (!key.startsWith(`${block.id}:`)) continue;
+        const fieldName = key.slice(String(block.id).length + 1);
+        content[fieldName] = items.map((item) => ({ _itemId: item.id }));
+      }
+      return { ...block, content };
+    });
+
+    // Collect file IDs from all block content and repeatable item content
+    const fileIds = new Set<number>();
+    for (const block of blocksWithMarkers) {
+      collectFileIds(block.content as Record<string, unknown>, fileIds);
+    }
+    for (const item of allItems) {
+      collectFileIds(item.content as Record<string, unknown>, fileIds);
+    }
+
+    // Fetch referenced files
+    const fileRows = await buildFileMap(db, fileIds);
+
+    // Build ID arrays
+    const blockIds = pageBlocks.map((b) => b.id);
+    const beforeBlockIds = layoutBlocks.filter((b) => b.placement === "before").map((b) => b.id);
+    const afterBlockIds = layoutBlocks.filter((b) => b.placement === "after").map((b) => b.id);
+
+    return {
+      page: { ...page, blockIds },
+      projectName: project.name,
+      layout: layout
+        ? { id: layout.id, layoutId: layout.layoutId, beforeBlockIds, afterBlockIds }
+        : null,
+      blocks: blocksWithMarkers,
+      repeatableItems: allItems,
+      files: [...fileRows.values()],
+    };
   });
-
-  // Collect file IDs from all block content and repeatable item content
-  const fileIds = new Set<number>();
-  for (const block of blocksWithMarkers) {
-    collectFileIds(block.content as Record<string, unknown>, fileIds);
-  }
-  for (const item of allItems) {
-    collectFileIds(item.content as Record<string, unknown>, fileIds);
-  }
-
-  // Fetch referenced files
-  const fileRows = await buildFileMap(db, fileIds);
-
-  // Build ID arrays
-  const blockIds = pageBlocks.map((b) => b.id);
-  const beforeBlockIds = layoutBlocks.filter((b) => b.placement === "before").map((b) => b.id);
-  const afterBlockIds = layoutBlocks.filter((b) => b.placement === "after").map((b) => b.id);
-
-  return {
-    page: { ...page, blockIds },
-    projectName: project.name,
-    layout: layout
-      ? { id: layout.id, layoutId: layout.layoutId, beforeBlockIds, afterBlockIds }
-      : null,
-    blocks: blocksWithMarkers,
-    repeatableItems: allItems,
-    files: [...fileRows.values()],
-  };
-});
 
 /**
  * Lightweight version of getByPath — returns only structural data (page, layout,
@@ -446,16 +455,22 @@ const getByPath = pub.input(z.object({ path: z.string() })).handler(async ({ con
  * Used by the frontend for client-side refetches after structural mutations.
  */
 const getStructure = pub
-  .input(z.object({ path: z.string() }))
+  .input(z.object({ path: z.string(), projectSlug: z.string() }))
   .handler(async ({ context, input }) => {
-    const { path: fullPath } = input;
+    const { path: fullPath, projectSlug } = input;
     const db = context.db;
 
-    const page = await db.select().from(pages).where(eq(pages.fullPath, fullPath)).get();
-    if (!page) throw new ORPCError("NOT_FOUND");
-
-    const project = await db.select().from(projects).where(eq(projects.id, page.projectId)).get();
+    const project = await db.select().from(projects).where(eq(projects.slug, projectSlug)).get();
     if (!project) throw new ORPCError("NOT_FOUND");
+
+    const environment = await resolveEnvironment(db, project.id, context.environmentName);
+
+    const page = await db
+      .select()
+      .from(pages)
+      .where(and(eq(pages.fullPath, fullPath), eq(pages.environmentId, environment.id)))
+      .get();
+    if (!page) throw new ORPCError("NOT_FOUND");
 
     // Only fetch block IDs and positions (no content, items, or files)
     const pageBlocks = sortByPosition(
@@ -492,8 +507,16 @@ const getStructure = pub
     };
   });
 
-const list = pub.handler(async ({ context }) => {
-  return await context.db.select().from(pages);
+const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ context, input }) => {
+  const environment = await resolveEnvironment(
+    context.db,
+    input.projectId,
+    context.environmentName,
+  );
+  return await context.db
+    .select()
+    .from(pages)
+    .where(and(eq(pages.projectId, input.projectId), eq(pages.environmentId, environment.id)));
 });
 
 const get = pub.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
@@ -510,6 +533,7 @@ const create = authed.input(createPageSchema).handler(async ({ context, input })
   const { projectId, pathSegment, parentPageId, layoutId, contentDescription } = input;
   const project = await getAuthorizedProject(context.db, projectId, userId);
   if (!project) throw new ORPCError("NOT_FOUND");
+  const environment = await resolveEnvironment(context.db, projectId, context.environmentName);
 
   let generatedBlocks: {
     type: string;
@@ -557,6 +581,7 @@ const create = authed.input(createPageSchema).handler(async ({ context, input })
     .insert(pages)
     .values({
       projectId,
+      environmentId: environment.id,
       pathSegment,
       fullPath,
       parentPageId: parentPageId ?? null,

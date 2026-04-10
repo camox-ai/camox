@@ -10,12 +10,23 @@ We use "environment" because it immediately communicates the concept (dev/stagin
 
 Each environment has a human-readable `name` that is unique per project:
 
-- `"production"` — auto-created with the project, always exists. This is the default when no environment is specified.
-- `"alice-dev"`, `"bob-dev"` — developer environments, named by convention as `{name}-dev`. Each developer configures their environment name in the Vite plugin config.
+- `"production"` — auto-created with the project, always exists. Used for production builds.
+- `"alice-dev"`, `"bob-dev"` — developer environments, auto-derived from the developer's CLI auth email (part before `@`).
 
-The environment name is set in the Vite plugin config (`environmentName` option). This means it's fixed for a given dev server session. However, because it's transmitted as a simple header (`x-environment-name`), the architecture naturally supports runtime switching via a UI dropdown in the future — the SDK would just override the header per-request.
+### Environment resolution in the Vite plugin
 
-## 1. Schema: Add `environments` table and `environment_id` foreign keys
+The environment name is **not** a Vite config option. Instead, it's derived automatically:
+
+- **Development** (`vite dev`): read `~/.camox/auth.json` (written by `camox login`), take the part before `@` from the `email` field, and use `"{localPart}-dev"`. If `~/.camox/auth.json` doesn't exist, **throw an error** to prevent startup — we never want a dev server accidentally writing to the production environment. The error message should tell the user to run `camox login`.
+- **Production** (`vite build`): always `"production"`, no auth file needed.
+
+This means environment scoping is fully automatic — developers just need to have run `camox login` once.
+
+---
+
+## Phase 1: Database foundation
+
+Schema, migration, and seed — enough to verify the data model works before touching any route logic.
 
 ### 1a. New `environments` table in `apps/api/src/schema.ts`
 
@@ -82,7 +93,34 @@ Create `apps/api/migrations/0008_add_environments.sql` with:
 
 Add `environments` to the schema import and the `schema` object.
 
-## 2. API: Environment resolution
+### 1e. Update seed — `apps/api/src/routes/seed.ts`
+
+Update `seedContent`:
+
+1. After creating the project, create a `"production"` environment.
+2. Pass the environment ID when inserting `layouts`, `pages`, `blockDefinitions`, and `files`.
+
+### 1f. Update project creation — `apps/api/src/routes/projects.ts`
+
+`create` procedure: after inserting the project, also insert a production environment:
+
+```ts
+await context.db.insert(environments).values({
+  projectId: result.id,
+  name: "production",
+  type: "production",
+  createdAt: now,
+  updatedAt: now,
+});
+```
+
+**Verify**: run the seed, inspect the DB to confirm environments exist and FKs are populated.
+
+---
+
+## Phase 2: API environment resolution + route scoping
+
+Wire up the `x-environment-name` header and update all route handlers to scope by environment.
 
 ### 2a. New utility: `apps/api/src/lib/resolve-environment.ts`
 
@@ -145,35 +183,19 @@ The `autoCreate` option is used by sync procedures (block definitions sync, layo
   ```
 - Pass `environmentName: c.var.environmentName` into the oRPC handler context.
 
-## 3. API: Update route handlers
-
-### 3a. `apps/api/src/routes/projects.ts` — auto-create production environment
-
-`create` procedure: after inserting the project, also insert an environment:
-
-```ts
-await context.db.insert(environments).values({
-  projectId: result.id,
-  name: "production",
-  type: "production",
-  createdAt: now,
-  updatedAt: now,
-});
-```
-
-### 3b. `apps/api/src/routes/block-definitions.ts` — scope all procedures
+### 2c. `apps/api/src/routes/block-definitions.ts` — scope all procedures
 
 - `list`: resolve environment from `projectId` + `context.environmentName`, add `eq(blockDefinitions.environmentId, environment.id)` to the where clause.
 - `sync`: resolve environment (with `autoCreate: true`), use `environment.id` in all upsert queries and inserts.
 - `upsert`: same pattern as sync.
 - `delete`: resolve environment, add `environmentId` to where clause.
 
-### 3c. `apps/api/src/routes/layouts.ts` — scope all procedures
+### 2d. `apps/api/src/routes/layouts.ts` — scope all procedures
 
 - `list`: resolve environment, filter by `environmentId`.
 - `sync`: resolve environment (with `autoCreate: true`), use `environment.id` in upserts/inserts.
 
-### 3d. `apps/api/src/routes/pages.ts` — scope public queries by environment
+### 2e. `apps/api/src/routes/pages.ts` — scope public queries by environment
 
 The public procedures `getByPath` and `getStructure` currently receive only `{ path }`. They need to know the project to resolve the environment.
 
@@ -189,46 +211,63 @@ The public procedures `getByPath` and `getStructure` currently receive only `{ p
 - `create`: resolve environment from `projectId` + `context.environmentName`, set `environmentId` on new page.
 - `get`, `update`, `delete`, `setAiSeo`, `setMetaTitle`, `setMetaDescription`, `setLayout`, `generateSeo`: operate by page ID. The page already has `environmentId`. No changes needed — authorization already covers project membership.
 
-### 3e. `apps/api/src/routes/blocks.ts` — scope `getUsageCounts`
+### 2f. `apps/api/src/routes/blocks.ts` — scope `getUsageCounts`
 
 - `getUsageCounts`: currently returns global counts. Add `projectId` to input, resolve environment, join `blocks` → `pages`/`layouts` to filter by `environmentId`.
 - All other block procedures: operate on existing block IDs that are already transitively scoped. No changes.
 
-### 3f. `apps/api/src/routes/repeatable-items.ts`
+### 2g. `apps/api/src/routes/repeatable-items.ts`
 
 No changes — repeatable items are scoped through blocks → pages/layouts.
 
-### 3g. `apps/api/src/routes/files.ts` — scope list and upload
+### 2h. `apps/api/src/routes/files.ts` — scope list and upload
 
 - `list`: add `projectId` to input, resolve environment, filter by `environmentId`.
 - Upload (Hono route): resolve environment from `projectId` + environment name header, set `environmentId` on new file.
 - All other file procedures: operate on existing file IDs. No changes.
 
-## 4. API: Update seed endpoint
+**Verify**: seed the DB, hit API endpoints manually or via tests — confirm queries return only data for the requested environment, and that sync with `x-environment-name: test-dev` auto-creates an environment.
 
-### `apps/api/src/routes/seed.ts`
+---
 
-Update `seedContent`:
+## Phase 3: SDK — send environment name header
 
-1. After creating the project, create a `"production"` environment.
-2. Pass the environment ID when inserting `layouts`, `pages`, `blockDefinitions`, and `files`.
+Wire up the Vite plugin and SDK clients to resolve and send the environment name.
 
-## 5. SDK: Send environment name header
+### 3a. Vite plugin — `packages/sdk/src/features/vite/vite.ts`
 
-### 5a. Vite plugin options — `packages/sdk/src/features/vite/vite.ts`
-
-Add `environmentName?: string` to `CamoxPluginOptions`:
+No new config option. The Vite plugin resolves the environment name automatically at startup:
 
 ```ts
-/** Environment name for this instance (default: "production"). Convention: "{name}-dev" for developer environments. */
-environmentName?: string;
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+function resolveEnvironmentName(isDev: boolean): string {
+  if (!isDev) return "production";
+
+  const authFile = path.join(os.homedir(), ".camox", "auth.json");
+  let auth: { email?: string };
+  try {
+    auth = JSON.parse(fs.readFileSync(authFile, "utf-8"));
+  } catch {
+    throw new Error(
+      "Camox: not authenticated. Run `camox login` before starting the dev server.\n" +
+        "Authentication is required so your dev environment is scoped to your user.",
+    );
+  }
+
+  if (!auth.email) {
+    throw new Error("Camox: ~/.camox/auth.json is missing an email. Run `camox login` again.");
+  }
+
+  const localPart = auth.email.split("@")[0];
+  return `${localPart}-dev`;
+}
 ```
 
-The Vite plugin is where the environment is initially defined. This sets the header for the lifetime of the dev server / build. In the future, runtime switching via a UI dropdown can be layered on top — the SDK would simply override the `x-environment-name` header per-request, which the header-based architecture naturally supports without any API changes.
+Call `resolveEnvironmentName(isDev)` early in the plugin's `configResolved` hook. Pass the result to definition sync, route generation, and the `define` block (so it's available at build time as `__CAMOX_ENVIRONMENT_NAME__`).
 
-Pass it to definition sync, route generation, and the `define` block (so it's available at build time as `__CAMOX_ENVIRONMENT_NAME__`).
-
-### 5b. Server API client — `packages/sdk/src/lib/api-client-server.ts`
+### 3b. Server API client — `packages/sdk/src/lib/api-client-server.ts`
 
 Update `createServerApiClient` to accept and send `x-environment-name`:
 
@@ -246,7 +285,7 @@ export function createServerApiClient(
 }
 ```
 
-### 5c. Client API client — `packages/sdk/src/lib/api-client.ts`
+### 3c. Client API client — `packages/sdk/src/lib/api-client.ts`
 
 Update `initApiClient` to accept and send `x-environment-name`:
 
@@ -256,11 +295,11 @@ export function initApiClient(apiUrl: string, environmentName?: string): ApiClie
 
 Add the header to the `RPCLink` config.
 
-### 5d. Definition sync — `packages/sdk/src/features/vite/definitionsSync.ts`
+### 3d. Definition sync — `packages/sdk/src/features/vite/definitionsSync.ts`
 
-Add `environmentName` to `DefinitionsSyncOptions`. Pass it to all `createServerApiClient` calls.
+Add `environmentName` to `DefinitionsSyncOptions` (passed from the Vite plugin's resolved value, not from user config). Pass it to all `createServerApiClient` calls.
 
-### 5e. Route generation — `packages/sdk/src/features/vite/routeGeneration.ts`
+### 3e. Route generation — `packages/sdk/src/features/vite/routeGeneration.ts`
 
 Pass `environmentName` into the generated `CamoxProvider` as a prop:
 
@@ -270,17 +309,17 @@ Pass `environmentName` into the generated `CamoxProvider` as a prop:
 
 Also pass `projectSlug` and `environmentName` to the generated page route's `createPageLoader` and `createMarkdownMiddleware` calls, since `getByPath` now requires `projectSlug`.
 
-### 5f. CamoxProvider — `packages/sdk/src/features/provider/CamoxProvider.tsx`
+### 3f. CamoxProvider — `packages/sdk/src/features/provider/CamoxProvider.tsx`
 
 - Add `environmentName?: string` to `CamoxProviderProps`.
 - Pass it through `AuthContext`.
 - Pass it to `initApiClient(apiUrl, environmentName)`.
 
-### 5g. Auth context — `packages/sdk/src/lib/auth.ts`
+### 3g. Auth context — `packages/sdk/src/lib/auth.ts`
 
 Add `environmentName?: string` to `AuthContextValue`.
 
-### 5h. Page route factories — `packages/sdk/src/features/routes/pageRoute.tsx`
+### 3h. Page route factories — `packages/sdk/src/features/routes/pageRoute.tsx`
 
 Update `createMarkdownMiddleware` and `createPageLoader`:
 
@@ -288,7 +327,7 @@ Update `createMarkdownMiddleware` and `createPageLoader`:
 - Pass `projectSlug` to `api.pages.getByPath({ path, projectSlug })`.
 - Pass `environmentName` to the internal `createServerApiClient` call.
 
-### 5i. Update `getByPath` callers in the SDK
+### 3i. Update `getByPath` callers in the SDK
 
 **`packages/sdk/src/lib/queries.ts`**: Update `pageQueries.getByPath` to accept and pass `projectSlug`:
 
@@ -304,7 +343,11 @@ getByPath: (fullPath: string, projectSlug: string) => ({
 
 Update all call sites in the SDK that use `pageQueries.getByPath` — primarily in `CamoxPreview.tsx` and any other components — to pass `projectSlug` from `AuthContext`.
 
-## 6. SDK UI: Show environment name in ProjectMenu
+**Verify**: run `vite dev` with a valid `~/.camox/auth.json` — confirm the environment name is derived correctly, definition sync targets the dev environment, and pages load. Run `vite build` — confirm it uses `"production"`. Remove `~/.camox/auth.json` and confirm `vite dev` throws.
+
+---
+
+## Phase 4: Studio UI — show environment badge
 
 ### `packages/sdk/src/features/studio/components/ProjectMenu.tsx`
 
@@ -354,7 +397,7 @@ Also show the environment name in the popover header, below the project name:
 | `apps/api/src/routes/blocks.ts`                               | Scope `getUsageCounts` by environment                                                            |
 | `apps/api/src/routes/files.ts`                                | Scope `list` + upload by `environmentId`                                                         |
 | `apps/api/src/routes/seed.ts`                                 | Create environment in seed; set `environmentId` on all inserts                                   |
-| `packages/sdk/src/features/vite/vite.ts`                      | Add `environmentName` option; propagate to sync + routes                                         |
+| `packages/sdk/src/features/vite/vite.ts`                      | Auto-resolve environment from `~/.camox/auth.json`; propagate to sync + routes                   |
 | `packages/sdk/src/features/vite/definitionsSync.ts`           | Pass `environmentName` to server client                                                          |
 | `packages/sdk/src/features/vite/routeGeneration.ts`           | Pass `environmentName` + `projectSlug` into generated routes                                     |
 | `packages/sdk/src/lib/api-client.ts`                          | Accept + send `x-environment-name` header                                                        |

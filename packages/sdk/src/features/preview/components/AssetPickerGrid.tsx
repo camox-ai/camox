@@ -5,8 +5,9 @@ import { ArrowLeft } from "lucide-react";
 import * as React from "react";
 
 import { AssetCard } from "@/features/content/components/AssetCard";
+import { useProjectSlug } from "@/lib/auth";
 import type { File } from "@/lib/queries";
-import { fileQueries } from "@/lib/queries";
+import { fileQueries, projectQueries } from "@/lib/queries";
 
 import { AssetLightbox } from "./AssetLightbox";
 
@@ -25,7 +26,12 @@ const AssetPickerGrid = ({
   onSelectMultiple,
   onClose,
 }: AssetPickerGridProps) => {
-  const { data: allFiles } = useQuery(fileQueries.list());
+  const projectSlug = useProjectSlug();
+  const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
+  const { data: allFiles } = useQuery({
+    ...fileQueries.list(project?.id ?? 0),
+    enabled: !!project,
+  });
   const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set());
   const [lightboxFile, setLightboxFile] = React.useState<File | null>(null);
 

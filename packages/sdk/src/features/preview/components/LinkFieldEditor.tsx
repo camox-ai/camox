@@ -17,7 +17,8 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import * as React from "react";
 
 import type { LinkValue } from "@/core/lib/contentType.ts";
-import { pageQueries } from "@/lib/queries";
+import { useProjectSlug } from "@/lib/auth";
+import { pageQueries, projectQueries } from "@/lib/queries";
 import { cn, formatPathSegment } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------------------------------
@@ -47,7 +48,12 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
   const linkValueRef = React.useRef<LinkValue>(linkValue);
   const [pagePickerOpen, setPagePickerOpen] = React.useState(false);
 
-  const { data: pages } = useQuery(pageQueries.list());
+  const projectSlug = useProjectSlug();
+  const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
+  const { data: pages } = useQuery({
+    ...pageQueries.list(project?.id ?? 0),
+    enabled: !!project,
+  });
 
   const selectedPage =
     linkValue.type === "page" ? pages?.find((p) => String(p.id) === linkValue.pageId) : null;

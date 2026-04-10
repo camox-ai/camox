@@ -107,6 +107,26 @@ export const projects = sqliteTable(
   ],
 );
 
+// --- Environments ---
+
+export const environments = sqliteTable(
+  "environments",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    projectId: int("project_id")
+      .notNull()
+      .references(() => projects.id),
+    name: text().notNull(),
+    type: text().notNull().$type<"production" | "development">(),
+    createdAt: int("created_at").notNull(),
+    updatedAt: int("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("environments_project_name_idx").on(table.projectId, table.name),
+    index("environments_project_idx").on(table.projectId),
+  ],
+);
+
 // --- Layouts ---
 
 export const layouts = sqliteTable(
@@ -116,6 +136,9 @@ export const layouts = sqliteTable(
     projectId: int("project_id")
       .notNull()
       .references(() => projects.id),
+    environmentId: int("environment_id")
+      .notNull()
+      .references(() => environments.id),
     layoutId: text("layout_id").notNull(),
     description: text(),
     createdAt: int("created_at").notNull(),
@@ -124,6 +147,7 @@ export const layouts = sqliteTable(
   (table) => [
     index("layouts_project_idx").on(table.projectId),
     index("layouts_project_layout_idx").on(table.projectId, table.layoutId),
+    index("layouts_environment_layout_idx").on(table.environmentId, table.layoutId),
   ],
 );
 
@@ -136,6 +160,9 @@ export const pages = sqliteTable(
     projectId: int("project_id")
       .notNull()
       .references(() => projects.id),
+    environmentId: int("environment_id")
+      .notNull()
+      .references(() => environments.id),
     pathSegment: text("path_segment").notNull(),
     fullPath: text("full_path").notNull(),
     parentPageId: int("parent_page_id"),
@@ -152,6 +179,7 @@ export const pages = sqliteTable(
     index("pages_full_path_idx").on(table.fullPath),
     index("pages_parent_idx").on(table.parentPageId),
     index("pages_project_idx").on(table.projectId),
+    index("pages_environment_full_path_idx").on(table.environmentId, table.fullPath),
   ],
 );
 
@@ -164,6 +192,9 @@ export const blockDefinitions = sqliteTable(
     projectId: int("project_id")
       .notNull()
       .references(() => projects.id),
+    environmentId: int("environment_id")
+      .notNull()
+      .references(() => environments.id),
     blockId: text("block_id").notNull(),
     title: text().notNull(),
     description: text().notNull(),
@@ -178,6 +209,7 @@ export const blockDefinitions = sqliteTable(
   (table) => [
     index("block_definitions_project_idx").on(table.projectId),
     index("block_definitions_project_block_idx").on(table.projectId, table.blockId),
+    index("block_definitions_environment_block_idx").on(table.environmentId, table.blockId),
   ],
 );
 
@@ -236,6 +268,9 @@ export const files = sqliteTable(
   {
     id: int().primaryKey({ autoIncrement: true }),
     projectId: int("project_id").references(() => projects.id),
+    environmentId: int("environment_id")
+      .notNull()
+      .references(() => environments.id),
     url: text().notNull(),
     alt: text().notNull().default(""),
     filename: text().notNull(),
@@ -250,6 +285,7 @@ export const files = sqliteTable(
   (table) => [
     index("files_blob_id_idx").on(table.blobId),
     index("files_project_idx").on(table.projectId),
+    index("files_environment_idx").on(table.environmentId),
   ],
 );
 

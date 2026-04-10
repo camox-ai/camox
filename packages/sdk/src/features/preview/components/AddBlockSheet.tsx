@@ -17,8 +17,15 @@ import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
 import { trackClientEvent } from "@/lib/analytics-client";
+import { useProjectSlug } from "@/lib/auth";
 import { usePageBlocks } from "@/lib/normalized-data";
-import { type BlockBundle, type PageStructure, blockMutations, blockQueries } from "@/lib/queries";
+import {
+  type BlockBundle,
+  type PageStructure,
+  blockMutations,
+  blockQueries,
+  projectQueries,
+} from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
@@ -121,12 +128,17 @@ const AddBlockSheet = () => {
     },
   });
 
+  const projectSlug = useProjectSlug();
+  const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   const availableBlocks = useCamoxApp()
     .getBlocks()
     .filter((b) => !b.layoutOnly);
   const page = usePreviewedPage();
   const { pageBlocks } = usePageBlocks(page);
-  const { data: totalCounts = {} } = useQuery(blockQueries.getUsageCounts());
+  const { data: totalCounts = {} } = useQuery({
+    ...blockQueries.getUsageCounts(project?.id ?? 0),
+    enabled: !!project,
+  });
 
   const pageCounts = React.useMemo(() => {
     const counts: Record<string, number> = {};

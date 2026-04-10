@@ -29,7 +29,13 @@ app.use(
   "*",
   cors({
     origin: (origin) => origin,
-    allowHeaders: ["Content-Type", "Authorization", "Better-Auth-Cookie", "x-sync-secret"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Better-Auth-Cookie",
+      "x-sync-secret",
+      "x-environment-name",
+    ],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Set-Better-Auth-Cookie"],
     maxAge: 600,
@@ -51,6 +57,12 @@ app.use("*", async (c, next) => {
 
   c.set("user", session.user);
   c.set("session", session.session);
+  await next();
+});
+
+// Environment name middleware — reads x-environment-name header, defaults to "production"
+app.use("*", async (c, next) => {
+  c.set("environmentName", c.req.header("x-environment-name") || "production");
   await next();
 });
 
@@ -92,6 +104,7 @@ app.all("/rpc/*", async (c) => {
       session: c.var.session,
       env: c.env,
       headers: c.req.raw.headers,
+      environmentName: c.var.environmentName,
     },
   });
 

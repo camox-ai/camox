@@ -27,8 +27,9 @@ import { useSelector } from "@xstate/store/react";
 import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
 import * as React from "react";
 
+import { useProjectSlug } from "@/lib/auth";
 import type { Page } from "@/lib/queries";
-import { pageMutations, pageQueries } from "@/lib/queries";
+import { pageMutations, pageQueries, projectQueries } from "@/lib/queries";
 import { cn, formatPathSegment } from "@/lib/utils";
 
 import { previewStore } from "../previewStore";
@@ -44,8 +45,13 @@ const PagePicker = () => {
   const [pageToDelete, setPageToDelete] = React.useState<Page | null>(null);
   const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
 
+  const projectSlug = useProjectSlug();
+  const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   const deletePage = useMutation(pageMutations.delete());
-  const { data: pages } = useQuery(pageQueries.list());
+  const { data: pages } = useQuery({
+    ...pageQueries.list(project?.id ?? 0),
+    enabled: !!project,
+  });
   const { pathname } = useLocation();
   const navigate = useNavigate();
 

@@ -27,8 +27,11 @@ const CreatePageSheet = () => {
   const projectSlug = useProjectSlug();
   const open = useSelector(previewStore, (state) => state.context.isCreatePageSheetOpen);
   const createPage = useMutation(pageMutations.create());
-  const { data: pages } = useQuery(pageQueries.list());
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
+  const { data: pages } = useQuery({
+    ...pageQueries.list(project?.id ?? 0),
+    enabled: !!project,
+  });
   const { data: layouts } = useQuery({
     ...layoutQueries.list(project?.id ?? 0),
     enabled: !!project,

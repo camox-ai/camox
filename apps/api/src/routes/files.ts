@@ -10,6 +10,7 @@ import { assertFileAccess, getAuthorizedProject } from "../authorization";
 import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { queryKeys } from "../lib/query-keys";
+import { resolveEnvironment } from "../lib/resolve-environment";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
 import { blocks, files, member, organizationTable, projects, repeatableItems } from "../schema";
@@ -162,8 +163,16 @@ async function removeFileReferences(db: Database, fileId: number) {
 
 // --- oRPC Procedures ---
 
-const list = pub.handler(async ({ context }) => {
-  return context.db.select().from(files);
+const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ context, input }) => {
+  const environment = await resolveEnvironment(
+    context.db,
+    input.projectId,
+    context.environmentName,
+  );
+  return context.db
+    .select()
+    .from(files)
+    .where(and(eq(files.projectId, input.projectId), eq(files.environmentId, environment.id)));
 });
 
 const get = pub.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
@@ -409,6 +418,8 @@ fileHonoRoutes.post("/upload", async (c) => {
   const project = await getAuthorizedProject(c.var.db, projectId, c.var.user.id);
   if (!project) return c.json({ error: "Not found" }, 404);
 
+  const environment = await resolveEnvironment(c.var.db, projectId, c.var.environmentName);
+
   const now = Date.now();
   const key = `${projectId}/${now}-${file.name}`;
 
@@ -423,6 +434,7 @@ fileHonoRoutes.post("/upload", async (c) => {
     .insert(files)
     .values({
       projectId,
+      environmentId: environment.id,
       blobId: key,
       filename: file.name,
       mimeType: file.type,

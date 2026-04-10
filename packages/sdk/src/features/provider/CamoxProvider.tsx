@@ -88,6 +88,7 @@ interface CamoxProviderProps {
   authenticationUrl: string;
   apiUrl: string;
   projectSlug: string;
+  environmentName?: string;
 }
 
 export function CamoxProvider({
@@ -96,12 +97,13 @@ export function CamoxProvider({
   authenticationUrl,
   apiUrl,
   projectSlug,
+  environmentName,
 }: CamoxProviderProps) {
   const authClient = React.useMemo(() => createCamoxAuthClient(apiUrl), [apiUrl]);
 
   const initializedApiUrl = React.useRef<string | null>(null);
   if (initializedApiUrl.current !== apiUrl) {
-    initApiClient(apiUrl);
+    initApiClient(apiUrl, environmentName);
     initializedApiUrl.current = apiUrl;
   }
 
@@ -110,7 +112,9 @@ export function CamoxProvider({
   if (!ottReady) return null;
 
   return (
-    <AuthContext.Provider value={{ authClient, authenticationUrl, apiUrl, projectSlug }}>
+    <AuthContext.Provider
+      value={{ authClient, authenticationUrl, apiUrl, projectSlug, environmentName }}
+    >
       <CamoxAppProvider app={camoxApp}>
         {__ENABLE_TANSTACK_DEVTOOLS__ && <ReactQueryDevtools initialIsOpen={false} />}
         <AuthGate

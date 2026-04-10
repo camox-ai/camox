@@ -8,7 +8,8 @@ import type * as icons from "lucide-react";
 import * as React from "react";
 
 import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet";
-import { pageQueries } from "@/lib/queries";
+import { useProjectSlug } from "@/lib/auth";
+import { pageQueries, projectQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import type { Action } from "../../provider/actionsStore";
@@ -48,7 +49,12 @@ const links = [
 }>;
 
 const Navbar = () => {
-  const { data: pages } = useQuery(pageQueries.list());
+  const projectSlug = useProjectSlug();
+  const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
+  const { data: pages } = useQuery({
+    ...pageQueries.list(project?.id ?? 0),
+    enabled: !!project,
+  });
 
   const isMac = React.useMemo(() => navigator.userAgent.toUpperCase().indexOf("MAC") >= 0, []);
 

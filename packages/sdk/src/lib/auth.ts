@@ -269,6 +269,7 @@ interface AuthContextValue {
   authenticationUrl: string;
   apiUrl: string;
   projectSlug: string;
+  environmentName?: string;
 }
 
 export const AuthContext = React.createContext<AuthContextValue | null>(null);

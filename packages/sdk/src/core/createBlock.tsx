@@ -13,7 +13,14 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 
 import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet.tsx";
-import { blockMutations, repeatableItemMutations, type Page, pageQueries } from "@/lib/queries";
+import { useProjectSlug } from "@/lib/auth";
+import {
+  blockMutations,
+  repeatableItemMutations,
+  type Page,
+  pageQueries,
+  projectQueries,
+} from "@/lib/queries";
 
 import {
   OVERLAY_WIDTHS,
@@ -857,7 +864,12 @@ export function createBlock<
     const fieldValue = normalizeLinkValue(rawFieldValue as unknown as Record<string, unknown>);
     const updateBlockContent = useMutation(blockMutations.updateContent());
     const updateRepeatableContent = useMutation(repeatableItemMutations.updateContent());
-    const { data: pages } = useQuery(pageQueries.list());
+    const projectSlug = useProjectSlug();
+    const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
+    const { data: pages } = useQuery({
+      ...pageQueries.list(project?.id ?? 0),
+      enabled: !!project,
+    });
     const resolvedHref = resolveLinkHref(fieldValue, pages as Page[] | undefined);
 
     const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));

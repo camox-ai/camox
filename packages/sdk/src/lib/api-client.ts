@@ -10,11 +10,15 @@ let _client: ApiClient | null = null;
 let _orpc: ReturnType<typeof createTanstackQueryUtils<ApiClient>> | null = null;
 let _apiUrl: string | null = null;
 
-export function initApiClient(apiUrl: string): ApiClient {
+export function initApiClient(apiUrl: string, environmentName?: string): ApiClient {
   _apiUrl = apiUrl;
+
+  const headers: Record<string, string> = {};
+  if (environmentName) headers["x-environment-name"] = environmentName;
 
   const link = new RPCLink({
     url: `${apiUrl}/rpc`,
+    headers,
     fetch: (request, init) => fetch(request, { ...init, credentials: "include" }),
   });
 

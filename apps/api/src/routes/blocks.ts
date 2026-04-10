@@ -11,6 +11,7 @@ import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { contentToMarkdown } from "../lib/content-markdown";
 import { queryKeys } from "../lib/query-keys";
+import { resolveEnvironment } from "../lib/resolve-environment";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
 import {
@@ -371,16 +372,26 @@ const getPageMarkdown = pub
     return { markdown: parts.join("\n\n") };
   });
 
-const getUsageCounts = pub.handler(async ({ context }) => {
-  const result = await context.db
-    .select({
-      type: blocks.type,
-      count: sql<number>`count(*)`,
-    })
-    .from(blocks)
-    .groupBy(blocks.type);
-  return result;
-});
+const getUsageCounts = pub
+  .input(z.object({ projectId: z.number() }))
+  .handler(async ({ context, input }) => {
+    const environment = await resolveEnvironment(
+      context.db,
+      input.projectId,
+      context.environmentName,
+    );
+    const result = await context.db
+      .select({
+        type: blocks.type,
+        count: sql<number>`count(*)`,
+      })
+      .from(blocks)
+      .leftJoin(pages, eq(blocks.pageId, pages.id))
+      .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
+      .where(or(eq(pages.environmentId, environment.id), eq(layouts.environmentId, environment.id)))
+      .groupBy(blocks.type);
+    return result;
+  });
 
 const create = authed.input(createBlockSchema).handler(async ({ context, input }) => {
   const userId = context.user.id;

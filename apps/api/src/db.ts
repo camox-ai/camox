@@ -11,6 +11,7 @@ import {
   verification,
   blockDefinitions,
   blocks,
+  environments,
   files,
   layouts,
   pages,
@@ -20,6 +21,7 @@ import {
 
 const schema = {
   projects,
+  environments,
   pages,
   layouts,
   blocks,

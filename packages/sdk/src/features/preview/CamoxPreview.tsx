@@ -11,9 +11,9 @@ import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
 import { getApiClient } from "@/lib/api-client";
-import { useIsAuthenticated } from "@/lib/auth";
+import { useIsAuthenticated, useProjectSlug } from "@/lib/auth";
 import { NormalizedDataProvider, seedBlockCaches, usePageBlocks } from "@/lib/normalized-data";
-import { blockQueries, pageQueries } from "@/lib/queries";
+import { blockQueries, pageQueries, projectQueries } from "@/lib/queries";
 import { formatPathSegment } from "@/lib/utils";
 
 import { type Action, actionsStore } from "../provider/actionsStore";
@@ -46,17 +46,21 @@ import { previewStore } from "./previewStore";
  * Lightweight queryFn for client-side refetches — only fetches structural data.
  * Used after initial SSR load when block caches are already populated.
  */
-function pageStructureQueryFn(path: string) {
-  return () => getApiClient().pages.getStructure({ path });
+function pageStructureQueryFn(path: string, projectSlug: string) {
+  return () => getApiClient().pages.getStructure({ path, projectSlug });
 }
 
 /**
  * Full queryFn that fetches all page data and seeds block caches.
  * Used for peeked pages where block caches may not be populated yet.
  */
-function pageFullQueryFn(queryClient: ReturnType<typeof useQueryClient>, path: string) {
+function pageFullQueryFn(
+  queryClient: ReturnType<typeof useQueryClient>,
+  path: string,
+  projectSlug: string,
+) {
   return async () => {
-    const data = await getApiClient().pages.getByPath({ path });
+    const data = await getApiClient().pages.getByPath({ path, projectSlug });
     seedBlockCaches(queryClient, data);
     return { page: data.page, layout: data.layout, projectName: data.projectName };
   };
@@ -65,6 +69,7 @@ function pageFullQueryFn(queryClient: ReturnType<typeof useQueryClient>, path: s
 export function usePreviewedPage() {
   const { pathname } = useLocation();
   const queryClient = useQueryClient();
+  const projectSlug = useProjectSlug();
   const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
 
   // When the actual route changes, clear any stale peeked page so it doesn't
@@ -82,7 +87,7 @@ export function usePreviewedPage() {
   // Client-side refetches (after invalidation) use the lightweight endpoint.
   const { data: currentPage } = useSuspenseQuery({
     queryKey: queryKeys.pages.getByPath(pathname),
-    queryFn: pageStructureQueryFn(pathname),
+    queryFn: pageStructureQueryFn(pathname, projectSlug),
     staleTime: Infinity,
   });
 
@@ -91,7 +96,7 @@ export function usePreviewedPage() {
   const isAuthenticated = useIsAuthenticated();
   const { data: peekedPage } = useQuery({
     queryKey: queryKeys.pages.getByPath(peekedPagePathname ?? ""),
-    queryFn: pageFullQueryFn(queryClient, peekedPagePathname ?? ""),
+    queryFn: pageFullQueryFn(queryClient, peekedPagePathname ?? "", projectSlug),
     enabled: isAuthenticated && !!peekedPagePathname,
     placeholderData: keepPreviousData,
     staleTime: Infinity,
@@ -344,7 +349,12 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
 export function usePreviewPagesActions() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { data: pages } = useQuery(pageQueries.list());
+  const projectSlug = useProjectSlug();
+  const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
+  const { data: pages } = useQuery({
+    ...pageQueries.list(project?.id ?? 0),
+    enabled: !!project,
+  });
 
   React.useEffect(() => {
     const GO_TO_PAGE_ID = "go-to-page";

@@ -37,8 +37,10 @@ export function prefersMarkdown(accept: string): boolean {
   return markdownQ > 0 && markdownQ >= htmlQ;
 }
 
-function createServerApiClient(apiUrl: string): RouterClient<Router> {
-  return createORPCClient<RouterClient<Router>>(new RPCLink({ url: `${apiUrl}/rpc` }));
+function createServerApiClient(apiUrl: string, environmentName?: string): RouterClient<Router> {
+  const headers: Record<string, string> = {};
+  if (environmentName) headers["x-environment-name"] = environmentName;
+  return createORPCClient<RouterClient<Router>>(new RPCLink({ url: `${apiUrl}/rpc`, headers }));
 }
 
 /* -------------------------------------------------------------------------------------------------
@@ -55,15 +57,19 @@ export const getOrigin = createServerFn({ method: "GET" }).handler(async () => {
  * Factories
  * -----------------------------------------------------------------------------------------------*/
 
-export function createMarkdownMiddleware(apiUrl: string) {
-  const api = createServerApiClient(apiUrl);
+export function createMarkdownMiddleware(
+  apiUrl: string,
+  projectSlug: string,
+  environmentName?: string,
+) {
+  const api = createServerApiClient(apiUrl, environmentName);
 
   return createMiddleware().server(async ({ next, request }) => {
     const accept = request.headers.get("Accept") ?? "";
     if (prefersMarkdown(accept)) {
       const url = new URL(request.url);
       try {
-        const page = await api.pages.getByPath({ path: url.pathname });
+        const page = await api.pages.getByPath({ path: url.pathname, projectSlug });
         const { markdown } = await api.blocks.getPageMarkdown({ pageId: page.page.id });
         if (markdown) {
           trackEvent("markdown_served", {
@@ -84,8 +90,8 @@ export function createMarkdownMiddleware(apiUrl: string) {
   });
 }
 
-export function createPageLoader(apiUrl: string) {
-  const serverApi = createServerApiClient(apiUrl);
+export function createPageLoader(apiUrl: string, projectSlug: string, environmentName?: string) {
+  const serverApi = createServerApiClient(apiUrl, environmentName);
 
   return async ({
     location,
@@ -99,7 +105,7 @@ export function createPageLoader(apiUrl: string) {
         context.queryClient.ensureQueryData({
           queryKey: queryKeys.pages.getByPath(location.pathname),
           queryFn: async () => {
-            const data = await serverApi.pages.getByPath({ path: location.pathname });
+            const data = await serverApi.pages.getByPath({ path: location.pathname, projectSlug });
             seedBlockCaches(context.queryClient, data);
             return { page: data.page, layout: data.layout, projectName: data.projectName };
           },

@@ -12,6 +12,7 @@ export type BaseContext = {
   session: Auth["$Infer"]["Session"]["session"] | null;
   env: Bindings;
   headers: Headers;
+  environmentName: string;
 };
 
 export type AuthedContext = BaseContext & {

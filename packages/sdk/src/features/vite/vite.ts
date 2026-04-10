@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { Plugin, ResolvedConfig, ViteDevServer } from "vite";
@@ -22,6 +23,28 @@ import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
 /** Authentication URL to use for Camox authentication (production Camox web app) */
 const DEFAULT_AUTHENTICATION_URL = "https://camox.ai";
+
+function resolveEnvironmentName(isDev: boolean): string {
+  if (!isDev) return "production";
+
+  const authFile = join(homedir(), ".camox", "auth.json");
+  let auth: { email?: string };
+  try {
+    auth = JSON.parse(readFileSync(authFile, "utf-8"));
+  } catch {
+    throw new Error(
+      "Camox: not authenticated. Run `camox login` before starting the dev server.\n" +
+        "Authentication is required so your dev environment is scoped to your user.",
+    );
+  }
+
+  if (!auth.email) {
+    throw new Error("Camox: ~/.camox/auth.json is missing an email. Run `camox login` again.");
+  }
+
+  const localPart = auth.email.split("@")[0];
+  return `${localPart}-dev`;
+}
 
 export interface CamoxPluginOptions {
   /** Stable, human-readable slug identifying this project (e.g. "prestigious-impala-84") */
@@ -50,6 +73,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
 
   let isBuild = false;
   let resolvedConfig: ResolvedConfig;
+  let environmentName: string;
 
   return {
     name: "camox",
@@ -69,10 +93,12 @@ export function camox(options: CamoxPluginOptions): Plugin {
     },
     config(_config, env) {
       isBuild = env.command === "build";
+      environmentName = resolveEnvironmentName(env.command === "serve");
       return {
         define: {
           __CAMOX_ANALYTICS_DISABLED__: JSON.stringify(!!options.disableAnalytics),
           __ENABLE_TANSTACK_DEVTOOLS__: JSON.stringify(enableTanstackDevtools),
+          __CAMOX_ENVIRONMENT_NAME__: JSON.stringify(environmentName),
         },
       };
     },
@@ -85,14 +111,14 @@ export function camox(options: CamoxPluginOptions): Plugin {
         authenticationUrl,
         apiUrl,
         projectSlug: options.projectSlug,
+        environmentName,
       });
       generateSkillFiles(config.root);
 
-      const message =
-        config.command === "serve"
-          ? `Running Camox app (NODE_ENV: ${process.env.NODE_ENV})`
-          : `Building Camox app (NODE_ENV: ${process.env.NODE_ENV})`;
-      config.logger.info(message, { timestamp: true });
+      const mode = config.command === "serve" ? "Running" : "Building";
+      config.logger.info(`${mode} Camox app (environment: ${environmentName})`, {
+        timestamp: true,
+      });
     },
 
     configureServer(server: ViteDevServer) {
@@ -104,6 +130,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
         authenticationUrl,
         apiUrl,
         projectSlug: options.projectSlug,
+        environmentName,
       });
       watchSkillFiles(server, server.config.root);
 
@@ -115,6 +142,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
           projectSlug: options.projectSlug,
           syncSecret: options.syncSecret,
           apiUrl,
+          environmentName,
         });
       });
     },
@@ -147,6 +175,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
           projectSlug: options.projectSlug,
           apiUrl,
           syncSecret: options.syncSecret,
+          environmentName,
           logger: resolvedConfig.logger,
         });
       } finally {
