@@ -1,8 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "node",
-  "prerelease": true,
-  "versioning": "prerelease",
   "changelog-sections": [
     { "type": "feat", "section": "Features" },
     { "type": "fix", "section": "Bug Fixes" },
@@ -14,32 +12,27 @@
   "packages": {
     ".": {
       "component": "camox",
-      "changelog-path": "CHANGELOG.md",
-      "prerelease-type": "alpha"
+      "changelog-path": "CHANGELOG.md"
     },
     "packages/sdk": {
       "component": "camox-sdk",
       "changelog-path": "CHANGELOG.md",
-      "skip-github-release": true,
-      "prerelease-type": "alpha"
+      "skip-github-release": true
     },
     "packages/cli": {
       "component": "@camox/cli",
       "changelog-path": "CHANGELOG.md",
-      "skip-github-release": true,
-      "prerelease-type": "alpha"
+      "skip-github-release": true
     },
     "packages/ui": {
       "component": "@camox/ui",
       "changelog-path": "CHANGELOG.md",
-      "skip-github-release": true,
-      "prerelease-type": "alpha"
+      "skip-github-release": true
     },
     "apps/api": {
       "component": "@camox/api",
       "changelog-path": "CHANGELOG.md",
-      "skip-github-release": true,
-      "prerelease-type": "alpha"
+      "skip-github-release": true
     }
   },
   "plugins": [
