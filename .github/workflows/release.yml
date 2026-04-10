@@ -42,7 +42,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm build
+      - run: pnpm nx run-many -t build --all --exclude=playground
 
       - name: Publish @camox/ui
         run: pnpm publish --no-git-checks --access public --tag alpha
