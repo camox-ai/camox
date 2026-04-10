@@ -100,7 +100,7 @@ const PagePicker = () => {
         }}
       >
         <PopoverTrigger asChild>
-          <Button variant="outline" role="combobox" className="w-full grow justify-between">
+          <Button variant="outline" role="combobox" className="min-w-0 flex-1 justify-between">
             <span className="truncate">{currentPage.metaTitle ?? currentPage.fullPath}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -159,7 +159,7 @@ const PagePicker = () => {
                           e.stopPropagation();
                           previewStore.send({
                             type: "openEditPageSheet",
-                            page,
+                            pageId: page.id,
                           });
                           setOpen(false);
                         }}
@@ -170,7 +170,7 @@ const PagePicker = () => {
                             e.stopPropagation();
                             previewStore.send({
                               type: "openEditPageSheet",
-                              page,
+                              pageId: page.id,
                             });
                             setOpen(false);
                           }

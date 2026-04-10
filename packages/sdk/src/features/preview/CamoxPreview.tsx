@@ -1,5 +1,7 @@
 import { queryKeys } from "@camox/api/query-keys";
+import { Button } from "@camox/ui/button";
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import {
   keepPreviousData,
   useQuery,
@@ -8,6 +10,7 @@ import {
 } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
+import { Info } from "lucide-react";
 import * as React from "react";
 
 import { getApiClient } from "@/lib/api-client";
@@ -274,6 +277,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useIsAuthenticated();
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
   const isSidebarOpen = useSelector(previewStore, (state) => state.context.isSidebarOpen);
+  const pageData = usePreviewedPage();
 
   React.useEffect(() => {
     const actions = [
@@ -324,6 +328,21 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
           <div className="flex w-[300px] flex-col border-r-2">
             <PanelHeader className="flew-row flex gap-2 px-2 py-2">
               <PagePicker />
+              <Tooltip delayDuration={500}>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() =>
+                      previewStore.send({ type: "openEditPageSheet", pageId: pageData.page.id })
+                    }
+                  >
+                    <Info className="text-muted-foreground size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Page metadata, SEO and markdown</TooltipContent>
+              </Tooltip>
             </PanelHeader>
             <PanelContent className="flex grow basis-0 flex-col gap-2 overflow-auto p-2">
               <PageTree />
@@ -377,7 +396,7 @@ export function usePreviewPagesActions() {
           if (!currentPage) return;
           previewStore.send({
             type: "openEditPageSheet",
-            page: currentPage,
+            pageId: currentPage.id,
           });
         },
       },

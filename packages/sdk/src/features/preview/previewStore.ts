@@ -3,7 +3,6 @@ import { createStore } from "@xstate/store";
 
 import { Block } from "@/core/createBlock";
 import type { FieldType } from "@/core/lib/fieldTypes";
-import type { Page } from "@/lib/queries";
 
 /* -------------------------------------------------------------------------------------------------
  * Selection — normalized, flat pointer to the currently selected entity
@@ -54,7 +53,7 @@ interface PreviewContext {
   isAddBlockSheetOpen: boolean;
   isAgentChatSheetOpen: boolean;
   isCreatePageSheetOpen: boolean;
-  editingPage: Page | null;
+  editingPageId: number | null;
   isContentLocked: boolean;
   isMobileMode: boolean;
   peekedBlock: Block | null;
@@ -73,7 +72,7 @@ export const previewStore = createStore({
     isAddBlockSheetOpen: false,
     isAgentChatSheetOpen: false,
     isCreatePageSheetOpen: false,
-    editingPage: null,
+    editingPageId: null,
     isContentLocked: false,
     isMobileMode: false,
     peekedBlock: null,
@@ -266,13 +265,13 @@ export const previewStore = createStore({
       ...context,
       isCreatePageSheetOpen: false,
     }),
-    openEditPageSheet: (context, event: { page: Page }) => ({
+    openEditPageSheet: (context, event: { pageId: number }) => ({
       ...context,
-      editingPage: event.page,
+      editingPageId: event.pageId,
     }),
     closeEditPageSheet: (context) => ({
       ...context,
-      editingPage: null,
+      editingPageId: null,
     }),
     setIframeElement: (context, event: { element: HTMLIFrameElement | null }) => ({
       ...context,

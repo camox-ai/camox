@@ -109,7 +109,6 @@ function SyncSecretSection({ secret }: { secret: string }) {
               variant="outline"
               size="icon"
               onClick={() => setRevealed((v) => !v)}
-              aria-label={revealed ? "Hide secret" : "Reveal secret"}
             >
               {revealed ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
             </Button>

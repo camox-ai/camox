@@ -36,23 +36,21 @@ import { PageLocationFieldset } from "./PageLocationFieldset";
 import { ShikiMarkdown } from "./ShikiMarkdown";
 
 const EditPageSheet = () => {
-  const editingPage = useSelector(previewStore, (state) => state.context.editingPage);
+  const editingPageId = useSelector(previewStore, (state) => state.context.editingPageId);
 
-  if (!editingPage) return null;
+  if (!editingPageId) return null;
 
-  return <EditPageSheetContent pageToEdit={editingPage} />;
+  return <EditPageSheetContent pageId={editingPageId} />;
 };
 
-const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
+const EditPageSheetContent = ({ pageId }: { pageId: number }) => {
   const projectSlug = useProjectSlug();
   const updatePage = useMutation(pageMutations.update());
   const setLayout = useMutation(pageMutations.setLayout());
   const setAiSeo = useMutation(pageMutations.setAiSeo());
   const setMetaTitle = useMutation(pageMutations.setMetaTitle());
   const setMetaDescription = useMutation(pageMutations.setMetaDescription());
-  const { data: livePage } = useQuery(pageQueries.getById(pageToEdit.id));
-  const page = livePage ?? pageToEdit;
-  const isRootPage = page.fullPath === "/";
+  const { data: page } = useQuery(pageQueries.getById(pageId));
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   const { data: pages } = useQuery({
     ...pageQueries.list(project?.id ?? 0),
@@ -65,43 +63,31 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
   const camoxApp = useCamoxApp();
   const navigate = useNavigate();
 
-  const pageLayoutRecord = layouts?.find((l) => l.id === page.layoutId);
-  const layoutDef = pageLayoutRecord
-    ? camoxApp.getLayoutById(pageLayoutRecord.layoutId)
-    : undefined;
-
-  const metaTitle = layoutDef
-    ? layoutDef.buildMetaTitle({
-        pageMetaTitle: page.metaTitle ?? "",
-        projectName: project?.name ?? "",
-        pageFullPath: page.fullPath,
-      })
-    : (page.metaTitle ?? "");
-
   const form = useForm({
     defaultValues: {
-      pathSegment: pageToEdit.pathSegment,
-      parentPageId: pageToEdit.parentPageId ?? undefined,
-      layoutId: pageToEdit.layoutId ?? 0,
+      pathSegment: page?.pathSegment ?? "",
+      parentPageId: page?.parentPageId ?? undefined,
+      layoutId: page?.layoutId ?? 0,
     },
     onSubmit: async (values) => {
+      if (!page) return;
       try {
         const { fullPath } = await updatePage.mutateAsync({
-          id: pageToEdit.id,
+          id: page.id,
           pathSegment: values.value.pathSegment,
           parentPageId: values.value.parentPageId,
         });
 
         if (values.value.layoutId) {
-          await setLayout.mutateAsync({ id: pageToEdit.id, layoutId: values.value.layoutId });
+          await setLayout.mutateAsync({ id: page.id, layoutId: values.value.layoutId });
         }
 
         trackClientEvent("page_updated", {
           projectId: page.projectId,
           changes: {
-            path: values.value.pathSegment !== pageToEdit.pathSegment,
-            layout: values.value.layoutId !== pageToEdit.layoutId,
-            parent: values.value.parentPageId !== pageToEdit.parentPageId,
+            path: values.value.pathSegment !== page.pathSegment,
+            layout: values.value.layoutId !== page.layoutId,
+            parent: values.value.parentPageId !== page.parentPageId,
           },
         });
         const displayName = page.metaTitle ?? formatPathSegment(values.value.pathSegment);
@@ -118,16 +104,31 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
   });
 
   // Reset form when opening with a different page
-  const prevPageId = React.useRef(pageToEdit.id);
+  const prevPageId = React.useRef(pageId);
   React.useEffect(() => {
-    if (prevPageId.current === pageToEdit.id) return;
-    prevPageId.current = pageToEdit.id;
+    if (prevPageId.current === pageId || !page) return;
+    prevPageId.current = pageId;
     form.reset({
-      pathSegment: pageToEdit.pathSegment,
-      parentPageId: pageToEdit.parentPageId ?? undefined,
-      layoutId: pageToEdit.layoutId ?? 0,
+      pathSegment: page.pathSegment,
+      parentPageId: page.parentPageId ?? undefined,
+      layoutId: page.layoutId ?? 0,
     });
-  }, [pageToEdit, form]);
+  }, [pageId, page, form]);
+
+  if (!page) return null;
+
+  const isRootPage = page.fullPath === "/";
+  const pageLayoutRecord = layouts?.find((l) => l.id === page.layoutId);
+  const layoutDef = pageLayoutRecord
+    ? camoxApp.getLayoutById(pageLayoutRecord.layoutId)
+    : undefined;
+  const metaTitle = layoutDef
+    ? layoutDef.buildMetaTitle({
+        pageMetaTitle: page.metaTitle ?? "",
+        projectName: project?.name ?? "",
+        pageFullPath: page.fullPath,
+      })
+    : (page.metaTitle ?? "");
 
   return (
     <Sheet.Sheet
@@ -169,7 +170,7 @@ const EditPageSheetContent = ({ pageToEdit }: { pageToEdit: Page }) => {
                           onPathSegmentChange={pathField.handleChange}
                           disabled={isRootPage}
                           pages={pages}
-                          excludePageId={pageToEdit.id}
+                          excludePageId={page.id}
                         />
                       )}
                     </form.Field>
