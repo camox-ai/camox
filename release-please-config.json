@@ -34,13 +34,19 @@
       "changelog-path": "CHANGELOG.md",
       "skip-github-release": true,
       "prerelease-type": "alpha"
+    },
+    "apps/api": {
+      "component": "@camox/api",
+      "changelog-path": "CHANGELOG.md",
+      "skip-github-release": true,
+      "prerelease-type": "alpha"
     }
   },
   "plugins": [
     {
       "type": "linked-versions",
       "groupName": "camox",
-      "components": ["camox", "camox-sdk", "@camox/cli", "@camox/ui"]
+      "components": ["camox", "camox-sdk", "@camox/cli", "@camox/ui", "@camox/api"]
     }
   ]
 }

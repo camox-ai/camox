@@ -44,6 +44,12 @@ jobs:
 
       - run: pnpm nx run-many -t build --all --exclude=playground
 
+      - name: Publish @camox/api
+        run: pnpm publish --no-git-checks --access public --tag alpha
+        working-directory: apps/api
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish @camox/ui
         run: pnpm publish --no-git-checks --access public --tag alpha
         working-directory: packages/ui
