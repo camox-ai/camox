@@ -58,10 +58,6 @@ const config = defineConfig(() => {
           find: "camox/_internal/ogRoute",
           replacement: resolve(__dirname, "../../packages/sdk/src/features/routes/ogRoute.ts"),
         },
-        {
-          find: /^camox\/_generated\/(.*)/,
-          replacement: resolve(__dirname, "../../packages/backend-content/convex/_generated/$1"),
-        },
       ],
     },
     plugins: [

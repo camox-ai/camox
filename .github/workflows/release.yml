@@ -44,12 +44,6 @@ jobs:
 
       - run: pnpm build
 
-      - name: Publish @camox/backend-content
-        run: pnpm publish --no-git-checks --access public --tag alpha
-        working-directory: packages/backend-content
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Publish @camox/ui
         run: pnpm publish --no-git-checks --access public --tag alpha
         working-directory: packages/ui
