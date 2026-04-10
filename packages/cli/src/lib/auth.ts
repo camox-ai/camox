@@ -142,7 +142,7 @@ async function verifyOtt(token: string): Promise<VerifyResult> {
 async function authenticateUser(): Promise<AuthToken> {
   const { port, ottPromise, close } = await startCallbackServer();
 
-  const loginUrl = `${CAMOX_URL}/dashboard/cli-authorize?callback=${encodeURIComponent(`http://localhost:${port}/callback`)}`;
+  const loginUrl = `${CAMOX_URL}/cli-authorize?callback=${encodeURIComponent(`http://localhost:${port}/callback`)}`;
 
   const action = await p.select({
     message: "Log in to Camox",
@@ -195,15 +195,22 @@ async function authenticateUser(): Promise<AuthToken> {
 }
 
 /**
- * Returns a stored auth token if available, otherwise runs the interactive login flow.
+ * Returns a stored auth token if available and valid, otherwise runs the interactive login flow.
  */
 export async function getOrAuthenticate(): Promise<AuthToken> {
   const stored = readAuthToken();
   if (stored) {
-    p.log.info(`Authenticated as ${stored.name}`);
-    return stored;
+    const { verifySession } = await import("./api");
+    const valid = await verifySession(stored.token);
+    if (valid) {
+      p.log.info(`Authenticated as ${stored.name}`);
+      return stored;
+    }
+    removeAuthToken();
+    p.log.warn("Session expired. Please log in again.");
+  } else {
+    p.log.info("Please authenticate to create a Camox project.");
   }
 
-  p.log.info("Please authenticate to create a Camox project.");
   return authenticateUser();
 }

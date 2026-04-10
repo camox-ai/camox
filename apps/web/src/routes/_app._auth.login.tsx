@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_app/_auth/login")({
 function LoginPage() {
   const { redirect } = Route.useSearch();
 
-  // Internal paths (e.g. /dashboard/cli-authorize): redirect there directly after login
+  // Internal paths (e.g. /cli-authorize): redirect there directly after login
   // via both redirectTo (email/password) and callbackURL (OAuth).
   // External URLs (e.g. SDK cross-domain auth): route through /dashboard?redirect=... so
   // _app.tsx's beforeLoad can generate an OTT before redirecting.

@@ -20,6 +20,16 @@ function createRpcClient(token: string) {
   return createORPCClient<RouterClient<Router>>(link);
 }
 
+// --- Session validation ---
+
+export async function verifySession(token: string): Promise<boolean> {
+  const res = await fetch(`${CAMOX_API_URL}/api/auth/get-session`, {
+    method: "GET",
+    headers: authHeaders(token),
+  });
+  return res.ok;
+}
+
 // --- Organizations ---
 
 export interface Organization {

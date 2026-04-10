@@ -60,6 +60,10 @@ export function createAuth(db: Database, env: Bindings) {
         clientSecret: env.GOOGLE_CLIENT_SECRET,
       },
     },
+    session: {
+      expiresIn: 60 * 60 * 24 * 90, // 90 days
+      updateAge: 60 * 60 * 24, // refresh session expiry daily
+    },
     // Accept requests from any origin — Camox sites run on arbitrary customer domains
     trustedOrigins: ["*"],
     plugins: [organization(), crossDomain({ siteUrl: env.SITE_URL }), oneTimeToken(), bearer()],
