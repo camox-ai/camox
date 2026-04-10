@@ -1,7 +1,7 @@
 {
-  ".": "0.2.0-alpha.4",
-  "packages/sdk": "0.2.0-alpha.4",
-  "packages/cli": "0.2.0-alpha.4",
-  "packages/ui": "0.2.0-alpha.4",
-  "apps/api": "0.2.0-alpha.4"
+  ".": "0.2.0-alpha.5",
+  "packages/sdk": "0.2.0-alpha.5",
+  "packages/cli": "0.2.0-alpha.5",
+  "packages/ui": "0.2.0-alpha.5",
+  "apps/api": "0.2.0-alpha.5"
 }
