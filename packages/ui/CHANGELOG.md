@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0-alpha.4](https://github.com/camox-ai/camox/compare/camox-v0.2.0-alpha.3...@camox/ui-v0.2.0-alpha.4) (2026-04-10)
+
+
+### Miscellaneous
+
+* **@camox/ui:** Synchronize camox versions
+
 ## [0.2.0-alpha.3](https://github.com/camox-ai/camox/compare/camox-v0.2.0-alpha.2...@camox/ui-v0.2.0-alpha.3) (2026-04-10)
 
 
