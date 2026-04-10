@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0-alpha.3](https://github.com/camox-ai/camox/compare/camox-v0.2.0-alpha.2...camox-v0.2.0-alpha.3) (2026-04-10)
+
+
+### Bug Fixes
+
+* release ci ([85646ce](https://github.com/camox-ai/camox/commit/85646ce85b73997fdc7d2dab861aa683cc6cd0ef))
+
 ## [0.2.0-alpha.2](https://github.com/camox-ai/camox/compare/camox-v0.1.2-alpha.2...camox-v0.2.0-alpha.2) (2026-04-10)
 
 
