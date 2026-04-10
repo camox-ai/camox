@@ -1,14 +1,23 @@
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
+import { generateKeyBetween } from "fractional-indexing";
 import { z } from "zod";
 
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { queryKeys } from "../lib/query-keys";
 import { resolveEnvironment } from "../lib/resolve-environment";
 import { pub, synced } from "../orpc";
-import { layouts, projects } from "../schema";
+import { blocks, layouts, projects, repeatableItems } from "../schema";
 
 // --- Procedures ---
+
+const repeatableItemSeedSchema = z.object({
+  tempId: z.string(),
+  parentTempId: z.string().nullable(),
+  fieldName: z.string(),
+  content: z.unknown(),
+  position: z.string(),
+});
 
 const syncLayoutsSchema = z.object({
   projectSlug: z.string(),
@@ -22,6 +31,7 @@ const syncLayoutsSchema = z.object({
           content: z.unknown(),
           settings: z.unknown().optional(),
           placement: z.enum(["before", "after"]).optional(),
+          repeatableItems: z.array(repeatableItemSeedSchema).optional(),
         }),
       ),
     }),
@@ -77,22 +87,70 @@ const sync = synced.input(syncLayoutsSchema).handler(async ({ context, input }) 
         .returning()
         .get();
       results.push(updated);
-    } else {
-      const created = await context.db
-        .insert(layouts)
+      continue;
+    }
+
+    const created = await context.db
+      .insert(layouts)
+      .values({
+        projectId,
+        environmentId: environment.id,
+        layoutId: def.layoutId,
+        description: def.description,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning()
+      .get();
+    results.push(created);
+
+    // Create blocks for newly created layouts
+    let prevPosition: string | null = null;
+    for (const blockDef of def.blocks) {
+      const position = generateKeyBetween(prevPosition, null);
+      prevPosition = position;
+
+      const block = await context.db
+        .insert(blocks)
         .values({
-          projectId,
-          environmentId: environment.id,
-          layoutId: def.layoutId,
-          description: def.description,
+          layoutId: created.id,
+          type: blockDef.type,
+          content: blockDef.content,
+          settings: blockDef.settings ?? null,
+          placement: blockDef.placement ?? null,
+          position,
+          summary: "",
           createdAt: now,
           updatedAt: now,
         })
         .returning()
         .get();
-      results.push(created);
+
+      const itemSeeds = blockDef.repeatableItems;
+      if (itemSeeds && itemSeeds.length > 0) {
+        const tempIdToRealId = new Map<string, number>();
+        for (const seed of itemSeeds) {
+          const parentItemId = seed.parentTempId
+            ? (tempIdToRealId.get(seed.parentTempId) ?? null)
+            : null;
+          const inserted = await context.db
+            .insert(repeatableItems)
+            .values({
+              blockId: block.id,
+              parentItemId,
+              fieldName: seed.fieldName,
+              content: seed.content,
+              summary: "",
+              position: seed.position,
+              createdAt: now,
+              updatedAt: now,
+            })
+            .returning()
+            .get();
+          tempIdToRealId.set(seed.tempId, inserted.id);
+        }
+      }
     }
-    // TODO: sync layout blocks when block creation is wired up
   }
 
   broadcastInvalidation(context.env.ProjectRoom, projectId, [

@@ -1,11 +1,13 @@
 import { ORPCError } from "@orpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { generateKeyBetween } from "fractional-indexing";
 import { z } from "zod";
 
 import { assertOrgMembership, getAuthorizedProject } from "../authorization";
+import { resolveEnvironment } from "../lib/resolve-environment";
 import { generateUniqueSlug } from "../lib/slug";
-import { authed } from "../orpc";
-import { environments, projects } from "../schema";
+import { authed, synced } from "../orpc";
+import { blocks, environments, layouts, pages, projects, repeatableItems } from "../schema";
 
 // --- Procedures ---
 
@@ -119,6 +121,131 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
   return result;
 });
 
+const repeatableItemSeedSchema = z.object({
+  tempId: z.string(),
+  parentTempId: z.string().nullable(),
+  fieldName: z.string(),
+  content: z.unknown(),
+  position: z.string(),
+});
+
+const initializeContentSchema = z.object({
+  projectSlug: z.string(),
+  blocks: z.array(
+    z.object({
+      type: z.string(),
+      content: z.unknown(),
+      settings: z.unknown().optional(),
+      repeatableItems: z.array(repeatableItemSeedSchema).optional(),
+    }),
+  ),
+});
+
+const initializeContent = synced
+  .input(initializeContentSchema)
+  .handler(async ({ context, input }) => {
+    const project = await context.db
+      .select()
+      .from(projects)
+      .where(eq(projects.slug, input.projectSlug))
+      .get();
+    if (!project) throw new ORPCError("NOT_FOUND");
+
+    const environment = await resolveEnvironment(context.db, project.id, context.environmentName);
+
+    // Check if environment already has pages — if so, skip (idempotent)
+    const existingPage = await context.db
+      .select()
+      .from(pages)
+      .where(eq(pages.environmentId, environment.id))
+      .limit(1)
+      .get();
+    if (existingPage) {
+      return { created: false };
+    }
+
+    const now = Date.now();
+
+    // Pick the first layout for the homepage — required for page creation
+    const firstLayout = await context.db
+      .select()
+      .from(layouts)
+      .where(and(eq(layouts.projectId, project.id), eq(layouts.environmentId, environment.id)))
+      .limit(1)
+      .get();
+    if (!firstLayout) {
+      return { created: false };
+    }
+
+    // Create homepage
+    const homepage = await context.db
+      .insert(pages)
+      .values({
+        projectId: project.id,
+        environmentId: environment.id,
+        pathSegment: "",
+        fullPath: "/",
+        layoutId: firstLayout.id,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning()
+      .get();
+
+    // Create blocks on the homepage
+    let prevPosition: string | null = null;
+    let blockCount = 0;
+
+    for (const blockDef of input.blocks) {
+      const position = generateKeyBetween(prevPosition, null);
+      prevPosition = position;
+
+      const block = await context.db
+        .insert(blocks)
+        .values({
+          pageId: homepage.id,
+          type: blockDef.type,
+          content: blockDef.content,
+          settings: blockDef.settings ?? null,
+          position,
+          summary: "",
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning()
+        .get();
+
+      const itemSeeds = blockDef.repeatableItems;
+      if (itemSeeds && itemSeeds.length > 0) {
+        const tempIdToRealId = new Map<string, number>();
+        for (const seed of itemSeeds) {
+          const parentItemId = seed.parentTempId
+            ? (tempIdToRealId.get(seed.parentTempId) ?? null)
+            : null;
+          const inserted = await context.db
+            .insert(repeatableItems)
+            .values({
+              blockId: block.id,
+              parentItemId,
+              fieldName: seed.fieldName,
+              content: seed.content,
+              summary: "",
+              position: seed.position,
+              createdAt: now,
+              updatedAt: now,
+            })
+            .returning()
+            .get();
+          tempIdToRealId.set(seed.tempId, inserted.id);
+        }
+      }
+
+      blockCount++;
+    }
+
+    return { created: true, pageId: homepage.id, blockCount };
+  });
+
 export const projectProcedures = {
   list,
   getFirst,
@@ -127,4 +254,5 @@ export const projectProcedures = {
   create,
   update,
   delete: deleteFn,
+  initializeContent,
 };

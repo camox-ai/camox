@@ -99,6 +99,35 @@ export async function syncDefinitionsToApi(options: {
       { timestamp: true },
     );
   }
+
+  // Initialize content for fresh environments (no-ops if pages already exist)
+  const pageBlocks = blocks
+    .filter((b: Block) => !b.layoutOnly)
+    .map((b: Block) => {
+      const bundle = b.getInitialBundle();
+      return {
+        type: b.id,
+        content: bundle.content,
+        settings: bundle.settings,
+        repeatableItems: bundle.repeatableItems,
+      };
+    });
+
+  try {
+    const result = await client.projects.initializeContent({
+      projectSlug,
+      blocks: pageBlocks,
+    });
+    if (result.created) {
+      logger.info(
+        `[camox] Initialized content: homepage with ${result.blockCount} block${result.blockCount === 1 ? "" : "s"}`,
+        { timestamp: true },
+      );
+    }
+  } catch (error) {
+    throwIfSyncAuthError(error);
+    throw error;
+  }
 }
 
 function getBlockIdFromFilePath(filePath: string): string {

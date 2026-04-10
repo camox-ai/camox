@@ -29,8 +29,17 @@ interface LayoutBlock {
     showAddBlockBottom?: boolean;
     addBlockAfterPosition?: string | null;
   }>;
-  getInitialContent: () => Record<string, unknown>;
-  getInitialSettings: () => Record<string, unknown>;
+  getInitialBundle: () => {
+    content: Record<string, unknown>;
+    settings: Record<string, unknown>;
+    repeatableItems: Array<{
+      tempId: string;
+      parentTempId: string | null;
+      fieldName: string;
+      content: Record<string, unknown>;
+      position: string;
+    }>;
+  };
 }
 
 interface CreateLayoutOptions {
@@ -115,18 +124,26 @@ export function createLayout(options: CreateLayoutOptions) {
 
   // Build block definitions array for sync
   const blockDefinitions = [
-    ...options.blocks.before.map((block) => ({
-      type: block.id,
-      content: block.getInitialContent(),
-      settings: block.getInitialSettings(),
-      placement: "before" as const,
-    })),
-    ...options.blocks.after.map((block) => ({
-      type: block.id,
-      content: block.getInitialContent(),
-      settings: block.getInitialSettings(),
-      placement: "after" as const,
-    })),
+    ...options.blocks.before.map((block) => {
+      const bundle = block.getInitialBundle();
+      return {
+        type: block.id,
+        content: bundle.content,
+        settings: bundle.settings,
+        repeatableItems: bundle.repeatableItems,
+        placement: "before" as const,
+      };
+    }),
+    ...options.blocks.after.map((block) => {
+      const bundle = block.getInitialBundle();
+      return {
+        type: block.id,
+        content: bundle.content,
+        settings: bundle.settings,
+        repeatableItems: bundle.repeatableItems,
+        placement: "after" as const,
+      };
+    }),
   ];
 
   const buildOgImage = options.buildOgImage
