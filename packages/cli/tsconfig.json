@@ -8,6 +8,9 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@camox/api": ["../../apps/api/src"]
+    }
   }
 }
