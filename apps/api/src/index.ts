@@ -7,7 +7,6 @@ import { createDb } from "./db";
 import { router } from "./router";
 import { authRoutes, createAuth } from "./routes/auth";
 import { fileHonoRoutes } from "./routes/files";
-import { seedRoutes } from "./routes/seed";
 import type { AppEnv } from "./types";
 
 export type { Router } from "./router";
@@ -82,11 +81,10 @@ app.use(
 );
 
 // ---------------------------------------------------------------------------
-// Hono routes (auth, seed, file upload/serve)
+// Hono routes (auth, file upload/serve)
 // ---------------------------------------------------------------------------
 
 app.route("/api/auth", authRoutes);
-app.route("/seed", seedRoutes);
 app.route("/files", fileHonoRoutes);
 
 // ---------------------------------------------------------------------------

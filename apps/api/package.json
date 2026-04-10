@@ -13,7 +13,7 @@
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "db:studio": "drizzle-kit studio",
-    "seed": "curl -s -X POST http://localhost:8787/seed",
+    "seed": "tsx scripts/dev-seed.ts",
     "lint": "oxlint",
     "check": "tsgo --noEmit && oxlint --fix"
   },
@@ -38,6 +38,7 @@
     "@types/node": "^22.15.0",
     "drizzle-kit": "^0.31.10",
     "oxlint": "^0.15.15",
+    "tsx": "^4.21.0",
     "wrangler": "^4.4.0"
   }
 }

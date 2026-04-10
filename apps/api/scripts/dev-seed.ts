@@ -1,24 +1,48 @@
-import { sql } from "drizzle-orm";
-import { generateKeyBetween } from "fractional-indexing";
-import { Hono } from "hono";
+import fs from "node:fs";
+import path from "node:path";
 
-import type { Database } from "../db";
+import { createClient } from "@libsql/client";
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { organization } from "better-auth/plugins";
+import { sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/libsql";
+import { generateKeyBetween } from "fractional-indexing";
+
 import {
+  account,
   blockDefinitions,
   blocks,
   environments,
   files,
+  invitation,
   layouts,
   member,
   organizationTable,
   pages,
   projects,
   repeatableItems,
-} from "../schema";
-import type { AppEnv } from "../types";
-import { createAuth } from "./auth";
+  session,
+  user,
+  verification,
+} from "../src/schema";
 
-async function clearAll(db: Database) {
+// ---------------------------------------------------------------------------
+// Locate local D1 SQLite file (same logic as drizzle.config.ts)
+// ---------------------------------------------------------------------------
+
+function getLocalD1Db(): string {
+  const d1Dir = path.resolve(".wrangler/state/v3/d1/miniflare-D1DatabaseObject");
+  if (!fs.existsSync(d1Dir)) return "";
+  const files = fs.readdirSync(d1Dir).filter((f) => f.endsWith(".sqlite"));
+  return files.length > 0 ? path.join(d1Dir, files[0]) : "";
+}
+
+// ---------------------------------------------------------------------------
+// Clear all tables in FK-safe order
+// ---------------------------------------------------------------------------
+
+async function clearAll(db: ReturnType<typeof createDrizzle>) {
   await db.delete(repeatableItems).run();
   await db.delete(blocks).run();
   await db.delete(pages).run();
@@ -36,21 +60,59 @@ async function clearAll(db: Database) {
   await db.run(sql`DELETE FROM user`);
 }
 
-async function seedAuth(db: Database, env: AppEnv["Bindings"]) {
-  const auth = createAuth(db, env);
+// ---------------------------------------------------------------------------
+// Seed auth (user, org, membership)
+// ---------------------------------------------------------------------------
 
-  // Create user + session via better-auth API
-  const signUpResponse = await auth.api.signUpEmail({
-    body: {
-      name: "Dev User",
-      email: "dev@camox.dev",
-      password: "camox-dev-123",
+const authSchema = {
+  user,
+  session,
+  account,
+  verification,
+  organization: organizationTable,
+  member,
+  invitation,
+};
+
+function createDrizzle(sqlitePath: string) {
+  const client = createClient({ url: `file:${sqlitePath}` });
+  return drizzle(client, {
+    schema: {
+      user,
+      session,
+      account,
+      verification,
+      organizationTable,
+      member,
+      invitation,
+      projects,
+      environments,
+      layouts,
+      pages,
+      blocks,
+      blockDefinitions,
+      files,
+      repeatableItems,
     },
+  });
+}
+
+async function seedAuth(db: ReturnType<typeof createDrizzle>) {
+  // Minimal better-auth instance — no hooks, no social providers
+  const auth = betterAuth({
+    database: drizzleAdapter(db, { provider: "sqlite", schema: authSchema }),
+    secret: "dev-seed-secret",
+    baseURL: "http://localhost:8787",
+    emailAndPassword: { enabled: true, requireEmailVerification: false },
+    plugins: [organization()],
+  });
+
+  const signUpResponse = await auth.api.signUpEmail({
+    body: { name: "Dev User", email: "dev@camox.dev", password: "camox-dev-123" },
   });
 
   const userId = signUpResponse.user.id;
 
-  // Create organization and membership directly in DB
   const orgId = crypto.randomUUID();
   await db.insert(organizationTable).values({
     id: orgId,
@@ -67,10 +129,14 @@ async function seedAuth(db: Database, env: AppEnv["Bindings"]) {
     createdAt: new Date(),
   });
 
-  return { userId, orgId, token: signUpResponse.token };
+  return { userId, orgId };
 }
 
-async function seedContent(db: Database) {
+// ---------------------------------------------------------------------------
+// Seed content (project, environment, layout, pages, blocks, files)
+// ---------------------------------------------------------------------------
+
+async function seedContent(db: ReturnType<typeof createDrizzle>) {
   const now = Date.now();
 
   // Project
@@ -352,10 +418,7 @@ async function seedContent(db: Database) {
     await db.insert(repeatableItems).values({
       blockId: statsBlock.id,
       fieldName: "statistics",
-      content: {
-        number: stat.number,
-        label: stat.label,
-      },
+      content: { number: stat.number, label: stat.label },
       summary: `${stat.number} ${stat.label}`,
       position: pos,
       createdAt: now,
@@ -367,34 +430,30 @@ async function seedContent(db: Database) {
   return { projectId: project.id, pageId: page.id };
 }
 
-export const seedRoutes = new Hono<AppEnv>().post("/", async (c) => {
-  if (process.env.NODE_ENV !== "development") {
-    throw new Error("Seed route is only available in development");
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
+async function main() {
+  const sqlitePath = getLocalD1Db();
+  if (!sqlitePath) {
+    console.error("No local D1 database found. Run 'pnpm db:migrate:local' first.");
+    process.exit(1);
   }
 
-  const db = c.var.db;
+  const db = createDrizzle(sqlitePath);
 
   await clearAll(db);
-  await seedAuth(db, c.env);
+  await seedAuth(db);
   const { projectId, pageId } = await seedContent(db);
 
-  // Sign in to get a valid session cookie for the caller
-  const auth = createAuth(db, c.env);
-  const signInResponse = await auth.api.signInEmail({
-    body: { email: "dev@camox.dev", password: "camox-dev-123" },
-    asResponse: true,
-  });
+  console.log("Seeded successfully!");
+  console.log("Credentials: dev@camox.dev / camox-dev-123");
+  console.log("Project ID:", projectId);
+  console.log("Page ID:", pageId);
+}
 
-  // Forward the Set-Cookie header from better-auth
-  const setCookie = signInResponse.headers.get("set-cookie");
-  if (setCookie) {
-    c.header("set-cookie", setCookie);
-  }
-
-  return c.json({
-    message: "Seeded successfully",
-    credentials: { email: "dev@camox.dev", password: "camox-dev-123" },
-    projectId,
-    pageId,
-  });
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
 });
