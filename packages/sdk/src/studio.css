@@ -2,7 +2,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "../../ui/src/styles/globals.css";
-@source "../../ui/src";
+@source "./";
 
 body {
   @apply m-0;
