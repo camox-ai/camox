@@ -1,4 +1,3 @@
-import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -48,15 +47,6 @@ export function detectPackageManager(): PackageManager | null {
   }
 
   return null;
-}
-
-export function isInsideGitRepo(): boolean {
-  try {
-    execSync("git rev-parse --is-inside-work-tree", { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export function copyDir(src: string, dest: string, replacements: Record<string, string>) {

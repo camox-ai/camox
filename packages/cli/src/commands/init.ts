@@ -1,4 +1,4 @@
-import { execSync, spawn, spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,7 +19,6 @@ import {
   type PackageManager,
   copyDir,
   detectPackageManager,
-  isInsideGitRepo,
   pmCommands,
   slugify,
 } from "../lib/utils";
@@ -139,18 +138,6 @@ export async function init() {
     process.exit(1);
   }
 
-  // Git init prompt (skip if already inside a git repo)
-  const alreadyInRepo = isInsideGitRepo();
-  let initGit = false;
-  if (!alreadyInRepo) {
-    const answer = await p.confirm({
-      message: "Initialize a git repository?",
-      initialValue: true,
-    });
-    if (p.isCancel(answer)) return onCancel();
-    initGit = answer;
-  }
-
   // Package manager
   const detected = detectPackageManager();
   let pm: PackageManager;
@@ -193,16 +180,6 @@ export async function init() {
     process.exit(0);
   }
 
-  // Git init
-  if (initGit) {
-    try {
-      execSync("git init", { cwd: targetDir, stdio: "ignore" });
-      p.log.success("Initialized git repository.");
-    } catch {
-      p.log.warn("Could not initialize git repository.");
-    }
-  }
-
   // Install dependencies
   const { install: installCmd, dev: devCmd } = pmCommands[pm];
   const [installBin, ...installArgs] = installCmd.split(" ");
@@ -225,20 +202,6 @@ export async function init() {
     s2.stop("Install failed.");
     p.log.error(`Failed to install dependencies. Run "${installCmd}" manually.`);
     dropIntoProject();
-  }
-
-  // Initial commit
-  if (initGit) {
-    try {
-      execSync("git add -A", { cwd: targetDir, stdio: "ignore" });
-      execSync('git commit -m "Initial commit from camox init"', {
-        cwd: targetDir,
-        stdio: "ignore",
-      });
-      p.log.success("Created initial commit.");
-    } catch {
-      p.log.warn("Could not create initial commit.");
-    }
   }
 
   // Start dev server

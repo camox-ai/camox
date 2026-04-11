@@ -17,5 +17,5 @@
 ## Quick start
 
 ```bash
-npm create camox@latest
+npx camox@latest init
 ```
