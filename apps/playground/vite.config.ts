@@ -55,6 +55,10 @@ const config = defineConfig(() => {
           replacement: resolve(__dirname, "../../packages/sdk/src/features/routes/pageRoute.tsx"),
         },
         {
+          find: "camox/metadata",
+          replacement: resolve(__dirname, "../../packages/sdk/src/features/metadata/sitemap.ts"),
+        },
+        {
           find: "camox/_internal/ogRoute",
           replacement: resolve(__dirname, "../../packages/sdk/src/features/routes/ogRoute.ts"),
         },

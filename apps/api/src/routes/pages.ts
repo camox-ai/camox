@@ -519,6 +519,23 @@ const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ con
     .where(and(eq(pages.projectId, input.projectId), eq(pages.environmentId, environment.id)));
 });
 
+const listBySlug = pub
+  .input(z.object({ projectSlug: z.string() }))
+  .handler(async ({ context, input }) => {
+    const project = await context.db
+      .select()
+      .from(projects)
+      .where(eq(projects.slug, input.projectSlug))
+      .get();
+    if (!project) throw new ORPCError("NOT_FOUND");
+
+    const environment = await resolveEnvironment(context.db, project.id, context.environmentName);
+    return await context.db
+      .select()
+      .from(pages)
+      .where(and(eq(pages.projectId, project.id), eq(pages.environmentId, environment.id)));
+  });
+
 const get = pub.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
   const { id } = input;
   const result = await context.db.select().from(pages).where(eq(pages.id, id)).get();
@@ -806,6 +823,7 @@ export const pageProcedures = {
   getByPath,
   getStructure,
   list,
+  listBySlug,
   get,
   create,
   update,

@@ -99,6 +99,8 @@ export function camox(options: CamoxPluginOptions): Plugin {
           __CAMOX_ANALYTICS_DISABLED__: JSON.stringify(!!options.disableAnalytics),
           __ENABLE_TANSTACK_DEVTOOLS__: JSON.stringify(enableTanstackDevtools),
           __CAMOX_ENVIRONMENT_NAME__: JSON.stringify(environmentName),
+          __CAMOX_API_URL__: JSON.stringify(apiUrl),
+          __CAMOX_PROJECT_SLUG__: JSON.stringify(options.projectSlug),
         },
       };
     },

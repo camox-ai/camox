@@ -51,6 +51,11 @@
       "types": "./dist/features/vite/vite.d.ts",
       "import": "./dist/features/vite/vite.js"
     },
+    "./metadata": {
+      "source": "./src/features/metadata/sitemap.ts",
+      "types": "./dist/features/metadata/sitemap.d.ts",
+      "import": "./dist/features/metadata/sitemap.js"
+    },
     "./_internal/pageRoute": {
       "source": "./src/features/routes/pageRoute.tsx",
       "types": "./dist/features/routes/pageRoute.d.ts",
