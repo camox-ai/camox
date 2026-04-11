@@ -7,8 +7,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "camox",
-      "database_id": "local",
+      "database_name": "camox-content",
+      "database_id": "acd1b39f-b4fb-45b9-b66d-b8f8f1d8b4dd",
       "migrations_dir": "migrations",
     },
   ],
@@ -31,7 +31,13 @@
     ],
   },
   "migrations": [
-    { "tag": "v1", "new_classes": ["AiJobScheduler"] },
-    { "tag": "v2", "new_classes": ["ProjectRoom"] },
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AiJobScheduler"],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["ProjectRoom"],
+    },
   ],
 }

@@ -44,7 +44,8 @@ app.use(
 
 // Session middleware — populates c.var.user/session
 app.use("*", async (c, next) => {
-  const auth = createAuth(c.var.db, c.env);
+  const url = new URL(c.req.url);
+  const auth = createAuth(c.var.db, c.env, url.origin);
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
   if (!session) {
@@ -72,7 +73,8 @@ app.use(
     options: {
       onBeforeConnect: async (req, _lobby, c) => {
         const db = createDb(c.env.DB);
-        const auth = createAuth(db, c.env);
+        const url = new URL(req.url);
+        const auth = createAuth(db, c.env, url.origin);
         const session = await auth.api.getSession({ headers: req.headers });
         if (!session) return new Response("Unauthorized", { status: 401 });
       },

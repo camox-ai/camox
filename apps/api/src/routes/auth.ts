@@ -38,13 +38,13 @@ function generateSlug(name: string): string {
   return `${base}-${suffix}`;
 }
 
-export function createAuth(db: Database, env: Bindings) {
+export function createAuth(db: Database, env: Bindings, baseURL: string) {
   const auth = betterAuth({
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema: authSchema,
     }),
-    baseURL: env.BETTER_AUTH_URL,
+    baseURL,
     secret: env.BETTER_AUTH_SECRET,
     emailAndPassword: {
       enabled: true,
@@ -105,6 +105,7 @@ export const authRoutes = new Hono<AppEnv>()
     }),
   )
   .on(["POST", "GET"], "/*", async (c) => {
-    const auth = createAuth(c.var.db, c.env);
+    const url = new URL(c.req.url);
+    const auth = createAuth(c.var.db, c.env, url.origin);
     return auth.handler(c.req.raw);
   });

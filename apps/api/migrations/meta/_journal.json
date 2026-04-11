@@ -57,6 +57,13 @@
       "when": 1775600100000,
       "tag": "0007_remove_projects_description",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1775939718856,
+      "tag": "0008_outstanding_avengers",
+      "breakpoints": true
     }
   ]
 }
