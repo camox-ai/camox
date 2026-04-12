@@ -23,13 +23,13 @@
     "@clack/prompts": "^0.10.0",
     "@optique/core": "*",
     "@optique/run": "*",
-    "@orpc/client": "^1.13.13",
-    "@orpc/server": "^1.13.13"
+    "@orpc/client": "^1.13.14",
+    "@orpc/server": "^1.13.14"
   },
   "devDependencies": {
     "@camox/api": "workspace:*",
-    "@types/node": "^24.6.2",
-    "@typescript/native-preview": "^7.0.0-dev",
+    "@types/node": "^24.12.2",
+    "@typescript/native-preview": "7.0.0-dev.20260412.1",
     "oxlint": "^0.15.0",
     "tsup": "^8.4.0"
   }

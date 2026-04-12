@@ -16,10 +16,10 @@
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
-    "@typescript/native-preview": "^7.0.0-dev",
+    "@typescript/native-preview": "7.0.0-dev.20260412.1",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.0",
-    "nx": "^21.6.3",
+    "lint-staged": "^16.4.0",
+    "nx": "^21.6.10",
     "oxfmt": "^0.38.0"
   },
   "lint-staged": {
