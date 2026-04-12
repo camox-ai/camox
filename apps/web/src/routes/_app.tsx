@@ -7,7 +7,7 @@ import {
   redirect,
   useRouter,
 } from "@tanstack/react-router";
-import { type ComponentProps, useCallback, useEffect } from "react";
+import { type ComponentProps, useCallback } from "react";
 import { z } from "zod";
 
 import { authClient, getServerSession } from "@/lib/auth-client";
@@ -24,7 +24,6 @@ function isSafeRedirect(url: string) {
 export const Route = createFileRoute("/_app")({
   validateSearch: z.object({
     redirect: z.string().optional(),
-    ott: z.string().optional(),
   }),
   head: () => ({
     links: [
@@ -35,12 +34,6 @@ export const Route = createFileRoute("/_app")({
     ],
   }),
   beforeLoad: async ({ search }) => {
-    // OTT from an OAuth callback — can't verify server-side (needs
-    // localStorage). Let the page render and process it client-side.
-    if (search.ott) {
-      return { session: null, pendingOtt: true };
-    }
-
     const session = await getServerSession();
 
     if (session && search.redirect && isSafeRedirect(search.redirect)) {
@@ -52,7 +45,7 @@ export const Route = createFileRoute("/_app")({
       throw redirect({ href: url.toString() });
     }
 
-    return { session, pendingOtt: false };
+    return { session };
   },
   component: AppLayout,
 });
@@ -63,21 +56,7 @@ function LinkAdapter({ href, ...props }: ComponentProps<"a"> & { href: string })
 
 function AppLayout() {
   const router = useRouter();
-  const { ott } = Route.useSearch();
   const { queryClient } = Route.useRouteContext();
-
-  // Process ?ott= one-time token from OAuth callbacks.
-  useEffect(() => {
-    if (!ott) return;
-    const url = new URL(window.location.href);
-    url.searchParams.delete("ott");
-    window.history.replaceState({}, "", url);
-
-    authClient.oneTimeToken
-      .verify({ token: ott })
-      .then(() => router.invalidate())
-      .catch(() => router.navigate({ to: "/login" }));
-  }, [ott, router]);
 
   const onSessionChange = useCallback(async () => {
     await router.invalidate();

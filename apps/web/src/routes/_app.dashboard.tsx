@@ -38,7 +38,7 @@ import { organizationQueries, projectQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard")({
   beforeLoad: ({ context, location }) => {
-    if (!context.session && !context.pendingOtt) {
+    if (!context.session) {
       throw redirect({ to: "/login", search: { redirect: location.href } });
     }
   },

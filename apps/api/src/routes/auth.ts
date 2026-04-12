@@ -39,6 +39,17 @@ function generateSlug(name: string): string {
 }
 
 export function createAuth(db: Database, env: Bindings, baseURL: string) {
+  // Derive the cookie domain from SITE_URL so cookies are shared between
+  // the web app (camox.ai) and the API (api.camox.ai).
+  // In dev (localhost), this is undefined — cookies work without an explicit domain.
+  let cookieDomain: string | undefined;
+  try {
+    const siteHost = new URL(env.SITE_URL).hostname;
+    if (siteHost !== "localhost") cookieDomain = `.${siteHost}`;
+  } catch {
+    // SITE_URL missing or malformed — fall back to default cookie domain
+  }
+
   const auth = betterAuth({
     database: drizzleAdapter(db, {
       provider: "sqlite",
@@ -66,6 +77,12 @@ export function createAuth(db: Database, env: Bindings, baseURL: string) {
     },
     // Accept requests from any origin — Camox sites run on arbitrary customer domains
     trustedOrigins: ["*"],
+    advanced: {
+      crossSubDomainCookies: {
+        enabled: true,
+        domain: cookieDomain,
+      },
+    },
     plugins: [organization(), crossDomain({ siteUrl: env.SITE_URL }), oneTimeToken(), bearer()],
     databaseHooks: {
       user: {
