@@ -105,13 +105,17 @@
     "posthog-js": "^1.363.4",
     "posthog-node": "^5.28.5",
     "react": "19.3.0-canary-8b2e903a-20260320",
+    "react-compiler-runtime": "^1.0.0",
     "react-dom": "19.3.0-canary-8b2e903a-20260320",
     "react-og-preview": "^0.2.0",
     "shiki": "^4.0.1"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.0",
     "@orpc/server": "^1.13.13",
+    "@rolldown/plugin-babel": "^0.2.2",
     "@tailwindcss/cli": "^4.0.6",
+    "@types/babel__core": "^7.20.5",
     "@types/node": "^24.6.2",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.1.9",

@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 
-import viteReact from "@vitejs/plugin-react";
+import babelPlugin from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
@@ -9,7 +10,8 @@ const config = defineConfig({
     tsconfigPaths: true,
   },
   plugins: [
-    viteReact(),
+    react(),
+    babelPlugin({ presets: [reactCompilerPreset({ target: "19" })] }),
     dts({
       tsconfigPath: "./tsconfig.json",
       rollupTypes: false,
@@ -43,6 +45,7 @@ const config = defineConfig({
         ),
         "features/studio/CamoxStudio": resolve(__dirname, "src/features/studio/CamoxStudio.tsx"),
         "features/vite/vite": resolve(__dirname, "src/features/vite/vite.ts"),
+        "features/metadata/sitemap": resolve(__dirname, "src/features/metadata/sitemap.ts"),
         "features/routes/pageRoute": resolve(__dirname, "src/features/routes/pageRoute.tsx"),
         "features/routes/ogRoute": resolve(__dirname, "src/features/routes/ogRoute.ts"),
       },

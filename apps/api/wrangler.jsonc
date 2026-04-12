@@ -40,6 +40,9 @@
       "new_sqlite_classes": ["ProjectRoom"],
     },
   ],
+  "dev": {
+    "inspector_port": 9298,
+  },
   "observability": {
     "logs": {
       "enabled": true,

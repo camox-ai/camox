@@ -1,6 +1,7 @@
+import babelPlugin from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import viteReact from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { camox } from "camox/vite";
 import { defineConfig } from "vite";
 
@@ -10,6 +11,7 @@ export default defineConfig({
     tailwindcss(),
     camox({ projectSlug: "{{projectSlug}}", syncSecret: "{{syncSecret}}" }),
     tanstackStart(),
-    viteReact(),
+    react(),
+    babelPlugin({ presets: [reactCompilerPreset()] }),
   ],
 });

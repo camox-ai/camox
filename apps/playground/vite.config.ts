@@ -1,8 +1,9 @@
 import { resolve } from "node:path";
 
+import babelPlugin from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import viteReact from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 import { camox } from "../../packages/sdk/src/features/vite/vite";
@@ -75,7 +76,8 @@ const config = defineConfig(() => {
         },
       }),
       tanstackStart(),
-      viteReact(),
+      react(),
+      babelPlugin({ presets: [reactCompilerPreset()] }),
     ],
     optimizeDeps: {
       exclude: ["camox"],

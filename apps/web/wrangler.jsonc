@@ -5,7 +5,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
   "dev": {
-    "inspector_port": 9231,
+    "inspector_port": 9299,
   },
   "observability": {
     "logs": {
