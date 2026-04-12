@@ -31,7 +31,6 @@
     "@types/node": "^24.6.2",
     "@typescript/native-preview": "^7.0.0-dev",
     "oxlint": "^0.15.0",
-    "tsup": "^8.4.0",
-    "typescript": "^5.7.2"
+    "tsup": "^8.4.0"
   }
 }
