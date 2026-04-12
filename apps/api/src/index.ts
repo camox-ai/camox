@@ -69,7 +69,16 @@ app.use(
         const db = createDb(c.env.DB);
         const url = new URL(req.url);
         const auth = createAuth(db, c.env, url.origin);
-        const session = await auth.api.getSession({ headers: req.headers });
+
+        // WebSocket upgrades can't carry custom headers, so the client
+        // sends the cross-domain auth cookie as a query parameter instead.
+        const headers = new Headers(req.headers);
+        const authCookie = url.searchParams.get("_authCookie");
+        if (authCookie) {
+          headers.set("Better-Auth-Cookie", authCookie);
+        }
+
+        const session = await auth.api.getSession({ headers });
         if (!session) return new Response("Unauthorized", { status: 401 });
       },
     },

@@ -3,6 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { usePartySocket } from "partysocket/react";
 import { useRef } from "react";
 
+import { getAuthCookieHeader } from "./auth";
+
 const DEBOUNCE_MS = 300;
 
 export function useProjectRoom(apiUrl: string, projectId: number | undefined) {
@@ -16,7 +18,8 @@ export function useProjectRoom(apiUrl: string, projectId: number | undefined) {
     host,
     party: "project-room",
     room: String(projectId ?? ""),
-    prefix: "/parties",
+    prefix: "parties",
+    query: () => ({ _authCookie: getAuthCookieHeader() }),
     enabled: !!projectId,
     onMessage(event) {
       try {

@@ -98,6 +98,15 @@ function getCookie(cookie: string) {
   return toSend;
 }
 
+/**
+ * Read the cross-domain auth cookie from localStorage and return it as a
+ * string suitable for the `Better-Auth-Cookie` request header.
+ */
+export function getAuthCookieHeader(): string {
+  if (typeof window === "undefined") return "";
+  return getCookie(localStorage.getItem("better-auth_cookie") || "{}");
+}
+
 function crossDomainClient(
   opts: {
     storage?: {

@@ -3,7 +3,8 @@
 import { useCallback, useRef, useState } from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";
-import { getApiUrl } from "@/lib/api-client";
+import { getApiUrl, getEnvironmentName } from "@/lib/api-client";
+import { getAuthCookieHeader } from "@/lib/auth";
 
 export interface UploadItem {
   id: string;
@@ -71,7 +72,9 @@ export function useFileUpload(options?: UseFileUploadOptions) {
 
         const uploadUrl = `${apiUrl}/files/upload`;
         xhr.open("POST", uploadUrl);
-        xhr.withCredentials = true;
+        xhr.setRequestHeader("Better-Auth-Cookie", getAuthCookieHeader());
+        const envName = getEnvironmentName();
+        if (envName) xhr.setRequestHeader("x-environment-name", envName);
         xhr.send(formData);
       });
 

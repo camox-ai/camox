@@ -10,7 +10,8 @@ import { Check, Download, FileIcon, Link, Loader2, Trash2, X } from "lucide-reac
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
-import { getApiUrl } from "@/lib/api-client";
+import { getApiUrl, getEnvironmentName } from "@/lib/api-client";
+import { getAuthCookieHeader } from "@/lib/auth";
 import { fileMutations, fileQueries } from "@/lib/queries";
 
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
@@ -117,10 +118,15 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
         formData.append("file", droppedFile);
         formData.append("projectId", String(file?.projectId ?? 0));
 
+        const envName = getEnvironmentName();
         const uploadRes = await fetch(`${getApiUrl()}/files/upload`, {
           method: "POST",
           body: formData,
-          credentials: "include",
+          credentials: "omit",
+          headers: {
+            "Better-Auth-Cookie": getAuthCookieHeader(),
+            ...(envName ? { "x-environment-name": envName } : {}),
+          },
         });
 
         if (!uploadRes.ok) throw new Error(`Upload failed: ${uploadRes.status}`);
