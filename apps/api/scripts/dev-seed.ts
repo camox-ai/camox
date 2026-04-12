@@ -100,7 +100,7 @@ async function seed(db: ReturnType<typeof createDrizzle>) {
   // Minimal better-auth instance — no hooks, no social providers
   const auth = betterAuth({
     database: drizzleAdapter(db, { provider: "sqlite", schema: authSchema }),
-    secret: "dev-seed-secret",
+    secret: process.env.BETTER_AUTH_SECRET,
     baseURL: "http://localhost:8787",
     emailAndPassword: { enabled: true, requireEmailVerification: false },
     plugins: [organization()],
