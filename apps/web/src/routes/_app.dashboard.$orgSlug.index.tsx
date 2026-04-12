@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 
 import { CreateProjectGuide } from "@/components/CreateProjectGuide";
-import { projectQueries } from "@/lib/queries";
+import { organizationQueries, projectQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard/$orgSlug/")({
   component: OrgIndex,
@@ -11,7 +11,13 @@ export const Route = createFileRoute("/_app/dashboard/$orgSlug/")({
 function OrgIndex() {
   const { orgSlug } = Route.useParams();
 
-  const { data: projects, isLoading } = useQuery(projectQueries.list(orgSlug));
+  const { data: organizations } = useQuery(organizationQueries.list());
+  const activeOrg = organizations?.find((org) => org.slug === orgSlug);
+
+  const { data: projects, isLoading } = useQuery({
+    ...projectQueries.list(activeOrg?.id ?? ""),
+    enabled: !!activeOrg,
+  });
 
   if (isLoading || !projects) return null;
 

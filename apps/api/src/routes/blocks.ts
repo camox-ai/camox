@@ -20,7 +20,6 @@ import {
   files,
   layouts,
   member,
-  organizationTable,
   pages,
   projects,
   repeatableItems,
@@ -625,10 +624,9 @@ const deleteMany = authed
       .leftJoin(pages, eq(blocks.pageId, pages.id))
       .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
       .innerJoin(projects, or(eq(projects.id, pages.projectId), eq(projects.id, layouts.projectId)))
-      .innerJoin(organizationTable, eq(organizationTable.slug, projects.organizationSlug))
       .innerJoin(
         member,
-        and(eq(member.organizationId, organizationTable.id), eq(member.userId, context.user.id)),
+        and(eq(member.organizationId, projects.organizationId), eq(member.userId, context.user.id)),
       )
       .where(inArray(blocks.id, blockIds));
     if (authorizedBlocks.length !== blockIds.length) {

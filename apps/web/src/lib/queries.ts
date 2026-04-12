@@ -19,10 +19,10 @@ export const organizationQueries = {
 export const projectQueries = {
   all: () => ["projects"] as const,
 
-  list: (orgSlug: string) =>
+  list: (organizationId: string) =>
     queryOptions({
-      queryKey: [...projectQueries.all(), "list", orgSlug] as const,
-      queryFn: () => api.projects.list({ organizationSlug: orgSlug }),
+      queryKey: [...projectQueries.all(), "list", organizationId] as const,
+      queryFn: () => api.projects.list({ organizationId }),
     }),
 
   getBySlug: (slug: string) =>

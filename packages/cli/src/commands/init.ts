@@ -65,10 +65,10 @@ async function selectOrCreateOrganization(token: string): Promise<string> {
     return promptCreateOrganization(token);
   }
 
-  // Set active org and return slug
+  // Set active org and return id
   const org = orgs.find((o: Organization) => o.id === selected)!;
   await setActiveOrganization(token, org.id);
-  return org.slug;
+  return org.id;
 }
 
 async function promptCreateOrganization(token: string): Promise<string> {
@@ -84,7 +84,7 @@ async function promptCreateOrganization(token: string): Promise<string> {
   const orgSlug = slugify(orgName);
   const org = await createOrganization(token, orgName, orgSlug);
   p.log.success(`Created organization: ${org.name}`);
-  return org.slug;
+  return org.id;
 }
 
 export async function init() {
@@ -118,14 +118,14 @@ export async function init() {
   const auth = await getOrAuthenticate();
 
   // Organization selection
-  const orgSlug = await selectOrCreateOrganization(auth.token);
+  const orgId = await selectOrCreateOrganization(auth.token);
 
   // Create project on API
   const s0 = p.spinner();
   s0.start("Creating project...");
   let project: { slug: string; syncSecret: string };
   try {
-    project = await createProject(auth.token, result.name as string, orgSlug);
+    project = await createProject(auth.token, result.name as string, orgId);
     s0.stop(`Project created with slug: ${project.slug}`);
   } catch (err) {
     s0.stop("Failed to create project.");

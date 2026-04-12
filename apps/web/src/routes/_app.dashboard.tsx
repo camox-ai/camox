@@ -258,9 +258,12 @@ function ProjectPicker() {
   const { orgSlug, slug } = useParams({ strict: false });
   const [createOpen, setCreateOpen] = useState(false);
 
+  const { data: organizations } = useQuery(organizationQueries.list());
+  const activeOrg = organizations?.find((org) => org.slug === orgSlug);
+
   const { data: projects } = useQuery({
-    ...projectQueries.list(orgSlug ?? ""),
-    enabled: !!orgSlug,
+    ...projectQueries.list(activeOrg?.id ?? ""),
+    enabled: !!activeOrg,
   });
 
   if (!orgSlug || !slug) return null;

@@ -7,13 +7,21 @@ import { assertOrgMembership, assertSyncSecret, getAuthorizedProject } from "../
 import { resolveEnvironment } from "../lib/resolve-environment";
 import { generateUniqueSlug } from "../lib/slug";
 import { authed, pub } from "../orpc";
-import { blocks, environments, layouts, pages, projects, repeatableItems } from "../schema";
+import {
+  blocks,
+  environments,
+  layouts,
+  organizationTable,
+  pages,
+  projects,
+  repeatableItems,
+} from "../schema";
 
 // --- Procedures ---
 
 const createProjectSchema = z.object({
   name: z.string(),
-  organizationSlug: z.string(),
+  organizationId: z.string(),
 });
 
 const updateProjectSchema = z.object({
@@ -21,23 +29,23 @@ const updateProjectSchema = z.object({
 });
 
 const list = authed
-  .input(z.object({ organizationSlug: z.string() }))
+  .input(z.object({ organizationId: z.string() }))
   .handler(async ({ context, input }) => {
-    await assertOrgMembership(context.db, context.user.id, input.organizationSlug);
+    await assertOrgMembership(context.db, context.user.id, input.organizationId);
     return context.db
       .select()
       .from(projects)
-      .where(eq(projects.organizationSlug, input.organizationSlug));
+      .where(eq(projects.organizationId, input.organizationId));
   });
 
 const getFirst = authed
-  .input(z.object({ organizationSlug: z.string() }))
+  .input(z.object({ organizationId: z.string() }))
   .handler(async ({ context, input }) => {
-    await assertOrgMembership(context.db, context.user.id, input.organizationSlug);
+    await assertOrgMembership(context.db, context.user.id, input.organizationId);
     const result = await context.db
       .select()
       .from(projects)
-      .where(eq(projects.organizationSlug, input.organizationSlug))
+      .where(eq(projects.organizationId, input.organizationId))
       .limit(1)
       .get();
     if (!result) throw new ORPCError("NOT_FOUND");
@@ -48,24 +56,36 @@ const getBySlug = authed
   .input(z.object({ slug: z.string() }))
   .handler(async ({ context, input }) => {
     const result = await context.db
-      .select()
+      .select({
+        project: projects,
+        organizationSlug: organizationTable.slug,
+      })
       .from(projects)
+      .innerJoin(organizationTable, eq(organizationTable.id, projects.organizationId))
       .where(eq(projects.slug, input.slug))
       .get();
     if (!result) throw new ORPCError("NOT_FOUND");
-    await assertOrgMembership(context.db, context.user.id, result.organizationSlug);
-    return result;
+    await assertOrgMembership(context.db, context.user.id, result.project.organizationId);
+    return { ...result.project, organizationSlug: result.organizationSlug };
   });
 
 const get = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
-  const result = await context.db.select().from(projects).where(eq(projects.id, input.id)).get();
+  const result = await context.db
+    .select({
+      project: projects,
+      organizationSlug: organizationTable.slug,
+    })
+    .from(projects)
+    .innerJoin(organizationTable, eq(organizationTable.id, projects.organizationId))
+    .where(eq(projects.id, input.id))
+    .get();
   if (!result) throw new ORPCError("NOT_FOUND");
-  await assertOrgMembership(context.db, context.user.id, result.organizationSlug);
-  return result;
+  await assertOrgMembership(context.db, context.user.id, result.project.organizationId);
+  return { ...result.project, organizationSlug: result.organizationSlug };
 });
 
 const create = authed.input(createProjectSchema).handler(async ({ context, input }) => {
-  await assertOrgMembership(context.db, context.user.id, input.organizationSlug);
+  await assertOrgMembership(context.db, context.user.id, input.organizationId);
 
   const slug = await generateUniqueSlug(context.db);
   const syncSecret = crypto.randomUUID();
@@ -77,7 +97,7 @@ const create = authed.input(createProjectSchema).handler(async ({ context, input
       name: input.name,
       slug,
       syncSecret,
-      organizationSlug: input.organizationSlug,
+      organizationId: input.organizationId,
       createdAt: now,
       updatedAt: now,
     })

@@ -13,7 +13,7 @@ import { queryKeys } from "../lib/query-keys";
 import { resolveEnvironment } from "../lib/resolve-environment";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";
-import { blocks, files, member, organizationTable, projects, repeatableItems } from "../schema";
+import { blocks, files, member, projects, repeatableItems } from "../schema";
 import type { AppEnv } from "../types";
 
 // --- AI Executor ---
@@ -270,10 +270,9 @@ const deleteMany = authed
       .select({ id: files.id, blobId: files.blobId, projectId: files.projectId })
       .from(files)
       .innerJoin(projects, eq(projects.id, files.projectId))
-      .innerJoin(organizationTable, eq(organizationTable.slug, projects.organizationSlug))
       .innerJoin(
         member,
-        and(eq(member.organizationId, organizationTable.id), eq(member.userId, context.user.id)),
+        and(eq(member.organizationId, projects.organizationId), eq(member.userId, context.user.id)),
       )
       .where(inArray(files.id, ids));
 

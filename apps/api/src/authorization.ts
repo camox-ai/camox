@@ -2,16 +2,7 @@ import { ORPCError } from "@orpc/server";
 import { and, eq, or } from "drizzle-orm";
 
 import type { Database } from "./db";
-import {
-  member,
-  organizationTable,
-  blocks,
-  files,
-  layouts,
-  pages,
-  projects,
-  repeatableItems,
-} from "./schema";
+import { member, blocks, files, layouts, pages, projects, repeatableItems } from "./schema";
 
 // --- Sync Secret ---
 
@@ -28,27 +19,25 @@ export async function assertSyncSecret(db: Database, projectSlug: string, syncSe
 
 // --- Membership Helpers ---
 
-export async function assertOrgMembership(db: Database, userId: string, orgSlug: string) {
-  const result = await db
-    .select({ id: member.id })
-    .from(member)
-    .innerJoin(organizationTable, eq(organizationTable.id, member.organizationId))
-    .where(and(eq(organizationTable.slug, orgSlug), eq(member.userId, userId)))
-    .get();
-  if (!result) throw new ORPCError("FORBIDDEN");
-}
-
 /** Verify user is a member of the org that owns a project (by project ID). */
 async function assertProjectMembership(db: Database, projectId: number, userId: string) {
   const result = await db
     .select({ id: member.id })
     .from(projects)
-    .innerJoin(organizationTable, eq(organizationTable.slug, projects.organizationSlug))
     .innerJoin(
       member,
-      and(eq(member.organizationId, organizationTable.id), eq(member.userId, userId)),
+      and(eq(member.organizationId, projects.organizationId), eq(member.userId, userId)),
     )
     .where(eq(projects.id, projectId))
+    .get();
+  if (!result) throw new ORPCError("FORBIDDEN");
+}
+
+export async function assertOrgMembership(db: Database, userId: string, orgId: string) {
+  const result = await db
+    .select({ id: member.id })
+    .from(member)
+    .where(and(eq(member.organizationId, orgId), eq(member.userId, userId)))
     .get();
   if (!result) throw new ORPCError("FORBIDDEN");
 }

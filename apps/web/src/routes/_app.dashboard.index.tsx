@@ -14,27 +14,27 @@ export const Route = createFileRoute("/_app/dashboard/")({
 function DashboardIndex() {
   const { data: organizations } = useQuery(organizationQueries.list());
 
-  const firstOrgSlug = organizations?.[0]?.slug;
+  const firstOrg = organizations?.[0];
 
   const { data: projects, isLoading } = useQuery({
-    ...projectQueries.list(firstOrgSlug ?? ""),
-    enabled: !!firstOrgSlug,
+    ...projectQueries.list(firstOrg?.id ?? ""),
+    enabled: !!firstOrg,
   });
 
   if (isLoading || !organizations || !projects) return null;
 
-  if (projects.length > 0) {
+  if (projects.length > 0 && firstOrg) {
     return (
       <Navigate
         to="/dashboard/$orgSlug/$slug/overview"
-        params={{ orgSlug: firstOrgSlug!, slug: projects[0]!.slug }}
+        params={{ orgSlug: firstOrg.slug, slug: projects[0]!.slug }}
         replace
       />
     );
   }
 
-  if (firstOrgSlug) {
-    return <Navigate to="/dashboard/$orgSlug" params={{ orgSlug: firstOrgSlug }} replace />;
+  if (firstOrg) {
+    return <Navigate to="/dashboard/$orgSlug" params={{ orgSlug: firstOrg.slug }} replace />;
   }
 
   return (

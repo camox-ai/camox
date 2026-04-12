@@ -135,7 +135,7 @@ async function seed(db: ReturnType<typeof createDrizzle>) {
     .values({
       name: "Camox Playground",
       slug: "camox-playground-01",
-      organizationSlug: "camox-demo",
+      organizationId: orgId,
       syncSecret: "camox-dev-sync-secret",
       createdAt: now,
       updatedAt: now,

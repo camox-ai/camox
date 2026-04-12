@@ -97,13 +97,15 @@ export const projects = sqliteTable(
     slug: text().notNull(),
     name: text().notNull(),
     syncSecret: text("sync_secret").notNull().default(""),
-    organizationSlug: text("organization_slug").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizationTable.id),
     createdAt: int("created_at").notNull(),
     updatedAt: int("updated_at").notNull(),
   },
   (table) => [
     uniqueIndex("projects_slug_idx").on(table.slug),
-    index("projects_organization_idx").on(table.organizationSlug),
+    index("projects_organization_idx").on(table.organizationId),
   ],
 );
 

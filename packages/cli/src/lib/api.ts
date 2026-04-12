@@ -84,8 +84,8 @@ export async function setActiveOrganization(token: string, organizationId: strin
 
 // --- Projects ---
 
-export async function createProject(token: string, name: string, organizationSlug: string) {
+export async function createProject(token: string, name: string, organizationId: string) {
   const client = createRpcClient(token);
-  const result = await client.projects.create({ name, organizationSlug });
+  const result = await client.projects.create({ name, organizationId });
   return result;
 }
