@@ -2,13 +2,14 @@ node_modules
 .DS_Store
 dist
 dist-ssr
-*.local
+.env.*
 count.txt
 .env
 .nitro
 .tanstack
 .output
 .vinxi
+.wrangler
 todos.json
 src/camox/app.ts
 src/routes/_camox.tsx
