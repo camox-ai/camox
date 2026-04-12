@@ -22,8 +22,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.476.0",
-    "react": "19.3.0-canary-8b2e903a-20260320",
-    "react-dom": "19.3.0-canary-8b2e903a-20260320",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",
     "vite-tsconfig-paths": "^6.1.1"

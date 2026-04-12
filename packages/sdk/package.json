@@ -104,9 +104,9 @@
     "partysocket": "^1.1.16",
     "posthog-js": "^1.367.0",
     "posthog-node": "^5.29.2",
-    "react": "19.3.0-canary-8b2e903a-20260320",
+    "react": "^19.2.5",
     "react-compiler-runtime": "^1.0.0",
-    "react-dom": "19.3.0-canary-8b2e903a-20260320",
+    "react-dom": "^19.2.5",
     "react-og-preview": "^0.2.0",
     "shiki": "^4.0.2"
   },
