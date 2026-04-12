@@ -1,13 +1,13 @@
-import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { z } from "zod";
 
+import { assertSyncSecret } from "../authorization";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { queryKeys } from "../lib/query-keys";
 import { resolveEnvironment } from "../lib/resolve-environment";
-import { pub, synced } from "../orpc";
-import { blocks, layouts, projects, repeatableItems } from "../schema";
+import { pub } from "../orpc";
+import { blocks, layouts, repeatableItems } from "../schema";
 
 // --- Procedures ---
 
@@ -21,6 +21,7 @@ const repeatableItemSeedSchema = z.object({
 
 const syncLayoutsSchema = z.object({
   projectSlug: z.string(),
+  syncSecret: z.string(),
   layouts: z.array(
     z.object({
       layoutId: z.string(),
@@ -47,18 +48,9 @@ const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ con
     .where(and(eq(layouts.projectId, projectId), eq(layouts.environmentId, environment.id)));
 });
 
-const sync = synced.input(syncLayoutsSchema).handler(async ({ context, input }) => {
+const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => {
   const { projectSlug, layouts: layoutDefs } = input;
-  const project = await context.db
-    .select()
-    .from(projects)
-    .where(eq(projects.slug, projectSlug))
-    .get();
-
-  if (!project) {
-    throw new ORPCError("NOT_FOUND");
-  }
-
+  const project = await assertSyncSecret(context.db, projectSlug, input.syncSecret);
   const projectId = project.id;
   const environment = await resolveEnvironment(context.db, projectId, context.environmentName, {
     autoCreate: true,

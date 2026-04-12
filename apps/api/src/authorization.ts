@@ -13,6 +13,19 @@ import {
   repeatableItems,
 } from "./schema";
 
+// --- Sync Secret ---
+
+export async function assertSyncSecret(db: Database, projectSlug: string, syncSecret: string) {
+  const project = await db.select().from(projects).where(eq(projects.slug, projectSlug)).get();
+  if (!project) throw new ORPCError("NOT_FOUND");
+
+  if (syncSecret !== project.syncSecret) {
+    throw new ORPCError("UNAUTHORIZED");
+  }
+
+  return project;
+}
+
 // --- Membership Helpers ---
 
 export async function assertOrgMembership(db: Database, userId: string, orgSlug: string) {

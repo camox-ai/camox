@@ -45,7 +45,7 @@ export async function syncDefinitionsToApi(options: {
   logger: Logger;
 }): Promise<void> {
   const { camoxApp, projectSlug, apiUrl, syncSecret, environmentName, logger } = options;
-  const client = createServerApiClient(apiUrl, syncSecret, environmentName);
+  const client = createServerApiClient(apiUrl, environmentName);
 
   const blocks = camoxApp.getBlocks();
   const definitions = blocks.map((block: Block) => ({
@@ -63,6 +63,7 @@ export async function syncDefinitionsToApi(options: {
   try {
     const result = await client.blockDefinitions.sync({
       projectSlug,
+      syncSecret,
       definitions,
     });
     environmentCreated = result.environmentCreated;
@@ -88,6 +89,7 @@ export async function syncDefinitionsToApi(options: {
     try {
       await client.layouts.sync({
         projectSlug,
+        syncSecret,
         layouts: layoutDefinitions,
       });
     } catch (error) {
@@ -106,6 +108,7 @@ export async function syncDefinitionsToApi(options: {
     try {
       const result = await client.projects.initializeContent({
         projectSlug,
+        syncSecret,
         layoutId: initialPage.layoutId,
         blocks: initialPage.blocks,
       });
@@ -159,7 +162,7 @@ export async function syncDefinitions(
   }
   const syncSecret = options.syncSecret;
   const environmentName = options.environmentName;
-  const client = createServerApiClient(apiUrl, syncSecret, environmentName);
+  const client = createServerApiClient(apiUrl, environmentName);
 
   async function performInitialSync(): Promise<void> {
     const camoxModule = (await server.ssrLoadModule(camoxAppPath)) as {
@@ -209,6 +212,7 @@ export async function syncDefinitions(
     try {
       result = await client.blockDefinitions.upsert({
         projectSlug,
+        syncSecret,
         blockId: block.id,
         title: block.title,
         description: block.description,
@@ -236,6 +240,7 @@ export async function syncDefinitions(
     try {
       result = await client.blockDefinitions.delete({
         projectSlug,
+        syncSecret,
         blockId,
       });
     } catch (error) {

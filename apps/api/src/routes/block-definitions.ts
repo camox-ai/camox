@@ -1,15 +1,16 @@
-import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { assertSyncSecret } from "../authorization";
 import { resolveEnvironment } from "../lib/resolve-environment";
-import { pub, synced } from "../orpc";
-import { blockDefinitions, projects } from "../schema";
+import { pub } from "../orpc";
+import { blockDefinitions } from "../schema";
 
 // --- Procedures ---
 
 const definitionSchema = z.object({
   projectSlug: z.string(),
+  syncSecret: z.string(),
   blockId: z.string(),
   title: z.string(),
   description: z.string(),
@@ -22,6 +23,7 @@ const definitionSchema = z.object({
 
 const syncSchema = z.object({
   projectSlug: z.string(),
+  syncSecret: z.string(),
   definitions: z.array(
     z.object({
       blockId: z.string(),
@@ -54,14 +56,9 @@ const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ con
   return result;
 });
 
-const sync = synced.input(syncSchema).handler(async ({ context, input }) => {
+const sync = pub.input(syncSchema).handler(async ({ context, input }) => {
   const { projectSlug, definitions } = input;
-  const project = await context.db
-    .select()
-    .from(projects)
-    .where(eq(projects.slug, projectSlug))
-    .get();
-  if (!project) throw new ORPCError("NOT_FOUND");
+  const project = await assertSyncSecret(context.db, projectSlug, input.syncSecret);
   const projectId = project.id;
   const environment = await resolveEnvironment(context.db, projectId, context.environmentName, {
     autoCreate: true,
@@ -125,14 +122,9 @@ const sync = synced.input(syncSchema).handler(async ({ context, input }) => {
   return { results, environmentCreated: environment.created };
 });
 
-const upsert = synced.input(definitionSchema).handler(async ({ context, input }) => {
-  const { projectSlug, ...body } = input;
-  const project = await context.db
-    .select()
-    .from(projects)
-    .where(eq(projects.slug, projectSlug))
-    .get();
-  if (!project) throw new ORPCError("NOT_FOUND");
+const upsert = pub.input(definitionSchema).handler(async ({ context, input }) => {
+  const { projectSlug, syncSecret: _, ...body } = input;
+  const project = await assertSyncSecret(context.db, projectSlug, input.syncSecret);
   const projectId = project.id;
   const environment = await resolveEnvironment(context.db, projectId, context.environmentName, {
     autoCreate: true,
@@ -188,16 +180,11 @@ const upsert = synced.input(definitionSchema).handler(async ({ context, input })
   return { ...result, action: "created" as const };
 });
 
-const deleteFn = synced
-  .input(z.object({ projectSlug: z.string(), blockId: z.string() }))
+const deleteFn = pub
+  .input(z.object({ projectSlug: z.string(), syncSecret: z.string(), blockId: z.string() }))
   .handler(async ({ context, input }) => {
     const { projectSlug, blockId } = input;
-    const project = await context.db
-      .select()
-      .from(projects)
-      .where(eq(projects.slug, projectSlug))
-      .get();
-    if (!project) throw new ORPCError("NOT_FOUND");
+    const project = await assertSyncSecret(context.db, projectSlug, input.syncSecret);
     const environment = await resolveEnvironment(context.db, project.id, context.environmentName);
     const result = await context.db
       .delete(blockDefinitions)

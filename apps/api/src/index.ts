@@ -28,13 +28,7 @@ app.use(
   "*",
   cors({
     origin: (origin) => origin,
-    allowHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Better-Auth-Cookie",
-      "x-sync-secret",
-      "x-environment-name",
-    ],
+    allowHeaders: ["Content-Type", "Authorization", "Better-Auth-Cookie", "x-environment-name"],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Set-Better-Auth-Cookie"],
     maxAge: 600,
