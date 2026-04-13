@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/camox-ai/camox/compare/camox-v0.4.1...camox-v0.4.2) (2026-04-13)
+
+
+### Bug Fixes
+
+* add create-camox to release-please config ([45212d1](https://github.com/camox-ai/camox/commit/45212d140ef1952ac69d4fbe30489ede1a64f587))
+
 ## [0.4.1](https://github.com/camox-ai/camox/compare/camox-v0.4.0...camox-v0.4.1) (2026-04-13)
 
 
