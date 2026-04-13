@@ -89,6 +89,11 @@ export function camox(options: CamoxPluginOptions): Plugin {
       isBuild = env.command === "build";
       environmentName = resolveEnvironmentName(env.command === "serve");
       return {
+        optimizeDeps: {
+          // use-sync-external-store is CJS-only. Radix UI imports the /shim subpath,
+          // which must be pre-bundled so Vite converts it to ESM for the browser.
+          include: ["use-sync-external-store/shim"],
+        },
         define: {
           __CAMOX_ANALYTICS_DISABLED__: JSON.stringify(!!options.disableAnalytics),
           __ENABLE_TANSTACK_DEVTOOLS__: JSON.stringify(enableTanstackDevtools),
