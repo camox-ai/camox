@@ -33,13 +33,18 @@
       "component": "@camox/api",
       "changelog-path": "CHANGELOG.md",
       "skip-github-release": true
+    },
+    "packages/create-camox": {
+      "component": "create-camox",
+      "changelog-path": "CHANGELOG.md",
+      "skip-github-release": true
     }
   },
   "plugins": [
     {
       "type": "linked-versions",
       "groupName": "camox",
-      "components": ["camox", "camox-sdk", "@camox/cli", "@camox/ui", "@camox/api"]
+      "components": ["camox", "camox-sdk", "@camox/cli", "@camox/ui", "@camox/api", "create-camox"]
     }
   ]
 }

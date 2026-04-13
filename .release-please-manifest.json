@@ -3,5 +3,6 @@
   "packages/sdk": "0.4.0",
   "packages/cli": "0.4.0",
   "packages/ui": "0.4.0",
-  "apps/api": "0.4.0"
+  "apps/api": "0.4.0",
+  "packages/create-camox": "0.4.0"
 }

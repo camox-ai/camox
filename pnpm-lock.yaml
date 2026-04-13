@@ -323,6 +323,12 @@ importers:
         specifier: ^8.4.0
         version: 8.5.1(@microsoft/api-extractor@7.57.7(@types/node@24.12.2))(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.2)(yaml@2.8.3)
 
+  packages/create-camox:
+    dependencies:
+      '@camox/cli':
+        specifier: workspace:*
+        version: link:../cli
+
   packages/sdk:
     dependencies:
       '@camox/api':

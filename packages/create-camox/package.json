@@ -1,0 +1,14 @@
+{
+  "name": "create-camox",
+  "version": "0.4.0",
+  "bin": {
+    "create-camox": "./bin/create-camox.mjs"
+  },
+  "files": [
+    "bin"
+  ],
+  "type": "module",
+  "dependencies": {
+    "@camox/cli": "workspace:*"
+  }
+}
