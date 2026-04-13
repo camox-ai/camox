@@ -167,9 +167,11 @@ export async function init() {
   copyDir(templateDir, targetDir, {
     "{{projectName}}": result.name as string,
     "{{projectSlug}}": project.slug,
-    "{{syncSecret}}": project.syncSecret,
     "{{camoxVersion}}": ownPkg.version,
   });
+
+  // .env can't live in the template dir because the template's .gitignore would prevent it from being checked into git
+  fs.writeFileSync(path.join(targetDir, ".env"), `CAMOX_SYNC_SECRET=${project.syncSecret}\n`);
 
   s.stop("Project scaffolded!");
 
