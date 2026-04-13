@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1](https://github.com/camox-ai/camox/compare/camox-v0.4.0...camox-v0.4.1) (2026-04-13)
+
+
+### Bug Fixes
+
+* cli template ([6e7147d](https://github.com/camox-ai/camox/commit/6e7147dc2a175c79dd4e225f7d09f1e826436fc7))
+
+
+### Miscellaneous
+
+* add create-camox alias package ([c3e9cd0](https://github.com/camox-ai/camox/commit/c3e9cd0222c19ceb6a1bd6e35eec99cf317a6638))
+
 ## [0.4.0](https://github.com/camox-ai/camox/compare/camox-v0.3.1...camox-v0.4.0) (2026-04-13)
 
 

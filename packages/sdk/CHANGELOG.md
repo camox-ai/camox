@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/camox-ai/camox/compare/camox-v0.4.0...camox-sdk-v0.4.1) (2026-04-13)
+
+
+### Bug Fixes
+
+* cli template ([6e7147d](https://github.com/camox-ai/camox/commit/6e7147dc2a175c79dd4e225f7d09f1e826436fc7))
+
 ## [0.4.0](https://github.com/camox-ai/camox/compare/camox-v0.3.1...camox-sdk-v0.4.0) (2026-04-13)
 
 
