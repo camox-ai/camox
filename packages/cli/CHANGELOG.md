@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.1](https://github.com/camox-ai/camox/compare/camox-v0.3.0...@camox/cli-v0.3.1) (2026-04-13)
+
+
+### Miscellaneous
+
+* drop extraneous typescript dependency ([4189347](https://github.com/camox-ai/camox/commit/41893478954f0cc4baaf9de61d41e997394f1eb3))
+* set up rolldown react compiler ([ec250f6](https://github.com/camox-ai/camox/commit/ec250f6dbf2f8b2e33f34ded8c2183adb3090eef))
+* upgrade all deps ([7155d86](https://github.com/camox-ai/camox/commit/7155d863e1fd617db6a4312b33daad4d047b5fc8))
+* use react stable version ([2414936](https://github.com/camox-ai/camox/commit/24149362afa636eadb9c3eda0d15815cd0b2cb90))
+
 ## [0.3.0](https://github.com/camox-ai/camox/compare/@camox/cli-v0.2.0...@camox/cli-v0.3.0) (2026-04-12)
 
 
