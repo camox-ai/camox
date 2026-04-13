@@ -1,3 +1,13 @@
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@camox/ui/alert-dialog";
 import { Button } from "@camox/ui/button";
 import { Input } from "@camox/ui/input";
 import { Label } from "@camox/ui/label";
@@ -5,8 +15,8 @@ import { Spinner } from "@camox/ui/spinner";
 import { toast } from "@camox/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useForm } from "@tanstack/react-form";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CopyIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
@@ -174,6 +184,72 @@ function ProjectCredentialsSection({ slug, secret }: { slug: string; secret: str
   );
 }
 
+function DeleteProjectSection({ project }: { project: Project }) {
+  const [confirmValue, setConfirmValue] = useState("");
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { orgSlug } = Route.useParams();
+
+  const deleteProject = useMutation({
+    mutationFn: () => api.projects.delete({ id: project.id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(projectQueries.list(project.organizationId));
+      toast.success("Project deleted");
+      navigate({ to: "/dashboard/$orgSlug", params: { orgSlug } });
+    },
+    onError: (error) => {
+      console.error("Failed to delete project:", error);
+      toast.error("Could not delete project");
+    },
+  });
+
+  return (
+    <AlertDialog
+      open={open}
+      onOpenChange={(value) => {
+        setOpen(value);
+        if (!value) setConfirmValue("");
+      }}
+    >
+      <AlertDialogTrigger asChild>
+        <Button variant="destructive">Delete project</Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete project</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete the project <strong>{project.name}</strong> and all of its
+            data including environments, pages, blocks, and files. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="confirm-slug">
+            Type <span className="font-mono font-semibold">{project.slug}</span> to confirm
+          </Label>
+          <Input
+            id="confirm-slug"
+            value={confirmValue}
+            onChange={(e) => setConfirmValue(e.target.value)}
+            placeholder={project.slug}
+          />
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <Button
+            variant="destructive"
+            disabled={confirmValue !== project.slug || deleteProject.isPending}
+            onClick={() => deleteProject.mutate()}
+          >
+            {deleteProject.isPending && <Spinner />}
+            Delete project
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 function ProjectSettingsPage() {
   const { slug } = Route.useParams();
 
@@ -191,6 +267,9 @@ function ProjectSettingsPage() {
         description="Keys and secrets used to connect external services to this project."
       >
         <ProjectCredentialsSection slug={project.slug} secret={project.syncSecret} />
+      </Section>
+      <Section title="Danger zone" description="Irreversible and destructive actions.">
+        <DeleteProjectSection project={project} />
       </Section>
     </div>
   );
