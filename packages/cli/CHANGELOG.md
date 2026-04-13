@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0](https://github.com/camox-ai/camox/compare/camox-v0.3.1...@camox/cli-v0.4.0) (2026-04-13)
+
+
+### Bug Fixes
+
+* add query client to cli template ([5e7bf26](https://github.com/camox-ai/camox/commit/5e7bf2623cd864b550155251dc9ee5b8561869fa))
+* **cli:** remove broken package manager detection ([8d1a8b7](https://github.com/camox-ai/camox/commit/8d1a8b74717e53e3d7d8cd57e7d5cdc2ff649fd2))
+* **cli:** write camox sync secret to gitignored .env file ([440653d](https://github.com/camox-ai/camox/commit/440653d860899234551e016d7be24de76f89110e))
+
 ## [0.3.1](https://github.com/camox-ai/camox/compare/camox-v0.3.0...@camox/cli-v0.3.1) (2026-04-13)
 
 

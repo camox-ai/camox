@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.0](https://github.com/camox-ai/camox/compare/camox-v0.3.1...camox-v0.4.0) (2026-04-13)
+
+
+### Features
+
+* **sdk:** add powered by camox link ([7fb2e8a](https://github.com/camox-ai/camox/commit/7fb2e8a2b28fb43de041d4dfce1d4b5ea9df574f))
+* **web:** project deletion ([f84688a](https://github.com/camox-ai/camox/commit/f84688a579c82bb67b0cf07b87e780ec5f088459))
+
+
+### Bug Fixes
+
+* add query client to cli template ([5e7bf26](https://github.com/camox-ai/camox/commit/5e7bf2623cd864b550155251dc9ee5b8561869fa))
+* **cli:** remove broken package manager detection ([8d1a8b7](https://github.com/camox-ai/camox/commit/8d1a8b74717e53e3d7d8cd57e7d5cdc2ff649fd2))
+* **cli:** write camox sync secret to gitignored .env file ([440653d](https://github.com/camox-ai/camox/commit/440653d860899234551e016d7be24de76f89110e))
+
+
+### Miscellaneous
+
+* remove definitionsSync from camox vite options ([7c3411f](https://github.com/camox-ai/camox/commit/7c3411fce9519807d4c7a3a1149580306bea621a))
+
 ## [0.3.1](https://github.com/camox-ai/camox/compare/camox-v0.3.0...camox-v0.3.1) (2026-04-13)
 
 

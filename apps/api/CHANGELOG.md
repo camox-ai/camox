@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/camox-ai/camox/compare/camox-v0.3.1...@camox/api-v0.4.0) (2026-04-13)
+
+
+### Features
+
+* **web:** project deletion ([f84688a](https://github.com/camox-ai/camox/commit/f84688a579c82bb67b0cf07b87e780ec5f088459))
+
 ## [0.3.1](https://github.com/camox-ai/camox/compare/camox-v0.3.0...@camox/api-v0.3.1) (2026-04-13)
 
 
