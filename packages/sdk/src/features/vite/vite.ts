@@ -13,11 +13,7 @@ import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
 
 const PRODUCTION_API_URL = "https://api.camox.ai";
-import {
-  syncDefinitions,
-  syncDefinitionsToApi,
-  type DefinitionsSyncOptions,
-} from "./definitionsSync";
+import { syncDefinitions, syncDefinitionsToApi } from "./definitionsSync";
 import { generateRouteFiles, watchRouteFiles } from "./routeGeneration";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
@@ -51,8 +47,6 @@ export interface CamoxPluginOptions {
   projectSlug: string;
   /** Secret used to authenticate definition sync requests with the API */
   syncSecret: string;
-  /** Options for definitions sync */
-  definitionsSync?: DefinitionsSyncOptions;
   /** Disable PostHog analytics collection (default: false) */
   disableAnalytics?: boolean;
   /** Internal options (intended for Camox contributors in development, not for public use) */
@@ -140,7 +134,6 @@ export function camox(options: CamoxPluginOptions): Plugin {
 
       server.httpServer?.once("listening", () => {
         syncDefinitions(server, {
-          ...options.definitionsSync,
           projectSlug: options.projectSlug,
           syncSecret: options.syncSecret,
           apiUrl,
@@ -153,7 +146,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
       if (!isBuild) return;
 
       const { createServer } = await import("vite");
-      const camoxAppPath = options.definitionsSync?.camoxAppPath ?? "./src/camox/app.ts";
+      const camoxAppPath = "./src/camox/app.ts";
 
       const tempServer = await createServer({
         configFile: false,

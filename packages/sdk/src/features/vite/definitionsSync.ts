@@ -9,17 +9,11 @@ import { createServerApiClient } from "../../lib/api-client-server";
 
 const SYNC_DEBOUNCE_DELAY_MS = 100;
 
-export interface DefinitionsSyncOptions {
-  /** Stable project slug used to resolve the project */
-  projectSlug?: string;
-  /** Path to the module that exports the camoxApp (relative to project root) */
-  camoxAppPath?: string;
-  /** URL of the Camox API backend */
-  apiUrl?: string;
-  /** Secret used to authenticate sync requests with the API */
-  syncSecret?: string;
-  /** Environment name to scope definitions to (e.g. "production", "alice-dev") */
-  environmentName?: string;
+interface SyncDefinitionsOptions {
+  projectSlug: string;
+  syncSecret: string;
+  apiUrl: string;
+  environmentName: string;
 }
 
 /**
@@ -138,39 +132,23 @@ function getBlockIdFromFilePath(filePath: string): string {
   return fileName;
 }
 
+const CAMOX_APP_PATH = "./src/camox/app.ts";
+
 export async function syncDefinitions(
   server: ViteDevServer,
-  options: DefinitionsSyncOptions = {},
+  options: SyncDefinitionsOptions,
 ): Promise<void> {
-  const camoxAppPath = options.camoxAppPath ?? "./src/camox/app.ts";
+  const { projectSlug, syncSecret, apiUrl, environmentName } = options;
   const blocksDir = path.resolve(server.config.root, "src/camox/blocks");
-
-  if (!options.projectSlug) {
-    server.config.logger.warn("[camox] No projectSlug provided, skipping block definitions sync", {
-      timestamp: true,
-    });
-    return;
-  }
-  const projectSlug: string = options.projectSlug;
-
-  const apiUrl = options.apiUrl ?? "http://localhost:8787";
-  if (!options.syncSecret) {
-    server.config.logger.warn("[camox] No syncSecret provided, skipping definitions sync", {
-      timestamp: true,
-    });
-    return;
-  }
-  const syncSecret = options.syncSecret;
-  const environmentName = options.environmentName;
   const client = createServerApiClient(apiUrl, environmentName);
 
   async function performInitialSync(): Promise<void> {
-    const camoxModule = (await server.ssrLoadModule(camoxAppPath)) as {
+    const camoxModule = (await server.ssrLoadModule(CAMOX_APP_PATH)) as {
       camoxApp?: CamoxApp;
     };
 
     if (!camoxModule.camoxApp) {
-      server.config.logger.warn(`[camox] No camoxApp export found in ${camoxAppPath}`, {
+      server.config.logger.warn(`[camox] No camoxApp export found in ${CAMOX_APP_PATH}`, {
         timestamp: true,
       });
       return;
