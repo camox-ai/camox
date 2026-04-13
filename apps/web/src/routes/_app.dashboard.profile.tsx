@@ -1,9 +1,5 @@
 import { cn } from "@camox/ui/utils";
-import {
-  AccountSettingsCards,
-  SecuritySettingsCards,
-  UserButton,
-} from "@daveyplate/better-auth-ui";
+import { AccountSettingsCards, SecuritySettingsCards } from "@daveyplate/better-auth-ui";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
@@ -39,7 +35,6 @@ function ProfilePage() {
     <div>
       <div className="border-b px-6">
         <nav className="-mb-px flex items-center gap-4">
-          <UserButton variant="ghost" size="sm" />
           <Link
             to="/dashboard/profile"
             search={{ tab: "account" }}

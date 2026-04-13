@@ -8,10 +8,30 @@ import { useForm } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CopyIcon, EyeIcon, EyeOffIcon } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { api, type Project } from "@/lib/api";
 import { projectQueries } from "@/lib/queries";
+
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-8">
+      <div>
+        <h2 className="font-semibold">{title}</h2>
+        <p className="text-muted-foreground mt-1 text-sm">{description}</p>
+      </div>
+      <div className="col-span-2">{children}</div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_app/dashboard/$orgSlug/$slug/overview")({
   component: ProjectSettingsPage,
@@ -40,86 +60,108 @@ function ProjectSettingsFormInner({ project }: { project: Project }) {
   });
 
   return (
-    <div>
-      <h2 className="text-lg font-semibold">Project settings</h2>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          form.handleSubmit();
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        form.handleSubmit();
+      }}
+      className="space-y-4"
+    >
+      <form.Field
+        name="name"
+        validators={{
+          onSubmit: ({ value }) => {
+            if (!value || value.trim().length === 0) {
+              return "Project name is required";
+            }
+            return undefined;
+          },
         }}
-        className="mt-4 space-y-4"
       >
-        <form.Field
-          name="name"
-          validators={{
-            onSubmit: ({ value }) => {
-              if (!value || value.trim().length === 0) {
-                return "Project name is required";
-              }
-              return undefined;
-            },
-          }}
-        >
-          {(field) => (
-            <div className="space-y-2">
-              <Label htmlFor="name">Project name</Label>
-              <Input
-                id="name"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                aria-invalid={!!field.state.meta.errors.length}
-              />
-              {field.state.meta.errors.length > 0 && (
-                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
-              )}
-            </div>
-          )}
-        </form.Field>
+        {(field) => (
+          <div className="space-y-2">
+            <Label htmlFor="name">Project name</Label>
+            <Input
+              id="name"
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              aria-invalid={!!field.state.meta.errors.length}
+            />
+            {field.state.meta.errors.length > 0 && (
+              <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
+            )}
+          </div>
+        )}
+      </form.Field>
 
-        <form.Subscribe selector={(state) => [state.isDirty, state.isSubmitting, state.canSubmit]}>
-          {([isDirty, isSubmitting, canSubmit]) => (
-            <Button type="submit" disabled={!isDirty || isSubmitting || !canSubmit}>
-              {isSubmitting && <Spinner />}
-              Save changes
-            </Button>
-          )}
-        </form.Subscribe>
-      </form>
-    </div>
+      <form.Subscribe selector={(state) => [state.isDirty, state.isSubmitting, state.canSubmit]}>
+        {([isDirty, isSubmitting, canSubmit]) => (
+          <Button type="submit" disabled={!isDirty || isSubmitting || !canSubmit}>
+            {isSubmitting && <Spinner />}
+            Save changes
+          </Button>
+        )}
+      </form.Subscribe>
+    </form>
   );
 }
 
-function SyncSecretSection({ secret }: { secret: string }) {
+function ProjectCredentialsSection({ slug, secret }: { slug: string; secret: string }) {
   const [revealed, setRevealed] = useState(false);
 
   return (
-    <div>
-      <h2 className="text-lg font-semibold">Sync secret</h2>
-      <div className="mt-4 flex items-center gap-2">
-        <Input
-          readOnly
-          value={revealed ? secret : "*".repeat(secret.length)}
-          className="font-mono"
-        />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => setRevealed((v) => !v)}
-            >
-              {revealed ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{revealed ? "Hide secret" : "Reveal secret"}</TooltipContent>
-        </Tooltip>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="project-slug">Project slug</Label>
+        <div className="flex items-center gap-2">
+          <Input id="project-slug" readOnly value={slug} className="font-mono" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  navigator.clipboard.writeText(slug);
+                  toast.success("Slug copied to clipboard");
+                }}
+              >
+                <CopyIcon className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Copy slug</TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="sync-secret">Sync secret</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="sync-secret"
+            readOnly
+            value={revealed ? secret : "*".repeat(secret.length)}
+            className="font-mono"
+          />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setRevealed((v) => !v)}
+              >
+                {revealed ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{revealed ? "Hide secret" : "Reveal secret"}</TooltipContent>
+          </Tooltip>
+        </div>
       </div>
       <Button
         type="button"
         variant="secondary"
-        className="mt-2"
+        className="-mt-2"
         onClick={() => {
           navigator.clipboard.writeText(secret);
           toast.success("Secret copied to clipboard");
@@ -140,9 +182,16 @@ function ProjectSettingsPage() {
   if (!project) return null;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <ProjectSettingsFormInner key={project.id} project={project} />
-      <SyncSecretSection secret={project.syncSecret} />
+    <div className="mx-auto max-w-4xl space-y-12">
+      <Section title="Project settings" description="Manage your project's general configuration.">
+        <ProjectSettingsFormInner key={project.id} project={project} />
+      </Section>
+      <Section
+        title="Project credentials"
+        description="Keys and secrets used to connect external services to this project."
+      >
+        <ProjectCredentialsSection slug={project.slug} secret={project.syncSecret} />
+      </Section>
     </div>
   );
 }
