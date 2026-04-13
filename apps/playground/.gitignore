@@ -9,7 +9,6 @@ count.txt
 .tanstack
 .output
 .vinxi
-todos.json
 src/camox/app.ts
 src/routes/_camox.tsx
 src/routes/_camox/

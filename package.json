@@ -11,6 +11,7 @@
     "fmt": "oxfmt .",
     "check": "oxfmt . && nx run-many -t check --all --no-tui",
     "seed": "nx run @camox/api:seed",
+    "deploy": "nx run-many -t deploy --all",
     "prepare": "husky"
   },
   "devDependencies": {
