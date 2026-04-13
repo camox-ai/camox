@@ -84,7 +84,7 @@ function OrganizationPicker() {
               params={{ orgSlug: orgSlug! }}
               search={{ tab: "members" }}
             >
-              <UsersIcon className="h-4 w-4" />
+              <UsersIcon />
               Members
             </Link>
           </DropdownMenuItem>
@@ -94,7 +94,7 @@ function OrganizationPicker() {
               params={{ orgSlug: orgSlug! }}
               search={{ tab: "settings" }}
             >
-              <SettingsIcon className="h-4 w-4" />
+              <SettingsIcon />
               Settings
             </Link>
           </DropdownMenuItem>
@@ -114,7 +114,7 @@ function OrganizationPicker() {
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setCreateOpen(true)}>
-            <PlusIcon className="h-4 w-4" />
+            <PlusIcon />
             Create organization
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -301,7 +301,7 @@ function ProjectPicker() {
           ))}
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setCreateOpen(true)}>
-            <PlusIcon className="h-4 w-4" />
+            <PlusIcon />
             Create project
           </DropdownMenuItem>
         </DropdownMenuContent>

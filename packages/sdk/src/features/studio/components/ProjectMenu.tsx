@@ -9,7 +9,8 @@ import {
 } from "@camox/ui/dropdown-menu";
 import { Skeleton } from "@camox/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, Globe, Settings, Users } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ChevronDown, Globe, Info, Settings, Users } from "lucide-react";
 import * as React from "react";
 
 import { AuthContext } from "@/lib/auth";
@@ -90,7 +91,7 @@ export const ProjectMenu = () => {
             <Favicon size={16} />
             <span className="select-none">{project.name}</span>
           </div>
-          <ChevronDown className="ml-1 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronDown className="shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="start" side="bottom">
@@ -104,7 +105,7 @@ export const ProjectMenu = () => {
             }
           }}
         >
-          <Settings className="mr-2 h-4 w-4" />
+          <Settings />
           Project settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -121,7 +122,7 @@ export const ProjectMenu = () => {
             }
           }}
         >
-          <Users className="mr-2 h-4 w-4" />
+          <Users />
           Team members
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -134,8 +135,15 @@ export const ProjectMenu = () => {
             }
           }}
         >
-          <Settings className="mr-2 h-4 w-4" />
+          <Settings className="h-4 w-4" />
           Team settings
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="https://camox.ai" target="_blank">
+            <Info className="h-4 w-4" />
+            Powered by Camox
+          </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
