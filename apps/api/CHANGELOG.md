@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/camox-ai/camox/compare/camox-v0.3.0...@camox/api-v0.3.1) (2026-04-13)
+
+
+### Miscellaneous
+
+* set up rolldown react compiler ([ec250f6](https://github.com/camox-ai/camox/commit/ec250f6dbf2f8b2e33f34ded8c2183adb3090eef))
+
 ## [0.3.0](https://github.com/camox-ai/camox/compare/@camox/api-v0.2.0...@camox/api-v0.3.0) (2026-04-12)
 
 
