@@ -14,7 +14,7 @@ import {
   listOrganizations,
   setActiveOrganization,
 } from "../lib/api";
-import { getOrAuthenticate } from "../lib/auth";
+import { getOrAuthenticate, readAuthToken } from "../lib/auth";
 import { type PackageManager, copyDir, pmCommands, slugify } from "../lib/utils";
 
 export const parser = command(
@@ -82,7 +82,12 @@ async function promptCreateOrganization(token: string): Promise<string> {
 }
 
 export async function init() {
-  p.intro("camox init");
+  p.intro(`Camox v${ownPkg.version}`);
+  const stored = readAuthToken();
+  if (stored) {
+    p.log.info(`Welcome back, ${stored.name}!`);
+  }
+  p.log.info("Let's create your Camox application.");
 
   const result = await p.group(
     {
