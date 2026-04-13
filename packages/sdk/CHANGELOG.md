@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/camox-ai/camox/compare/camox-v0.3.1...camox-sdk-v0.4.0) (2026-04-13)
+
+
+### Features
+
+* **sdk:** add powered by camox link ([7fb2e8a](https://github.com/camox-ai/camox/commit/7fb2e8a2b28fb43de041d4dfce1d4b5ea9df574f))
+
+
+### Miscellaneous
+
+* remove definitionsSync from camox vite options ([7c3411f](https://github.com/camox-ai/camox/commit/7c3411fce9519807d4c7a3a1149580306bea621a))
+
 ## [0.3.1](https://github.com/camox-ai/camox/compare/camox-v0.3.0...camox-sdk-v0.3.1) (2026-04-13)
 
 
