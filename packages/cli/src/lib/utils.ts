@@ -17,38 +17,6 @@ export function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export function detectPackageManager(): PackageManager | null {
-  // 1. Check npm_config_user_agent (set by pnpm create, npx, bunx, yarn create)
-  const userAgent = process.env.npm_config_user_agent;
-  if (userAgent) {
-    const name = userAgent.split("/")[0];
-    if (name === "pnpm") return "pnpm";
-    if (name === "bun") return "bun";
-    if (name === "npm" || name === "npx") return "npm";
-    if (name === "yarn") return "yarn";
-  }
-
-  // 2. Walk ancestor directories looking for lockfiles
-  let dir = process.cwd();
-  const root = path.parse(dir).root;
-  while (true) {
-    if (
-      fs.existsSync(path.join(dir, "pnpm-lock.yaml")) ||
-      fs.existsSync(path.join(dir, "pnpm-workspace.yaml"))
-    )
-      return "pnpm";
-    if (fs.existsSync(path.join(dir, "bun.lockb")) || fs.existsSync(path.join(dir, "bun.lock")))
-      return "bun";
-    if (fs.existsSync(path.join(dir, "package-lock.json"))) return "npm";
-    if (fs.existsSync(path.join(dir, "yarn.lock"))) return "yarn";
-
-    if (dir === root) break;
-    dir = path.dirname(dir);
-  }
-
-  return null;
-}
-
 export function copyDir(src: string, dest: string, replacements: Record<string, string>) {
   fs.mkdirSync(dest, { recursive: true });
 

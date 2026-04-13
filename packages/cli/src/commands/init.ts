@@ -15,13 +15,7 @@ import {
   setActiveOrganization,
 } from "../lib/api";
 import { getOrAuthenticate } from "../lib/auth";
-import {
-  type PackageManager,
-  copyDir,
-  detectPackageManager,
-  pmCommands,
-  slugify,
-} from "../lib/utils";
+import { type PackageManager, copyDir, pmCommands, slugify } from "../lib/utils";
 
 export const parser = command(
   "init",
@@ -139,25 +133,17 @@ export async function init() {
   }
 
   // Package manager
-  const detected = detectPackageManager();
-  let pm: PackageManager;
-
-  if (detected) {
-    pm = detected;
-    p.log.info(`Detected package manager: ${detected}`);
-  } else {
-    const selected = await p.select({
-      message: "Which package manager?",
-      options: [
-        { value: "pnpm" as const, label: "pnpm" },
-        { value: "bun" as const, label: "bun" },
-        { value: "npm" as const, label: "npm" },
-        { value: "yarn" as const, label: "yarn" },
-      ],
-    });
-    if (p.isCancel(selected)) return onCancel();
-    pm = selected;
-  }
+  const selected = await p.select({
+    message: "Which package manager?",
+    options: [
+      { value: "pnpm" as const, label: "pnpm (recommended)" },
+      { value: "bun" as const, label: "bun" },
+      { value: "npm" as const, label: "npm" },
+      { value: "yarn" as const, label: "yarn" },
+    ],
+  });
+  if (p.isCancel(selected)) return onCancel();
+  const pm: PackageManager = selected;
 
   // Scaffold
   const s = p.spinner();
