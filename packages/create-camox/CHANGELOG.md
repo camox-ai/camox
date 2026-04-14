@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/camox-ai/camox/compare/camox-v0.4.2...create-camox-v0.5.0) (2026-04-14)
+
+
+### Bug Fixes
+
+* **cli:** broken init command ([4737da3](https://github.com/camox-ai/camox/commit/4737da36cc5b5e4733532486bad1554bb2997870))
+
 ## [0.4.2](https://github.com/camox-ai/camox/compare/camox-v0.4.1...create-camox-v0.4.2) (2026-04-13)
 
 

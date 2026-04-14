@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.5.0](https://github.com/camox-ai/camox/compare/camox-v0.4.2...camox-v0.5.0) (2026-04-14)
+
+
+### Features
+
+* set up vite plus in created apps ([97ee8f1](https://github.com/camox-ai/camox/commit/97ee8f1d1eb7f7bbe958170a1651c667525acdb1))
+
+
+### Bug Fixes
+
+* **cli:** broken init command ([4737da3](https://github.com/camox-ai/camox/commit/4737da36cc5b5e4733532486bad1554bb2997870))
+* ensure cli-authorize is authenticated ([a541ef3](https://github.com/camox-ai/camox/commit/a541ef37e4b1cac48475a5bef1325e95823f6651))
+* error on cli init control+c ([5f1ab77](https://github.com/camox-ai/camox/commit/5f1ab774fc22f0b856a7f5938f95e3473ceb04fe))
+
+
+### Miscellaneous
+
+* **cli:** migrate to tsdown ([3ce10f6](https://github.com/camox-ai/camox/commit/3ce10f6f2e281eada74a29ae5482b4ecbe5beb54))
+
 ## [0.4.2](https://github.com/camox-ai/camox/compare/camox-v0.4.1...camox-v0.4.2) (2026-04-13)
 
 
