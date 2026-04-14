@@ -2,16 +2,16 @@
   "name": "@camox/cli",
   "version": "0.5.0",
   "bin": {
-    "camox": "./dist/index.js"
+    "camox": "./dist/index.mjs"
   },
   "files": [
     "dist",
     "template"
   ],
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.mjs",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.mjs"
   },
   "scripts": {
     "build": "tsdown",
