@@ -1,5 +1,5 @@
 import { Button } from "@camox/ui/button";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Terminal } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
@@ -7,6 +7,11 @@ import { z } from "zod";
 import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/_app/_auth/cli-authorize")({
+  beforeLoad: ({ context, location }) => {
+    if (!context.session) {
+      throw redirect({ to: "/login", search: { redirect: location.href } });
+    }
+  },
   validateSearch: z.object({
     callback: z.string(),
   }),
