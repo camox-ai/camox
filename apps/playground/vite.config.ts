@@ -4,6 +4,7 @@ import babelPlugin from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 
 import { camox } from "../../packages/sdk/src/features/vite/vite";
@@ -67,6 +68,7 @@ const config = defineConfig(() => {
     },
     plugins: [
       tailwindcss(),
+      nitro(),
       camox({
         projectSlug: "camox-playground-01",
         syncSecret: "camox-dev-sync-secret",

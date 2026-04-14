@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import type { Logger, ViteDevServer } from "vite";
+import { type Logger, type ViteDevServer, createServer, isRunnableDevEnvironment } from "vite";
 
 import type { CamoxApp } from "@/core/createApp";
 import type { Block } from "@/core/createBlock";
@@ -134,6 +134,35 @@ function getBlockIdFromFilePath(filePath: string): string {
 
 const CAMOX_APP_PATH = "./src/camox/app.ts";
 
+/**
+ * Load a module using SSR. Uses the server's SSR environment runner if available,
+ * otherwise falls back to a temporary Vite server (needed when Nitro or other
+ * frameworks configure the SSR environment as non-runnable).
+ */
+async function ssrLoadModule(
+  server: ViteDevServer,
+  modulePath: string,
+): Promise<Record<string, unknown>> {
+  const ssrEnv = server.environments.ssr;
+  if (ssrEnv && isRunnableDevEnvironment(ssrEnv)) {
+    return ssrEnv.runner.import(modulePath);
+  }
+
+  const tempServer = await createServer({
+    configFile: false,
+    root: server.config.root,
+    resolve: server.config.resolve,
+    server: { middlewareMode: true },
+    logLevel: "silent",
+  });
+
+  try {
+    return await tempServer.ssrLoadModule(modulePath);
+  } finally {
+    await tempServer.close();
+  }
+}
+
 export async function syncDefinitions(
   server: ViteDevServer,
   options: SyncDefinitionsOptions,
@@ -143,7 +172,7 @@ export async function syncDefinitions(
   const client = createServerApiClient(apiUrl, environmentName);
 
   async function performInitialSync(): Promise<void> {
-    const camoxModule = (await server.ssrLoadModule(CAMOX_APP_PATH)) as {
+    const camoxModule = (await ssrLoadModule(server, CAMOX_APP_PATH)) as {
       camoxApp?: CamoxApp;
     };
 
@@ -173,7 +202,7 @@ export async function syncDefinitions(
       server.moduleGraph.invalidateModule(moduleNode);
     }
 
-    const blockModule = (await server.ssrLoadModule(relativePath)) as {
+    const blockModule = (await ssrLoadModule(server, relativePath)) as {
       block?: Block;
     };
 

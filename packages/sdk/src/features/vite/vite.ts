@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { Plugin, ResolvedConfig, ViteDevServer } from "vite";
+import { type Plugin, type ResolvedConfig, type ViteDevServer, createServer } from "vite";
 
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
@@ -160,7 +160,6 @@ export function camox(options: CamoxPluginOptions): Plugin {
     async closeBundle() {
       if (!isBuild) return;
 
-      const { createServer } = await import("vite");
       const camoxAppPath = "./src/camox/app.ts";
 
       const tempServer = await createServer({

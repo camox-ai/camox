@@ -230,7 +230,7 @@ export async function getOrAuthenticate(): Promise<AuthToken> {
     removeAuthToken();
     p.log.warn("Session expired. Please log in again.");
   } else {
-    p.log.info("Please connect to Camox so we can create a project on the Camox API.");
+    p.log.info("Please connect to Camox so we can create your project on the Camox API.");
   }
 
   return authenticateUser();
