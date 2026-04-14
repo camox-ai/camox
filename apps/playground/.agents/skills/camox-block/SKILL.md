@@ -3,10 +3,8 @@ This file is managed by the Camox Vite plugin.
 Any manual edits will be automatically reverted by the dev server. -->
 
 ---
-
 name: camox-block
 description: "How to create Camox block definition files. Use this skill whenever the user wants to create a new block for their Camox website, add a page section/component, build a reusable content block, or asks about the block definition API. Trigger on mentions of blocks, sections, page components, content types, or any request to add new visual sections to a Camox site — even if they don't say 'block' explicitly."
-
 ---
 
 # Creating Camox Block Definitions
