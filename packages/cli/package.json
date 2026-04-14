@@ -14,8 +14,8 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "lint": "oxlint",
     "check": "tsgo --noEmit && oxlint --fix"
   },
@@ -31,6 +31,6 @@
     "@types/node": "^24.12.2",
     "@typescript/native-preview": "7.0.0-dev.20260412.1",
     "oxlint": "^0.15.0",
-    "tsup": "^8.4.0"
+    "tsdown": "^0.21.8"
   }
 }
