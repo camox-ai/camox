@@ -226,6 +226,11 @@ src/routeTree.gen.ts
   p.outro(`Starting dev server...`);
 
   const [cmd, ...args] = devCmd.split(" ");
+
+  // Ignore SIGINT in the parent so only the dev server handles Ctrl+C.
+  // Without this, pnpm reports ELIFECYCLE when the parent dies from the signal.
+  process.on("SIGINT", () => {});
+
   const child = spawn(cmd, args, {
     cwd: targetDir,
     stdio: "inherit",
