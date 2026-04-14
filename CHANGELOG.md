@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/camox-ai/camox/compare/camox-v0.5.0...camox-v0.5.1) (2026-04-14)
+
+
+### Bug Fixes
+
+* cli package export ([752d983](https://github.com/camox-ai/camox/commit/752d983cc42108b09885eec26f82b4b64a71577a))
+
 ## [0.5.0](https://github.com/camox-ai/camox/compare/camox-v0.4.2...camox-v0.5.0) (2026-04-14)
 
 
