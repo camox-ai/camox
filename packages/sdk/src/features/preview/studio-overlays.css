@@ -1,0 +1,178 @@
+/*
+ * Visual editing overlay styles injected into the preview iframe.
+ *
+ * State is driven by data attributes on the elements:
+ * - data-camox-hovered: element is hovered
+ * - data-camox-focused: element is focused/selected
+ * - data-camox-overlay-mode="layout": use layout (purple) colors
+ *
+ * Elements are targeted via their existing data attributes:
+ * - [data-camox-field-id]: Field, Link, Image, Embed
+ * - [data-camox-block-id]: BlockComponent, Detached
+ * - [data-camox-repeater-item-id]: RepeaterItemWrapper
+ */
+
+:root {
+  --camox-overlay-color-hover: #f472b6bf; /* pink-400 at 75% */
+  --camox-overlay-color-selected: #f472b6; /* pink-400 */
+  --camox-overlay-layout-color-hover: #c084fcbf; /* purple-400 at 75% */
+  --camox-overlay-layout-color-selected: #c084fc; /* purple-400 */
+  --camox-overlay-width-hover: 3px;
+  --camox-overlay-width-selected: 1px;
+  --camox-overlay-inset-field-hover: -1px;
+  --camox-overlay-inset-field-selected: -2px;
+  --camox-overlay-inset-block-hover: -1px;
+  --camox-overlay-inset-block-selected: 0px;
+}
+
+/* Position context for field-level and repeater elements.
+   BlockComponent already has position: relative inline.
+   Detached wraps user elements (e.g. fixed navbars) so must NOT get position: relative. */
+[data-camox-field-id],
+[data-camox-repeater-item-id] {
+  position: relative;
+}
+
+/* ---- Hovered state ---- */
+
+[data-camox-field-id][data-camox-hovered]::after,
+[data-camox-block-id][data-camox-hovered]:not([data-camox-detached])::after,
+[data-camox-repeater-item-id][data-camox-hovered]::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  inset: var(--camox-overlay-inset-block-hover);
+  border: var(--camox-overlay-width-hover) solid var(--camox-overlay-color-hover);
+}
+
+/* Field-level elements use field-specific inset */
+[data-camox-field-id][data-camox-hovered]:not([data-camox-field-type])::after {
+  inset: var(--camox-overlay-inset-field-hover);
+}
+
+/* ---- Focused state (overrides hovered via source order) ---- */
+
+[data-camox-field-id][data-camox-focused]::after,
+[data-camox-block-id][data-camox-focused]:not([data-camox-detached])::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  inset: var(--camox-overlay-inset-block-selected);
+  border: var(--camox-overlay-width-selected) solid var(--camox-overlay-color-selected);
+}
+
+/* Field-level elements use field-specific inset */
+[data-camox-field-id][data-camox-focused]:not([data-camox-field-type])::after {
+  inset: var(--camox-overlay-inset-field-selected);
+}
+
+/* ---- Layout mode color overrides ---- */
+
+[data-camox-field-id][data-camox-overlay-mode="layout"][data-camox-hovered]::after,
+[data-camox-block-id][data-camox-overlay-mode="layout"][data-camox-hovered]:not(
+    [data-camox-detached]
+  )::after,
+[data-camox-repeater-item-id][data-camox-overlay-mode="layout"][data-camox-hovered]::after {
+  border-color: var(--camox-overlay-layout-color-hover);
+}
+
+[data-camox-field-id][data-camox-overlay-mode="layout"][data-camox-focused]::after,
+[data-camox-block-id][data-camox-overlay-mode="layout"][data-camox-focused]:not(
+    [data-camox-detached]
+  )::after {
+  border-color: var(--camox-overlay-layout-color-selected);
+}
+
+/* ---- Embed: z-index above click-interceptor ---- */
+
+[data-camox-field-type="embed"][data-camox-hovered]::after,
+[data-camox-field-type="embed"][data-camox-focused]::after {
+  z-index: 11;
+}
+
+/* ---- Detached: styled directly (not ::after) because the parent element
+   (e.g. fixed navbar) must not get position: relative ---- */
+
+[data-camox-detached][data-camox-hovered] {
+  inset: var(--camox-overlay-inset-block-hover);
+  border: var(--camox-overlay-width-hover) solid var(--camox-overlay-color-hover);
+}
+
+[data-camox-detached][data-camox-focused] {
+  inset: var(--camox-overlay-inset-block-selected);
+  border: var(--camox-overlay-width-selected) solid var(--camox-overlay-color-selected);
+}
+
+[data-camox-detached][data-camox-overlay-mode="layout"][data-camox-hovered] {
+  border-color: var(--camox-overlay-layout-color-hover);
+}
+
+[data-camox-detached][data-camox-overlay-mode="layout"][data-camox-focused] {
+  border-color: var(--camox-overlay-layout-color-selected);
+}
+
+/* ---- Add block control bar ---- */
+
+.camox-add-block {
+  position: absolute;
+  left: 50%;
+  right: 0;
+  height: 36px;
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 11;
+  transition: opacity 150ms ease;
+}
+
+.camox-add-block[data-camox-position="top"] {
+  top: 0;
+  transform: translateX(-50%) translateY(-50%);
+}
+
+.camox-add-block[data-camox-position="bottom"] {
+  bottom: 0;
+  transform: translateX(-50%) translateY(50%);
+}
+
+.camox-add-block[data-camox-hidden] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.camox-add-block-hitarea {
+  width: 120px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camox-add-block-button {
+  display: flex;
+  align-items: center;
+  gap: 0px;
+  padding: 0px;
+  width: 20px;
+  height: 20px;
+  justify-content: center;
+  background-color: var(--camox-overlay-color-selected);
+  color: white;
+  border: none;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 150ms ease;
+}
+
+.camox-add-block-button[data-camox-expanded] {
+  gap: 4px;
+  padding: 4px 8px;
+  width: auto;
+  height: auto;
+}

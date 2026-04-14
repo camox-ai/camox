@@ -22,12 +22,6 @@ import {
   projectQueries,
 } from "@/lib/queries";
 
-import {
-  OVERLAY_WIDTHS,
-  OVERLAY_OFFSETS,
-  OVERLAY_COLORS,
-  LAYOUT_OVERLAY_COLORS,
-} from "../features/preview/overlayConstants";
 import { postOverlayMessage } from "../features/preview/overlayMessages";
 import { previewStore } from "../features/preview/previewStore";
 import {
@@ -540,7 +534,6 @@ export function createBlock<
 
     const { blockId, content, mode } = blockContext;
     const isContentEditable = useIsEditable(mode);
-    const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const elementRef = React.useRef<HTMLElement>(null);
     const { window: iframeWindow } = useFrame();
 
@@ -642,14 +635,6 @@ export function createBlock<
       }
     };
 
-    const overlayStyle =
-      isContentEditable && (isHovered || isFocused)
-        ? {
-            outline: `${isFocused ? OVERLAY_WIDTHS.selected : OVERLAY_WIDTHS.hover} solid ${isFocused ? colors.selected : colors.hover}`,
-            outlineOffset: isFocused ? OVERLAY_OFFSETS.fieldSelected : OVERLAY_OFFSETS.fieldHover,
-          }
-        : undefined;
-
     if (!isContentEditable) {
       const reactContent = markdownToReactNodes(fieldValue);
       return <>{children(reactContent)}</>;
@@ -659,9 +644,11 @@ export function createBlock<
       <Slot
         ref={elementRef}
         data-camox-field-id={fieldId}
+        data-camox-hovered={isHovered || undefined}
+        data-camox-focused={isFocused || undefined}
+        data-camox-overlay-mode={mode === "layout" ? "layout" : undefined}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        style={overlayStyle}
       >
         {children(
           <InlineLexicalEditor
@@ -690,7 +677,6 @@ export function createBlock<
 
     const { blockId, content, mode } = blockContext;
     const isContentEditable = useIsEditable(mode);
-    const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const { window: iframeWindow } = useFrame();
     const repeaterContext = React.use(RepeaterItemContext);
     const fieldValue = repeaterContext
@@ -787,42 +773,33 @@ export function createBlock<
       >
         <PopoverTrigger asChild>
           <div
-            style={{ position: "relative" }}
+            data-camox-field-id={isContentEditable ? fieldId : undefined}
+            data-camox-field-type={isContentEditable ? "embed" : undefined}
+            data-camox-hovered={(isContentEditable && isHovered) || undefined}
+            data-camox-focused={(isContentEditable && isOpen) || undefined}
+            data-camox-overlay-mode={mode === "layout" ? "layout" : undefined}
             onMouseEnter={isContentEditable ? () => setIsHovered(true) : undefined}
             onMouseLeave={isContentEditable ? () => setIsHovered(false) : undefined}
           >
             {children(fieldValue)}
             {isContentEditable && (
-              <>
-                {/* Transparent full-coverage overlay to intercept iframe pointer events */}
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    zIndex: 10,
-                  }}
-                  onClick={() => {
-                    if (hasShownEmbedLockToast) return;
-                    hasShownEmbedLockToast = true;
-                    toast(
-                      <span>
-                        Hold <Kbd>L</Kbd> to interact with the embed content
-                      </span>,
-                    );
-                  }}
-                />
-                {(isHovered || isOpen) && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: isOpen ? OVERLAY_OFFSETS.blockSelected : OVERLAY_OFFSETS.blockHover,
-                      border: `${isOpen ? OVERLAY_WIDTHS.selected : OVERLAY_WIDTHS.hover} solid ${isOpen ? colors.selected : colors.hover}`,
-                      pointerEvents: "none",
-                      zIndex: 11,
-                    }}
-                  />
-                )}
-              </>
+              /* Transparent full-coverage overlay to intercept iframe pointer events */
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  zIndex: 10,
+                }}
+                onClick={() => {
+                  if (hasShownEmbedLockToast) return;
+                  hasShownEmbedLockToast = true;
+                  toast(
+                    <span>
+                      Hold <Kbd>L</Kbd> to interact with the embed content
+                    </span>,
+                  );
+                }}
+              />
             )}
           </div>
         </PopoverTrigger>
@@ -854,7 +831,6 @@ export function createBlock<
 
     const { blockId, content, mode } = blockContext;
     const isContentEditable = useIsEditable(mode);
-    const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const elementRef = React.useRef<HTMLElement>(null);
     const { window: iframeWindow } = useFrame();
     const repeaterContext = React.use(RepeaterItemContext);
@@ -966,6 +942,9 @@ export function createBlock<
           <Slot
             ref={elementRef}
             data-camox-field-id={isContentEditable ? fieldId : undefined}
+            data-camox-hovered={(isContentEditable && isHovered) || undefined}
+            data-camox-focused={(isContentEditable && isFocused) || undefined}
+            data-camox-overlay-mode={mode === "layout" ? "layout" : undefined}
             contentEditable={isContentEditable}
             onClick={isContentEditable ? (e: React.MouseEvent) => e.preventDefault() : undefined}
             onInput={handleInput}
@@ -980,16 +959,6 @@ export function createBlock<
             }}
             spellCheck={false}
             suppressContentEditableWarning={true}
-            style={
-              isContentEditable && (isHovered || isFocused)
-                ? {
-                    outline: `${isFocused ? OVERLAY_WIDTHS.selected : OVERLAY_WIDTHS.hover} solid ${isFocused ? colors.selected : colors.hover}`,
-                    outlineOffset: isFocused
-                      ? OVERLAY_OFFSETS.fieldSelected
-                      : OVERLAY_OFFSETS.fieldHover,
-                  }
-                : undefined
-            }
           >
             {children({
               text: displayText,
@@ -1032,7 +1001,6 @@ export function createBlock<
 
     const { blockId, content, mode } = blockContext;
     const isContentEditable = useIsEditable(mode);
-    const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const { window: iframeWindow } = useFrame();
     const repeaterContext = React.use(RepeaterItemContext);
     const { filesMap } = useNormalizedData();
@@ -1093,28 +1061,18 @@ export function createBlock<
       return <>{children(fieldValue)}</>;
     }
 
-    const showOverlay = isHovered || isFocused;
-
     return (
       <div
-        style={{ position: "relative" }}
         data-camox-field-id={fieldId}
+        data-camox-field-type="image"
+        data-camox-hovered={isHovered || undefined}
+        data-camox-focused={isFocused || undefined}
+        data-camox-overlay-mode={mode === "layout" ? "layout" : undefined}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleClick}
       >
         {children(fieldValue)}
-        {showOverlay && (
-          <div
-            style={{
-              position: "absolute",
-              inset: isFocused ? OVERLAY_OFFSETS.blockSelected : OVERLAY_OFFSETS.blockHover,
-              border: `${isFocused ? OVERLAY_WIDTHS.selected : OVERLAY_WIDTHS.hover} solid ${isFocused ? colors.selected : colors.hover}`,
-              pointerEvents: "none",
-              zIndex: 10,
-            }}
-          />
-        )}
       </div>
     );
   };
@@ -1157,7 +1115,6 @@ export function createBlock<
     children: React.ReactNode;
   }) => {
     const isContentEditable = useIsEditable(mode);
-    const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
     const { window: iframeWindow } = useFrame();
 
     // Check if the parent repeater container is being hovered from sidebar
@@ -1175,21 +1132,11 @@ export function createBlock<
 
     return (
       <div
-        style={{ position: "relative" }}
         data-camox-repeater-item-id={isContentEditable ? itemId : undefined}
+        data-camox-hovered={showOverlay || undefined}
+        data-camox-overlay-mode={mode === "layout" ? "layout" : undefined}
       >
         {children}
-        {showOverlay && (
-          <div
-            style={{
-              position: "absolute",
-              inset: OVERLAY_OFFSETS.blockHover,
-              border: `${OVERLAY_WIDTHS.hover} solid ${colors.hover}`,
-              pointerEvents: "none",
-              zIndex: 10,
-            }}
-          />
-        )}
       </div>
     );
   };
@@ -1573,6 +1520,9 @@ export function createBlock<
           background: "var(--background)",
         }}
         data-camox-block-id={isContentEditable ? blockData._id : undefined}
+        data-camox-hovered={(shouldShowOverlay && !isBlockSelected) || undefined}
+        data-camox-focused={(shouldShowOverlay && isBlockSelected) || undefined}
+        data-camox-overlay-mode={mode === "layout" ? "layout" : undefined}
         onClick={handleClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -1624,50 +1574,30 @@ export function createBlock<
           }}
           id="hello"
         />
-        {/* Overlay UI */}
+        {/* AddBlock controls */}
         {shouldShowOverlay &&
           (() => {
-            const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
+            // Use explicit show flags if provided, otherwise fall back to legacy behavior
+            const displayTop = showAddBlockTop ?? (mode !== "layout" && !isFirstBlock);
+            const displayBottom = showAddBlockBottom ?? mode !== "layout";
             return (
               <>
-                {/* Border overlay */}
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: isBlockSelected
-                      ? OVERLAY_OFFSETS.blockSelected
-                      : OVERLAY_OFFSETS.blockHover,
-                    border: `${isBlockSelected ? OVERLAY_WIDTHS.selected : OVERLAY_WIDTHS.hover} solid ${isBlockSelected ? colors.selected : colors.hover}`,
-                    pointerEvents: "none",
-                    zIndex: 10,
-                  }}
-                />
-
-                {(() => {
-                  // Use explicit show flags if provided, otherwise fall back to legacy behavior
-                  const displayTop = showAddBlockTop ?? (mode !== "layout" && !isFirstBlock);
-                  const displayBottom = showAddBlockBottom ?? mode !== "layout";
-                  return (
-                    <>
-                      {displayTop && (
-                        <AddBlockControlBar
-                          position="top"
-                          hidden={isAnySideSheetOpen}
-                          onMouseLeave={() => setIsHovered(false)}
-                          onClick={() => handleAddBlockClick("before")}
-                        />
-                      )}
-                      {displayBottom && (
-                        <AddBlockControlBar
-                          position="bottom"
-                          hidden={isAnySideSheetOpen}
-                          onMouseLeave={() => setIsHovered(false)}
-                          onClick={() => handleAddBlockClick("after")}
-                        />
-                      )}
-                    </>
-                  );
-                })()}
+                {displayTop && (
+                  <AddBlockControlBar
+                    position="top"
+                    hidden={isAnySideSheetOpen}
+                    onMouseLeave={() => setIsHovered(false)}
+                    onClick={() => handleAddBlockClick("before")}
+                  />
+                )}
+                {displayBottom && (
+                  <AddBlockControlBar
+                    position="bottom"
+                    hidden={isAnySideSheetOpen}
+                    onMouseLeave={() => setIsHovered(false)}
+                    onClick={() => handleAddBlockClick("after")}
+                  />
+                )}
               </>
             );
           })()}
@@ -1771,24 +1701,23 @@ export function createBlock<
                   zIndex: 20,
                 }}
               />
-              {/* Border overlay */}
-              {shouldShowOverlay &&
-                (() => {
-                  const colors = mode === "layout" ? LAYOUT_OVERLAY_COLORS : OVERLAY_COLORS;
-                  return (
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: isBlockSelected
-                          ? OVERLAY_OFFSETS.blockSelected
-                          : OVERLAY_OFFSETS.blockHover,
-                        border: `${isBlockSelected ? OVERLAY_WIDTHS.selected : OVERLAY_WIDTHS.hover} solid ${isBlockSelected ? colors.selected : colors.hover}`,
-                        pointerEvents: "none",
-                        zIndex: 10,
-                      }}
-                    />
-                  );
-                })()}
+              {/* Border overlay — uses CSS via data attributes like other components,
+                 but rendered as a portal div (not ::after) because Detached wraps
+                 user elements (e.g. fixed navbars) that must not get position: relative */}
+              {shouldShowOverlay && (
+                <div
+                  data-camox-block-id={blockId}
+                  data-camox-detached
+                  data-camox-hovered={!isBlockSelected || undefined}
+                  data-camox-focused={isBlockSelected || undefined}
+                  data-camox-overlay-mode={mode === "layout" ? "layout" : undefined}
+                  style={{
+                    position: "absolute",
+                    pointerEvents: "none",
+                    zIndex: 10,
+                  }}
+                />
+              )}
             </>,
             container,
           )}

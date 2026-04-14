@@ -10,6 +10,7 @@ import { actionsStore } from "../../provider/actionsStore";
 import { SHEET_WIDTH } from "../previewConstants";
 import { previewStore } from "../previewStore";
 import { useBlockActionsShortcuts } from "./BlockActionsPopover";
+import { FieldOverlayStyles } from "./FieldOverlayStyles";
 import { Overlays } from "./Overlays";
 import { OverlayTracker } from "./OverlayTracker";
 import { useIsPreviewSheetOpen } from "./PreviewSideSheet";
@@ -34,6 +35,7 @@ export const PreviewFrame = ({
   return (
     <Frame className={className} style={style} onIframeReady={onIframeReady}>
       {children}
+      <FieldOverlayStyles />
       <KeyDownForwarder />
       <OverlayTracker />
     </Frame>
