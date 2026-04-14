@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/camox-ai/camox/compare/camox-v0.6.0...@camox/cli-v0.6.1) (2026-04-14)
+
+
+### Bug Fixes
+
+* definitions sync nitro support ([84021d9](https://github.com/camox-ai/camox/commit/84021d9d3ef4edb69b462a8096041f1505e5124a))
+
 ## [0.6.0](https://github.com/camox-ai/camox/compare/camox-v0.5.2...@camox/cli-v0.6.0) (2026-04-14)
 
 
