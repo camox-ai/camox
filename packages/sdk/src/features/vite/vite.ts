@@ -29,22 +29,26 @@ import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 /** Authentication URL to use for Camox authentication (production Camox web app) */
 const DEFAULT_AUTHENTICATION_URL = "https://camox.ai";
 
-function resolveEnvironmentName(isDev: boolean): string {
+function resolveEnvironmentName(isDev: boolean, authenticationUrl: string): string {
   if (!isDev) return "production";
 
   const authFile = join(homedir(), ".camox", "auth.json");
-  let auth: { email?: string };
+  const key = authenticationUrl.replace(/\/+$/, "");
+  let auth: { email?: string } | undefined;
   try {
-    auth = JSON.parse(readFileSync(authFile, "utf-8"));
+    const tokens = JSON.parse(readFileSync(authFile, "utf-8"));
+    auth = tokens[key];
   } catch {
     throw new Error(
-      "Camox: not authenticated. Run `camox login` before starting the dev server.\n" +
+      `Camox: not authenticated for ${key}. Run \`camox login\` before starting the dev server.\n` +
         "Authentication is required so your dev environment is scoped to your user.",
     );
   }
 
-  if (!auth.email) {
-    throw new Error("Camox: ~/.camox/auth.json is missing an email. Run `camox login` again.");
+  if (!auth?.email) {
+    throw new Error(
+      `Camox: no session found for ${key} in ~/.camox/auth.json. Run \`camox login\` again.`,
+    );
   }
 
   const localPart = auth.email.split("@")[0];
@@ -98,7 +102,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
     },
     config(_config, env) {
       isBuild = env.command === "build";
-      environmentName = resolveEnvironmentName(env.command === "serve");
+      environmentName = resolveEnvironmentName(env.command === "serve", authenticationUrl);
       return {
         define: {
           __CAMOX_ANALYTICS_DISABLED__: JSON.stringify(!!options.disableAnalytics),

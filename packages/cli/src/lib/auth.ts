@@ -23,28 +23,49 @@ interface AuthResult {
   email: string;
 }
 
-// --- Token persistence ---
+// --- Token persistence (keyed by CAMOX_URL) ---
 
-export function readAuthToken(): AuthToken | null {
+function normalizeUrl(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
+function readAllTokens(): Record<string, AuthToken> {
   try {
-    const data = JSON.parse(fs.readFileSync(AUTH_FILE, "utf-8"));
-    if (data?.token && data?.name) return data as AuthToken;
-    return null;
+    return JSON.parse(fs.readFileSync(AUTH_FILE, "utf-8"));
   } catch {
-    return null;
+    return {};
   }
 }
 
-export function writeAuthToken(token: AuthToken): void {
+function writeAllTokens(tokens: Record<string, AuthToken>): void {
   fs.mkdirSync(AUTH_DIR, { recursive: true });
-  fs.writeFileSync(AUTH_FILE, JSON.stringify(token, null, 2), { mode: 0o600 });
+  fs.writeFileSync(AUTH_FILE, JSON.stringify(tokens, null, 2), { mode: 0o600 });
+}
+
+export function readAuthToken(): AuthToken | null {
+  const tokens = readAllTokens();
+  const entry = tokens[normalizeUrl(CAMOX_URL)];
+  if (entry?.token && entry?.name) return entry;
+  return null;
+}
+
+export function writeAuthToken(token: AuthToken): void {
+  const tokens = readAllTokens();
+  tokens[normalizeUrl(CAMOX_URL)] = token;
+  writeAllTokens(tokens);
 }
 
 export function removeAuthToken(): void {
-  try {
-    fs.unlinkSync(AUTH_FILE);
-  } catch {
-    // Ignore if file doesn't exist
+  const tokens = readAllTokens();
+  delete tokens[normalizeUrl(CAMOX_URL)];
+  if (Object.keys(tokens).length === 0) {
+    try {
+      fs.unlinkSync(AUTH_FILE);
+    } catch {
+      // Ignore if file doesn't exist
+    }
+  } else {
+    writeAllTokens(tokens);
   }
 }
 
