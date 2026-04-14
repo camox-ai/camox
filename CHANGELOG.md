@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/camox-ai/camox/compare/camox-v0.5.1...camox-v0.5.2) (2026-04-14)
+
+
+### Bug Fixes
+
+* set up nitro for generated apps ([711a5cd](https://github.com/camox-ai/camox/commit/711a5cd06e602ad81b8ea7095c25437d1875a624))
+
 ## [0.5.1](https://github.com/camox-ai/camox/compare/camox-v0.5.0...camox-v0.5.1) (2026-04-14)
 
 
