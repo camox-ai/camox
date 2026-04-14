@@ -142,13 +142,11 @@ async function verifyOtt(token: string): Promise<VerifyResult> {
 async function authenticateUser(): Promise<AuthToken> {
   const { port, ottPromise, close } = await startCallbackServer();
 
-  const loginUrl = `${CAMOX_URL}/cli-authorize?callback=${encodeURIComponent(`http://localhost:${port}/callback`)}`;
-
   const action = await p.select({
-    message: "Log in to Camox",
+    message: "Connect to Camox",
     options: [
-      { value: "open" as const, label: "Open browser" },
-      { value: "copy" as const, label: "Copy URL" },
+      { value: "signup" as const, label: "Sign up in browser" },
+      { value: "login" as const, label: "Log in in browser" },
     ],
   });
 
@@ -157,11 +155,13 @@ async function authenticateUser(): Promise<AuthToken> {
     throw new Error("Authentication cancelled");
   }
 
-  if (action === "open") {
-    openBrowser(loginUrl);
-  } else {
-    p.log.info(loginUrl);
-  }
+  const callbackUrl = `http://localhost:${port}/callback`;
+  const cliAuthUrl = `/cli-authorize?callback=${encodeURIComponent(callbackUrl)}`;
+  const authPage = action === "signup" ? "/signup" : "/login";
+  const url = `${CAMOX_URL}${authPage}?redirect=${encodeURIComponent(cliAuthUrl)}`;
+
+  openBrowser(url);
+  p.log.info(`Browser not opening? Visit:\n${url}`);
 
   const s = p.spinner();
   s.start("Waiting for authentication...");
@@ -209,7 +209,7 @@ export async function getOrAuthenticate(): Promise<AuthToken> {
     removeAuthToken();
     p.log.warn("Session expired. Please log in again.");
   } else {
-    p.log.info("Please authenticate to create a Camox project.");
+    p.log.info("Please connect to Camox so we can create a project on the Camox API.");
   }
 
   return authenticateUser();
