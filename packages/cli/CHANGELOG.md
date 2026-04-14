@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/camox-ai/camox/compare/camox-v0.5.2...@camox/cli-v0.6.0) (2026-04-14)
+
+
+### Features
+
+* manage multiple auth providers in auth.json file ([3528ea5](https://github.com/camox-ai/camox/commit/3528ea5f75b08edf61bfa16d5d19cffc8505e51e))
+
+
+### Bug Fixes
+
+* sign up when running init cli ([5777dfa](https://github.com/camox-ai/camox/commit/5777dfa58fb0cc89ae7ed342f56e90757047125e))
+
 ## [0.5.2](https://github.com/camox-ai/camox/compare/camox-v0.5.1...@camox/cli-v0.5.2) (2026-04-14)
 
 
