@@ -242,10 +242,10 @@ columns: Type.RepeatableItem(
 
 ## Rendering in the Component
 
-The component is a regular React function. It uses methods on the block constant to render each field. Every field renderer uses a render-prop pattern where the child function receives `(props, data?)`:
+The component is a regular React function. It uses methods on the block constant to render each field. Every field renderer uses a render-prop pattern where the child function receives `(props, data)`:
 
-- **`props`** — spread onto the rendered element. Contains HTML/React attributes: refs, data attributes, event handlers, and field-specific attributes like `to`, `src`, `alt`, `children`.
-- **`data`** (optional second argument) — raw field values for custom logic. Not meant to be spread.
+- **`props`** — spread onto the rendered element. Contains HTML/React attributes: refs, data attributes, event handlers, and field-specific attributes like `to`, `src`, `alt`, `children`. **Use `props` in the vast majority of cases.**
+- **`data`** (second argument) — raw field values for advanced use cases where `props` doesn't suffice (e.g. conditional styling based on a link's href, using an image URL as a CSS background). Not meant to be spread — treat it as an escape hatch.
 
 ### Rendering String fields — `block.Field`
 
