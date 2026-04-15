@@ -136,7 +136,9 @@ const CreatePageSheet = () => {
                 <Label htmlFor="layoutId">Layout</Label>
                 <Select
                   value={field.state.value}
-                  onValueChange={field.handleChange}
+                  onValueChange={(value) => {
+                    if (value != null) field.handleChange(value);
+                  }}
                   disabled={layouts != null && layouts.length <= 1}
                 >
                   <SelectTrigger>

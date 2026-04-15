@@ -1,4 +1,3 @@
-import { useFrame } from "@camox/ui/frame";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
@@ -7,6 +6,7 @@ import type { EditorState } from "lexical";
 import { COMMAND_PRIORITY_LOW, KEY_ESCAPE_COMMAND } from "lexical";
 import * as React from "react";
 
+import { useFrame } from "../../../features/preview/components/Frame";
 import { lexicalStateToMarkdown } from "../../lib/lexicalState";
 import { createEditorConfig, normalizeLexicalState } from "./editorConfig";
 import { InlineContentEditable } from "./InlineContentEditable";

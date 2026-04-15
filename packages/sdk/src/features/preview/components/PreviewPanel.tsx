@@ -1,4 +1,3 @@
-import { Frame, useFrame } from "@camox/ui/frame";
 import { PanelContent } from "@camox/ui/panel";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
@@ -11,6 +10,7 @@ import { SHEET_WIDTH } from "../previewConstants";
 import { previewStore } from "../previewStore";
 import { useBlockActionsShortcuts } from "./BlockActionsPopover";
 import { FieldOverlayStyles } from "./FieldOverlayStyles";
+import { Frame, useFrame } from "./Frame";
 import { Overlays } from "./Overlays";
 import { OverlayTracker } from "./OverlayTracker";
 import { useIsPreviewSheetOpen } from "./PreviewSideSheet";

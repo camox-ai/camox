@@ -127,18 +127,20 @@ function ProjectCredentialsSection({ slug, secret }: { slug: string; secret: str
         <div className="flex items-center gap-2">
           <Input id="project-slug" readOnly value={slug} className="font-mono" />
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  navigator.clipboard.writeText(slug);
-                  toast.success("Slug copied to clipboard");
-                }}
-              >
-                <CopyIcon className="size-4" />
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(slug);
+                    toast.success("Slug copied to clipboard");
+                  }}
+                />
+              }
+            >
+              <CopyIcon className="size-4" />
             </TooltipTrigger>
             <TooltipContent>Copy slug</TooltipContent>
           </Tooltip>
@@ -154,15 +156,17 @@ function ProjectCredentialsSection({ slug, secret }: { slug: string; secret: str
             className="font-mono"
           />
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setRevealed((v) => !v)}
-              >
-                {revealed ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setRevealed((v) => !v)}
+                />
+              }
+            >
+              {revealed ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
             </TooltipTrigger>
             <TooltipContent>{revealed ? "Hide secret" : "Reveal secret"}</TooltipContent>
           </Tooltip>
@@ -212,8 +216,8 @@ function DeleteProjectSection({ project }: { project: Project }) {
         if (!value) setConfirmValue("");
       }}
     >
-      <AlertDialogTrigger asChild>
-        <Button variant="destructive">Delete project</Button>
+      <AlertDialogTrigger render={<Button variant="destructive" />}>
+        Delete project
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -235,7 +239,9 @@ function DeleteProjectSection({ project }: { project: Project }) {
           />
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel variant="outline" size="default">
+            Cancel
+          </AlertDialogCancel>
           <Button
             variant="destructive"
             disabled={confirmValue !== project.slug || deleteProject.isPending}

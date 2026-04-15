@@ -349,100 +349,98 @@ const PageContentSheet = () => {
     >
       <SheetParts.SheetHeader className="border-border border-b">
         <SheetParts.SheetTitle>{block.summary}</SheetParts.SheetTitle>
-        <SheetParts.SheetDescription asChild>
-          <Breadcrumb>
-            <BreadcrumbList className="flex-nowrap">
-              {/* Block title — always shown */}
-              <BreadcrumbItem className="min-w-0">
-                {isAtBlockLevel ? (
-                  <BreadcrumbPage className="truncate">{blockDef.title}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink
-                    className="cursor-pointer"
-                    onClick={() =>
-                      previewStore.send({ type: "setFocusedBlock", blockId: String(block.id) })
-                    }
-                  >
-                    {blockDef.title}
-                  </BreadcrumbLink>
+        <SheetParts.SheetDescription render={<Breadcrumb />}>
+          <BreadcrumbList className="flex-nowrap">
+            {/* Block title — always shown */}
+            <BreadcrumbItem className="min-w-0">
+              {isAtBlockLevel ? (
+                <BreadcrumbPage className="truncate">{blockDef.title}</BreadcrumbPage>
+              ) : (
+                <BreadcrumbLink
+                  className="cursor-pointer"
+                  onClick={() =>
+                    previewStore.send({ type: "setFocusedBlock", blockId: String(block.id) })
+                  }
+                >
+                  {blockDef.title}
+                </BreadcrumbLink>
+              )}
+            </BreadcrumbItem>
+
+            {/* Ancestor items — ellipsis dropdown for deep nesting */}
+            {ancestorChain.length > 0 && (
+              <>
+                {ancestorChain.length > 1 && (
+                  <>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="flex items-center gap-1">
+                          <BreadcrumbEllipsis className="size-5" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {ancestorChain.slice(0, -1).map((ancestor) => (
+                            <DropdownMenuItem
+                              key={ancestor.id}
+                              onClick={() =>
+                                previewStore.send({
+                                  type: "selectItem",
+                                  blockId: String(block.id),
+                                  itemId: String(ancestor.id),
+                                })
+                              }
+                            >
+                              {ancestor.summary || formatFieldName(ancestor.fieldName)}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </BreadcrumbItem>
+                  </>
                 )}
-              </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                {(() => {
+                  const lastAncestor = ancestorChain[ancestorChain.length - 1];
+                  const crumbLabel =
+                    lastAncestor.summary || formatFieldName(lastAncestor.fieldName);
 
-              {/* Ancestor items — ellipsis dropdown for deep nesting */}
-              {ancestorChain.length > 0 && (
-                <>
-                  {ancestorChain.length > 1 && (
-                    <>
-                      <BreadcrumbSeparator />
-                      <BreadcrumbItem>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="flex items-center gap-1">
-                            <BreadcrumbEllipsis className="size-5" />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start">
-                            {ancestorChain.slice(0, -1).map((ancestor) => (
-                              <DropdownMenuItem
-                                key={ancestor.id}
-                                onClick={() =>
-                                  previewStore.send({
-                                    type: "selectItem",
-                                    blockId: String(block.id),
-                                    itemId: String(ancestor.id),
-                                  })
-                                }
-                              >
-                                {ancestor.summary || formatFieldName(ancestor.fieldName)}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </BreadcrumbItem>
-                    </>
-                  )}
-                  <BreadcrumbSeparator />
-                  {(() => {
-                    const lastAncestor = ancestorChain[ancestorChain.length - 1];
-                    const crumbLabel =
-                      lastAncestor.summary || formatFieldName(lastAncestor.fieldName);
-
-                    if (fieldHasOwnView) {
-                      // Viewing a terminal field within this item — item is clickable
-                      return (
-                        <BreadcrumbItem className="min-w-0">
-                          <BreadcrumbLink
-                            className="cursor-pointer truncate"
-                            onClick={() => previewStore.send({ type: "selectParent" })}
-                          >
-                            {crumbLabel}
-                          </BreadcrumbLink>
-                        </BreadcrumbItem>
-                      );
-                    }
-
-                    // Viewing the item itself — it's the current page
+                  if (fieldHasOwnView) {
+                    // Viewing a terminal field within this item — item is clickable
                     return (
                       <BreadcrumbItem className="min-w-0">
-                        <BreadcrumbPage className="truncate">{crumbLabel}</BreadcrumbPage>
+                        <BreadcrumbLink
+                          className="cursor-pointer truncate"
+                          onClick={() => previewStore.send({ type: "selectParent" })}
+                        >
+                          {crumbLabel}
+                        </BreadcrumbLink>
                       </BreadcrumbItem>
                     );
-                  })()}
-                </>
-              )}
+                  }
 
-              {/* Terminal field (Link/Image/File) */}
-              {fieldHasOwnView && fieldInfo && (
-                <>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem className="min-w-0">
-                    <BreadcrumbPage className="truncate">
-                      {(currentSchema as any)?.properties?.[fieldInfo.fieldName]?.title ??
-                        formatFieldName(fieldInfo.fieldName)}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </>
-              )}
-            </BreadcrumbList>
-          </Breadcrumb>
+                  // Viewing the item itself — it's the current page
+                  return (
+                    <BreadcrumbItem className="min-w-0">
+                      <BreadcrumbPage className="truncate">{crumbLabel}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  );
+                })()}
+              </>
+            )}
+
+            {/* Terminal field (Link/Image/File) */}
+            {fieldHasOwnView && fieldInfo && (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem className="min-w-0">
+                  <BreadcrumbPage className="truncate">
+                    {(currentSchema as any)?.properties?.[fieldInfo.fieldName]?.title ??
+                      formatFieldName(fieldInfo.fieldName)}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </>
+            )}
+          </BreadcrumbList>
         </SheetParts.SheetDescription>
       </SheetParts.SheetHeader>
       <div className="flex-1 overflow-auto">

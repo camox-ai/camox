@@ -41,16 +41,18 @@ const UnlinkAssetButton = ({ fileId, onUnlink, className }: UnlinkAssetButtonPro
   return (
     <>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className={cn("text-muted-foreground hover:text-foreground shrink-0", className)}
-            onClick={handleClick}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+        <TooltipTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className={cn("text-muted-foreground hover:text-foreground shrink-0", className)}
+              onClick={handleClick}
+            />
+          }
+        >
+          <X className="h-4 w-4" />
         </TooltipTrigger>
         <TooltipContent>Unlink</TooltipContent>
       </Tooltip>
@@ -63,19 +65,20 @@ const UnlinkAssetButton = ({ fileId, onUnlink, className }: UnlinkAssetButtonPro
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => onUnlink()} asChild>
-              <Button variant="outline" className="bg-background hover:bg-accent text-foreground">
-                Unlink only
-              </Button>
+            <AlertDialogAction
+              variant="outline"
+              className="bg-background hover:bg-accent text-foreground"
+              onClick={() => onUnlink()}
+            >
+              Unlink only
             </AlertDialogAction>
             <AlertDialogAction
               onClick={() => {
                 onUnlink();
                 if (fileId) deleteFile.mutate({ id: fileId });
               }}
-              asChild
             >
-              <Button>Delete file</Button>
+              Delete file
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

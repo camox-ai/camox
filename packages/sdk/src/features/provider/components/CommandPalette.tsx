@@ -1,10 +1,12 @@
 import {
+  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
+  CommandShortcut,
 } from "@camox/ui/command";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
@@ -94,44 +96,43 @@ export function CommandPalette() {
   };
 
   return (
-    <CommandDialog
-      open={isOpen}
-      onOpenChange={handleOpenChange}
-      value={value}
-      onValueChange={setValue}
-    >
-      <CommandInput
-        value={search}
-        onValueChange={setSearch}
-        placeholder="Type a command or search..."
-        onKeyDown={(e) => {
-          // Escape goes to previous page
-          // Backspace goes to previous page when search is empty
-          if (e.key === "Escape" || (e.key === "Backspace" && !search)) {
-            e.preventDefault();
-            studioStore.send({ type: "popCommandPalettePage" });
-          }
-        }}
-      />
-      <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
-        {Array.from(groupedActions.entries()).map(([groupLabel, groupActions]) => (
-          <CommandGroup key={groupLabel} heading={groupLabel}>
-            {groupActions.map((action) => {
-              return (
-                <CommandItem
-                  key={action.id}
-                  onSelect={() => handleSelect(action.id)}
-                  className="justify-between"
-                >
-                  {action.label}
-                  {action.shortcut && formatShortcut(action.shortcut)}
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
-        ))}
-      </CommandList>
+    <CommandDialog open={isOpen} onOpenChange={handleOpenChange}>
+      <Command value={value} onValueChange={setValue}>
+        <CommandInput
+          value={search}
+          onValueChange={setSearch}
+          placeholder="Type a command or search..."
+          onKeyDown={(e) => {
+            // Escape goes to previous page
+            // Backspace goes to previous page when search is empty
+            if (e.key === "Escape" || (e.key === "Backspace" && !search)) {
+              e.preventDefault();
+              studioStore.send({ type: "popCommandPalettePage" });
+            }
+          }}
+        />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          {Array.from(groupedActions.entries()).map(([groupLabel, groupActions]) => (
+            <CommandGroup key={groupLabel} heading={groupLabel}>
+              {groupActions.map((action) => {
+                return (
+                  <CommandItem
+                    key={action.id}
+                    onSelect={() => handleSelect(action.id)}
+                    className="justify-between"
+                  >
+                    {action.label}
+                    {action.shortcut && (
+                      <CommandShortcut>{formatShortcut(action.shortcut)}</CommandShortcut>
+                    )}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          ))}
+        </CommandList>
+      </Command>
     </CommandDialog>
   );
 }

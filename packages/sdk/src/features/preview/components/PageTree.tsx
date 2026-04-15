@@ -469,7 +469,7 @@ const LayoutBlockItem = ({ block, isSelected, layoutName }: LayoutBlockItemProps
             isParentOfSelection={ctx.isParentOfSelection}
           >
             <div className="text-muted-foreground flex size-7 shrink-0 items-center justify-center">
-              <Tooltip delayDuration={500}>
+              <Tooltip>
                 <TooltipTrigger>
                   <LayoutTemplate className="h-4 w-4" />
                 </TooltipTrigger>

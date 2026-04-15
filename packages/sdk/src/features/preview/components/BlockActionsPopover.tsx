@@ -8,7 +8,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@camox/ui/alert-dialog";
-import { Button } from "@camox/ui/button";
 import {
   Command,
   CommandGroup,
@@ -16,6 +15,7 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
+  CommandShortcut,
 } from "@camox/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { toast } from "@camox/ui/toaster";
@@ -176,7 +176,9 @@ const BlockActionsPopover = ({
                       <Pen className="h-4 w-4" />
                       Edit in form
                     </div>
-                    {formatShortcut({ key: "j", withMeta: true })}
+                    <CommandShortcut>
+                      {formatShortcut({ key: "j", withMeta: true })}
+                    </CommandShortcut>
                   </CommandItem>
                   {!isLayoutBlock &&
                     (() => {
@@ -262,7 +264,7 @@ const BlockActionsPopover = ({
                           <span className="w-4" />
                           Add block below
                         </div>
-                        {formatShortcut({ key: "o" })}
+                        <CommandShortcut>{formatShortcut({ key: "o" })}</CommandShortcut>
                       </CommandItem>
                       <CommandItem
                         className="justify-between"
@@ -275,7 +277,9 @@ const BlockActionsPopover = ({
                           <span className="w-4" />
                           Add block above
                         </div>
-                        {formatShortcut({ key: "o", withShift: true })}
+                        <CommandShortcut>
+                          {formatShortcut({ key: "o", withShift: true })}
+                        </CommandShortcut>
                       </CommandItem>
                     </CommandGroup>
                     <CommandSeparator />
@@ -291,7 +295,9 @@ const BlockActionsPopover = ({
                           <Copy className="h-4 w-4" />
                           Duplicate block
                         </div>
-                        {formatShortcut({ key: "d", withMeta: true })}
+                        <CommandShortcut>
+                          {formatShortcut({ key: "d", withMeta: true })}
+                        </CommandShortcut>
                       </CommandItem>
                     </CommandGroup>
                     <CommandSeparator />
@@ -327,7 +333,9 @@ const BlockActionsPopover = ({
                           <Trash2 className="h-4 w-4" />
                           Delete block
                         </div>
-                        {formatShortcut({ key: "Backspace", withMeta: true })}
+                        <CommandShortcut>
+                          {formatShortcut({ key: "Backspace", withMeta: true })}
+                        </CommandShortcut>
                       </CommandItem>
                     </CommandGroup>
                   </>
@@ -347,12 +355,14 @@ const BlockActionsPopover = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel variant="outline" size="default">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={() => blockToDelete && handleDeleteBlock(blockToDelete)}
-              asChild
             >
-              <Button variant="destructive">Delete</Button>
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

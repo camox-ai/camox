@@ -238,11 +238,7 @@ const AddBlockSheet = () => {
             }
           }}
         >
-          <CommandInput
-            placeholder="Search blocks..."
-            autoFocus
-            wrapperClassName="border border-input rounded-md shadow-xs focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]"
-          />
+          <CommandInput placeholder="Search blocks..." autoFocus />
           <CommandList className="mt-1 max-h-full">
             <CommandEmpty>No blocks found.</CommandEmpty>
             <CommandGroup>

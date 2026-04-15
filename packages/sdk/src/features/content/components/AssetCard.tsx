@@ -31,7 +31,7 @@ export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) 
         onOpen();
       }}
     >
-      <div className="bg-muted flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-md">
+      <div className="bg-muted flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-sm">
         {isImage ? (
           <img
             src={file.url}

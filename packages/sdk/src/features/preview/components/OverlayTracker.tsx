@@ -1,9 +1,9 @@
-import { useFrame } from "@camox/ui/frame";
 import { useSelector } from "@xstate/store/react";
 import * as React from "react";
 
 import { isOverlayMessage } from "../overlayMessages";
 import { previewStore } from "../previewStore";
+import { useFrame } from "./Frame";
 
 /**
  * OverlayTracker runs inside the iframe and handles:

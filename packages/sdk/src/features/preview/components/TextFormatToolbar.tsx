@@ -63,15 +63,17 @@ export const TextFormatToolbar = () => {
           const isActive = !!(activeFormats & flag);
           return (
             <Tooltip.Tooltip key={key}>
-              <Tooltip.TooltipTrigger asChild>
-                <Toggle
-                  data-state={isActive ? "on" : "off"}
-                  pressed={isActive}
-                  variant="outline"
-                  onPressedChange={() => sendFormat(key)}
-                >
-                  <Icon />
-                </Toggle>
+              <Tooltip.TooltipTrigger
+                render={
+                  <Toggle
+                    data-state={isActive ? "on" : "off"}
+                    pressed={isActive}
+                    variant="outline"
+                    onPressedChange={() => sendFormat(key)}
+                  />
+                }
+              >
+                <Icon />
               </Tooltip.TooltipTrigger>
               <Tooltip.TooltipContent>
                 {label} <Kbd>{shortcut}</Kbd>

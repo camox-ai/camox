@@ -1,7 +1,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 
-import { cn } from "../lib/utils";
+import { cn } from "@/lib/utils";
 
 interface FrameContextValue {
   window: Window | null;
@@ -44,7 +44,7 @@ export const Frame = ({
   const [iframeWindow, setIframeWindow] = React.useState<Window | null>(null);
   const [iframeElement, setIframeElement] = React.useState<HTMLIFrameElement | null>(null);
   const [mountNode, setMountNode] = React.useState<HTMLElement | null>(null);
-  const [hasRadixPopper, setHasRadixPopper] = React.useState(false);
+  const [hasOpenPopup, setHasOpenPopup] = React.useState(false);
 
   React.useEffect(() => {
     const iframe = iframeRef.current;
@@ -109,22 +109,23 @@ export const Frame = ({
     };
   }, [copyStyles, onIframeReady]);
 
-  // Monitor for Radix popper content wrapper in body
+  // Monitor for Base UI portaled popups in body
   React.useEffect(() => {
-    const checkForRadixPopper = () => {
-      const hasPopper =
-        document.body.querySelector(":scope > [data-radix-popper-content-wrapper]") !== null;
-      setHasRadixPopper(hasPopper);
+    const checkForOpenPopup = () => {
+      const hasPopup = document.body.querySelector(":scope > [data-open]") !== null;
+      setHasOpenPopup(hasPopup);
     };
 
     // Initial check
-    checkForRadixPopper();
+    checkForOpenPopup();
 
-    // Set up MutationObserver to watch for changes
-    const observer = new MutationObserver(checkForRadixPopper);
+    // Watch direct children of body and their attributes (data-open is toggled, not added/removed)
+    const observer = new MutationObserver(checkForOpenPopup);
     observer.observe(document.body, {
       childList: true,
-      subtree: false, // Only watch direct children of body
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-open", "data-closed"],
     });
 
     return () => {
@@ -134,9 +135,9 @@ export const Frame = ({
 
   return (
     <div className={cn("relative w-full h-full", className)} style={style}>
-      {/* Display an overlay to properly close close Radix portals (modals, popovers...) */}
-      {/* because otherwise Radix wouldn't detect pointer events that would happen on the iframe */}
-      {hasRadixPopper && <div className="absolute top-0 left-0 h-full w-full" />}
+      {/* Display an overlay to properly close portaled popups (modals, popovers...) */}
+      {/* because otherwise Base UI wouldn't detect pointer events that happen on the iframe */}
+      {hasOpenPopup && <div className="absolute top-0 left-0 h-full w-full" />}
       <FrameContext.Provider value={{ window: iframeWindow, iframeElement }}>
         <iframe ref={iframeRef} className={cn("w-full h-full")} />
         {mountNode && createPortal(children, mountNode)}

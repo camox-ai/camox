@@ -58,13 +58,13 @@
       "types": "./src/components/floating-toolbar.tsx",
       "default": "./src/components/floating-toolbar.tsx"
     },
-    "./frame": {
-      "types": "./src/components/frame.tsx",
-      "default": "./src/components/frame.tsx"
-    },
     "./input-base": {
       "types": "./src/components/input-base.tsx",
       "default": "./src/components/input-base.tsx"
+    },
+    "./input-group": {
+      "types": "./src/components/input-group.tsx",
+      "default": "./src/components/input-group.tsx"
     },
     "./input": {
       "types": "./src/components/input.tsx",

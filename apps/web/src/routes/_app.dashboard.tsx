@@ -10,6 +10,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -66,54 +67,60 @@ function OrganizationPicker() {
     <>
       <ChevronRight className="text-muted-foreground/50 h-4 w-4" />
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-1.5">
-            <span className="max-w-32 truncate font-medium">{activeOrg.name}</span>
-            <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-1.5" />}>
+          <span className="max-w-32 truncate font-medium">{activeOrg.name}</span>
+          <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
-            {activeOrg.name}
-          </DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
+              {activeOrg.name}
+            </DropdownMenuLabel>
 
-          <DropdownMenuItem asChild>
-            <Link
-              to="/dashboard/$orgSlug/team"
-              params={{ orgSlug: orgSlug! }}
-              search={{ tab: "members" }}
+            <DropdownMenuItem
+              render={
+                <Link
+                  to="/dashboard/$orgSlug/team"
+                  params={{ orgSlug: orgSlug! }}
+                  search={{ tab: "members" }}
+                />
+              }
             >
               <UsersIcon />
               Members
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link
-              to="/dashboard/$orgSlug/team"
-              params={{ orgSlug: orgSlug! }}
-              search={{ tab: "settings" }}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              render={
+                <Link
+                  to="/dashboard/$orgSlug/team"
+                  params={{ orgSlug: orgSlug! }}
+                  search={{ tab: "settings" }}
+                />
+              }
             >
               <SettingsIcon />
               Settings
-            </Link>
-          </DropdownMenuItem>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
 
           {otherOrgs && otherOrgs.length > 0 && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
-                Switch organization
-              </DropdownMenuLabel>
-              {otherOrgs.map((org) => (
-                <DropdownMenuItem key={org.id} onSelect={() => handleSetActive(org.slug)}>
-                  {org.name}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
+                  Switch organization
+                </DropdownMenuLabel>
+                {otherOrgs.map((org) => (
+                  <DropdownMenuItem key={org.id} onClick={() => handleSetActive(org.slug)}>
+                    {org.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
             </>
           )}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => setCreateOpen(true)}>
+          <DropdownMenuItem onClick={() => setCreateOpen(true)}>
             <PlusIcon />
             Create organization
           </DropdownMenuItem>
@@ -276,11 +283,9 @@ function ProjectPicker() {
     <>
       <ChevronRight className="text-muted-foreground/50 h-4 w-4" />
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-1.5">
-            <span className="max-w-32 truncate font-medium">{activeProject.name}</span>
-            <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-1.5" />}>
+          <span className="max-w-32 truncate font-medium">{activeProject.name}</span>
+          <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" className="w-56">
@@ -288,7 +293,7 @@ function ProjectPicker() {
             <DropdownMenuItem
               key={project.id}
               className={project.slug === slug ? "bg-accent" : ""}
-              onSelect={() =>
+              onClick={() =>
                 navigate({
                   to: "/dashboard/$orgSlug/$slug",
                   params: { orgSlug: orgSlug!, slug: project.slug },
@@ -300,7 +305,7 @@ function ProjectPicker() {
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => setCreateOpen(true)}>
+          <DropdownMenuItem onClick={() => setCreateOpen(true)}>
             <PlusIcon />
             Create project
           </DropdownMenuItem>
@@ -332,8 +337,14 @@ function DashboardNavbar() {
         <OrganizationPicker />
         <ProjectPicker />
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
-            <Link to="/">camox.ai</Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            nativeButton={false}
+            render={<Link to="/" />}
+          >
+            camox.ai
           </Button>
           <UserButton variant="outline" size="icon" />
         </div>

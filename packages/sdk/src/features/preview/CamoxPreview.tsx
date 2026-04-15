@@ -328,18 +328,20 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
           <div className="flex w-[300px] flex-col border-r-2">
             <PanelHeader className="flew-row flex gap-2 px-2 py-2">
               <PagePicker />
-              <Tooltip delayDuration={500}>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() =>
-                      previewStore.send({ type: "openEditPageSheet", pageId: pageData.page.id })
-                    }
-                  >
-                    <Info className="text-muted-foreground size-4" />
-                  </Button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        previewStore.send({ type: "openEditPageSheet", pageId: pageData.page.id })
+                      }
+                    />
+                  }
+                >
+                  <Info className="text-muted-foreground size-4" />
                 </TooltipTrigger>
                 <TooltipContent>Page metadata, SEO and markdown</TooltipContent>
               </Tooltip>

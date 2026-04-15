@@ -99,7 +99,11 @@ const PagePicker = () => {
           setOpen(value);
         }}
       >
-        <PopoverTrigger render={<Button variant="outline" role="combobox" className="min-w-0 flex-1 justify-between" />}>
+        <PopoverTrigger
+          render={
+            <Button variant="outline" role="combobox" className="min-w-0 flex-1 justify-between" />
+          }
+        >
           <span className="truncate">{currentPage.metaTitle ?? currentPage.fullPath}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </PopoverTrigger>
@@ -232,12 +236,14 @@ const PagePicker = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel variant="outline" size="default">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={() => pageToDelete && handleDeletePage(pageToDelete)}
-              asChild
             >
-              <Button variant="destructive">Delete</Button>
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -20,14 +20,22 @@ const PreviewSideSheet = ({
   children,
   className,
 }: PreviewSideSheetProps) => {
+  const prevOpenRef = React.useRef(open);
+  React.useEffect(() => {
+    if (open && !prevOpenRef.current && onOpenAutoFocus) {
+      const e = new Event("focus");
+      onOpenAutoFocus(e);
+    }
+    prevOpenRef.current = open;
+  }, [open, onOpenAutoFocus]);
+
   return (
     <Sheet.Sheet open={open} onOpenChange={onOpenChange}>
       <Sheet.SheetContent
         className={className}
         side="left"
-        overlayClassName="bg-black/0" // overlay is managed on individual blocks instead
+        showOverlay={false}
         style={{ minWidth: SHEET_WIDTH }}
-        onOpenAutoFocus={onOpenAutoFocus}
       >
         {children}
       </Sheet.SheetContent>

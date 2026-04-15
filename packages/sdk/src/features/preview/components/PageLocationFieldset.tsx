@@ -61,7 +61,9 @@ const PageLocationFieldset = ({
           value={parentPageId != null ? String(parentPageId) : ""}
           disabled={disabled || !hasParentOptions}
           onValueChange={(value) =>
-            onParentPageIdChange(["", NO_PARENT_VALUE].includes(value) ? undefined : Number(value))
+            onParentPageIdChange(
+              !value || ["", NO_PARENT_VALUE].includes(value) ? undefined : Number(value),
+            )
           }
         >
           <SelectTrigger>

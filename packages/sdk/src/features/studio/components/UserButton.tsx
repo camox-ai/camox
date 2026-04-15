@@ -3,6 +3,7 @@ import { Button } from "@camox/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -54,24 +55,24 @@ function AuthenticatedUserButton({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon">
-          <User className="text-muted-foreground h-4 w-4" />
-        </Button>
+      <DropdownMenuTrigger render={<Button variant="outline" size="icon" />}>
+        <User className="text-muted-foreground h-4 w-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="end">
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex items-center gap-3">
-            <Avatar size="lg">
-              {userImage && <AvatarImage src={userImage} alt={userName} />}
-              <AvatarFallback>{userInitials}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 space-y-0.5">
-              <p className="text-sm leading-none font-medium">{userName}</p>
-              <p className="text-muted-foreground text-sm">{userEmail}</p>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex items-center gap-3">
+              <Avatar size="lg">
+                {userImage && <AvatarImage src={userImage} alt={userName} />}
+                <AvatarFallback>{userInitials}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 space-y-0.5">
+                <p className="text-foreground text-sm leading-none font-medium">{userName}</p>
+                <p className="text-muted-foreground text-sm">{userEmail}</p>
+              </div>
             </div>
-          </div>
-        </DropdownMenuLabel>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => window.open(`${authenticationUrl}/dashboard/profile`, "_blank")}

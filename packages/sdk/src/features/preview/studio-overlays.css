@@ -113,6 +113,23 @@
   border-color: var(--camox-overlay-layout-color-selected);
 }
 
+/* ---- Sheet overlay (dims non-selected blocks) ---- */
+
+.camox-sheet-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.camox-sheet-overlay[data-camox-visible] {
+  opacity: 1;
+}
+
 /* ---- Add block control bar ---- */
 
 .camox-add-block {

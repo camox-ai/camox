@@ -1,4 +1,3 @@
-import { useFrame } from "@camox/ui/frame";
 import { Input } from "@camox/ui/input";
 import { Kbd } from "@camox/ui/kbd";
 import { Label } from "@camox/ui/label";
@@ -21,6 +20,7 @@ import {
   projectQueries,
 } from "@/lib/queries";
 
+import { useFrame } from "../features/preview/components/Frame";
 import { postOverlayMessage } from "../features/preview/overlayMessages";
 import { previewStore } from "../features/preview/previewStore";
 import {
@@ -582,6 +582,7 @@ export function createBlock<
 
   type DetachedRenderProps = {
     ref: (element: HTMLElement | null) => void;
+    style: React.CSSProperties;
     onClick: (e: React.MouseEvent) => void;
     onMouseEnter: () => void;
     onMouseLeave: () => void;
@@ -1066,12 +1067,7 @@ export function createBlock<
     return (
       <Popover open={isEditorFocused}>
         {children(linkProps, linkData)}
-        <PopoverContent
-          className="w-auto p-2"
-          initialFocus={false}
-          anchor={elementRef}
-          align="end"
-        >
+        <PopoverContent className="w-auto p-2" initialFocus={false} anchor={elementRef} align="end">
           <button
             type="button"
             className="hover:bg-accent flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors"
@@ -1663,19 +1659,8 @@ export function createBlock<
         </Context.Provider>
         {/* Sheet overlay */}
         <div
-          style={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            top: 0,
-            left: 0,
-            background: "#000",
-            opacity: shouldShowSheetOverlay ? 0.6 : 0,
-            transition: "opacity 0.3s ease-in-out",
-            pointerEvents: "none",
-            zIndex: 20,
-          }}
-          id="hello"
+          className="camox-sheet-overlay"
+          {...(shouldShowSheetOverlay ? { "data-camox-visible": "" } : {})}
         />
         {/* AddBlock controls */}
         {shouldShowOverlay &&
@@ -1787,6 +1772,10 @@ export function createBlock<
       <>
         {children({
           ref: setContainer,
+          style: {
+            opacity: shouldShowSheetOverlay ? 0 : 1,
+            transition: "opacity 0.3s ease-in-out",
+          },
           onClick: handleClick,
           onMouseEnter: handleMouseEnter,
           onMouseLeave: handleMouseLeave,
@@ -1794,18 +1783,6 @@ export function createBlock<
         {container &&
           createPortal(
             <>
-              {/* Sheet overlay */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "#000",
-                  opacity: shouldShowSheetOverlay ? 0.6 : 0,
-                  transition: "opacity 0.3s ease-in-out",
-                  pointerEvents: "none",
-                  zIndex: 20,
-                }}
-              />
               {/* Border overlay — uses CSS via data attributes like other components,
                  but rendered as a portal div (not ::after) because Detached wraps
                  user elements (e.g. fixed navbars) that must not get position: relative */}

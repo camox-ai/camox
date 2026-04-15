@@ -181,6 +181,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
       <DialogContent
         className="h-[90vh] max-h-[90vh] w-[90vw] max-w-[90vw] gap-0 overflow-hidden p-0 sm:max-w-[90vw]"
         showCloseButton={false}
+        forceOverlay
       >
         <DialogTitle className="sr-only">{file.alt || file.filename || "File preview"}</DialogTitle>
         <Button
@@ -296,26 +297,37 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
             <div className="flex-1 space-y-4 overflow-y-auto p-4">
               <ButtonGroup>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="outline" size="icon" onClick={handleCopyUrl}>
-                      <Link />
-                    </Button>
+                  <TooltipTrigger
+                    render={
+                      <Button type="button" variant="outline" size="icon" onClick={handleCopyUrl} />
+                    }
+                  >
+                    <Link />
                   </TooltipTrigger>
                   <TooltipContent>Copy URL</TooltipContent>
                 </Tooltip>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="outline" size="icon" onClick={handleDownload}>
-                      <Download />
-                    </Button>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={handleDownload}
+                      />
+                    }
+                  >
+                    <Download />
                   </TooltipTrigger>
                   <TooltipContent>Download</TooltipContent>
                 </Tooltip>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="outline" size="icon" onClick={handleDelete}>
-                      <Trash2 />
-                    </Button>
+                  <TooltipTrigger
+                    render={
+                      <Button type="button" variant="outline" size="icon" onClick={handleDelete} />
+                    }
+                  >
+                    <Trash2 />
                   </TooltipTrigger>
                   <TooltipContent>Delete</TooltipContent>
                 </Tooltip>

@@ -41,61 +41,69 @@ export const PreviewToolbar = () => {
     >
       <ButtonGroup>
         <Tooltip.Tooltip>
-          <Tooltip.TooltipTrigger asChild>
-            <Toggle
-              data-state={isEditingPanelOpen ? "off" : "on"}
-              pressed={!isEditingPanelOpen}
-              variant="outline"
-              onClick={() => previewStore.send({ type: "toggleSidebar" })}
-            >
-              <PanelRight />
-            </Toggle>
+          <Tooltip.TooltipTrigger
+            render={
+              <Toggle
+                data-state={isEditingPanelOpen ? "off" : "on"}
+                pressed={!isEditingPanelOpen}
+                variant="outline"
+                onClick={() => previewStore.send({ type: "toggleSidebar" })}
+              />
+            }
+          >
+            <PanelRight />
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent>
             Toggle sidebar {getActionShortcut(actions, "toggle-editing-panel")}
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>
         <Tooltip.Tooltip>
-          <Tooltip.TooltipTrigger asChild>
-            <Toggle
-              data-state={isEditingLocked ? "on" : "off"}
-              pressed={isEditingLocked}
-              onPressedChange={() => previewStore.send({ type: "toggleLockContent" })}
-              variant="outline"
-            >
-              <Lock />
-            </Toggle>
+          <Tooltip.TooltipTrigger
+            render={
+              <Toggle
+                data-state={isEditingLocked ? "on" : "off"}
+                pressed={isEditingLocked}
+                onPressedChange={() => previewStore.send({ type: "toggleLockContent" })}
+                variant="outline"
+              />
+            }
+          >
+            <Lock />
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent>
             Toggle edit mode <Kbd>L</Kbd>
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>
         <Tooltip.Tooltip>
-          <Tooltip.TooltipTrigger asChild>
-            <Toggle
-              data-state={isMobileMode ? "on" : "off"}
-              pressed={isMobileMode}
-              onPressedChange={() => previewStore.send({ type: "toggleMobileMode" })}
-              variant="outline"
-            >
-              <TabletSmartphone />
-            </Toggle>
+          <Tooltip.TooltipTrigger
+            render={
+              <Toggle
+                data-state={isMobileMode ? "on" : "off"}
+                pressed={isMobileMode}
+                onPressedChange={() => previewStore.send({ type: "toggleMobileMode" })}
+                variant="outline"
+              />
+            }
+          >
+            <TabletSmartphone />
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent>
             Toggle mobile layout {getActionShortcut(actions, "toggle-mobile-mode")}
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>
         <Tooltip.Tooltip>
-          <Tooltip.TooltipTrigger asChild>
-            <Toggle
-              data-state={isPresentationMode ? "on" : "off"}
-              pressed={isPresentationMode}
-              variant="outline"
-              onClick={() => previewStore.send({ type: "enterPresentationMode" })}
-            >
-              <MonitorPlay />
-              Preview
-            </Toggle>
+          <Tooltip.TooltipTrigger
+            render={
+              <Toggle
+                data-state={isPresentationMode ? "on" : "off"}
+                pressed={isPresentationMode}
+                variant="outline"
+                onClick={() => previewStore.send({ type: "enterPresentationMode" })}
+              />
+            }
+          >
+            <MonitorPlay />
+            Preview
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent>
             Hide all Camox UI {getActionShortcut(actions, "enter-presentation-mode")}

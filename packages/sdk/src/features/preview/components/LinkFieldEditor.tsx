@@ -144,7 +144,11 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
         </Tabs>
         {linkValue.type === "page" ? (
           <Popover open={pagePickerOpen} onOpenChange={setPagePickerOpen}>
-            <PopoverTrigger render={<Button variant="outline" role="combobox" className="justify-between font-normal" />}>
+            <PopoverTrigger
+              render={
+                <Button variant="outline" role="combobox" className="justify-between font-normal" />
+              }
+            >
               {selectedPage ? (
                 <span className="truncate">
                   {selectedPage.metaTitle ?? formatPathSegment(selectedPage.pathSegment)}

@@ -138,19 +138,21 @@ const SortableRepeatableItem = ({
 
         {canRemove && (
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground hover:text-foreground hidden shrink-0 group-focus-within:flex group-hover:flex"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove(String(item.id));
-                }}
-              >
-                <CircleMinus className="h-4 w-4" />
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-muted-foreground hover:text-foreground hidden shrink-0 group-focus-within:flex group-hover:flex"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove(String(item.id));
+                  }}
+                />
+              }
+            >
+              <CircleMinus className="h-4 w-4" />
             </TooltipTrigger>
             <TooltipContent side="right">Remove item</TooltipContent>
           </Tooltip>

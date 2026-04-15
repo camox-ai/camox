@@ -2,6 +2,7 @@ import { Button } from "@camox/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -85,65 +86,72 @@ export const ProjectMenu = () => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost">
-          <div className="flex items-center gap-2">
-            <Favicon size={16} />
-            <span className="select-none">{project.name}</span>
-          </div>
-          <ChevronDown className="shrink-0 opacity-50" />
-        </Button>
+      <DropdownMenuTrigger render={<Button variant="ghost" />}>
+        <div className="flex items-center gap-2">
+          <Favicon size={16} />
+          <span className="select-none">{project.name}</span>
+        </div>
+        <ChevronDown className="shrink-0 opacity-50" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="start" side="bottom">
         <DropdownMenuItem
-          onSelect={() => {
-            if (authCtx) {
-              window.open(
-                `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/${project.slug}/overview`,
-                "_blank",
-              );
-            }
-          }}
+          render={
+            <a
+              href={
+                authCtx
+                  ? `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/${project.slug}/overview`
+                  : "#"
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+          }
         >
           <Settings />
           Project settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
-          {project.organizationSlug}
-        </DropdownMenuLabel>
-        <DropdownMenuItem
-          onSelect={() => {
-            if (authCtx) {
-              window.open(
-                `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=members`,
-                "_blank",
-              );
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
+            {project.organizationSlug}
+          </DropdownMenuLabel>
+          <DropdownMenuItem
+            render={
+              <a
+                href={
+                  authCtx
+                    ? `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=members`
+                    : "#"
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+              />
             }
-          }}
-        >
-          <Users />
-          Team members
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => {
-            if (authCtx) {
-              window.open(
-                `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=settings`,
-                "_blank",
-              );
+          >
+            <Users />
+            Team members
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            render={
+              <a
+                href={
+                  authCtx
+                    ? `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=settings`
+                    : "#"
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+              />
             }
-          }}
-        >
-          <Settings className="h-4 w-4" />
-          Team settings
-        </DropdownMenuItem>
+          >
+            <Settings className="h-4 w-4" />
+            Team settings
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="https://camox.ai" target="_blank">
-            <Info className="h-4 w-4" />
-            Powered by Camox
-          </Link>
+        <DropdownMenuItem render={<Link to="https://camox.ai" target="_blank" />}>
+          <Info className="h-4 w-4" />
+          Powered by Camox
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -38,19 +38,17 @@ import { ShikiMarkdown } from "./ShikiMarkdown";
 const EditPageSheet = () => {
   const editingPageId = useSelector(previewStore, (state) => state.context.editingPageId);
 
-  if (!editingPageId) return null;
-
   return <EditPageSheetContent pageId={editingPageId} />;
 };
 
-const EditPageSheetContent = ({ pageId }: { pageId: number }) => {
+const EditPageSheetContent = ({ pageId }: { pageId: number | null }) => {
   const projectSlug = useProjectSlug();
   const updatePage = useMutation(pageMutations.update());
   const setLayout = useMutation(pageMutations.setLayout());
   const setAiSeo = useMutation(pageMutations.setAiSeo());
   const setMetaTitle = useMutation(pageMutations.setMetaTitle());
   const setMetaDescription = useMutation(pageMutations.setMetaDescription());
-  const { data: page } = useQuery(pageQueries.getById(pageId));
+  const { data: page } = useQuery({ ...pageQueries.getById(pageId!), enabled: pageId != null });
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   const { data: pages } = useQuery({
     ...pageQueries.list(project?.id ?? 0),
@@ -115,24 +113,24 @@ const EditPageSheetContent = ({ pageId }: { pageId: number }) => {
     });
   }, [pageId, page, form]);
 
-  if (!page) return null;
-
-  const isRootPage = page.fullPath === "/";
-  const pageLayoutRecord = layouts?.find((l) => l.id === page.layoutId);
+  const isOpen = pageId != null && !!page;
+  const isRootPage = page?.fullPath === "/";
+  const pageLayoutRecord = layouts?.find((l) => l.id === page?.layoutId);
   const layoutDef = pageLayoutRecord
     ? camoxApp.getLayoutById(pageLayoutRecord.layoutId)
     : undefined;
-  const metaTitle = layoutDef
-    ? layoutDef.buildMetaTitle({
-        pageMetaTitle: page.metaTitle ?? "",
-        projectName: project?.name ?? "",
-        pageFullPath: page.fullPath,
-      })
-    : (page.metaTitle ?? "");
+  const metaTitle =
+    layoutDef && page
+      ? layoutDef.buildMetaTitle({
+          pageMetaTitle: page.metaTitle ?? "",
+          projectName: project?.name ?? "",
+          pageFullPath: page.fullPath,
+        })
+      : (page?.metaTitle ?? "");
 
   return (
     <Sheet.Sheet
-      open
+      open={isOpen}
       onOpenChange={(value) => {
         if (!value) previewStore.send({ type: "closeEditPageSheet" });
       }}
@@ -142,144 +140,148 @@ const EditPageSheetContent = ({ pageId }: { pageId: number }) => {
           <Sheet.SheetTitle>Edit page</Sheet.SheetTitle>
           <Sheet.SheetDescription>Update the page details.</Sheet.SheetDescription>
         </Sheet.SheetHeader>
-        <div className="flex-1 overflow-y-auto">
-          <div className="border-border grid grid-cols-[200px_1fr] gap-x-8 border-b px-4 py-4">
-            <div>
-              <p className="text-sm font-medium">Page structure</p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                URL path and layout used to render the page
-              </p>
-            </div>
-            <div className="space-y-4">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  form.handleSubmit();
-                }}
-                className="space-y-4"
-              >
-                <form.Field name="parentPageId">
-                  {(parentField) => (
-                    <form.Field name="pathSegment">
-                      {(pathField) => (
-                        <PageLocationFieldset
-                          parentPageId={parentField.state.value}
-                          onParentPageIdChange={parentField.handleChange}
-                          pathSegment={pathField.state.value}
-                          onPathSegmentChange={pathField.handleChange}
-                          disabled={isRootPage}
-                          pages={pages}
-                          excludePageId={page.id}
-                        />
+        {page && (
+          <div className="flex-1 overflow-y-auto">
+            <div className="border-border grid grid-cols-[200px_1fr] gap-x-8 border-b px-4 py-4">
+              <div>
+                <p className="text-sm font-medium">Page structure</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  URL path and layout used to render the page
+                </p>
+              </div>
+              <div className="space-y-4">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    form.handleSubmit();
+                  }}
+                  className="space-y-4"
+                >
+                  <form.Field name="parentPageId">
+                    {(parentField) => (
+                      <form.Field name="pathSegment">
+                        {(pathField) => (
+                          <PageLocationFieldset
+                            parentPageId={parentField.state.value}
+                            onParentPageIdChange={parentField.handleChange}
+                            pathSegment={pathField.state.value}
+                            onPathSegmentChange={pathField.handleChange}
+                            disabled={isRootPage}
+                            pages={pages}
+                            excludePageId={page.id}
+                          />
+                        )}
+                      </form.Field>
+                    )}
+                  </form.Field>
+                  {layouts && layouts.length > 0 && (
+                    <form.Field name="layoutId">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label>Layout</Label>
+                          <Select
+                            value={field.state.value ? String(field.state.value) : ""}
+                            onValueChange={(value) => field.handleChange(Number(value))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a layout" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {layouts.map((t) => (
+                                <SelectItem key={t.id} value={String(t.id)}>
+                                  {camoxApp.getLayoutById(t.layoutId)?.title ?? t.layoutId}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       )}
                     </form.Field>
                   )}
-                </form.Field>
-                {layouts && layouts.length > 0 && (
-                  <form.Field name="layoutId">
-                    {(field) => (
-                      <div className="space-y-2">
-                        <Label>Layout</Label>
-                        <Select
-                          value={field.state.value ? String(field.state.value) : ""}
-                          onValueChange={(value) => field.handleChange(Number(value))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a layout" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {layouts.map((t) => (
-                              <SelectItem key={t.id} value={String(t.id)}>
-                                {camoxApp.getLayoutById(t.layoutId)?.title ?? t.layoutId}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  <form.Subscribe
+                    selector={(s) => ({
+                      isSubmitting: s.isSubmitting,
+                      isPristine: s.isPristine,
+                    })}
+                  >
+                    {({ isSubmitting, isPristine }) => (
+                      <Button type="submit" disabled={isSubmitting || isPristine}>
+                        {isSubmitting && <Spinner />}
+                        Save changes
+                        {isSubmitting && "..."}
+                      </Button>
                     )}
-                  </form.Field>
-                )}
-                <form.Subscribe
-                  selector={(s) => ({
-                    isSubmitting: s.isSubmitting,
-                    isPristine: s.isPristine,
-                  })}
-                >
-                  {({ isSubmitting, isPristine }) => (
-                    <Button type="submit" disabled={isSubmitting || isPristine}>
-                      {isSubmitting && <Spinner />}
-                      Save changes
-                      {isSubmitting && "..."}
-                    </Button>
-                  )}
-                </form.Subscribe>
-              </form>
-            </div>
-          </div>
-          <div className="grid grid-cols-[200px_1fr] gap-x-8 px-4 py-4">
-            <div>
-              <p className="text-sm font-medium">SEO data</p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                How the page appears when shared across the web
-              </p>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="ai-seo"
-                  checked={page.aiSeoEnabled !== false}
-                  onCheckedChange={(checked) => setAiSeo.mutate({ id: page.id, enabled: checked })}
-                />
-                <Label htmlFor="ai-seo">AI metadata</Label>
+                  </form.Subscribe>
+                </form>
               </div>
-              <DebouncedFieldEditor
-                label="Page title"
-                placeholder="Page title..."
-                initialValue={page.metaTitle ?? ""}
-                disabled={page.aiSeoEnabled !== false}
-                onSave={(value) => setMetaTitle.mutate({ id: page.id, metaTitle: value })}
-              />
-              <DebouncedFieldEditor
-                label="Page description"
-                placeholder="Page description..."
-                initialValue={page.metaDescription ?? ""}
-                disabled={page.aiSeoEnabled !== false}
-                rows={2}
-                onSave={(value) =>
-                  setMetaDescription.mutate({ id: page.id, metaDescription: value })
-                }
-              />
-              <SearchEnginePreview
-                page={page}
-                metaTitle={metaTitle}
-                metaDescription={page.metaDescription ?? ""}
-              />
-              <SocialPreviewSection
-                page={page}
-                metaTitle={metaTitle}
-                metaDescription={page.metaDescription ?? ""}
-                layoutId={pageLayoutRecord?.layoutId}
-                projectName={project?.name}
-              />
+            </div>
+            <div className="grid grid-cols-[200px_1fr] gap-x-8 px-4 py-4">
+              <div>
+                <p className="text-sm font-medium">SEO data</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  How the page appears when shared across the web
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="ai-seo"
+                    checked={page.aiSeoEnabled !== false}
+                    onCheckedChange={(checked) =>
+                      setAiSeo.mutate({ id: page.id, enabled: checked })
+                    }
+                  />
+                  <Label htmlFor="ai-seo">AI metadata</Label>
+                </div>
+                <DebouncedFieldEditor
+                  label="Page title"
+                  placeholder="Page title..."
+                  initialValue={page.metaTitle ?? ""}
+                  disabled={page.aiSeoEnabled !== false}
+                  onSave={(value) => setMetaTitle.mutate({ id: page.id, metaTitle: value })}
+                />
+                <DebouncedFieldEditor
+                  label="Page description"
+                  placeholder="Page description..."
+                  initialValue={page.metaDescription ?? ""}
+                  disabled={page.aiSeoEnabled !== false}
+                  rows={2}
+                  onSave={(value) =>
+                    setMetaDescription.mutate({ id: page.id, metaDescription: value })
+                  }
+                />
+                <SearchEnginePreview
+                  page={page}
+                  metaTitle={metaTitle}
+                  metaDescription={page.metaDescription ?? ""}
+                />
+                <SocialPreviewSection
+                  page={page}
+                  metaTitle={metaTitle}
+                  metaDescription={page.metaDescription ?? ""}
+                  layoutId={pageLayoutRecord?.layoutId}
+                  projectName={project?.name}
+                />
+              </div>
+            </div>
+            <div className="border-border grid grid-cols-[200px_1fr] gap-x-8 border-t px-4 py-4">
+              <div>
+                <p className="text-sm font-medium">Markdown content</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  How your content will be served to AI agents
+                </p>
+              </div>
+              <div>
+                <PageMarkdownPreview
+                  pageId={page.id}
+                  metaTitle={metaTitle}
+                  metaDescription={page.metaDescription ?? ""}
+                />
+              </div>
             </div>
           </div>
-          <div className="border-border grid grid-cols-[200px_1fr] gap-x-8 border-t px-4 py-4">
-            <div>
-              <p className="text-sm font-medium">Markdown content</p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                How your content will be served to AI agents
-              </p>
-            </div>
-            <div>
-              <PageMarkdownPreview
-                pageId={page.id}
-                metaTitle={metaTitle}
-                metaDescription={page.metaDescription ?? ""}
-              />
-            </div>
-          </div>
-        </div>
+        )}
       </Sheet.SheetContent>
     </Sheet.Sheet>
   );
@@ -307,9 +309,8 @@ const SearchEnginePreview = ({
       <div className="flex items-center gap-1.5">
         <Label>Search engine preview</Label>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Info className="text-muted-foreground size-3.5" />
-          </TooltipTrigger>
+          <TooltipTrigger render={<Info className="text-muted-foreground size-3.5" />} />
+
           <TooltipContent>
             Titles are cropped after 60 characters and descriptions after 155, like Google typically
             does.
