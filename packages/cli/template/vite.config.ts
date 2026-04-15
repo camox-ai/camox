@@ -18,5 +18,9 @@ export default defineConfig(({ mode }) => {
       react(),
       babelPlugin({ presets: [reactCompilerPreset()] }),
     ],
+    optimizeDeps: {
+      // See https://github.com/TanStack/router/issues/5738#issuecomment-3512609172
+      include: ["@base-ui/utils"],
+    },
   };
 });

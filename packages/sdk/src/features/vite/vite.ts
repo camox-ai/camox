@@ -9,15 +9,6 @@ const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
 const RESOLVED_VIRTUAL_STUDIO_CSS = "\0" + VIRTUAL_STUDIO_CSS;
 
-/**
- * use-sync-external-store is CJS-only and causes issues in ESM environments.
- * Since all Camox apps use React 19+, we can redirect imports to React's built-in
- * useSyncExternalStore instead. This handles all subpaths (e.g. /shim, /shim/index.js).
- */
-const USE_SYNC_EXTERNAL_STORE_RE = /^use-sync-external-store(\/|$)/;
-const RESOLVED_USE_SYNC_SHIM = "\0use-sync-external-store-shim";
-const USE_SYNC_SHIM_CODE = `export { useSyncExternalStore } from "react";\n`;
-
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
 
@@ -86,10 +77,8 @@ export function camox(options: CamoxPluginOptions): Plugin {
     name: "camox",
     resolveId(id) {
       if (id === VIRTUAL_STUDIO_CSS) return RESOLVED_VIRTUAL_STUDIO_CSS;
-      if (USE_SYNC_EXTERNAL_STORE_RE.test(id)) return RESOLVED_USE_SYNC_SHIM;
     },
     load(id) {
-      if (id === RESOLVED_USE_SYNC_SHIM) return USE_SYNC_SHIM_CODE;
       if (id !== RESOLVED_VIRTUAL_STUDIO_CSS) return;
       const cssPath = resolve(sdkRoot, "dist/studio.css");
       if (isBuild) {
