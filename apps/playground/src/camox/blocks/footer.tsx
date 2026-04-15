@@ -50,9 +50,7 @@ function FooterComponent() {
           {/* Left side: Logo + copyright */}
           <div className="shrink-0 md:w-1/4">
             <footer.Field name="title">
-              {(content) => (
-                <div className="text-foreground mb-2 text-2xl font-bold">{content}</div>
-              )}
+              {(props) => <div {...props} className="text-foreground mb-2 text-2xl font-bold" />}
             </footer.Field>
             <p className="text-muted-foreground text-sm">
               &copy; {new Date().getFullYear()} All rights reserved.
@@ -65,22 +63,18 @@ function FooterComponent() {
               {(column) => (
                 <div>
                   <column.Field name="title">
-                    {(content) => <h3 className="text-foreground mb-4 font-semibold">{content}</h3>}
+                    {(props) => <h3 {...props} className="text-foreground mb-4 font-semibold" />}
                   </column.Field>
                   <ul className="space-y-2">
                     <column.Repeater name="links">
                       {(linkItem) => (
                         <li>
                           <linkItem.Link name="link">
-                            {({ text, href, newTab }) => (
+                            {(props) => (
                               <Link
-                                to={href}
-                                target={newTab ? "_blank" : undefined}
-                                rel={newTab ? "noreferrer" : undefined}
+                                {...props}
                                 className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-                              >
-                                {text}
-                              </Link>
+                              />
                             )}
                           </linkItem.Link>
                         </li>

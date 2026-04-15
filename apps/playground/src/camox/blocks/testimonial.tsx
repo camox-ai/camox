@@ -25,26 +25,25 @@ function TestimonialComponent() {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
           <testimonial.Field name="quote">
-            {(content) => (
-              <blockquote className="text-foreground mb-8 text-2xl leading-relaxed font-medium sm:text-3xl">
-                "{content}"
+            {(props) => (
+              <blockquote
+                {...props}
+                className="text-foreground mb-8 text-2xl leading-relaxed font-medium sm:text-3xl"
+              >
+                "{props.children}"
               </blockquote>
             )}
           </testimonial.Field>
           <div className="flex flex-col items-center">
             <testimonial.Field name="author">
-              {(content) => (
-                <cite className="text-foreground text-lg font-semibold not-italic">{content}</cite>
+              {(props) => (
+                <cite {...props} className="text-foreground text-lg font-semibold not-italic" />
               )}
             </testimonial.Field>
             <div className="text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:gap-2">
-              <testimonial.Field name="title">
-                {(content) => <span>{content}</span>}
-              </testimonial.Field>
+              <testimonial.Field name="title">{(props) => <span {...props} />}</testimonial.Field>
               <span className="hidden sm:inline">•</span>
-              <testimonial.Field name="company">
-                {(content) => <span>{content}</span>}
-              </testimonial.Field>
+              <testimonial.Field name="company">{(props) => <span {...props} />}</testimonial.Field>
             </div>
           </div>
         </div>

@@ -66,54 +66,42 @@ function HeroComponent() {
           >
             <div className="flex-1 text-left">
               <hero.Field name="title">
-                {(content) => (
+                {(props) => (
                   <h1
+                    {...props}
                     className={cn(
                       "font-bold tracking-tight text-foreground leading-tight",
                       compact
                         ? "mb-4 text-2xl sm:text-3xl lg:text-4xl"
                         : "mb-8 text-4xl sm:text-6xl lg:text-7xl",
                     )}
-                  >
-                    {content}
-                  </h1>
+                  />
                 )}
               </hero.Field>
               <hero.Field name="description">
-                {(content) => (
+                {(props) => (
                   <p
+                    {...props}
                     className={cn(
                       "text-red-900/70 dark:text-red-200",
                       compact ? "mb-6 text-base" : "mb-12 text-xl",
                     )}
-                  >
-                    {content}
-                  </p>
+                  />
                 )}
               </hero.Field>
               <div className="flex flex-col items-start gap-4 sm:flex-row">
                 <hero.Link name="cta">
-                  {({ text, href, newTab }) => (
+                  {(props) => (
                     <Button size={compact ? "default" : "lg"} asChild>
-                      <Link
-                        to={href}
-                        target={newTab ? "_blank" : undefined}
-                        rel={newTab ? "noreferrer" : undefined}
-                      >
-                        {text}
-                      </Link>
+                      <Link {...props} />
                     </Button>
                   )}
                 </hero.Link>
               </div>
             </div>
             <hero.Image name="illustration">
-              {(img) => (
-                <img
-                  src={img.url}
-                  alt={img.alt}
-                  className="mt-10 w-full max-w-xs rounded-lg lg:mt-0 lg:max-w-sm"
-                />
+              {(props) => (
+                <img {...props} className="mt-10 w-full max-w-xs rounded-lg lg:mt-0 lg:max-w-sm" />
               )}
             </hero.Image>
           </div>

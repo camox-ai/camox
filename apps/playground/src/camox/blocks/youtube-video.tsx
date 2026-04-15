@@ -154,7 +154,7 @@ function YouTubeVideoComponent() {
       <div className={cn("bg-background", !fullWidth && "py-12")}>
         <div className={cn(!fullWidth && "container mx-auto px-4")}>
           <youtubeVideo.Embed name="url">
-            {(url) => (
+            {(_props, { url }) => (
               <div
                 className={cn(
                   "relative w-full aspect-video",

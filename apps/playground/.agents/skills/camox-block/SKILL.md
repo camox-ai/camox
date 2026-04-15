@@ -35,7 +35,7 @@ const myBlock = createBlock({
 function MyBlockComponent() {
   return (
     <section>
-      <myBlock.Field name="title">{(content) => <h1>{content}</h1>}</myBlock.Field>
+      <myBlock.Field name="title">{(props) => <h1 {...props} />}</myBlock.Field>
     </section>
   );
 }
@@ -242,54 +242,79 @@ columns: Type.RepeatableItem(
 
 ## Rendering in the Component
 
-The component is a regular React function. It uses methods on the block constant to render each field. The pattern is always: use the appropriate renderer for each field type, with a render-prop child that receives the field value.
+The component is a regular React function. It uses methods on the block constant to render each field. Every field renderer uses a render-prop pattern where the child function receives `(props, data?)`:
+
+- **`props`** — spread onto the rendered element. Contains HTML/React attributes: refs, data attributes, event handlers, and field-specific attributes like `to`, `src`, `alt`, `children`.
+- **`data`** (optional second argument) — raw field values for custom logic. Not meant to be spread.
 
 ### Rendering String fields — `block.Field`
 
 ```tsx
-<myBlock.Field name="title">{(content) => <h1>{content}</h1>}</myBlock.Field>
+<myBlock.Field name="title">{(props) => <h1 {...props} />}</myBlock.Field>
 ```
 
-The `name` must match a key in `content` that is a `Type.String`. The `content` argument is a string. This is what makes the field inline-editable in the CMS.
+The `name` must match a key in `content` that is a `Type.String`. Spread `props` onto the element — `props.children` contains the rendered content. This is what makes the field inline-editable in the CMS.
+
+When the content needs to be placed inside a more complex structure, use `props.children` explicitly:
+
+```tsx
+<myBlock.Field name="quote">
+  {(props) => <blockquote {...props}>"{props.children}"</blockquote>}
+</myBlock.Field>
+```
 
 ### Rendering Link fields — `block.Link`
 
-Inside the render prop, use the `Link` component from `@tanstack/react-router` instead of a plain `<a>` tag. This enables client-side navigation for internal links.
+Inside the render prop, use the `Link` component from `@tanstack/react-router` instead of a plain `<a>` tag. This enables client-side navigation for internal links. The framework computes `to`, `target`, and `rel` from the link value — just spread `props`.
 
 ```tsx
 import { Link } from "@tanstack/react-router";
 
+<myBlock.Link name="cta">{(props) => <Link {...props} />}</myBlock.Link>;
+```
+
+The optional second argument `data` exposes raw values `{ text, href, newTab }` for custom logic:
+
+```tsx
 <myBlock.Link name="cta">
-  {({ text, href, newTab }) => (
-    <Link to={href} target={newTab ? "_blank" : undefined} rel={newTab ? "noreferrer" : undefined}>
-      {text}
-    </Link>
-  )}
-</myBlock.Link>;
+  {(props, { href }) => <Link {...props} className={href === "/" ? "active" : ""} />}
+</myBlock.Link>
 ```
 
 ### Rendering Image fields — `block.Image`
 
 ```tsx
-<myBlock.Image name="cover">{(img) => <img src={img.url} alt={img.alt} />}</myBlock.Image>
+<myBlock.Image name="cover">{(props) => <img {...props} />}</myBlock.Image>
+```
+
+`props` includes `src` and `alt`. The optional `data` argument exposes the raw `ImageValue` for cases like background images:
+
+```tsx
+<myBlock.Image name="cover">
+  {(_props, { url }) => <div style={{ backgroundImage: `url(${url})` }} />}
+</myBlock.Image>
 ```
 
 ### Rendering File fields — `block.File`
 
 ```tsx
-<myBlock.File name="document">
-  {(file) => (
-    <a href={file.url} download={file.filename}>
-      Download
-    </a>
-  )}
-</myBlock.File>
+<myBlock.File name="document">{(props) => <a {...props}>Download</a>}</myBlock.File>
 ```
+
+`props` includes `href` and `download` (filename). The optional `data` argument exposes the raw `FileValue`.
 
 ### Rendering Embed fields — `block.Embed`
 
 ```tsx
-<myBlock.Embed name="videoUrl">{(url) => <iframe src={url} />}</myBlock.Embed>
+<myBlock.Embed name="videoUrl">{(props) => <iframe {...props} />}</myBlock.Embed>
+```
+
+`props` includes `src`. The optional `data` argument exposes `{ url }` for cases where the URL needs transformation:
+
+```tsx
+<myBlock.Embed name="videoUrl">
+  {(_props, { url }) => <iframe src={transformUrl(url)} />}
+</myBlock.Embed>
 ```
 
 ### Rendering RepeatableItem fields — `block.Repeater`
@@ -298,8 +323,8 @@ import { Link } from "@tanstack/react-router";
 <myBlock.Repeater name="features">
   {(item) => (
     <div>
-      <item.Field name="name">{(content) => <h3>{content}</h3>}</item.Field>
-      <item.Field name="description">{(content) => <p>{content}</p>}</item.Field>
+      <item.Field name="name">{(props) => <h3 {...props} />}</item.Field>
+      <item.Field name="description">{(props) => <p {...props} />}</item.Field>
     </div>
   )}
 </myBlock.Repeater>
@@ -311,9 +336,7 @@ Inside a Repeater, the `item` callback argument exposes the same `.Field`, `.Lin
 <footer.Repeater name="columns">
   {(column) => (
     <column.Repeater name="links">
-      {(linkItem) => (
-        <linkItem.Link name="link">{({ text, href }) => <a href={href}>{text}</a>}</linkItem.Link>
-      )}
+      {(linkItem) => <linkItem.Link name="link">{(props) => <Link {...props} />}</linkItem.Link>}
     </column.Repeater>
   )}
 </footer.Repeater>
@@ -323,7 +346,7 @@ For `Type.Image({ multiple: true })`, the repeater item has a single `image` key
 
 ```tsx
 <gallery.Repeater name="images">
-  {(item) => <item.Image name="image">{(img) => <img src={img.url} alt={img.alt} />}</item.Image>}
+  {(item) => <item.Image name="image">{(props) => <img {...props} />}</item.Image>}
 </gallery.Repeater>
 ```
 
@@ -339,11 +362,15 @@ function MyComponent() {
 
 ### Detached rendering — `block.Detached`
 
-Renders content outside the block's DOM container. Useful for fixed/floating elements like sticky navbars or modals.
+Renders content outside the block's DOM container. Useful for fixed/floating elements like sticky navbars or modals. Uses a render prop that provides `props` with `ref`, `onClick`, `onMouseEnter`, and `onMouseLeave` — spread these onto the root element.
 
 ```tsx
 <myBlock.Detached>
-  <div className="fixed top-0 left-0 right-0 z-50">{/* floating content */}</div>
+  {(props) => (
+    <div {...props} className="fixed top-0 left-0 right-0 z-50">
+      {/* floating content */}
+    </div>
+  )}
 </myBlock.Detached>
 ```
 

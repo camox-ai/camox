@@ -40,8 +40,8 @@ function GalleryComponent() {
     <section className="py-16">
       <div className="container mx-auto px-4">
         <gallery.Field name="title">
-          {(content) => (
-            <h2 className="text-foreground mb-8 text-3xl font-bold tracking-tight">{content}</h2>
+          {(props) => (
+            <h2 {...props} className="text-foreground mb-8 text-3xl font-bold tracking-tight" />
           )}
         </gallery.Field>
         <div
@@ -55,12 +55,8 @@ function GalleryComponent() {
           <gallery.Repeater name="images">
             {(item) => (
               <item.Image name="image">
-                {(img) => (
-                  <img
-                    src={img.url}
-                    alt={img.alt}
-                    className="aspect-square w-full rounded-lg object-cover"
-                  />
+                {(props) => (
+                  <img {...props} className="aspect-square w-full rounded-lg object-cover" />
                 )}
               </item.Image>
             )}

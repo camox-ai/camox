@@ -33,25 +33,20 @@ function HeroComponent() {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl text-center">
           <hero.Field name="title">
-            {(content) => (
-              <h1 className="text-foreground mb-6 text-5xl font-bold tracking-tight sm:text-6xl">
-                {content}
-              </h1>
+            {(props) => (
+              <h1
+                {...props}
+                className="text-foreground mb-6 text-5xl font-bold tracking-tight sm:text-6xl"
+              />
             )}
           </hero.Field>
           <hero.Field name="description">
-            {(content) => <p className="text-muted-foreground mb-10 text-xl">{content}</p>}
+            {(props) => <p {...props} className="text-muted-foreground mb-10 text-xl" />}
           </hero.Field>
           <hero.Link name="cta">
-            {({ text, href, newTab }) => (
+            {(props) => (
               <Button size="lg" asChild>
-                <Link
-                  to={href}
-                  target={newTab ? "_blank" : undefined}
-                  rel={newTab ? "noreferrer" : undefined}
-                >
-                  {text}
-                </Link>
+                <Link {...props} />
               </Button>
             )}
           </hero.Link>

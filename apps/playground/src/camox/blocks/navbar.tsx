@@ -58,41 +58,27 @@ function NavbarContent() {
     <div className="container mx-auto px-4">
       <div className="flex h-16 items-center justify-between">
         <navbar.Link name="title">
-          {(link) => (
-            <Link className="text-foreground text-xl font-bold" to={link.href}>
-              {link.text}
-            </Link>
-          )}
+          {(props) => <Link {...props} className="text-foreground text-xl font-bold" />}
         </navbar.Link>
 
         <div className="flex items-center gap-6">
           <navbar.Repeater name="links">
             {(linkItem) => (
               <linkItem.Link name="link">
-                {({ text, href, newTab }) => (
+                {(props) => (
                   <Link
-                    to={href}
-                    target={newTab ? "_blank" : undefined}
-                    rel={newTab ? "noreferrer" : undefined}
+                    {...props}
                     className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-                  >
-                    {text}
-                  </Link>
+                  />
                 )}
               </linkItem.Link>
             )}
           </navbar.Repeater>
 
           <navbar.Link name="cta">
-            {({ text, href, newTab }) => (
+            {(props) => (
               <Button size="sm" asChild>
-                <Link
-                  to={href}
-                  target={newTab ? "_blank" : undefined}
-                  rel={newTab ? "noreferrer" : undefined}
-                >
-                  {text}
-                </Link>
+                <Link {...props} />
               </Button>
             )}
           </navbar.Link>
@@ -136,16 +122,19 @@ function NavbarComponent() {
       {/* Floating navbar */}
       {floating && (
         <navbar.Detached>
-          <nav
-            className={cn(
-              "fixed top-4 left-4 right-4 z-50 rounded-xl border border-border bg-background/80 backdrop-blur-lg shadow-lg transition-all duration-300",
-              isFloating
-                ? "translate-y-0 opacity-100"
-                : "-translate-y-full opacity-0 pointer-events-none",
-            )}
-          >
-            <NavbarContent />
-          </nav>
+          {(props) => (
+            <nav
+              {...props}
+              className={cn(
+                "fixed top-4 left-4 right-4 z-50 rounded-xl border border-border bg-background/80 backdrop-blur-lg shadow-lg transition-all duration-300",
+                isFloating
+                  ? "translate-y-0 opacity-100"
+                  : "-translate-y-full opacity-0 pointer-events-none",
+              )}
+            >
+              <NavbarContent />
+            </nav>
+          )}
         </navbar.Detached>
       )}
     </div>

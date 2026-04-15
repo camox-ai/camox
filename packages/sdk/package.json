@@ -90,7 +90,6 @@
     "@orpc/client": "^1.13.14",
     "@orpc/tanstack-query": "^1.13.14",
     "@radix-ui/react-accordion": "^1.2.12",
-    "@radix-ui/react-slot": "^1.2.4",
     "@sinclair/typebox": "^0.34.49",
     "@takumi-rs/image-response": "^0.70.4",
     "@tanstack/react-form": "^1.29.0",

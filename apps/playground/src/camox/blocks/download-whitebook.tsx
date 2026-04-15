@@ -42,35 +42,35 @@ function DownloadWhitebookComponent() {
       <div className="container mx-auto px-4">
         <div className="mx-auto flex max-w-5xl flex-col lg:flex-row lg:items-center lg:gap-16">
           <downloadWhitebook.Image name="cover">
-            {(img) => (
+            {(props) => (
               <img
-                src={img.url}
-                alt={img.alt}
+                {...props}
                 className="mb-10 w-full max-w-xs rounded-lg shadow-lg lg:mb-0 lg:max-w-sm"
               />
             )}
           </downloadWhitebook.Image>
           <div className="flex-1">
             <downloadWhitebook.Field name="title">
-              {(content) => (
-                <h2 className="text-foreground mb-4 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-                  {content}
-                </h2>
+              {(props) => (
+                <h2
+                  {...props}
+                  className="text-foreground mb-4 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+                />
               )}
             </downloadWhitebook.Field>
             <downloadWhitebook.Field name="description">
-              {(content) => (
-                <p className="text-muted-foreground mb-8 text-lg leading-relaxed">{content}</p>
+              {(props) => (
+                <p {...props} className="text-muted-foreground mb-8 text-lg leading-relaxed" />
               )}
             </downloadWhitebook.Field>
             <downloadWhitebook.File name="file">
-              {(file) => (
+              {(fileProps) => (
                 <downloadWhitebook.Field name="cta">
-                  {(ctaText) => (
+                  {(ctaProps) => (
                     <Button size="lg" asChild>
-                      <a href={file.url} download={file.filename}>
+                      <a {...fileProps} {...ctaProps}>
                         <Download className="mr-2 h-5 w-5" />
-                        {ctaText}
+                        {ctaProps.children}
                       </a>
                     </Button>
                   )}

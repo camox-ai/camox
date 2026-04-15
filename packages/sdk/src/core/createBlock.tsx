@@ -4,7 +4,6 @@ import { Kbd } from "@camox/ui/kbd";
 import { Label } from "@camox/ui/label";
 import { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from "@camox/ui/popover";
 import { toast } from "@camox/ui/toaster";
-import { Slot } from "@radix-ui/react-slot";
 import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
@@ -520,13 +519,81 @@ export function createBlock<
       : never]: RepeatableItemType<K>[F];
   };
 
+  /* ----- Render prop types ------------------------------------------------
+   * These describe exactly what `props` (and `data`) each field renderer
+   * passes to its children callback.  Block authors get full autocomplete;
+   * the `satisfies` assertions on the objects that build these props ensure
+   * no stale / mistyped key can sneak in.
+   * ---------------------------------------------------------------------- */
+
+  /** Common overlay props passed to editable field render functions.
+   *  Field and Link spread these directly onto the user's element (text/inline
+   *  elements support ::after for overlay borders).  Image and Embed keep them
+   *  on an internal wrapper <div> because <img>/<iframe> can't host
+   *  pseudo-elements, so their render-prop types don't include these. */
+  type EditableProps = {
+    ref?: React.Ref<any>;
+    "data-camox-field-id"?: string;
+    "data-camox-hovered"?: boolean;
+    "data-camox-focused"?: boolean;
+    "data-camox-overlay-mode"?: string;
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
+  };
+
+  type FieldRenderProps = { children: React.ReactNode } & EditableProps;
+  type FieldRenderData = {
+    /** Raw markdown source. Use `props.children` for rendered content. */
+    text: string;
+  };
+
+  type LinkRenderProps = {
+    to: string;
+    children: React.ReactNode;
+    target?: string;
+    rel?: string;
+    contentEditable?: boolean;
+    onClick?: (e: React.MouseEvent) => void;
+    onInput?: (e: React.FormEvent<HTMLElement>) => void;
+    onFocus?: () => void;
+    onBlur?: () => void;
+    onKeyDown?: (e: React.KeyboardEvent) => void;
+    spellCheck?: boolean;
+    suppressContentEditableWarning?: boolean;
+  } & EditableProps;
+
+  type LinkRenderData = { text: string; href: string; newTab: boolean };
+
+  type ImageRenderProps = {
+    src: string;
+    alt: string;
+  };
+
+  type FileRenderProps = {
+    href: string;
+    download: string;
+  };
+
+  type EmbedRenderProps = {
+    src: string;
+  };
+
+  type EmbedRenderData = { url: string };
+
+  type DetachedRenderProps = {
+    ref: (element: HTMLElement | null) => void;
+    onClick: (e: React.MouseEvent) => void;
+    onMouseEnter: () => void;
+    onMouseLeave: () => void;
+  };
+
   const Field = <K extends keyof StringFields>({
     name,
     children,
   }: {
     name: K;
-    children: (content: React.ReactNode) => React.ReactNode;
-  }) => {
+    children: (props: FieldRenderProps, data: FieldRenderData) => React.ReactNode;
+  }): React.ReactNode => {
     const blockContext = React.use(Context);
     if (!blockContext) {
       throw new Error("Field must be used within a Block Component");
@@ -635,32 +702,38 @@ export function createBlock<
       }
     };
 
+    const fieldData = { text: fieldValue as string } satisfies FieldRenderData;
+
     if (!isContentEditable) {
-      const reactContent = markdownToReactNodes(fieldValue);
-      return <>{children(reactContent)}</>;
+      return (
+        <>
+          {children(
+            { children: markdownToReactNodes(fieldValue) } satisfies FieldRenderProps,
+            fieldData,
+          )}
+        </>
+      );
     }
 
-    return (
-      <Slot
-        ref={elementRef}
-        data-camox-field-id={fieldId}
-        data-camox-hovered={isHovered || undefined}
-        data-camox-focused={isFocused || undefined}
-        data-camox-overlay-mode={mode === "layout" ? "layout" : undefined}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        {children(
-          <InlineLexicalEditor
-            initialState={fieldValue}
-            externalState={fieldValue}
-            onChange={handleChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-          />,
-        )}
-      </Slot>
-    );
+    const fieldProps = {
+      ref: elementRef,
+      "data-camox-field-id": fieldId,
+      "data-camox-hovered": isHovered || undefined,
+      "data-camox-focused": isFocused || undefined,
+      "data-camox-overlay-mode": mode === "layout" ? "layout" : undefined,
+      onMouseEnter: handleMouseEnter,
+      onMouseLeave: handleMouseLeave,
+      children: (
+        <InlineLexicalEditor
+          initialState={fieldValue}
+          externalState={fieldValue}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+        />
+      ),
+    } satisfies FieldRenderProps;
+    return <>{children(fieldProps, fieldData)}</>;
   };
 
   const Embed = <K extends keyof EmbedFields>({
@@ -668,8 +741,8 @@ export function createBlock<
     children,
   }: {
     name: K;
-    children: (url: string) => React.ReactNode;
-  }) => {
+    children: (props: EmbedRenderProps, data: EmbedRenderData) => React.ReactNode;
+  }): React.ReactNode => {
     const blockContext = React.use(Context);
     if (!blockContext) {
       throw new Error("Embed must be used within a Block Component");
@@ -781,7 +854,10 @@ export function createBlock<
             onMouseEnter={isContentEditable ? () => setIsHovered(true) : undefined}
             onMouseLeave={isContentEditable ? () => setIsHovered(false) : undefined}
           >
-            {children(fieldValue)}
+            {children(
+              { src: fieldValue } satisfies EmbedRenderProps,
+              { url: fieldValue } satisfies EmbedRenderData,
+            )}
             {isContentEditable && (
               /* Transparent full-coverage overlay to intercept iframe pointer events */
               <div
@@ -822,8 +898,8 @@ export function createBlock<
     children,
   }: {
     name: K;
-    children: (link: { text: string; href: string; newTab: boolean }) => React.ReactNode;
-  }) => {
+    children: (props: LinkRenderProps, data: LinkRenderData) => React.ReactNode;
+  }): React.ReactNode => {
     const blockContext = React.use(Context);
     if (!blockContext) {
       throw new Error("Link must be used within a Block Component");
@@ -936,53 +1012,71 @@ export function createBlock<
       setIsEditing(false);
     };
 
+    const linkData = {
+      text: displayText,
+      href: resolvedHref,
+      newTab: fieldValue.newTab,
+    } satisfies LinkRenderData;
+
+    if (!isContentEditable) {
+      return (
+        <>
+          {children(
+            {
+              to: resolvedHref,
+              target: fieldValue.newTab ? "_blank" : undefined,
+              rel: fieldValue.newTab ? "noreferrer" : undefined,
+              children: fieldValue.text,
+            } satisfies LinkRenderProps,
+            linkData,
+          )}
+        </>
+      );
+    }
+
+    const linkProps = {
+      ref: elementRef,
+      to: resolvedHref,
+      target: fieldValue.newTab ? "_blank" : undefined,
+      rel: fieldValue.newTab ? "noreferrer" : undefined,
+      children: displayText,
+      "data-camox-field-id": fieldId,
+      "data-camox-hovered": isHovered || undefined,
+      "data-camox-focused": isFocused || undefined,
+      "data-camox-overlay-mode": mode === "layout" ? "layout" : undefined,
+      contentEditable: true,
+      onClick: (e: React.MouseEvent) => e.preventDefault(),
+      onInput: handleInput,
+      onFocus: handleFocus,
+      onBlur: handleBlur,
+      onMouseEnter: () => setIsHovered(true),
+      onMouseLeave: () => setIsHovered(false),
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key === "Escape") {
+          (e.target as HTMLElement).blur();
+        }
+      },
+      spellCheck: false,
+      suppressContentEditableWarning: true,
+    } satisfies LinkRenderProps;
+
     return (
-      <Popover open={isContentEditable && isEditorFocused}>
-        <PopoverAnchor asChild>
-          <Slot
-            ref={elementRef}
-            data-camox-field-id={isContentEditable ? fieldId : undefined}
-            data-camox-hovered={(isContentEditable && isHovered) || undefined}
-            data-camox-focused={(isContentEditable && isFocused) || undefined}
-            data-camox-overlay-mode={mode === "layout" ? "layout" : undefined}
-            contentEditable={isContentEditable}
-            onClick={isContentEditable ? (e: React.MouseEvent) => e.preventDefault() : undefined}
-            onInput={handleInput}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            onMouseEnter={isContentEditable ? () => setIsHovered(true) : undefined}
-            onMouseLeave={isContentEditable ? () => setIsHovered(false) : undefined}
-            onKeyDown={(e: React.KeyboardEvent) => {
-              if (e.key === "Escape") {
-                (e.target as HTMLElement).blur();
-              }
-            }}
-            spellCheck={false}
-            suppressContentEditableWarning={true}
+      <Popover open={isEditorFocused}>
+        <PopoverAnchor asChild>{children(linkProps, linkData)}</PopoverAnchor>
+        <PopoverContent
+          className="w-auto p-2"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          align="end"
+        >
+          <button
+            type="button"
+            className="hover:bg-accent flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleEditLink}
           >
-            {children({
-              text: displayText,
-              href: resolvedHref,
-              newTab: fieldValue.newTab,
-            })}
-          </Slot>
-        </PopoverAnchor>
-        {isContentEditable && (
-          <PopoverContent
-            className="w-auto p-2"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            align="end"
-          >
-            <button
-              type="button"
-              className="hover:bg-accent flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={handleEditLink}
-            >
-              Edit link
-            </button>
-          </PopoverContent>
-        )}
+            Edit link
+          </button>
+        </PopoverContent>
       </Popover>
     );
   };
@@ -992,8 +1086,8 @@ export function createBlock<
     children,
   }: {
     name: K;
-    children: (image: ImageValue) => React.ReactNode;
-  }) => {
+    children: (props: ImageRenderProps, data: ImageValue) => React.ReactNode;
+  }): React.ReactNode => {
     const blockContext = React.use(Context);
     if (!blockContext) {
       throw new Error("Image must be used within a Block Component");
@@ -1057,8 +1151,10 @@ export function createBlock<
       previewStore.send({ type: "toggleContentSheet" });
     };
 
+    const imageProps = { src: fieldValue.url, alt: fieldValue.alt } satisfies ImageRenderProps;
+
     if (!isContentEditable) {
-      return <>{children(fieldValue)}</>;
+      return <>{children(imageProps, fieldValue)}</>;
     }
 
     return (
@@ -1072,7 +1168,7 @@ export function createBlock<
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleClick}
       >
-        {children(fieldValue)}
+        {children(imageProps, fieldValue)}
       </div>
     );
   };
@@ -1082,8 +1178,8 @@ export function createBlock<
     children,
   }: {
     name: K;
-    children: (file: FileValue) => React.ReactNode;
-  }) => {
+    children: (props: FileRenderProps, data: FileValue) => React.ReactNode;
+  }): React.ReactNode => {
     const blockContext = React.use(Context);
     if (!blockContext) {
       throw new Error("File must be used within a Block Component");
@@ -1099,7 +1195,14 @@ export function createBlock<
       : (rawSource as FileValue | null);
     const fieldValue = rawValue ?? (contentDefaults[String(name)] as FileValue);
 
-    return <>{children(fieldValue)}</>;
+    return (
+      <>
+        {children(
+          { href: fieldValue.url, download: fieldValue.filename } satisfies FileRenderProps,
+          fieldValue,
+        )}
+      </>
+    );
   };
 
   // RepeaterItemWrapper - wraps each repeater item with overlay support
@@ -1176,23 +1279,23 @@ export function createBlock<
       item: {
         Field: <F extends keyof ItemStringFields<K>>(props: {
           name: F;
-          children: (content: React.ReactNode) => React.ReactNode;
+          children: (props: FieldRenderProps, data: FieldRenderData) => React.ReactNode;
         }) => React.ReactNode;
         Link: <F extends keyof ItemLinkFields<K>>(props: {
           name: F;
-          children: (link: { text: string; href: string; newTab: boolean }) => React.ReactNode;
+          children: (props: LinkRenderProps, data: LinkRenderData) => React.ReactNode;
         }) => React.ReactNode;
         Embed: <F extends keyof ItemEmbedFields<K>>(props: {
           name: F;
-          children: (url: string) => React.ReactNode;
+          children: (props: EmbedRenderProps, data: EmbedRenderData) => React.ReactNode;
         }) => React.ReactNode;
         Image: <F extends keyof ItemImageFields<K>>(props: {
           name: F;
-          children: (image: ImageValue) => React.ReactNode;
+          children: (props: ImageRenderProps, data: ImageValue) => React.ReactNode;
         }) => React.ReactNode;
         File: <F extends keyof ItemFileFields<K>>(props: {
           name: F;
-          children: (file: FileValue) => React.ReactNode;
+          children: (props: FileRenderProps, data: FileValue) => React.ReactNode;
         }) => React.ReactNode;
         Repeater: <F extends keyof ItemRepeatableFields<K>>(props: {
           name: F;
@@ -1200,27 +1303,23 @@ export function createBlock<
             item: {
               Field: (props: {
                 name: string;
-                children: (content: any) => React.ReactNode;
+                children: (props: FieldRenderProps, data: FieldRenderData) => React.ReactNode;
               }) => React.ReactNode;
               Link: (props: {
                 name: string;
-                children: (link: {
-                  text: string;
-                  href: string;
-                  newTab: boolean;
-                }) => React.ReactNode;
+                children: (props: LinkRenderProps, data: LinkRenderData) => React.ReactNode;
               }) => React.ReactNode;
               Embed: (props: {
                 name: string;
-                children: (url: string) => React.ReactNode;
+                children: (props: EmbedRenderProps, data: EmbedRenderData) => React.ReactNode;
               }) => React.ReactNode;
               Image: (props: {
                 name: string;
-                children: (image: ImageValue) => React.ReactNode;
+                children: (props: ImageRenderProps, data: ImageValue) => React.ReactNode;
               }) => React.ReactNode;
               File: (props: {
                 name: string;
-                children: (file: FileValue) => React.ReactNode;
+                children: (props: FileRenderProps, data: FileValue) => React.ReactNode;
               }) => React.ReactNode;
               Repeater: (props: {
                 name: string;
@@ -1249,27 +1348,27 @@ export function createBlock<
     // This is safe because each component checks RepeaterItemContext at runtime
     const ItemField = Field as <F extends keyof ItemStringFields<K>>(props: {
       name: F;
-      children: (content: React.ReactNode) => React.ReactNode;
+      children: (props: FieldRenderProps, data: FieldRenderData) => React.ReactNode;
     }) => React.ReactNode;
 
     const ItemLink = Link as <F extends keyof ItemLinkFields<K>>(props: {
       name: F;
-      children: (link: { text: string; href: string; newTab: boolean }) => React.ReactNode;
+      children: (props: LinkRenderProps, data: LinkRenderData) => React.ReactNode;
     }) => React.ReactNode;
 
     const ItemEmbed = Embed as <F extends keyof ItemEmbedFields<K>>(props: {
       name: F;
-      children: (url: string) => React.ReactNode;
+      children: (props: EmbedRenderProps, data: EmbedRenderData) => React.ReactNode;
     }) => React.ReactNode;
 
     const ItemImage = Image as <F extends keyof ItemImageFields<K>>(props: {
       name: F;
-      children: (image: ImageValue) => React.ReactNode;
+      children: (props: ImageRenderProps, data: ImageValue) => React.ReactNode;
     }) => React.ReactNode;
 
     const ItemFile = File as <F extends keyof ItemFileFields<K>>(props: {
       name: F;
-      children: (file: FileValue) => React.ReactNode;
+      children: (props: FileRenderProps, data: FileValue) => React.ReactNode;
     }) => React.ReactNode;
 
     const ItemRepeater = Repeater as <F extends keyof ItemRepeatableFields<K>>(props: {
@@ -1278,23 +1377,23 @@ export function createBlock<
         item: {
           Field: (props: {
             name: string;
-            children: (content: any) => React.ReactNode;
+            children: (props: FieldRenderProps, data: FieldRenderData) => React.ReactNode;
           }) => React.ReactNode;
           Link: (props: {
             name: string;
-            children: (link: { text: string; href: string; newTab: boolean }) => React.ReactNode;
+            children: (props: LinkRenderProps, data: LinkRenderData) => React.ReactNode;
           }) => React.ReactNode;
           Embed: (props: {
             name: string;
-            children: (url: string) => React.ReactNode;
+            children: (props: EmbedRenderProps, data: EmbedRenderData) => React.ReactNode;
           }) => React.ReactNode;
           Image: (props: {
             name: string;
-            children: (image: ImageValue) => React.ReactNode;
+            children: (props: ImageRenderProps, data: ImageValue) => React.ReactNode;
           }) => React.ReactNode;
           File: (props: {
             name: string;
-            children: (file: FileValue) => React.ReactNode;
+            children: (props: FileRenderProps, data: FileValue) => React.ReactNode;
           }) => React.ReactNode;
           Repeater: (props: {
             name: string;
@@ -1617,7 +1716,11 @@ export function createBlock<
    * Wraps block content that renders outside the block's visual bounds (fixed navbars, modals, portals, etc.).
    * Provides the same hover, selection, and sheet overlays as the main BlockComponent.
    */
-  const Detached = ({ children }: { children: React.ReactNode }): React.JSX.Element => {
+  const Detached = ({
+    children,
+  }: {
+    children: (props: DetachedRenderProps) => React.ReactNode;
+  }): React.JSX.Element => {
     const ctx = React.use(Context);
     if (!ctx) {
       throw new Error("Detached must be used within a Block Component");
@@ -1678,14 +1781,12 @@ export function createBlock<
 
     return (
       <>
-        <Slot
-          ref={setContainer}
-          onClick={handleClick}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          {children}
-        </Slot>
+        {children({
+          ref: setContainer,
+          onClick: handleClick,
+          onMouseEnter: handleMouseEnter,
+          onMouseLeave: handleMouseLeave,
+        } satisfies DetachedRenderProps)}
         {container &&
           createPortal(
             <>

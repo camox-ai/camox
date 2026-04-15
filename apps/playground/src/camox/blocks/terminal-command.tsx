@@ -39,12 +39,12 @@ function CopyTerminalCommandComponent() {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl">
           <terminalCommand.Field name="label">
-            {(content) => <div className="text-muted-foreground mb-4 text-sm">{content}</div>}
+            {(props) => <div {...props} className="text-muted-foreground mb-4 text-sm" />}
           </terminalCommand.Field>
 
           <terminalCommand.Field name="command">
-            {(content) => (
-              <div className="group relative">
+            {(props) => (
+              <div {...props} className="group relative">
                 <div
                   onClick={handleCopy}
                   className="cursor-pointer rounded-lg border border-gray-800 bg-gray-950 p-6 transition-colors hover:border-gray-700"
@@ -54,7 +54,7 @@ function CopyTerminalCommandComponent() {
                       ref={commandRef}
                       className="flex-1 font-mono text-2xl text-gray-100 md:text-3xl"
                     >
-                      {content}
+                      {props.children}
                     </code>
                     <Button
                       size="icon"

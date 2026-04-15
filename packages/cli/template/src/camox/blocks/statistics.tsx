@@ -51,20 +51,21 @@ function StatisticsComponent() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-16">
             <statistics.Field name="title">
-              {(content) => (
-                <div className="text-primary mb-4 text-sm font-semibold tracking-wider uppercase">
-                  {content}
-                </div>
+              {(props) => (
+                <div
+                  {...props}
+                  className="text-primary mb-4 text-sm font-semibold tracking-wider uppercase"
+                />
               )}
             </statistics.Field>
             <statistics.Field name="subtitle">
-              {(content) => (
-                <h2 className="text-foreground mb-6 text-4xl font-bold sm:text-5xl">{content}</h2>
+              {(props) => (
+                <h2 {...props} className="text-foreground mb-6 text-4xl font-bold sm:text-5xl" />
               )}
             </statistics.Field>
             <statistics.Field name="description">
-              {(content) => (
-                <p className="text-muted-foreground max-w-3xl text-lg leading-relaxed">{content}</p>
+              {(props) => (
+                <p {...props} className="text-muted-foreground max-w-3xl text-lg leading-relaxed" />
               )}
             </statistics.Field>
           </div>
@@ -76,13 +77,13 @@ function StatisticsComponent() {
                   <div className="w-0.5 bg-linear-to-b from-teal-400 to-blue-500" />
                   <div className="flex flex-col">
                     <stat.Field name="number">
-                      {(content) => (
-                        <div className="text-foreground mb-2 text-4xl font-bold">{content}</div>
+                      {(props) => (
+                        <div {...props} className="text-foreground mb-2 text-4xl font-bold" />
                       )}
                     </stat.Field>
                     <stat.Field name="label">
-                      {(content) => (
-                        <p className="text-muted-foreground text-sm leading-relaxed">{content}</p>
+                      {(props) => (
+                        <p {...props} className="text-muted-foreground text-sm leading-relaxed" />
                       )}
                     </stat.Field>
                   </div>

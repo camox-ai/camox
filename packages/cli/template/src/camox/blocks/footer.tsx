@@ -33,22 +33,18 @@ function FooterComponent() {
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
           <footer.Field name="title">
-            {(content) => <div className="text-foreground text-lg font-bold">{content}</div>}
+            {(props) => <div {...props} className="text-foreground text-lg font-bold" />}
           </footer.Field>
 
           <div className="flex flex-wrap items-center gap-4">
             <footer.Repeater name="links">
               {(linkItem) => (
                 <linkItem.Link name="link">
-                  {({ text, href, newTab }) => (
+                  {(props) => (
                     <Link
-                      to={href}
-                      target={newTab ? "_blank" : undefined}
-                      rel={newTab ? "noreferrer" : undefined}
+                      {...props}
                       className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-                    >
-                      {text}
-                    </Link>
+                    />
                   )}
                 </linkItem.Link>
               )}
