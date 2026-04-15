@@ -183,6 +183,10 @@ const EditPageSheetContent = ({ pageId }: { pageId: number | null }) => {
                           <Select
                             value={field.state.value ? String(field.state.value) : ""}
                             onValueChange={(value) => field.handleChange(Number(value))}
+                            items={layouts.map((t) => ({
+                              value: String(t.id),
+                              label: camoxApp.getLayoutById(t.layoutId)?.title ?? t.layoutId,
+                            }))}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select a layout" />
@@ -357,7 +361,7 @@ const SocialPreviewSection = ({
   return (
     <div className="space-y-2 pt-2">
       <Label>Social preview</Label>
-      <div className="border-border bg-background overflow-hidden rounded-lg border">
+      <div className="border-border overflow-hidden rounded-lg border">
         {ogImage ? (
           <img
             src={ogImage}

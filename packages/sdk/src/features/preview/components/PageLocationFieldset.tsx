@@ -4,9 +4,12 @@
  * Used by CreatePageSheet and EditPageSheet.
  * -----------------------------------------------------------------------------------------------*/
 
-import * as ControlGroup from "@camox/ui/control-group";
-import { Input } from "@camox/ui/input";
-import { InputBase, InputBaseAdornment } from "@camox/ui/input-base";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@camox/ui/input-group";
 import { Label } from "@camox/ui/label";
 import {
   Select,
@@ -90,22 +93,18 @@ const PageLocationFieldset = ({
       </div>
       <div className="space-y-2">
         <Label htmlFor="pathSegment">Page path</Label>
-        <ControlGroup.ControlGroup>
-          <ControlGroup.ControlGroupItem className="shrink-0">
-            <InputBase>
-              <InputBaseAdornment>{getParentPath()}</InputBaseAdornment>
-            </InputBase>
-          </ControlGroup.ControlGroupItem>
-          <ControlGroup.ControlGroupItem>
-            <Input
-              id="pathSegment"
-              value={pathSegment}
-              disabled={disabled}
-              onChange={(e) => onPathSegmentChange(e.target.value)}
-              placeholder="e.g. pricing, about-us"
-            />
-          </ControlGroup.ControlGroupItem>
-        </ControlGroup.ControlGroup>
+        <InputGroup>
+          <InputGroupAddon>
+            <InputGroupText className="px-2">{getParentPath()}</InputGroupText>
+          </InputGroupAddon>
+          <InputGroupInput
+            id="pathSegment"
+            value={pathSegment}
+            disabled={disabled}
+            onChange={(e) => onPathSegmentChange(e.target.value)}
+            placeholder="e.g. pricing, about-us"
+          />
+        </InputGroup>
         <p className="text-muted-foreground text-xs">
           Used to generate the page URL, along with the parent page.
         </p>

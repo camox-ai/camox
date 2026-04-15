@@ -140,6 +140,10 @@ const CreatePageSheet = () => {
                     if (value != null) field.handleChange(value);
                   }}
                   disabled={layouts != null && layouts.length <= 1}
+                  items={layouts?.map((t) => ({
+                    value: String(t.id),
+                    label: camoxApp.getLayoutById(t.layoutId)?.title ?? t.layoutId,
+                  }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a layout" />
