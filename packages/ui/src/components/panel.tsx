@@ -1,4 +1,3 @@
-import { Slot } from "@radix-ui/react-slot";
 import * as React from "react";
 
 import { cn } from "../lib/utils";
@@ -6,15 +5,26 @@ import { cn } from "../lib/utils";
 export const Panel = ({
   children,
   className,
-  asChild = false,
+  render,
   ...props
-}: React.ComponentProps<"section"> & {
-  asChild?: boolean;
+}: Omit<React.ComponentProps<"section">, "children"> & {
+  render?: React.ReactElement<{ className?: string }>;
+  children?: React.ReactNode;
 }) => {
-  const Comp = asChild ? Slot : "section";
+  if (render) {
+    return React.cloneElement(render, {
+      ...props,
+      className: cn(
+        "flex flex-col bg-background border-2 border-border shadow-xl rounded-lg overflow-hidden",
+        className,
+        render.props.className,
+      ),
+      children,
+    } as Record<string, unknown>);
+  }
 
   return (
-    <Comp
+    <section
       className={cn(
         "flex flex-col bg-background border-2 border-border shadow-xl rounded-lg overflow-hidden",
         className,
@@ -22,57 +32,78 @@ export const Panel = ({
       {...props}
     >
       {children}
-    </Comp>
+    </section>
   );
 };
 
 export const PanelHeader = ({
   children,
   className,
-  asChild = false,
+  render,
   ...props
-}: React.ComponentProps<"header"> & {
-  asChild?: boolean;
+}: Omit<React.ComponentProps<"header">, "children"> & {
+  render?: React.ReactElement<{ className?: string }>;
+  children?: React.ReactNode;
 }) => {
-  const Comp = asChild ? Slot : "header";
+  if (render) {
+    return React.cloneElement(render, {
+      ...props,
+      className: cn("p-4 border-b-2 border-border", className, render.props.className),
+      children,
+    } as Record<string, unknown>);
+  }
 
   return (
-    <Comp className={cn("p-4 border-b-2 border-border", className)} {...props}>
+    <header className={cn("p-4 border-b-2 border-border", className)} {...props}>
       {children}
-    </Comp>
+    </header>
   );
 };
 
 export const PanelTitle = ({
   children,
   className,
-  asChild = false,
+  render,
   ...props
-}: React.ComponentProps<"h3"> & {
-  asChild?: boolean;
+}: Omit<React.ComponentProps<"h3">, "children"> & {
+  render?: React.ReactElement<{ className?: string }>;
+  children?: React.ReactNode;
 }) => {
-  const Comp = asChild ? Slot : "h3";
+  if (render) {
+    return React.cloneElement(render, {
+      ...props,
+      className: cn("text-lg leading-none font-semibold", className, render.props.className),
+      children,
+    } as Record<string, unknown>);
+  }
 
   return (
-    <Comp className={cn("text-lg leading-none font-semibold", className)} {...props}>
+    <h3 className={cn("text-lg leading-none font-semibold", className)} {...props}>
       {children}
-    </Comp>
+    </h3>
   );
 };
 
 export const PanelContent = ({
   children,
   className,
-  asChild = false,
+  render,
   ...props
-}: React.ComponentProps<"header"> & {
-  asChild?: boolean;
+}: Omit<React.ComponentProps<"main">, "children"> & {
+  render?: React.ReactElement<{ className?: string }>;
+  children?: React.ReactNode;
 }) => {
-  const Comp = asChild ? Slot : "main";
+  if (render) {
+    return React.cloneElement(render, {
+      ...props,
+      className: cn("grow overflow-auto", className, render.props.className),
+      children,
+    } as Record<string, unknown>);
+  }
 
   return (
-    <Comp className={cn("grow overflow-auto", className)} {...props}>
+    <main className={cn("grow overflow-auto", className)} {...props}>
       {children}
-    </Comp>
+    </main>
   );
 };

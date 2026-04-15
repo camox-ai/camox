@@ -1,3 +1,4 @@
+import { Accordion } from "@base-ui/react/accordion";
 import { Button } from "@camox/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import {
@@ -21,7 +22,6 @@ import {
   type AnimateLayoutChanges,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import * as Accordion from "@radix-ui/react-accordion";
 import { useSelector } from "@xstate/store/react";
 import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react";
 import * as React from "react";
@@ -302,7 +302,7 @@ const BlockTreeItemHeader = ({
       shouldShowHover && "hover:bg-accent/75",
       shouldShowActive && "bg-accent text-accent-foreground",
       isParentOfSelection && "bg-accent/25",
-      "data-[state=open]:rounded-b-none",
+      "data-[open]:rounded-b-none",
       className,
     )}
     {...props}
@@ -319,17 +319,15 @@ const BlockTreeItemTrigger = ({
   onClick: () => void;
 }) => (
   <div className="flex flex-1 items-center gap-1 overflow-x-hidden">
-    <Accordion.Trigger asChild>
-      <button
-        className={cn(
-          "cursor-default flex-1 truncate py-2 text-sm text-left rounded-sm",
-          "focus-visible:underline outline-none focus-visible:decoration-ring/50 focus-visible:decoration-4",
-        )}
-        title={displayText}
-        onClick={onClick}
-      >
-        {displayText}
-      </button>
+    <Accordion.Trigger
+      className={cn(
+        "cursor-default flex-1 truncate py-2 text-sm text-left rounded-sm",
+        "focus-visible:underline outline-none focus-visible:decoration-ring/50 focus-visible:decoration-4",
+      )}
+      title={displayText}
+      onClick={onClick}
+    >
+      {displayText}
     </Accordion.Trigger>
   </div>
 );
@@ -354,9 +352,9 @@ const BlockTreeItemEllipsis = ({
 );
 
 const BlockTreeItemContent = ({ block }: { block: NormalizedBlock }) => (
-  <Accordion.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down text-muted-foreground data-[state=open]:bg-accent/25 overflow-hidden rounded-b-lg text-sm">
+  <Accordion.Panel className="text-muted-foreground data-[open]:bg-accent/25 h-[var(--accordion-panel-height)] overflow-hidden rounded-b-lg text-sm transition-[height] duration-200 data-[ending-style]:h-0 data-[starting-style]:h-0">
     <BlockFields block={block} />
-  </Accordion.Content>
+  </Accordion.Panel>
 );
 
 /* -------------------------------------------------------------------------------------------------
@@ -388,7 +386,7 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
   const ctx = useBlockTreeItem(block, isSelected, isDragging);
 
   return (
-    <Accordion.Root type="single" collapsible value={isSelected ? String(block.id) : ""}>
+    <Accordion.Root value={isSelected ? [String(block.id)] : []}>
       <Accordion.Item
         value={String(block.id)}
         ref={setNodeRef}
@@ -397,7 +395,7 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
         onMouseEnter={ctx.handleBlockMouseEnter}
         onMouseLeave={ctx.handleBlockMouseLeave}
       >
-        <Accordion.Header asChild>
+        <Accordion.Header render={<div />}>
           <BlockTreeItemHeader
             shouldShowHover={ctx.shouldShowHover}
             shouldShowActive={ctx.shouldShowActive}
@@ -455,14 +453,14 @@ const LayoutBlockItem = ({ block, isSelected, layoutName }: LayoutBlockItemProps
   const displayText = blockDef?.title ?? block.type;
 
   return (
-    <Accordion.Root type="single" collapsible value={isSelected ? String(block.id) : ""}>
+    <Accordion.Root value={isSelected ? [String(block.id)] : []}>
       <Accordion.Item
         value={String(block.id)}
         className="group"
         onMouseEnter={ctx.handleBlockMouseEnter}
         onMouseLeave={ctx.handleBlockMouseLeave}
       >
-        <Accordion.Header asChild>
+        <Accordion.Header render={<div />}>
           <BlockTreeItemHeader
             shouldShowHover={ctx.shouldShowHover}
             shouldShowActive={ctx.shouldShowActive}
