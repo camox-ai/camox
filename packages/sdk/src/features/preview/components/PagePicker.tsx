@@ -99,11 +99,9 @@ const PagePicker = () => {
           setOpen(value);
         }}
       >
-        <PopoverTrigger asChild>
-          <Button variant="outline" role="combobox" className="min-w-0 flex-1 justify-between">
-            <span className="truncate">{currentPage.metaTitle ?? currentPage.fullPath}</span>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
+        <PopoverTrigger render={<Button variant="outline" role="combobox" className="min-w-0 flex-1 justify-between" />}>
+          <span className="truncate">{currentPage.metaTitle ?? currentPage.fullPath}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </PopoverTrigger>
         <PopoverContent
           className="flex h-[300px] w-[400px] flex-col p-0"

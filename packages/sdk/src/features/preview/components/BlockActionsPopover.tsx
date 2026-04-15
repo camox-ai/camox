@@ -155,7 +155,7 @@ const BlockActionsPopover = ({
   return (
     <>
       <Popover open={open} onOpenChange={onOpenChange}>
-        <PopoverTrigger asChild>{children}</PopoverTrigger>
+        <PopoverTrigger render={children as React.ReactElement} />
         {block && (
           <PopoverContent className="w-[300px] p-0" align={align}>
             <Command>

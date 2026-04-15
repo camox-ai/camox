@@ -2,7 +2,7 @@ import { useFrame } from "@camox/ui/frame";
 import { Input } from "@camox/ui/input";
 import { Kbd } from "@camox/ui/kbd";
 import { Label } from "@camox/ui/label";
-import { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from "@camox/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@camox/ui/popover";
 import { toast } from "@camox/ui/toaster";
 import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -817,7 +817,7 @@ export function createBlock<
       }, 500);
     };
 
-    const handleOpenChange = (open: boolean) => {
+    const handleOpenChange = (open: boolean, _eventDetails: unknown) => {
       setIsOpen(open);
       if (open) {
         if (repeaterContext?.itemId) {
@@ -844,40 +844,43 @@ export function createBlock<
         open={isContentEditable ? isOpen : false}
         onOpenChange={isContentEditable ? handleOpenChange : undefined}
       >
-        <PopoverTrigger asChild>
-          <div
-            data-camox-field-id={isContentEditable ? fieldId : undefined}
-            data-camox-field-type={isContentEditable ? "embed" : undefined}
-            data-camox-hovered={(isContentEditable && isHovered) || undefined}
-            data-camox-focused={(isContentEditable && isOpen) || undefined}
-            data-camox-overlay-mode={mode === "layout" ? "layout" : undefined}
-            onMouseEnter={isContentEditable ? () => setIsHovered(true) : undefined}
-            onMouseLeave={isContentEditable ? () => setIsHovered(false) : undefined}
-          >
-            {children(
-              { src: fieldValue } satisfies EmbedRenderProps,
-              { url: fieldValue } satisfies EmbedRenderData,
-            )}
-            {isContentEditable && (
-              /* Transparent full-coverage overlay to intercept iframe pointer events */
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  zIndex: 10,
-                }}
-                onClick={() => {
-                  if (hasShownEmbedLockToast) return;
-                  hasShownEmbedLockToast = true;
-                  toast(
-                    <span>
-                      Hold <Kbd>L</Kbd> to interact with the embed content
-                    </span>,
-                  );
-                }}
-              />
-            )}
-          </div>
+        <PopoverTrigger
+          render={
+            <div
+              data-camox-field-id={isContentEditable ? fieldId : undefined}
+              data-camox-field-type={isContentEditable ? "embed" : undefined}
+              data-camox-hovered={(isContentEditable && isHovered) || undefined}
+              data-camox-focused={(isContentEditable && isOpen) || undefined}
+              data-camox-overlay-mode={mode === "layout" ? "layout" : undefined}
+              onMouseEnter={isContentEditable ? () => setIsHovered(true) : undefined}
+              onMouseLeave={isContentEditable ? () => setIsHovered(false) : undefined}
+            />
+          }
+          nativeButton={false}
+        >
+          {children(
+            { src: fieldValue } satisfies EmbedRenderProps,
+            { url: fieldValue } satisfies EmbedRenderData,
+          )}
+          {isContentEditable && (
+            /* Transparent full-coverage overlay to intercept iframe pointer events */
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                zIndex: 10,
+              }}
+              onClick={() => {
+                if (hasShownEmbedLockToast) return;
+                hasShownEmbedLockToast = true;
+                toast(
+                  <span>
+                    Hold <Kbd>L</Kbd> to interact with the embed content
+                  </span>,
+                );
+              }}
+            />
+          )}
         </PopoverTrigger>
         {isContentEditable && (
           <PopoverContent className="w-96 gap-2">
@@ -1062,10 +1065,11 @@ export function createBlock<
 
     return (
       <Popover open={isEditorFocused}>
-        <PopoverAnchor asChild>{children(linkProps, linkData)}</PopoverAnchor>
+        {children(linkProps, linkData)}
         <PopoverContent
           className="w-auto p-2"
-          onOpenAutoFocus={(e) => e.preventDefault()}
+          initialFocus={false}
+          anchor={elementRef}
           align="end"
         >
           <button

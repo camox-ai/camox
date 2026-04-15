@@ -22,13 +22,11 @@ export const EnvironmentMenu = () => {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" className="gap-2">
-          <Badge variant="secondary" className={badgeClassName}>
-            {authCtx.environmentName}
-          </Badge>
-          <ChevronsUpDown className="shrink-0 opacity-50" />
-        </Button>
+      <PopoverTrigger render={<Button variant="ghost" className="gap-2" />}>
+        <Badge variant="secondary" className={badgeClassName}>
+          {authCtx.environmentName}
+        </Badge>
+        <ChevronsUpDown className="shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-96 p-4" align="start" side="bottom">
         <div className="flex flex-col gap-3">
