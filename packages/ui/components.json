@@ -1,6 +1,6 @@
 {
   "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "new-york",
+  "style": "base-vega",
   "rsc": false,
   "tsx": true,
   "tailwind": {
@@ -12,11 +12,11 @@
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "@camox/ui",
-    "utils": "@camox/ui/utils",
-    "ui": "@camox/ui",
-    "lib": "@camox/ui",
-    "hooks": "@camox/ui"
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
   },
   "registries": {}
 }

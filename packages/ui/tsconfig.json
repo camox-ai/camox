@@ -14,7 +14,7 @@
 
     /* Path aliases */
     "paths": {
-      "@ui/*": ["./src/*"]
+      "@/*": ["./src/*"]
     },
 
     /* Linting */
