@@ -43,7 +43,7 @@ function Section({
   );
 }
 
-export const Route = createFileRoute("/_app/dashboard/$orgSlug/$slug/overview")({
+export const Route = createFileRoute("/_app/dashboard/$orgSlug/$projectSlug/overview")({
   component: ProjectSettingsPage,
   head: () => ({
     meta: [{ title: "Camox Dashboard" }],
@@ -257,9 +257,9 @@ function DeleteProjectSection({ project }: { project: Project }) {
 }
 
 function ProjectSettingsPage() {
-  const { slug } = Route.useParams();
+  const { projectSlug } = Route.useParams();
 
-  const { data: project } = useSuspenseQuery(projectQueries.getBySlug(slug));
+  const { data: project } = useSuspenseQuery(projectQueries.getBySlug(projectSlug));
 
   if (!project) return null;
 

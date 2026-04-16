@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_app/dashboard/$orgSlug/$slug/usage")({
+export const Route = createFileRoute("/_app/dashboard/$orgSlug/$projectSlug/usage")({
   component: UsagePage,
   head: () => ({
     meta: [{ title: "Usage – Camox Dashboard" }],

@@ -26,8 +26,8 @@ function DashboardIndex() {
   if (projects.length > 0 && firstOrg) {
     return (
       <Navigate
-        to="/dashboard/$orgSlug/$slug/overview"
-        params={{ orgSlug: firstOrg.slug, slug: projects[0]!.slug }}
+        to="/dashboard/$orgSlug/$projectSlug/overview"
+        params={{ orgSlug: firstOrg.slug, projectSlug: projects[0]!.slug }}
         replace
       />
     );

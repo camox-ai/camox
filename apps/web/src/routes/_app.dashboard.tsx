@@ -262,7 +262,7 @@ function CreateOrganizationDialog({
 
 function ProjectPicker() {
   const navigate = useNavigate();
-  const { orgSlug, slug } = useParams({ strict: false });
+  const { orgSlug, projectSlug } = useParams({ strict: false });
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data: organizations } = useQuery(organizationQueries.list());
@@ -273,9 +273,9 @@ function ProjectPicker() {
     enabled: !!activeOrg,
   });
 
-  if (!orgSlug || !slug) return null;
+  if (!orgSlug || !projectSlug) return null;
 
-  const activeProject = projects?.find((p) => p.slug === slug);
+  const activeProject = projects?.find((p) => p.slug === projectSlug);
 
   if (!activeProject) return null;
 
@@ -292,11 +292,11 @@ function ProjectPicker() {
           {projects?.map((project) => (
             <DropdownMenuItem
               key={project.id}
-              className={project.slug === slug ? "bg-accent" : ""}
+              className={project.slug === projectSlug ? "bg-accent" : ""}
               onClick={() =>
                 navigate({
-                  to: "/dashboard/$orgSlug/$slug",
-                  params: { orgSlug: orgSlug!, slug: project.slug },
+                  to: "/dashboard/$orgSlug/$projectSlug",
+                  params: { orgSlug: orgSlug!, projectSlug: project.slug },
                   replace: true,
                 })
               }

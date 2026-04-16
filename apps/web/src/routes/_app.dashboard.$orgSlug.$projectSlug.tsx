@@ -4,19 +4,22 @@ import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-ro
 
 import { projectQueries } from "@/lib/queries";
 
-export const Route = createFileRoute("/_app/dashboard/$orgSlug/$slug")({
+export const Route = createFileRoute("/_app/dashboard/$orgSlug/$projectSlug")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { orgSlug, slug } = Route.useParams();
+  const { orgSlug, projectSlug } = Route.useParams();
   const matchRoute = useMatchRoute();
 
-  const { data: project } = useSuspenseQuery(projectQueries.getBySlug(slug));
+  const { data: project } = useSuspenseQuery(projectQueries.getBySlug(projectSlug));
 
   if (!project) return null;
 
-  const isUsage = matchRoute({ to: "/dashboard/$orgSlug/$slug/usage", params: { orgSlug, slug } });
+  const isUsage = matchRoute({
+    to: "/dashboard/$orgSlug/$projectSlug/usage",
+    params: { orgSlug, projectSlug },
+  });
   const activeTab = isUsage ? "usage" : "overview";
 
   return (
@@ -27,14 +30,24 @@ function RouteComponent() {
             <TabsTrigger
               value="overview"
               nativeButton={false}
-              render={<Link to="/dashboard/$orgSlug/$slug/overview" params={{ orgSlug, slug }} />}
+              render={
+                <Link
+                  to="/dashboard/$orgSlug/$projectSlug/overview"
+                  params={{ orgSlug, projectSlug }}
+                />
+              }
             >
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="usage"
               nativeButton={false}
-              render={<Link to="/dashboard/$orgSlug/$slug/usage" params={{ orgSlug, slug }} />}
+              render={
+                <Link
+                  to="/dashboard/$orgSlug/$projectSlug/usage"
+                  params={{ orgSlug, projectSlug }}
+                />
+              }
             >
               Usage
             </TabsTrigger>

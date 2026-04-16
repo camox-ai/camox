@@ -24,8 +24,8 @@ function OrgIndex() {
   if (projects.length > 0) {
     return (
       <Navigate
-        to="/dashboard/$orgSlug/$slug/overview"
-        params={{ orgSlug, slug: projects[0]!.slug }}
+        to="/dashboard/$orgSlug/$projectSlug/overview"
+        params={{ orgSlug, projectSlug: projects[0]!.slug }}
         replace
       />
     );
