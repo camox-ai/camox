@@ -68,7 +68,7 @@ function OrganizationPicker() {
       <ChevronRight className="text-muted-foreground/50 h-4 w-4" />
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-1.5" />}>
-          <span className="max-w-32 truncate font-medium">{activeOrg.name}</span>
+          <span className="max-w-64 truncate font-medium">{activeOrg.name}</span>
           <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
         </DropdownMenuTrigger>
 
@@ -284,7 +284,7 @@ function ProjectPicker() {
       <ChevronRight className="text-muted-foreground/50 h-4 w-4" />
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-1.5" />}>
-          <span className="max-w-32 truncate font-medium">{activeProject.name}</span>
+          <span className="max-w-64 truncate font-medium">{activeProject.name}</span>
           <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
         </DropdownMenuTrigger>
 

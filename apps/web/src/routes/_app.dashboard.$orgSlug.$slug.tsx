@@ -1,5 +1,6 @@
+import { Tabs, TabsList, TabsTrigger } from "@camox/ui/tabs";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
 
 import { projectQueries } from "@/lib/queries";
 
@@ -9,43 +10,38 @@ export const Route = createFileRoute("/_app/dashboard/$orgSlug/$slug")({
 
 function RouteComponent() {
   const { orgSlug, slug } = Route.useParams();
+  const matchRoute = useMatchRoute();
 
   const { data: project } = useSuspenseQuery(projectQueries.getBySlug(slug));
 
-  const tabClass = "border-b-2 px-1 py-4 text-sm font-medium";
-  const activeClass = "border-foreground text-foreground";
-  const inactiveClass =
-    "text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 border-transparent";
-
   if (!project) return null;
+
+  const isUsage = matchRoute({ to: "/dashboard/$orgSlug/$slug/usage", params: { orgSlug, slug } });
+  const activeTab = isUsage ? "usage" : "overview";
 
   return (
     <div>
-      <div className="border-b px-6">
-        <nav className="-mb-px flex items-center gap-4">
-          <Link
-            to="/dashboard/$orgSlug/$slug/overview"
-            params={{ orgSlug, slug }}
-            className={tabClass}
-            activeProps={{ className: activeClass }}
-            inactiveProps={{ className: inactiveClass }}
-          >
-            Overview
-          </Link>
-          <Link
-            to="/dashboard/$orgSlug/$slug/usage"
-            params={{ orgSlug, slug }}
-            className={tabClass}
-            activeProps={{ className: activeClass }}
-            inactiveProps={{ className: inactiveClass }}
-          >
-            Usage
-          </Link>
-        </nav>
+      <div className="px-6 py-6">
+        <Tabs value={activeTab} className="mx-auto max-w-4xl">
+          <TabsList>
+            <TabsTrigger
+              value="overview"
+              nativeButton={false}
+              render={<Link to="/dashboard/$orgSlug/$slug/overview" params={{ orgSlug, slug }} />}
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="usage"
+              nativeButton={false}
+              render={<Link to="/dashboard/$orgSlug/$slug/usage" params={{ orgSlug, slug }} />}
+            >
+              Usage
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
-      <div className="p-6">
-        <Outlet />
-      </div>
+      <Outlet />
     </div>
   );
 }

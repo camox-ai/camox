@@ -1,7 +1,7 @@
-import { cn } from "@camox/ui/utils";
+import { Tabs, TabsList, TabsTrigger } from "@camox/ui/tabs";
 import { OrganizationMembersCard, OrganizationSettingsCards } from "@daveyplate/better-auth-ui";
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { authClient } from "@/lib/auth-client";
@@ -45,35 +45,44 @@ function TeamPage() {
     }
   }, [tab, navigate, orgSlug]);
 
-  const tabClass = "border-b-2 px-1 py-4 text-sm font-medium";
-  const activeClass = "border-foreground text-foreground";
-  const inactiveClass =
-    "text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 border-transparent";
+  const activeTab = tab ?? "members";
 
   return (
-    <div>
-      <div className="border-b px-6">
-        <nav className="-mb-px flex items-center gap-4">
-          <Link
-            to="/dashboard/$orgSlug/team"
-            params={{ orgSlug }}
-            search={{ tab: "members" }}
-            className={cn(tabClass, tab === "members" ? activeClass : inactiveClass)}
-          >
-            Members
-          </Link>
-          <Link
-            to="/dashboard/$orgSlug/team"
-            params={{ orgSlug }}
-            search={{ tab: "settings" }}
-            className={cn(tabClass, tab === "settings" ? activeClass : inactiveClass)}
-          >
-            Settings
-          </Link>
-        </nav>
+    <div className="flex flex-col items-stretch gap-6 py-6">
+      <div className="px-6">
+        <Tabs value={activeTab} className="mx-auto max-w-4xl">
+          <TabsList>
+            <TabsTrigger
+              value="members"
+              nativeButton={false}
+              render={
+                <Link
+                  to="/dashboard/$orgSlug/team"
+                  params={{ orgSlug }}
+                  search={{ tab: "members" }}
+                />
+              }
+            >
+              Members
+            </TabsTrigger>
+            <TabsTrigger
+              value="settings"
+              nativeButton={false}
+              render={
+                <Link
+                  to="/dashboard/$orgSlug/team"
+                  params={{ orgSlug }}
+                  search={{ tab: "settings" }}
+                />
+              }
+            >
+              Settings
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
-      <div className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-        {tab === "settings" ? <OrganizationSettingsCards /> : <OrganizationMembersCard />}
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+        {activeTab === "settings" ? <OrganizationSettingsCards /> : <OrganizationMembersCard />}
       </div>
     </div>
   );

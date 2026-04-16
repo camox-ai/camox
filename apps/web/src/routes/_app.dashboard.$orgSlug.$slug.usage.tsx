@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_app/dashboard/$orgSlug/$slug/usage")({
 
 function UsagePage() {
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-4xl">
       <p className="text-muted-foreground">Coming soon</p>
     </div>
   );
