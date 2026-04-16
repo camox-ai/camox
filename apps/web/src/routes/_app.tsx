@@ -1,30 +1,11 @@
 import { AuthUIProvider } from "@daveyplate/better-auth-ui";
 import { QueryClientProvider } from "@tanstack/react-query";
-import {
-  Link as RouterLink,
-  Outlet,
-  createFileRoute,
-  redirect,
-  useRouter,
-} from "@tanstack/react-router";
+import { Link as RouterLink, Outlet, createFileRoute, useRouter } from "@tanstack/react-router";
 import { type ComponentProps, useCallback } from "react";
-import { z } from "zod";
 
 import { authClient, getServerSession } from "@/lib/auth-client";
 
-function isSafeRedirect(url: string) {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
 export const Route = createFileRoute("/_app")({
-  validateSearch: z.object({
-    redirect: z.string().optional(),
-  }),
   head: () => ({
     links: [
       {
@@ -33,18 +14,8 @@ export const Route = createFileRoute("/_app")({
       },
     ],
   }),
-  beforeLoad: async ({ search }) => {
+  beforeLoad: async () => {
     const session = await getServerSession();
-
-    if (session && search.redirect && isSafeRedirect(search.redirect)) {
-      const ottResult = await authClient.oneTimeToken.generate();
-      const url = new URL(search.redirect);
-      if (ottResult?.data?.token) {
-        url.searchParams.set("ott", ottResult.data.token);
-      }
-      throw redirect({ href: url.toString() });
-    }
-
     return { session };
   },
   component: AppLayout,

@@ -316,8 +316,8 @@ export function useSignInRedirect() {
 
   return React.useCallback(() => {
     if (typeof window !== "undefined") {
-      const redirect = encodeURIComponent(window.location.href);
-      window.location.href = `${authenticationUrl}/login?redirect=${redirect}`;
+      const callback = encodeURIComponent(window.location.href);
+      window.location.href = `${authenticationUrl}/studio-authorize?callback=${callback}`;
     }
   }, [authenticationUrl]);
 }
