@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/camox-ai/camox/compare/camox-v0.7.2...camox-sdk-v0.7.3) (2026-04-16)
+
+
+### Bug Fixes
+
+* css build error on created apps ([f5fb662](https://github.com/camox-ai/camox/commit/f5fb6624f007658bb8caea56653cebb396964b9d))
+
 ## [0.7.2](https://github.com/camox-ai/camox/compare/camox-v0.7.1...camox-sdk-v0.7.2) (2026-04-16)
 
 
