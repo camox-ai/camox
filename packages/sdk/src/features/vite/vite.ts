@@ -61,6 +61,8 @@ export interface CamoxPluginOptions {
     authenticationUrl?: string;
     /** Show Tanstack query devtools (default: false) */
     enableTanstackDevtools?: boolean;
+    /** Disable automatic code generation (route files, app file, skill files) (default: false) */
+    disableCodeGen?: boolean;
   };
 }
 
@@ -68,6 +70,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
   const apiUrl = options._internal?.apiUrl ?? PRODUCTION_API_URL;
   const authenticationUrl = options._internal?.authenticationUrl ?? DEFAULT_AUTHENTICATION_URL;
   const enableTanstackDevtools = options._internal?.enableTanstackDevtools ?? false;
+  const disableCodeGen = options._internal?.disableCodeGen ?? false;
 
   let isBuild = false;
   let resolvedConfig: ResolvedConfig;
@@ -105,15 +108,26 @@ export function camox(options: CamoxPluginOptions): Plugin {
     configResolved(config) {
       resolvedConfig = config;
       const routesDir = resolve(config.root, "src/routes");
-      generateAppFile(config.root);
-      generateRouteFiles({
-        routesDir,
-        authenticationUrl,
-        apiUrl,
-        projectSlug: options.projectSlug,
-        environmentName,
-      });
-      generateSkillFiles(config.root);
+      if (!disableCodeGen) {
+        generateAppFile(config.root);
+        generateRouteFiles({
+          routesDir,
+          authenticationUrl,
+          apiUrl,
+          projectSlug: options.projectSlug,
+          environmentName,
+        });
+        generateSkillFiles(config.root);
+      }
+
+      if (disableCodeGen) {
+        config.logger.warn(
+          "⚠️  Code generation is disabled (_internal.disableCodeGen). " +
+            "This option is only meant for momentary debugging — " +
+            "do not deploy or commit your app with it enabled.",
+          { timestamp: true },
+        );
+      }
 
       const mode = config.command === "serve" ? "Running" : "Building";
       config.logger.info(`${mode} Camox app (environment: ${environmentName})`, {
@@ -123,18 +137,20 @@ export function camox(options: CamoxPluginOptions): Plugin {
 
     configureServer(server: ViteDevServer) {
       const routesDir = resolve(server.config.root, "src/routes");
-      watchAppFile(server, server.config.root);
-      watchRouteFiles({
-        server,
-        routesDir,
-        authenticationUrl,
-        apiUrl,
-        projectSlug: options.projectSlug,
-        environmentName,
-      });
-      watchSkillFiles(server, server.config.root);
+      if (!disableCodeGen) {
+        watchAppFile(server, server.config.root);
+        watchRouteFiles({
+          server,
+          routesDir,
+          authenticationUrl,
+          apiUrl,
+          projectSlug: options.projectSlug,
+          environmentName,
+        });
+        watchSkillFiles(server, server.config.root);
 
-      watchNewBlockFiles(server);
+        watchNewBlockFiles(server);
+      }
 
       server.httpServer?.once("listening", () => {
         syncDefinitions(server, {
