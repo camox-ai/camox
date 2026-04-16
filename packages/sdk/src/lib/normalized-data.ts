@@ -1,4 +1,4 @@
-import { queryKeys } from "@camox/api/query-keys";
+import { queryKeys } from "@camox/api-contract/query-keys";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQueries } from "@tanstack/react-query";
 import * as React from "react";

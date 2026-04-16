@@ -27,7 +27,7 @@
     "@orpc/server": "^1.13.14"
   },
   "devDependencies": {
-    "@camox/api": "workspace:*",
+    "@camox/api-contract": "workspace:*",
     "@types/node": "^24.12.2",
     "@typescript/native-preview": "7.0.0-dev.20260412.1",
     "oxlint": "^0.15.0",

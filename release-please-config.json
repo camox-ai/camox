@@ -29,8 +29,8 @@
       "changelog-path": "CHANGELOG.md",
       "skip-github-release": true
     },
-    "apps/api": {
-      "component": "@camox/api",
+    "packages/api-contract": {
+      "component": "@camox/api-contract",
       "changelog-path": "CHANGELOG.md",
       "skip-github-release": true
     },
@@ -44,7 +44,14 @@
     {
       "type": "linked-versions",
       "groupName": "camox",
-      "components": ["camox", "camox-sdk", "@camox/cli", "@camox/ui", "@camox/api", "create-camox"]
+      "components": [
+        "camox",
+        "camox-sdk",
+        "@camox/cli",
+        "@camox/ui",
+        "@camox/api-contract",
+        "create-camox"
+      ]
     }
   ]
 }

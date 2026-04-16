@@ -1,20 +1,11 @@
 {
   "name": "@camox/api",
+  "private": true,
   "version": "0.7.0",
   "files": [
     "src"
   ],
   "type": "module",
-  "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
-    },
-    "./query-keys": {
-      "types": "./src/lib/query-keys.ts",
-      "default": "./src/lib/query-keys.ts"
-    }
-  },
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
@@ -28,6 +19,7 @@
     "check": "tsgo --noEmit && oxlint --fix"
   },
   "dependencies": {
+    "@camox/api-contract": "workspace:*",
     "@hono/zod-validator": "^0.7.6",
     "@orpc/server": "^1.13.13",
     "@tanstack/ai": "^0.8.1",

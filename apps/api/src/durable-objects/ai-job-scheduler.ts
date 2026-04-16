@@ -1,9 +1,9 @@
+import { queryKeys } from "@camox/api-contract/query-keys";
 import { DurableObject } from "cloudflare:workers";
 import { eq, or } from "drizzle-orm";
 
 import { createDb } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
-import { queryKeys } from "../lib/query-keys";
 import { executeBlockSummary } from "../routes/blocks";
 import { executeFileMetadata } from "../routes/files";
 import { executePageSeo } from "../routes/pages";

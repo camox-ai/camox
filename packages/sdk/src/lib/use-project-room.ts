@@ -1,4 +1,4 @@
-import type { InvalidationMessage, QueryKey } from "@camox/api/query-keys";
+import type { InvalidationMessage, QueryKey } from "@camox/api-contract/query-keys";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePartySocket } from "partysocket/react";
 import { useRef } from "react";

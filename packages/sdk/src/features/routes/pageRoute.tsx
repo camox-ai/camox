@@ -1,5 +1,5 @@
-import type { Router } from "@camox/api";
-import { queryKeys } from "@camox/api/query-keys";
+import type { Router } from "@camox/api-contract";
+import { queryKeys } from "@camox/api-contract/query-keys";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { RouterClient } from "@orpc/server";

@@ -1,4 +1,4 @@
-import { queryKeys } from "@camox/api/query-keys";
+import { queryKeys } from "@camox/api-contract/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";

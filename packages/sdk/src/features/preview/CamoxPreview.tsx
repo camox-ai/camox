@@ -1,4 +1,4 @@
-import { queryKeys } from "@camox/api/query-keys";
+import { queryKeys } from "@camox/api-contract/query-keys";
 import { Button } from "@camox/ui/button";
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";

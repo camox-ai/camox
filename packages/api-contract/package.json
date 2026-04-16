@@ -1,0 +1,37 @@
+{
+  "name": "@camox/api-contract",
+  "version": "0.7.0",
+  "files": [
+    "src",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./query-keys": {
+      "types": "./src/query-keys.ts",
+      "default": "./src/query-keys.ts"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./query-keys": {
+        "types": "./dist/query-keys.d.ts",
+        "default": "./dist/query-keys.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "dts-bundle-generator": "^9.5.1"
+  }
+}

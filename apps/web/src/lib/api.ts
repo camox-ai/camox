@@ -1,4 +1,4 @@
-import type { Router } from "@camox/api";
+import type { Router } from "@camox/api-contract";
 import { createORPCClient } from "@orpc/client";
 import type { InferClientOutputs } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";

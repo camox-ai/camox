@@ -1,3 +1,4 @@
+import { queryKeys } from "@camox/api-contract/query-keys";
 import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
@@ -10,7 +11,6 @@ import { assertBlockAccess, assertPageAccess } from "../authorization";
 import type { Database } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { contentToMarkdown } from "../lib/content-markdown";
-import { queryKeys } from "../lib/query-keys";
 import { resolveEnvironment } from "../lib/resolve-environment";
 import { scheduleAiJob } from "../lib/schedule-ai-job";
 import { pub, authed } from "../orpc";

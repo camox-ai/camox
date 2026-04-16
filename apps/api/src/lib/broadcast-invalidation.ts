@@ -1,4 +1,4 @@
-import type { InvalidationMessage, QueryKey } from "./query-keys";
+import type { InvalidationMessage, QueryKey } from "@camox/api-contract/query-keys";
 
 export function broadcastInvalidation(
   projectRoomNamespace: DurableObjectNamespace,

@@ -11,7 +11,7 @@
     "check": "tsgo --noEmit && oxlint --fix"
   },
   "dependencies": {
-    "@camox/api": "workspace:*",
+    "@camox/api-contract": "workspace:*",
     "@camox/ui": "workspace:*",
     "@daveyplate/better-auth-ui": "^3.4.0",
     "@orpc/client": "^1.13.14",

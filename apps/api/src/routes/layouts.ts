@@ -1,10 +1,10 @@
+import { queryKeys } from "@camox/api-contract/query-keys";
 import { and, eq } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { z } from "zod";
 
 import { assertSyncSecret } from "../authorization";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
-import { queryKeys } from "../lib/query-keys";
 import { resolveEnvironment } from "../lib/resolve-environment";
 import { pub } from "../orpc";
 import { blocks, layouts, repeatableItems } from "../schema";

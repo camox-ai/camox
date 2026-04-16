@@ -1,6 +1,6 @@
+import type { InvalidationMessage } from "@camox/api-contract/query-keys";
 import { Server } from "partyserver";
 
-import type { InvalidationMessage } from "../lib/query-keys";
 import type { Bindings } from "../types";
 
 export class ProjectRoom extends Server<Bindings> {
