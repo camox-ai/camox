@@ -1,7 +1,7 @@
 {
   "name": "@camox/api",
-  "private": true,
   "version": "0.7.0",
+  "private": true,
   "files": [
     "src"
   ],

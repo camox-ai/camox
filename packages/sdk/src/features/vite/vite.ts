@@ -1,13 +1,8 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 
 import { type Plugin, type ResolvedConfig, type ViteDevServer, createServer } from "vite";
-
-const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
-const RESOLVED_VIRTUAL_STUDIO_CSS = "\0" + VIRTUAL_STUDIO_CSS;
 
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
@@ -78,20 +73,6 @@ export function camox(options: CamoxPluginOptions): Plugin {
 
   return {
     name: "camox",
-    resolveId(id) {
-      if (id === VIRTUAL_STUDIO_CSS) return RESOLVED_VIRTUAL_STUDIO_CSS;
-    },
-    load(id) {
-      if (id !== RESOLVED_VIRTUAL_STUDIO_CSS) return;
-      const cssPath = resolve(sdkRoot, "dist/studio.css");
-      if (isBuild) {
-        const css = readFileSync(cssPath, "utf-8");
-        const ref = this.emitFile({ type: "asset", name: "studio.css", source: css });
-        return `export default import.meta.ROLLUP_FILE_URL_${ref};`;
-      }
-      // Dev: serve the file directly via Vite's /@fs/ prefix
-      return `export default "/@fs/${cssPath}";`;
-    },
     config(_config, env) {
       isBuild = env.command === "build";
       environmentName = resolveEnvironmentName(env.command === "serve", authenticationUrl);

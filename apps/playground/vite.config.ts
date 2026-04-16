@@ -24,6 +24,10 @@ const config = defineConfig(() => {
           replacement: resolve(__dirname, "../../packages/sdk/src/core/createBlock.tsx"),
         },
         {
+          find: "camox/createLayout",
+          replacement: resolve(__dirname, "../../packages/sdk/src/core/createLayout.tsx"),
+        },
+        {
           find: "camox/CamoxPreview",
           replacement: resolve(
             __dirname,

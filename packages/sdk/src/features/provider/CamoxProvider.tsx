@@ -2,7 +2,6 @@ import { Toaster } from "@camox/ui/toaster";
 import { useQuery } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
 import * as React from "react";
-import studioCssUrl from "virtual:camox-studio-css";
 
 import { AuthGate } from "@/components/AuthGate";
 import type { CamoxApp } from "@/core/createApp";
@@ -24,6 +23,8 @@ import { useTheme, useThemeActions } from "../studio/useTheme";
 import { CamoxAppProvider } from "./components/CamoxAppContext";
 import { CommandPalette, useCommandPaletteActions } from "./components/CommandPalette";
 import { useAdminShortcuts } from "./useAdminShortcuts";
+
+import studioCss from "../../studio.css?inline";
 
 declare const __ENABLE_TANSTACK_DEVTOOLS__: boolean;
 
@@ -120,7 +121,7 @@ export function CamoxProvider({
         <AuthGate
           authenticated={
             <>
-              <link rel="stylesheet" href={studioCssUrl} />
+              <style>{studioCss}</style>
               <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
             </>
           }

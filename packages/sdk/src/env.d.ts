@@ -1,13 +1,6 @@
-/// <reference types="vite/client" />
-
-declare module "*.css?url" {
-  const url: string;
-  export default url;
-}
-
-declare module "virtual:camox-studio-css" {
-  const url: string;
-  export default url;
+declare module "*.css?inline" {
+  const css: string;
+  export default css;
 }
 
 // Temporal API types (Stage 3, available in modern browsers)
