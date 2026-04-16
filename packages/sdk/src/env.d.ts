@@ -1,4 +1,9 @@
-declare module "*.css?inline" {
+declare module "virtual:camox-studio-css" {
+  const url: string;
+  export default url;
+}
+
+declare module "virtual:camox-overlay-css" {
   const css: string;
   export default css;
 }

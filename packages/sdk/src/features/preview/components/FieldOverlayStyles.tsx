@@ -1,4 +1,4 @@
-import overlayStyles from "../studio-overlays.css?inline";
+import overlayStyles from "virtual:camox-overlay-css";
 
 export const FieldOverlayStyles = () => {
   return <style>{overlayStyles}</style>;

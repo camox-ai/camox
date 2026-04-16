@@ -1,33 +1,5 @@
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-
 import pluginBabel from "@rollup/plugin-babel";
-import tailwindcss from "@tailwindcss/postcss";
-import postcss from "postcss";
 import { defineConfig } from "tsdown";
-
-/**
- * Rolldown plugin to handle `?inline` CSS imports.
- * Resolves the CSS file, processes it through PostCSS (for Tailwind),
- * and returns the result as an exported JS string.
- */
-function cssInlinePlugin() {
-  return {
-    name: "css-inline",
-    resolveId(id: string, importer: string | undefined) {
-      if (!id.endsWith(".css?inline") || !importer) return;
-      const cssPath = resolve(dirname(importer), id.replace("?inline", ""));
-      return { id: cssPath + "?inline", external: false };
-    },
-    async load(id: string) {
-      if (!id.endsWith(".css?inline")) return;
-      const cssPath = id.slice(0, -"?inline".length);
-      const css = readFileSync(cssPath, "utf-8");
-      const result = await postcss([tailwindcss()]).process(css, { from: cssPath });
-      return `export default ${JSON.stringify(result.css)};`;
-    },
-  };
-}
 
 export default defineConfig({
   entry: {
@@ -47,14 +19,14 @@ export default defineConfig({
   outDir: "dist",
   clean: true,
   unbundle: true,
-  dts: false,
+  dts: true,
   minify: false,
   outExtensions: () => ({ js: ".js" }),
   deps: {
     skipNodeModulesBundle: true,
+    neverBundle: ["virtual:camox-studio-css", "virtual:camox-overlay-css"],
   },
   plugins: [
-    cssInlinePlugin(),
     pluginBabel({
       babelHelpers: "bundled",
       parserOpts: {
