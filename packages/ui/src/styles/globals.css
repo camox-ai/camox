@@ -14,7 +14,7 @@
   --secondary-foreground: theme(--color-zinc-900);
   --muted: theme(--color-zinc-100);
   --muted-foreground: theme(--color-zinc-500);
-  --accent: oklch(0.95 0.01 252);
+  --accent: oklch(0.95 0.01 190);
   --accent-foreground: theme(--color-slate-900);
   --destructive: theme(--color-red-600);
   --destructive-foreground: theme(--color-red-600);
@@ -50,7 +50,7 @@
   --secondary-foreground: theme(--color-zinc-50);
   --muted: theme(--color-zinc-800);
   --muted-foreground: theme(--color-zinc-400);
-  --accent: theme(--color-slate-800);
+  --accent: oklch(0.27 0.015 190);
   --accent-foreground: theme(--color-slate-50);
   --destructive: theme(--color-red-400);
   --destructive-foreground: theme(--color-red-500);
@@ -117,5 +117,8 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  a:focus-visible {
+    @apply border-ring ring-ring/50 rounded-md ring-3 outline-none;
   }
 }

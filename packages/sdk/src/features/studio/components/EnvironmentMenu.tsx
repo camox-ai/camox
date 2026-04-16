@@ -39,7 +39,7 @@ export const EnvironmentMenu = () => {
                 won't affect your teammates or production.
               </p>
               <p className="text-muted-foreground text-xs">
-                Switching between environments and transferring data between them is coming soon.
+                You will be able to pull and push data between environments from here.
               </p>
             </>
           )}

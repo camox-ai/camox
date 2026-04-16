@@ -36,7 +36,7 @@ function OrgIndex() {
           key={project.id}
           to="/dashboard/$orgSlug/$projectSlug/overview"
           params={{ orgSlug, projectSlug: project.slug }}
-          className="bg-card hover:bg-accent/50 rounded-md border p-5 transition-colors"
+          className="bg-card hover:bg-accent/75 rounded-md border p-5 transition-colors"
         >
           <h2 className="font-medium">{project.name}</h2>
           <p className="text-muted-foreground mt-1 text-sm">{project.slug}</p>

@@ -132,6 +132,7 @@ const PagePicker = () => {
                     key={page.id}
                     value={page.fullPath}
                     className="group/item justify-between"
+                    hideCheck
                     onSelect={() => {
                       navigate({ to: page.fullPath });
                       setOpen(false);
@@ -205,8 +206,8 @@ const PagePicker = () => {
                 ))}
               </CommandGroup>
             </CommandList>
-            <CommandSeparator className="m-0" />
-            <CommandGroup className="p-1">
+            <CommandSeparator />
+            <CommandGroup>
               <CommandItem
                 onSelect={() => {
                   setOpen(false);

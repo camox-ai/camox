@@ -122,10 +122,10 @@ function NavbarComponent() {
             <nav
               {...props}
               className={cn(
-                "fixed top-4 left-4 right-4 z-50 rounded-xl border border-border bg-background/80 backdrop-blur-lg shadow-lg transition-all duration-300",
+                "fixed top-4 left-4 right-4 z-50 rounded-xl border border-border bg-background/80 backdrop-blur-lg shadow-lg transition-all",
                 isFloating
                   ? "translate-y-0 opacity-100"
-                  : "-translate-y-full opacity-0 pointer-events-none",
+                  : "-translate-y-[calc(100%+2rem)] opacity-0 pointer-events-none",
               )}
             >
               <NavbarContent />

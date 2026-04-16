@@ -1774,7 +1774,6 @@ export function createBlock<
           ref: setContainer,
           style: {
             opacity: shouldShowSheetOverlay ? 0 : 1,
-            transition: "opacity 0.3s ease-in-out",
           },
           onClick: handleClick,
           onMouseEnter: handleMouseEnter,

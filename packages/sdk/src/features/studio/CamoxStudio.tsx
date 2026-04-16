@@ -14,10 +14,14 @@ const CamoxStudio = ({ children }: { children: React.ReactNode }) => {
     if (!isAuthenticated && !isLoadingAuth) {
       signInRedirect();
     }
-  }, [isAuthenticated, signInRedirect]);
+  }, [isAuthenticated, isLoadingAuth, signInRedirect]);
 
   if (pathname === "cmx-studio") {
     return <Navigate to="/" />;
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (
