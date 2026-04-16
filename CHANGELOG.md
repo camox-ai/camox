@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.7.0](https://github.com/camox-ai/camox/compare/camox-v0.6.1...camox-v0.7.0) (2026-04-16)
+
+
+### Features
+
+* add disabeCodeGen _internal option to vite ([c2a96c3](https://github.com/camox-ai/camox/commit/c2a96c3dd0b93896b8a66ebfbcf2337cfb2faf91))
+
+
+### Bug Fixes
+
+* post base ui migration tweaks ([0d72dee](https://github.com/camox-ai/camox/commit/0d72dee380b304770769d54bb6c0770a3c73e654))
+* remaining asChild in blocks ([f7e7d82](https://github.com/camox-ai/camox/commit/f7e7d82f0cf8302f2249c7cc8d0e8f1774495927))
+* some cli template issues ([359f00f](https://github.com/camox-ai/camox/commit/359f00f4f83f618d35ae09f64adf6df1f7011b35))
+
+
+### Miscellaneous
+
+* delete unused ui components ([d49eb32](https://github.com/camox-ai/camox/commit/d49eb32aa8f40d467ed10767bbfa194c6f8ec2a6))
+* migrate app template to base ui ([4f470a4](https://github.com/camox-ai/camox/commit/4f470a40f77a100dc65ea8a07f13123202f2782e))
+* migrate popover to base ui ([826aae6](https://github.com/camox-ai/camox/commit/826aae69222c4906b932514d2512160e524197ae))
+* migrate ui package to base ui ([24439ee](https://github.com/camox-ai/camox/commit/24439eecc426b72f8136d4217792847c3a0ace34))
+* **ui:** migrate avatar component to base ui ([e7316b1](https://github.com/camox-ai/camox/commit/e7316b1ac69c71240818109410f1df1698013933))
+* use css for overlay styles instead of inline style tags ([827dbf4](https://github.com/camox-ai/camox/commit/827dbf4cece76fc3f403f2f366678541abe5dbf4))
+* use render prop based api for editable components instead of radix slot ([33ae569](https://github.com/camox-ai/camox/commit/33ae5698307333dbec9b9e4c1ab78b339be3f889))
+
 ## [0.6.1](https://github.com/camox-ai/camox/compare/camox-v0.6.0...camox-v0.6.1) (2026-04-14)
 
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/camox-ai/camox/compare/camox-v0.6.1...@camox/cli-v0.7.0) (2026-04-16)
+
+
+### Bug Fixes
+
+* remaining asChild in blocks ([f7e7d82](https://github.com/camox-ai/camox/commit/f7e7d82f0cf8302f2249c7cc8d0e8f1774495927))
+* some cli template issues ([359f00f](https://github.com/camox-ai/camox/commit/359f00f4f83f618d35ae09f64adf6df1f7011b35))
+
+
+### Miscellaneous
+
+* migrate app template to base ui ([4f470a4](https://github.com/camox-ai/camox/commit/4f470a40f77a100dc65ea8a07f13123202f2782e))
+* use render prop based api for editable components instead of radix slot ([33ae569](https://github.com/camox-ai/camox/commit/33ae5698307333dbec9b9e4c1ab78b339be3f889))
+
 ## [0.6.1](https://github.com/camox-ai/camox/compare/camox-v0.6.0...@camox/cli-v0.6.1) (2026-04-14)
 
 
