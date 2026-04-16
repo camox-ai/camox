@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/camox-ai/camox/compare/camox-v0.7.3...@camox/ui-v0.8.0) (2026-04-16)
+
+
+### Miscellaneous
+
+* various improvements ([5fbdb6a](https://github.com/camox-ai/camox/commit/5fbdb6a12d1423b2c5921c5a044603616ce1877d))
+
 ## [0.7.3](https://github.com/camox-ai/camox/compare/camox-v0.7.2...@camox/ui-v0.7.3) (2026-04-16)
 
 

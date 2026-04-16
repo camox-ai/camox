@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0](https://github.com/camox-ai/camox/compare/camox-v0.7.3...camox-sdk-v0.8.0) (2026-04-16)
+
+
+### Features
+
+* add studio-authorize consent page ([48176ee](https://github.com/camox-ai/camox/commit/48176ee3123f3b5675ec3b1fa7a7acdb0aa60cc6))
+
+
+### Miscellaneous
+
+* refactor dashboard ui ([7064401](https://github.com/camox-ai/camox/commit/70644017a8b58552822233a37c14a77dd92fa39d))
+* various improvements ([5fbdb6a](https://github.com/camox-ai/camox/commit/5fbdb6a12d1423b2c5921c5a044603616ce1877d))
+
 ## [0.7.3](https://github.com/camox-ai/camox/compare/camox-v0.7.2...camox-sdk-v0.7.3) (2026-04-16)
 
 
