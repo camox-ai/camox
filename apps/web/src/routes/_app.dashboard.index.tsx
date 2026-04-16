@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { FolderIcon } from "lucide-react";
 
-import { organizationQueries, projectQueries } from "@/lib/queries";
+import { organizationQueries } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/dashboard/")({
   head: () => ({
@@ -15,23 +15,6 @@ function DashboardIndex() {
   const { data: organizations } = useQuery(organizationQueries.list());
 
   const firstOrg = organizations?.[0];
-
-  const { data: projects, isLoading } = useQuery({
-    ...projectQueries.list(firstOrg?.id ?? ""),
-    enabled: !!firstOrg,
-  });
-
-  if (isLoading || !organizations || !projects) return null;
-
-  if (projects.length > 0 && firstOrg) {
-    return (
-      <Navigate
-        to="/dashboard/$orgSlug/$projectSlug/overview"
-        params={{ orgSlug: firstOrg.slug, projectSlug: projects[0]!.slug }}
-        replace
-      />
-    );
-  }
 
   if (firstOrg) {
     return <Navigate to="/dashboard/$orgSlug" params={{ orgSlug: firstOrg.slug }} replace />;

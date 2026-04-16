@@ -30,7 +30,14 @@ import {
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
-import { ChevronRight, ChevronsUpDownIcon, PlusIcon, SettingsIcon, UsersIcon } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronsUpDownIcon,
+  GlobeIcon,
+  PlusIcon,
+  SettingsIcon,
+  UsersIcon,
+} from "lucide-react";
 import { useState } from "react";
 
 import { CreateProjectGuide } from "@/components/CreateProjectGuide";
@@ -77,27 +84,20 @@ function OrganizationPicker() {
             <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
               {activeOrg.name}
             </DropdownMenuLabel>
-
             <DropdownMenuItem
-              render={
-                <Link
-                  to="/dashboard/$orgSlug/team"
-                  params={{ orgSlug: orgSlug! }}
-                  search={{ tab: "members" }}
-                />
-              }
+              render={<Link to="/dashboard/$orgSlug" params={{ orgSlug: orgSlug! }} />}
+            >
+              <GlobeIcon />
+              Projects
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              render={<Link to="/dashboard/$orgSlug/team" params={{ orgSlug: orgSlug! }} />}
             >
               <UsersIcon />
               Members
             </DropdownMenuItem>
             <DropdownMenuItem
-              render={
-                <Link
-                  to="/dashboard/$orgSlug/team"
-                  params={{ orgSlug: orgSlug! }}
-                  search={{ tab: "settings" }}
-                />
-              }
+              render={<Link to="/dashboard/$orgSlug/settings" params={{ orgSlug: orgSlug! }} />}
             >
               <SettingsIcon />
               Settings

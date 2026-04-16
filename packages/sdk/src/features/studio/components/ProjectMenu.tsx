@@ -120,7 +120,7 @@ export const ProjectMenu = () => {
               <a
                 href={
                   authCtx
-                    ? `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=members`
+                    ? `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team`
                     : "#"
                 }
                 target="_blank"
@@ -136,7 +136,7 @@ export const ProjectMenu = () => {
               <a
                 href={
                   authCtx
-                    ? `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team?tab=settings`
+                    ? `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/settings`
                     : "#"
                 }
                 target="_blank"
