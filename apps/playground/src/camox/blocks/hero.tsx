@@ -92,7 +92,11 @@ function HeroComponent() {
               <div className="flex flex-col items-start gap-4 sm:flex-row">
                 <hero.Link name="cta">
                   {(props) => (
-                    <Button size={compact ? "default" : "lg"} render={<Link {...props} />} />
+                    <Button
+                      size={compact ? "default" : "lg"}
+                      nativeButton={false}
+                      render={<Link {...props} />}
+                    />
                   )}
                 </hero.Link>
               </div>

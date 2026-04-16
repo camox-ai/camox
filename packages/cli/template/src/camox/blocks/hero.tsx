@@ -44,11 +44,7 @@ function HeroComponent() {
             {(props) => <p {...props} className="text-muted-foreground mb-10 text-xl" />}
           </hero.Field>
           <hero.Link name="cta">
-            {(props) => (
-              <Button size="lg" asChild>
-                <Link {...props} />
-              </Button>
-            )}
+            {(props) => <Button size="lg" nativeButton={false} render={<Link {...props} />} />}
           </hero.Link>
         </div>
       </div>

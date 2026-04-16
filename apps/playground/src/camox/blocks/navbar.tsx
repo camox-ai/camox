@@ -76,7 +76,7 @@ function NavbarContent() {
           </navbar.Repeater>
 
           <navbar.Link name="cta">
-            {(props) => <Button size="sm" render={<Link {...props} />} />}
+            {(props) => <Button size="sm" nativeButton={false} render={<Link {...props} />} />}
           </navbar.Link>
         </div>
       </div>

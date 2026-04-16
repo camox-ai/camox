@@ -5,11 +5,7 @@ import { useAuthState, useSignInRedirect } from "@/lib/auth";
 
 import { Navbar } from "./components/Navbar";
 
-interface CamoxStudioProps {
-  children: React.ReactNode;
-}
-
-const CamoxStudio = ({ children }: CamoxStudioProps) => {
+const CamoxStudio = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading: isLoadingAuth } = useAuthState();
   const { pathname } = useLocation();
   const signInRedirect = useSignInRedirect();
