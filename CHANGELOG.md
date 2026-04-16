@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.2](https://github.com/camox-ai/camox/compare/camox-v0.7.1...camox-v0.7.2) (2026-04-16)
+
+
+### Miscellaneous
+
+* build css with tailwindcss cli ([6fb99c6](https://github.com/camox-ai/camox/commit/6fb99c6691505e675275d27609d3a33d9beeed89))
+* migrate sdk to tsdown build pipeline ([ef339c6](https://github.com/camox-ai/camox/commit/ef339c68b9ab5f5dbd456d8a23812da04a8ccd7d))
+
 ## [0.7.1](https://github.com/camox-ai/camox/compare/camox-v0.7.0...camox-v0.7.1) (2026-04-16)
 
 
