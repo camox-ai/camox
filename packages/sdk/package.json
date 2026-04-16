@@ -70,7 +70,7 @@
   },
   "scripts": {
     "dev": "tailwindcss -i ./src/studio.css -o ./dist/studio.css --watch",
-    "build": "tsdown && tailwindcss -i ./src/studio.css -o ./dist/studio.css --minify",
+    "build": "tsdown && tailwindcss -i ./src/studio.css -o ./dist/studio.css --minify && cp ./src/features/preview/studio-overlays.css ./dist/studio-overlays.css",
     "build:watch": "tsdown --watch",
     "lint": "oxlint",
     "check": "tsgo --noEmit && oxlint --fix"

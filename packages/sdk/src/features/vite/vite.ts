@@ -96,7 +96,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
         return `export default "/@fs/${cssPath}";`;
       }
       if (id === RESOLVED_VIRTUAL_OVERLAY_CSS) {
-        const cssPath = resolve(sdkRoot, "src/features/preview/studio-overlays.css");
+        const cssPath = resolve(sdkRoot, "dist/studio-overlays.css");
         const css = readFileSync(cssPath, "utf-8");
         return `export default ${JSON.stringify(css)};`;
       }
