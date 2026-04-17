@@ -1,4 +1,4 @@
-import { Toaster } from "@camox/ui/toaster";
+import { toast, Toaster } from "@camox/ui/toaster";
 import { useQuery } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
 import * as React from "react";
@@ -75,8 +75,23 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [signInRedirect, authenticationUrl]);
 
+  React.useEffect(() => {
+    if (!import.meta.env.PROD) {
+      return;
+    }
+    const toastId = toast("Sign in to open Camox Studio", {
+      duration: Infinity,
+      action: {
+        label: "Sign in",
+        onClick: () => signInRedirect(),
+      },
+    });
+    return () => void toast.dismiss(toastId);
+  }, [signInRedirect]);
+
   return (
     <>
+      <Toaster theme="light" position="bottom-right" offset={{ bottom: "1rem" }} />
       <div className="bg-background min-h-screen">{children}</div>
     </>
   );

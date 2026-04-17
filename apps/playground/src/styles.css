@@ -143,4 +143,7 @@ code {
   body {
     @apply bg-background text-foreground;
   }
+  a:focus-visible {
+    @apply border-ring ring-ring/50 rounded-md ring-3 outline-none;
+  }
 }
