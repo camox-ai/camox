@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { FolderIcon } from "lucide-react";
 
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_app/dashboard/")({
 });
 
 function DashboardIndex() {
-  const { data: organizations } = useQuery(organizationQueries.list());
+  const { data: organizations } = useSuspenseQuery(organizationQueries.list());
 
   const firstOrg = organizations?.[0];
 

@@ -33,12 +33,12 @@ import {
 import {
   ChevronRight,
   ChevronsUpDownIcon,
-  GlobeIcon,
+  Loader2,
   PlusIcon,
   SettingsIcon,
   UsersIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import { CreateProjectGuide } from "@/components/CreateProjectGuide";
 import { authClient } from "@/lib/auth-client";
@@ -73,59 +73,63 @@ function OrganizationPicker() {
   return (
     <>
       <ChevronRight className="text-muted-foreground/50 h-4 w-4" />
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-1.5" />}>
-          <span className="max-w-64 truncate font-medium">{activeOrg.name}</span>
-          <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
-        </DropdownMenuTrigger>
+      <div className="flex">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="max-w-64 truncate"
+          nativeButton={false}
+          render={<Link to="/dashboard/$orgSlug" params={{ orgSlug: activeOrg.slug }} />}
+        >
+          {activeOrg.name}
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
+            <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
+          </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuGroup>
-            <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
-              {activeOrg.name}
-            </DropdownMenuLabel>
-            <DropdownMenuItem
-              render={<Link to="/dashboard/$orgSlug" params={{ orgSlug: orgSlug! }} />}
-            >
-              <GlobeIcon />
-              Projects
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              render={<Link to="/dashboard/$orgSlug/team" params={{ orgSlug: orgSlug! }} />}
-            >
-              <UsersIcon />
-              Members
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              render={<Link to="/dashboard/$orgSlug/settings" params={{ orgSlug: orgSlug! }} />}
-            >
-              <SettingsIcon />
-              Settings
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
+                {activeOrg.name}
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                render={<Link to="/dashboard/$orgSlug/team" params={{ orgSlug: orgSlug! }} />}
+              >
+                <UsersIcon />
+                Members
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                render={<Link to="/dashboard/$orgSlug/settings" params={{ orgSlug: orgSlug! }} />}
+              >
+                <SettingsIcon />
+                Settings
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
 
-          {otherOrgs && otherOrgs.length > 0 && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
-                  Switch organization
-                </DropdownMenuLabel>
-                {otherOrgs.map((org) => (
-                  <DropdownMenuItem key={org.id} onClick={() => handleSetActive(org.slug)}>
-                    {org.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuGroup>
-            </>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setCreateOpen(true)}>
-            <PlusIcon />
-            Create organization
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            {otherOrgs && otherOrgs.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
+                    Switch organization
+                  </DropdownMenuLabel>
+                  {otherOrgs.map((org) => (
+                    <DropdownMenuItem key={org.id} onClick={() => handleSetActive(org.slug)}>
+                      {org.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setCreateOpen(true)}>
+              <PlusIcon />
+              Create organization
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       <CreateOrganizationDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
@@ -282,35 +286,50 @@ function ProjectPicker() {
   return (
     <>
       <ChevronRight className="text-muted-foreground/50 h-4 w-4" />
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-1.5" />}>
-          <span className="max-w-64 truncate font-medium">{activeProject.name}</span>
-          <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
-        </DropdownMenuTrigger>
+      <div className="flex">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="max-w-64 truncate"
+          nativeButton={false}
+          render={
+            <Link
+              to="/dashboard/$orgSlug/$projectSlug"
+              params={{ orgSlug, projectSlug: activeProject.slug }}
+            />
+          }
+        >
+          {activeProject.name}
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
+            <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
+          </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="start" className="w-56">
-          {projects?.map((project) => (
-            <DropdownMenuItem
-              key={project.id}
-              className={project.slug === projectSlug ? "bg-accent" : ""}
-              onClick={() =>
-                navigate({
-                  to: "/dashboard/$orgSlug/$projectSlug",
-                  params: { orgSlug: orgSlug!, projectSlug: project.slug },
-                  replace: true,
-                })
-              }
-            >
-              {project.name}
+          <DropdownMenuContent align="start" className="w-56">
+            {projects?.map((project) => (
+              <DropdownMenuItem
+                key={project.id}
+                className={project.slug === projectSlug ? "bg-accent" : ""}
+                onClick={() =>
+                  navigate({
+                    to: "/dashboard/$orgSlug/$projectSlug",
+                    params: { orgSlug, projectSlug: project.slug },
+                    replace: true,
+                  })
+                }
+              >
+                {project.name}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setCreateOpen(true)}>
+              <PlusIcon />
+              Create project
             </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setCreateOpen(true)}>
-            <PlusIcon />
-            Create project
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
@@ -359,7 +378,15 @@ function DashboardLayout() {
       <Toaster />
       <DashboardNavbar />
       <main className="flex flex-1 flex-col overflow-auto">
-        <Outlet />
+        <Suspense
+          fallback={
+            <div className="flex flex-1 items-center justify-center">
+              <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+            </div>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );
