@@ -1,7 +1,7 @@
 import { Badge } from "@camox/ui/badge";
 import { Button } from "@camox/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import * as React from "react";
 
 import { AuthContext } from "@/lib/auth";
@@ -26,7 +26,7 @@ export const EnvironmentMenu = () => {
         <Badge variant="secondary" className={badgeClassName}>
           {authCtx.environmentName}
         </Badge>
-        <ChevronsUpDown className="shrink-0 opacity-50" />
+        <ChevronDown className="shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-96 p-4" align="start" side="bottom">
         <div className="flex flex-col gap-3">

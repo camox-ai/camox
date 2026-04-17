@@ -1,4 +1,11 @@
-import { int, sqliteTable, text, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+  int,
+  sqliteTable,
+  text,
+  index,
+  uniqueIndex,
+  type AnySQLiteColumn,
+} from "drizzle-orm/sqlite-core";
 
 // --- Auth (column names use camelCase to match better-auth's internal field names) ---
 
@@ -247,8 +254,10 @@ export const repeatableItems = sqliteTable(
     id: int().primaryKey({ autoIncrement: true }),
     blockId: int("block_id")
       .notNull()
-      .references(() => blocks.id),
-    parentItemId: int("parent_item_id"),
+      .references(() => blocks.id, { onDelete: "cascade" }),
+    parentItemId: int("parent_item_id").references((): AnySQLiteColumn => repeatableItems.id, {
+      onDelete: "cascade",
+    }),
     fieldName: text("field_name").notNull(),
     content: text({ mode: "json" }).notNull(),
     summary: text().notNull().default(""),
