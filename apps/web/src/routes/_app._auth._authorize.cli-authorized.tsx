@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Terminal } from "lucide-react";
 
-export const Route = createFileRoute("/_app/_auth/cli-authorized")({
+export const Route = createFileRoute("/_app/_auth/_authorize/cli-authorized")({
   component: CliAuthorizedPage,
 });
 
