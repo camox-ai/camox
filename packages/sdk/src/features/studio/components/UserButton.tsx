@@ -13,9 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "@camox/ui/dropdown-menu";
 import { LogOut, Monitor, Moon, Settings, Sun, User } from "lucide-react";
-import { useContext } from "react";
 
-import { AuthContext, useAuthState } from "@/lib/auth";
+import { useAuthContext, useAuthState } from "@/lib/auth";
 
 import { useTheme } from "../useTheme";
 
@@ -39,9 +38,9 @@ function AuthenticatedUserButton({
 }: {
   setTheme: (theme: "light" | "dark" | "system") => void;
 }) {
-  const authCtx = useContext(AuthContext);
-  const { data: session } = (authCtx!.authClient as any).useSession();
-  const authenticationUrl = authCtx!.authenticationUrl;
+  const authCtx = useAuthContext();
+  const { data: session } = authCtx.authClient.useSession();
+  const authenticationUrl = authCtx.authenticationUrl;
 
   const userName = session?.user?.name || "User";
   const userEmail = session?.user?.email;
@@ -101,7 +100,7 @@ function AuthenticatedUserButton({
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-        <DropdownMenuItem onClick={() => (authCtx!.authClient as any).signOut()}>
+        <DropdownMenuItem onClick={() => void authCtx.authClient.signOut()}>
           <LogOut className="h-4 w-4" />
           <span>Sign out</span>
         </DropdownMenuItem>

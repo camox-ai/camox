@@ -255,7 +255,7 @@ export function useProcessOtt(authClient: CamoxAuthClient) {
 
     (async () => {
       try {
-        await (authClient as any).oneTimeToken.verify({ token: ott });
+        await authClient.oneTimeToken.verify({ token: ott });
         // crossDomainClient's fetch plugin handles storing the session cookie
         // in localStorage automatically. Just notify the session store.
         authClient.updateSession();
@@ -299,7 +299,7 @@ export function useProjectSlug() {
 
 export function useAuthState() {
   const { authClient } = useAuthContext();
-  const { data: session, isPending } = (authClient as any).useSession();
+  const { data: session, isPending } = authClient.useSession();
   return {
     isAuthenticated: !!session,
     isLoading: isPending,
@@ -346,7 +346,7 @@ export function useAuthActions() {
           label: "Log out",
           groupLabel: "Studio",
           checkIfAvailable: () => true,
-          execute: () => (authClient as any).signOut(),
+          execute: () => authClient.signOut(),
         },
       ],
     });
