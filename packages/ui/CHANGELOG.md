@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/camox-ai/camox/compare/camox-v0.8.0...@camox/ui-v0.9.0) (2026-04-17)
+
+
+### Bug Fixes
+
+* web app ui issues ([88f1454](https://github.com/camox-ai/camox/commit/88f1454e604878dfb802ac94da8dea1e7df90600))
+
 ## [0.8.0](https://github.com/camox-ai/camox/compare/camox-v0.7.3...@camox/ui-v0.8.0) (2026-04-16)
 
 

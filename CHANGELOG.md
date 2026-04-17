@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.0](https://github.com/camox-ai/camox/compare/camox-v0.8.0...camox-v0.9.0) (2026-04-17)
+
+
+### Features
+
+* custom created project slug ([94ace3a](https://github.com/camox-ai/camox/commit/94ace3af04d92412e7c1324237bbe47033a8ccaf))
+
+
+### Bug Fixes
+
+* cors auth issues ([300d54e](https://github.com/camox-ai/camox/commit/300d54ed16767370514450626c6b4a6cdd5f7988))
+* web app ui issues ([88f1454](https://github.com/camox-ai/camox/commit/88f1454e604878dfb802ac94da8dea1e7df90600))
+
 ## [0.8.0](https://github.com/camox-ai/camox/compare/camox-v0.7.3...camox-v0.8.0) (2026-04-16)
 
 

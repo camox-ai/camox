@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/camox-ai/camox/compare/camox-v0.8.0...@camox/cli-v0.9.0) (2026-04-17)
+
+
+### Features
+
+* custom created project slug ([94ace3a](https://github.com/camox-ai/camox/commit/94ace3af04d92412e7c1324237bbe47033a8ccaf))
+
 ## [0.8.0](https://github.com/camox-ai/camox/compare/camox-v0.7.3...@camox/cli-v0.8.0) (2026-04-16)
 
 
