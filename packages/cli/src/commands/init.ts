@@ -6,16 +6,18 @@ import { fileURLToPath } from "node:url";
 import * as p from "@clack/prompts";
 import { object } from "@optique/core/constructs";
 import { command, constant } from "@optique/core/primitives";
+import slugify from "slugify";
 
 import {
   type Organization,
+  checkSlugAvailability,
   createOrganization,
   createProject,
   listOrganizations,
   setActiveOrganization,
 } from "../lib/api";
 import { getOrAuthenticate, readAuthToken } from "../lib/auth";
-import { type PackageManager, copyDir, pmCommands, slugify } from "../lib/utils";
+import { type PackageManager, copyDir, pmCommands } from "../lib/utils";
 
 export const parser = command(
   "init",
@@ -75,7 +77,7 @@ async function promptCreateOrganization(token: string): Promise<string> {
   });
   if (p.isCancel(orgName)) return onCancel() as never;
 
-  const orgSlug = slugify(orgName);
+  const orgSlug = slugify(orgName, { lower: true, strict: true });
   const org = await createOrganization(token, orgName, orgSlug);
   p.log.success(`Created organization: ${org.name}`);
   return org.id;
@@ -89,29 +91,15 @@ export async function init() {
   }
   p.log.info("Let's create your Camox application.");
 
-  const result = await p.group(
-    {
-      name: () =>
-        p.text({
-          message: "Project display name",
-          placeholder: "My Website",
-          validate: (value) => {
-            if (!value.trim()) return "Project name is required";
-          },
-        }),
-      path: ({ results }) =>
-        p.text({
-          message: "Project path",
-          initialValue: `./${slugify(results.name ?? "") || "my-site"}`,
-          validate: (value) => {
-            if (!value.trim()) return "Path is required";
-          },
-        }),
+  // Project name
+  const name = await p.text({
+    message: "Project display name",
+    placeholder: "My Website",
+    validate: (value) => {
+      if (!value.trim()) return "Project name is required";
     },
-    { onCancel },
-  );
-
-  const targetDir = path.resolve(result.path as string);
+  });
+  if (p.isCancel(name)) return onCancel();
 
   // Authenticate with camox.ai
   const auth = await getOrAuthenticate();
@@ -119,21 +107,59 @@ export async function init() {
   // Organization selection
   const orgId = await selectOrCreateOrganization(auth.token);
 
+  // Project slug (user-defined, validated for availability)
+  let projectSlug: string;
+  while (true) {
+    const slugInput = await p.text({
+      message: "Project slug",
+      initialValue: slugify(name, { lower: true, strict: true }) || "my-site",
+      validate: (value) => {
+        if (!value.trim()) return "Slug is required";
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
+          return "Slug must be lowercase alphanumeric with hyphens";
+        }
+      },
+    });
+    if (p.isCancel(slugInput)) return onCancel();
+
+    const s = p.spinner();
+    s.start("Checking slug availability...");
+    const { available } = await checkSlugAvailability(auth.token, slugInput);
+    if (available) {
+      s.stop("Slug is available!");
+      projectSlug = slugInput;
+      break;
+    }
+    s.stop(`Slug "${slugInput}" is already taken. Please choose another.`);
+  }
+
+  // Project path (pre-filled from slug, validated for emptiness)
+  const projectPath = await p.text({
+    message: "Project path",
+    initialValue: `./${projectSlug}`,
+    validate: (value) => {
+      if (!value.trim()) return "Path is required";
+      const resolved = path.resolve(value);
+      if (fs.existsSync(resolved) && fs.readdirSync(resolved).length > 0) {
+        return "Directory is not empty";
+      }
+    },
+  });
+  if (p.isCancel(projectPath)) return onCancel();
+
+  const resolvedPath = projectPath as string;
+  const targetDir = path.resolve(resolvedPath);
+
   // Create project on API
   const s0 = p.spinner();
   s0.start("Creating project...");
   let project: { slug: string; syncSecret: string };
   try {
-    project = await createProject(auth.token, result.name as string, orgId);
+    project = await createProject(auth.token, name, projectSlug, orgId);
     s0.stop(`Project created with slug: ${project.slug}`);
   } catch (err) {
     s0.stop("Failed to create project.");
     p.log.error(err instanceof Error ? err.message : "Unknown error");
-    process.exit(1);
-  }
-
-  if (fs.existsSync(targetDir) && fs.readdirSync(targetDir).length > 0) {
-    p.cancel(`Directory ${targetDir} is not empty.`);
     process.exit(1);
   }
 
@@ -156,7 +182,7 @@ export async function init() {
 
   const templateDir = path.resolve(__dirname, "..", "template");
   copyDir(templateDir, targetDir, {
-    "{{projectName}}": result.name as string,
+    "{{projectName}}": name,
     "{{projectSlug}}": project.slug,
     "{{camoxVersion}}": ownPkg.version,
   });
@@ -193,7 +219,7 @@ src/routeTree.gen.ts
 
   function dropIntoProject(): never {
     const shell = process.env.SHELL || "/bin/bash";
-    p.log.info(`Dropping you into ${result.path}`);
+    p.log.info(`Dropping you into ${resolvedPath}`);
     spawnSync(shell, [], { cwd: targetDir, stdio: "inherit" });
     process.exit(0);
   }

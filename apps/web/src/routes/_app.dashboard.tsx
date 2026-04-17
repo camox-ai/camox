@@ -39,6 +39,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { Suspense, useState } from "react";
+import slugify from "slugify";
 
 import { CreateProjectGuide } from "@/components/CreateProjectGuide";
 import { authClient } from "@/lib/auth-client";
@@ -84,7 +85,7 @@ function OrganizationPicker() {
           {activeOrg.name}
         </Button>
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="px-2" />}>
             <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
           </DropdownMenuTrigger>
 
@@ -134,13 +135,6 @@ function OrganizationPicker() {
       <CreateOrganizationDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   );
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 }
 
 function CreateOrganizationDialog({
@@ -205,9 +199,13 @@ function CreateOrganizationDialog({
                   onChange={(e) => {
                     field.handleChange(e.target.value);
                     if (!form.getFieldMeta("slug")?.isDirty) {
-                      form.setFieldValue("slug", slugify(e.target.value), {
-                        dontUpdateMeta: true,
-                      });
+                      form.setFieldValue(
+                        "slug",
+                        slugify(e.target.value, { lower: true, strict: true }),
+                        {
+                          dontUpdateMeta: true,
+                        },
+                      );
                     }
                   }}
                   placeholder="Acme Inc."
@@ -302,7 +300,7 @@ function ProjectPicker() {
           {activeProject.name}
         </Button>
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
+          <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="px-2" />}>
             <ChevronsUpDownIcon className="text-muted-foreground h-3.5 w-3.5" />
           </DropdownMenuTrigger>
 

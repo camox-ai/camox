@@ -5,7 +5,6 @@ import { z } from "zod";
 
 import { assertOrgMembership, assertSyncSecret, getAuthorizedProject } from "../authorization";
 import { resolveEnvironment } from "../lib/resolve-environment";
-import { generateUniqueSlug } from "../lib/slug";
 import { authed, pub } from "../orpc";
 import {
   aiJobs,
@@ -24,6 +23,7 @@ import {
 
 const createProjectSchema = z.object({
   name: z.string(),
+  slug: z.string(),
   organizationId: z.string(),
 });
 
@@ -87,10 +87,31 @@ const get = authed.input(z.object({ id: z.number() })).handler(async ({ context,
   return { ...result.project, organizationSlug: result.organizationSlug };
 });
 
+const checkSlugAvailability = authed
+  .input(z.object({ slug: z.string() }))
+  .handler(async ({ context, input }) => {
+    const existing = await context.db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.slug, input.slug))
+      .get();
+    return { available: !existing };
+  });
+
 const create = authed.input(createProjectSchema).handler(async ({ context, input }) => {
   await assertOrgMembership(context.db, context.user.id, input.organizationId);
 
-  const slug = await generateUniqueSlug(context.db);
+  // Race condition guard: check slug uniqueness at insert time
+  const existing = await context.db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.slug, input.slug))
+    .get();
+  if (existing) {
+    throw new ORPCError("CONFLICT", { message: "Slug is already taken" });
+  }
+
+  const slug = input.slug;
   const syncSecret = crypto.randomUUID();
   const now = Date.now();
 
@@ -391,6 +412,7 @@ export const projectProcedures = {
   getFirst,
   getBySlug,
   get,
+  checkSlugAvailability,
   create,
   update,
   delete: deleteFn,

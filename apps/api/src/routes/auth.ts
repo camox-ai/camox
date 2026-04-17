@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, oneTimeToken, organization } from "better-auth/plugins";
 import { Hono } from "hono";
+import slugify from "slugify";
 
 import type { Database } from "../db";
 import { crossDomain } from "../lib/cross-domain";
@@ -29,10 +30,7 @@ const authSchema = {
 };
 
 function generateSlug(name: string): string {
-  const base = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+  const base = slugify(name, { lower: true, strict: true });
   const suffix = crypto.randomUUID().slice(0, 8);
   return `${base}-${suffix}`;
 }

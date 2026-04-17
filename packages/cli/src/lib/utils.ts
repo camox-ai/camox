@@ -10,13 +10,6 @@ export const pmCommands: Record<PackageManager, { install: string; dev: string }
   yarn: { install: "yarn install", dev: "yarn dev" },
 };
 
-export function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 export function copyDir(src: string, dest: string, replacements: Record<string, string>) {
   fs.mkdirSync(dest, { recursive: true });
 
