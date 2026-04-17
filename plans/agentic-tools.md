@@ -123,14 +123,45 @@ No adapter code lives here. No runtime dependencies on Hono, oRPC, MCP, or `@tan
 
 Shipped first because it has no client UI surface — external MCP clients (Claude Desktop, Cursor, Claude Code) render everything. Also doubles as the fastest path to dogfooding the tool registry, which de-risks Phase 4's UI design.
 
+**Stateless, not per-session.** No Durable Objects, no `McpAgent`, no session state to persist. The project scope is re-resolved from the bearer token on every request (free via the existing BetterAuth middleware). Tool list is re-computed per `tools/list` call — one cheap D1 query against `blockDefinitions`. What we give up by going stateless: server-push `notifications/tools/list_changed` (clients re-list on next user action — acceptable for v1) and elicitation (not planned for v1).
+
+**Transport: official MCP SDK's Hono middleware.** Use `@modelcontextprotocol/hono`'s `WebStandardStreamableHTTPServerTransport` — purpose-built for Fetch API `Request`/`Response`, no Node-compat shim, portable off Workers later. Stay inside the official SDK family, no Cloudflare-specific wrapper.
+
 **Server** — new file `apps/api/src/routes/mcp.ts`:
 
-- Mount an MCP server at `/mcp` using the official TypeScript MCP SDK with Streamable HTTP transport
-- Auth via BetterAuth's `mcp` plugin (OAuth-style flow; the `better-auth/plugins/mcp/client` dep is already installed, add the server plugin). The existing studio-authorize consent page (commit `48176ee`) is the MCP consent UI — verify it's compatible or generalize it
-- On `tools/list`: resolve providers against the authenticated user's `ToolContext` and return the full list
-- On `tools/call`: dispatch through the shared registry + validator
-- Emit `notifications/tools/list_changed` when block definitions change in the user's project (subscribe to a project-room channel or check on each list call)
-- Per-session tool resolution is cached — avoid re-querying `blockDefinitions` on every list call inside a live session
+```ts
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/hono";
+import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+
+app.all("/mcp", async (c) => {
+  // Fresh server + transport per request — SDK forbids reusing a connected Server
+  const server = new Server({ name: "camox", version: "0.1.0" }, { capabilities: { tools: {} } });
+
+  const ctx = buildToolContext(c.var.user, c.var.db, c.env);
+  const tools = await resolveTools(toolProviders, ctx);
+
+  server.setRequestHandler(ListToolsRequestSchema, () => ({ tools }));
+  server.setRequestHandler(CallToolRequestSchema, async (req) => {
+    const tool = tools.find((t) => t.name === req.params.name);
+    if (!tool) throw new Error(`Unknown tool: ${req.params.name}`);
+    const result = await tool.handler(req.params.arguments, ctx);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  await server.connect(transport);
+  return transport.handleRequest(c.req.raw);
+});
+```
+
+**Key design choices**:
+
+- **Lower-level `Server`, not `McpServer`.** The high-level `McpServer.registerTool` wrapper requires Standard Schema (Zod/Valibot) for `inputSchema`. Our registry emits JSON Schema natively (from `blockDefinitions` in D1). `Server.setRequestHandler` accepts raw JSON Schema in the tools list, matching our registry 1:1 with no conversion step.
+- **Auth via BetterAuth's `mcp` server plugin** (the `better-auth/plugins/mcp/client` dep is already installed — add the server-side entrypoint). OAuth 2.1 flow; access tokens resolve to the normal BetterAuth session. The existing studio-authorize consent page (commit `48176ee`) is the MCP consent UI — verify it's compatible or generalize it.
+- **CORS**: already configured globally on the Hono app. Ensure `Mcp-Session-Id` and `Last-Event-ID` are in `allowHeaders` (currently they're not).
+
+**Fallback option**: if `@modelcontextprotocol/hono` turns out to be prerelease / not yet on npm when we start Phase 3, fall back to `createMcpHandler` from `agents/mcp`. Same stateless shape, Cloudflare-specific but battle-tested. Swap is ~15 lines.
 
 #### Phase 4: TanStack AI Agent + SDK Chat UI
 
@@ -177,7 +208,8 @@ Sketched only. Reuses the Phase 4 agent loop with a different message transport.
 
 ### New Dependencies
 
-- `@modelcontextprotocol/sdk` (server) — for the MCP adapter
+- `@modelcontextprotocol/sdk` — core `Server` class and request-schema zod defs
+- `@modelcontextprotocol/hono` — `WebStandardStreamableHTTPServerTransport` for the Phase 3 transport (fallback: `agents` package for `createMcpHandler` if this package isn't GA yet)
 - `better-auth/plugins/mcp` (server-side entrypoint) — already available in the installed BetterAuth version
 - `ajv` + `ajv-formats` — JSON Schema validation in `@camox/ai-tools`
 - Nothing new for the TanStack agent loop — `@tanstack/ai` and `@tanstack/ai-openrouter` already installed
