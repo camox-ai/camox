@@ -55,6 +55,11 @@ const PagePicker = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
+  const closePopover = () => {
+    previewStore.send({ type: "clearPeekedPage" });
+    setOpen(false);
+  };
+
   const handleDeletePage = async (page: Page) => {
     const displayName = page.metaTitle ?? formatPathSegment(page.pathSegment);
     try {
@@ -95,7 +100,10 @@ const PagePicker = () => {
       <Popover
         open={open}
         onOpenChange={(value) => {
-          previewStore.send({ type: "clearPeekedPage" });
+          if (!value) {
+            closePopover();
+            return;
+          }
           setOpen(value);
         }}
       >
@@ -135,7 +143,7 @@ const PagePicker = () => {
                     hideCheck
                     onSelect={() => {
                       navigate({ to: page.fullPath });
-                      setOpen(false);
+                      closePopover();
                     }}
                   >
                     <div className="flex min-w-0 flex-1 items-start gap-2">
@@ -164,7 +172,7 @@ const PagePicker = () => {
                             type: "openEditPageSheet",
                             pageId: page.id,
                           });
-                          setOpen(false);
+                          closePopover();
                         }}
                         onKeyDown={(e) => {
                           // Prevent the button keyboard events from being hyjacked by CommandItem
@@ -175,7 +183,7 @@ const PagePicker = () => {
                               type: "openEditPageSheet",
                               pageId: page.id,
                             });
-                            setOpen(false);
+                            closePopover();
                           }
                         }}
                       >
@@ -210,7 +218,7 @@ const PagePicker = () => {
             <CommandGroup>
               <CommandItem
                 onSelect={() => {
-                  setOpen(false);
+                  closePopover();
                   previewStore.send({ type: "openCreatePageSheet" });
                 }}
                 value={CREATE_PAGE_VALUE}

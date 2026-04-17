@@ -2,6 +2,7 @@
  * EditPageSheet
  * -----------------------------------------------------------------------------------------------*/
 
+import { Alert, AlertDescription, AlertTitle } from "@camox/ui/alert";
 import { Button } from "@camox/ui/button";
 import { Label } from "@camox/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
@@ -158,23 +159,32 @@ const EditPageSheetContent = ({ pageId }: { pageId: number | null }) => {
                   }}
                   className="space-y-4"
                 >
-                  <form.Field name="parentPageId">
-                    {(parentField) => (
-                      <form.Field name="pathSegment">
-                        {(pathField) => (
-                          <PageLocationFieldset
-                            parentPageId={parentField.state.value}
-                            onParentPageIdChange={parentField.handleChange}
-                            pathSegment={pathField.state.value}
-                            onPathSegmentChange={pathField.handleChange}
-                            disabled={isRootPage}
-                            pages={pages}
-                            excludePageId={page.id}
-                          />
-                        )}
-                      </form.Field>
-                    )}
-                  </form.Field>
+                  {isRootPage ? (
+                    <Alert>
+                      <Info className="size-4" />
+                      <AlertTitle>Homepage</AlertTitle>
+                      <AlertDescription>
+                        You can't change the path of the home page.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <form.Field name="parentPageId">
+                      {(parentField) => (
+                        <form.Field name="pathSegment">
+                          {(pathField) => (
+                            <PageLocationFieldset
+                              parentPageId={parentField.state.value}
+                              onParentPageIdChange={parentField.handleChange}
+                              pathSegment={pathField.state.value}
+                              onPathSegmentChange={pathField.handleChange}
+                              pages={pages}
+                              excludePageId={page.id}
+                            />
+                          )}
+                        </form.Field>
+                      )}
+                    </form.Field>
+                  )}
                   {layouts && layouts.length > 0 && (
                     <form.Field name="layoutId">
                       {(field) => (

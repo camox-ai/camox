@@ -105,7 +105,7 @@ export function usePreviewedPage() {
     staleTime: Infinity,
   });
 
-  return peekedPage ?? currentPage;
+  return peekedPagePathname ? (peekedPage ?? currentPage) : currentPage;
 }
 
 /* -------------------------------------------------------------------------------------------------

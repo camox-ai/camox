@@ -1,3 +1,5 @@
+import * as p from "@clack/prompts";
+import { log } from "@clack/prompts";
 import { object } from "@optique/core/constructs";
 import { command, constant } from "@optique/core/primitives";
 
@@ -13,12 +15,14 @@ export const parser = command(
 export const handler = logout;
 
 export function logout() {
+  p.intro("camox logout");
+
   const token = readAuthToken();
   if (!token) {
-    console.log("Not logged in.");
+    log.error("Not logged in.");
     return;
   }
 
   removeAuthToken();
-  console.log(`Logged out from ${token.name}.`);
+  p.log.success(`Logged out from ${token.name}.`);
 }

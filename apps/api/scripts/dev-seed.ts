@@ -170,10 +170,10 @@ async function main() {
   await clearAll(db);
   const { projectId } = await seed(db);
 
-  console.log("Seeded successfully!");
-  console.log("Credentials: dev@camox.dev / camox-dev-123");
-  console.log("Project ID:", projectId);
-  console.log("Site content will be initialized on first 'pnpm dev' via Vite plugin sync.");
+  console.info("Seeded successfully!");
+  console.info("Credentials: dev@camox.dev / camox-dev-123");
+  console.info("Project ID:", projectId);
+  console.info("Site content will be initialized on first 'pnpm dev' via Vite plugin sync.");
 }
 
 main().catch((err) => {
