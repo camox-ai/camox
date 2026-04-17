@@ -2,7 +2,6 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, oneTimeToken, organization } from "better-auth/plugins";
 import { Hono } from "hono";
-import { cors } from "hono/cors";
 
 import type { Database } from "../db";
 import { crossDomain } from "../lib/cross-domain";
@@ -109,20 +108,8 @@ export type Auth = ReturnType<typeof createAuth>;
 
 // --- Routes ---
 
-export const authRoutes = new Hono<AppEnv>()
-  .use(
-    "*",
-    cors({
-      origin: (origin) => origin,
-      allowHeaders: ["Content-Type", "Authorization"],
-      allowMethods: ["POST", "GET", "OPTIONS"],
-      exposeHeaders: ["Content-Length", "Set-Better-Auth-Cookie"],
-      maxAge: 600,
-      credentials: true,
-    }),
-  )
-  .on(["POST", "GET"], "/*", async (c) => {
-    const url = new URL(c.req.url);
-    const auth = createAuth(c.var.db, c.env, url.origin);
-    return auth.handler(c.req.raw);
-  });
+export const authRoutes = new Hono<AppEnv>().on(["POST", "GET"], "/*", async (c) => {
+  const url = new URL(c.req.url);
+  const auth = createAuth(c.var.db, c.env, url.origin);
+  return auth.handler(c.req.raw);
+});

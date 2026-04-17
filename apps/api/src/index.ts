@@ -40,17 +40,15 @@ app.use(
 app.use("*", async (c, next) => {
   const url = new URL(c.req.url);
   const auth = createAuth(c.var.db, c.env, url.origin);
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-
-  if (!session) {
+  try {
+    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    c.set("user", session?.user ?? null);
+    c.set("session", session?.session ?? null);
+  } catch (e) {
+    console.error("Session lookup failed:", e);
     c.set("user", null);
     c.set("session", null);
-    await next();
-    return;
   }
-
-  c.set("user", session.user);
-  c.set("session", session.session);
   await next();
 });
 
@@ -124,6 +122,11 @@ app.all("/rpc/*", async (c) => {
 
 app.onError((err, c) => {
   console.error(`[${c.req.method}] ${c.req.path} →`, err);
+  const origin = c.req.header("origin");
+  if (origin) {
+    c.header("Access-Control-Allow-Origin", origin);
+    c.header("Access-Control-Allow-Credentials", "true");
+  }
   return c.json({ error: "Internal Server Error" }, 500);
 });
 
