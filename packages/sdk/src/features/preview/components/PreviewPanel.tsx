@@ -197,10 +197,10 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
         groupLabel: "Preview",
         checkIfAvailable: () => true,
         execute: () => {
-          previewStore.send({ type: "clearSelection" })
+          previewStore.send({ type: "clearSelection" });
         },
         shortcut: { key: "Escape" },
-      }
+      },
     ] satisfies Action[];
 
     actionsStore.send({ type: "registerManyActions", actions });

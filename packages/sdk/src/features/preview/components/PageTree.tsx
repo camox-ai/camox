@@ -228,14 +228,13 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
  * useBlockTreeItem
  * -----------------------------------------------------------------------------------------------*/
 
-function useBlockTreeItem(block: NormalizedBlock, isSelected: boolean, isDragging = false) {
+function useBlockTreeItem(block: NormalizedBlock, isDragging = false) {
   const [ellipsisPopoverOpen, setEllipsisPopoverOpen] = React.useState(false);
   const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
-  // Block is "parent of selection" when we're viewing an item or field within it
-  const isParentOfSelection = isSelected && selection != null && selection.type !== "block";
-  const shouldShowHover = !isDragging && !isSelected;
-  const shouldShowActive = isDragging || (isSelected && !isParentOfSelection);
+  const isBlockSelected = selection?.type === "block" && selection.blockId === String(block.id);
+  const shouldShowHover = !isDragging && !isBlockSelected;
+  const shouldShowActive = isDragging || isBlockSelected;
 
   const handleBlockMouseEnter = () => {
     if (!iframeElement?.contentWindow) return;
@@ -256,7 +255,7 @@ function useBlockTreeItem(block: NormalizedBlock, isSelected: boolean, isDraggin
   };
 
   const toggleSelection = () => {
-    if (isSelected) {
+    if (isBlockSelected) {
       previewStore.send({ type: "clearSelection" });
     } else {
       previewStore.send({
@@ -269,7 +268,6 @@ function useBlockTreeItem(block: NormalizedBlock, isSelected: boolean, isDraggin
   return {
     ellipsisPopoverOpen,
     setEllipsisPopoverOpen,
-    isParentOfSelection,
     shouldShowHover,
     shouldShowActive,
     handleBlockMouseEnter,
@@ -286,14 +284,12 @@ const BlockTreeItemHeader = ({
   children,
   shouldShowHover,
   shouldShowActive,
-  isParentOfSelection,
   className,
   ref,
   ...props
 }: React.ComponentPropsWithRef<"div"> & {
   shouldShowHover: boolean;
   shouldShowActive: boolean;
-  isParentOfSelection: boolean;
 }) => (
   <div
     ref={ref}
@@ -301,7 +297,6 @@ const BlockTreeItemHeader = ({
       "flex flex-row justify-between items-center gap-1 px-1 max-w-full rounded-lg text-foreground transition-all hover:transition-none",
       shouldShowHover && "hover:bg-accent/75",
       shouldShowActive && "bg-accent text-accent-foreground",
-      isParentOfSelection && "bg-accent/25",
       "data-[open]:rounded-b-none",
       className,
     )}
@@ -352,7 +347,7 @@ const BlockTreeItemEllipsis = ({
 );
 
 const BlockTreeItemContent = ({ block }: { block: NormalizedBlock }) => (
-  <Accordion.Panel className="text-muted-foreground data-[open]:bg-accent/25 h-[var(--accordion-panel-height)] overflow-hidden rounded-b-lg text-sm transition-[height] duration-200 data-[ending-style]:h-0 data-[starting-style]:h-0">
+  <Accordion.Panel className="text-muted-foreground h-[var(--accordion-panel-height)] overflow-hidden rounded-b-lg text-sm transition-[height] duration-200 data-[ending-style]:h-0 data-[starting-style]:h-0">
     <BlockFields block={block} />
   </Accordion.Panel>
 );
@@ -363,7 +358,6 @@ const BlockTreeItemContent = ({ block }: { block: NormalizedBlock }) => (
 
 interface SortableBlockProps {
   block: NormalizedBlock;
-  isSelected: boolean;
 }
 
 const animateLayoutChanges: AnimateLayoutChanges = (args) => {
@@ -372,7 +366,7 @@ const animateLayoutChanges: AnimateLayoutChanges = (args) => {
   return defaultAnimateLayoutChanges(args);
 };
 
-const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
+const SortableBlock = ({ block }: SortableBlockProps) => {
   const [gripPopoverOpen, setGripPopoverOpen] = React.useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: String(block.id),
@@ -383,10 +377,14 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
     transition,
     opacity: isDragging ? 0 : 1,
   };
-  const ctx = useBlockTreeItem(block, isSelected, isDragging);
+  const ctx = useBlockTreeItem(block, isDragging);
+  const isBlockFocused = useSelector(
+    previewStore,
+    (state) => state.context.selection?.blockId === String(block.id),
+  );
 
   return (
-    <Accordion.Root value={isSelected ? [String(block.id)] : []}>
+    <Accordion.Root value={isBlockFocused ? [String(block.id)] : []}>
       <Accordion.Item
         value={String(block.id)}
         ref={setNodeRef}
@@ -399,7 +397,6 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
           <BlockTreeItemHeader
             shouldShowHover={ctx.shouldShowHover}
             shouldShowActive={ctx.shouldShowActive}
-            isParentOfSelection={ctx.isParentOfSelection}
           >
             <BlockActionsPopover
               block={block}
@@ -442,18 +439,21 @@ const SortableBlock = ({ block, isSelected }: SortableBlockProps) => {
 
 interface LayoutBlockItemProps {
   block: NormalizedBlock;
-  isSelected: boolean;
   layoutName: string;
 }
 
-const LayoutBlockItem = ({ block, isSelected, layoutName }: LayoutBlockItemProps) => {
+const LayoutBlockItem = ({ block, layoutName }: LayoutBlockItemProps) => {
   const camoxApp = useCamoxApp();
   const blockDef = camoxApp.getBlockById(block.type);
-  const ctx = useBlockTreeItem(block, isSelected);
+  const ctx = useBlockTreeItem(block);
   const displayText = blockDef?.title ?? block.type;
+  const isBlockFocused = useSelector(
+    previewStore,
+    (state) => state.context.selection?.blockId === String(block.id),
+  );
 
   return (
-    <Accordion.Root value={isSelected ? [String(block.id)] : []}>
+    <Accordion.Root value={isBlockFocused ? [String(block.id)] : []}>
       <Accordion.Item
         value={String(block.id)}
         className="group"
@@ -464,7 +464,6 @@ const LayoutBlockItem = ({ block, isSelected, layoutName }: LayoutBlockItemProps
           <BlockTreeItemHeader
             shouldShowHover={ctx.shouldShowHover}
             shouldShowActive={ctx.shouldShowActive}
-            isParentOfSelection={ctx.isParentOfSelection}
           >
             <div className="text-muted-foreground flex size-7 shrink-0 items-center justify-center">
               <Tooltip>
@@ -501,8 +500,6 @@ const LayoutBlockItem = ({ block, isSelected, layoutName }: LayoutBlockItemProps
  * -----------------------------------------------------------------------------------------------*/
 
 const PageTree = () => {
-  const selection = useSelector(previewStore, (state) => state.context.selection);
-  const focusedBlockId = selection?.blockId ?? null;
   const page = usePreviewedPage();
   const {
     pageBlocks,
@@ -592,7 +589,6 @@ const PageTree = () => {
           <LayoutBlockItem
             key={String(block.id)}
             block={block}
-            isSelected={focusedBlockId === String(block.id)}
             layoutName={layout?.title ?? "Unknown"}
           />
         ))}
@@ -609,11 +605,7 @@ const PageTree = () => {
             strategy={verticalListSortingStrategy}
           >
             {pageBlocks.map((block) => (
-              <SortableBlock
-                key={String(block.id)}
-                block={block}
-                isSelected={focusedBlockId === String(block.id)}
-              />
+              <SortableBlock key={String(block.id)} block={block} />
             ))}
           </SortableContext>
           <DragOverlay dropAnimation={null}>
@@ -637,7 +629,6 @@ const PageTree = () => {
           <LayoutBlockItem
             key={String(block.id)}
             block={block}
-            isSelected={focusedBlockId === String(block.id)}
             layoutName={layout?.title ?? "Unknown"}
           />
         ))}

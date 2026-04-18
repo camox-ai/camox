@@ -297,6 +297,16 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         execute: () => previewStore.send({ type: "exitPresentationMode" }),
         shortcut: { key: "Escape", withMeta: true },
       },
+      {
+        id: "clear-selection",
+        label: "Clear selection",
+        groupLabel: "Preview",
+        checkIfAvailable: () => true,
+        execute: () => {
+          console.log("clear selection");
+        },
+        shortcut: { key: "Escape" },
+      },
     ] satisfies Action[];
 
     actionsStore.send({
