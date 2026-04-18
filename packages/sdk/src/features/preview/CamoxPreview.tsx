@@ -24,6 +24,7 @@ import { useCamoxApp } from "../provider/components/CamoxAppContext";
 import { Navbar } from "../studio/components/Navbar";
 import { AddBlockSheet } from "./components/AddBlockSheet";
 import { AgentChatSheet } from "./components/AgentChatSheet";
+import { BlockErrorBoundary } from "./components/BlockErrorBoundary";
 import { CreatePageSheet } from "./components/CreatePageSheet";
 import { EditPageSheet } from "./components/EditPageSheet";
 import { PageContentSheet } from "./components/PageContentSheet";
@@ -236,16 +237,18 @@ export const PageContent = () => {
       )}
       {pageBlocks.map((blockData, index) => (
         <React.Fragment key={blockData.id}>
-          <BlockRenderer
-            blockId={blockData.id}
-            mode="site"
-            showAddBlockTop={
-              index === 0
-                ? (layout?.blockDefinitions.some((b) => b.placement === "before") ?? false)
-                : true
-            }
-            showAddBlockBottom={true}
-          />
+          <BlockErrorBoundary blockId={blockData.id} blockType={blockData.type}>
+            <BlockRenderer
+              blockId={blockData.id}
+              mode="site"
+              showAddBlockTop={
+                index === 0
+                  ? (layout?.blockDefinitions.some((b) => b.placement === "before") ?? false)
+                  : true
+              }
+              showAddBlockBottom={true}
+            />
+          </BlockErrorBoundary>
           {/* Render peeked block after this block if this is the insertion point */}
           {index === peekedBlockIndex - 1 && <PeekedBlock onExitComplete={onExitComplete} />}
         </React.Fragment>

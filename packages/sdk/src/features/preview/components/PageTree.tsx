@@ -197,7 +197,7 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
   };
 
   return (
-    <ul className="my-1 space-y-1 pr-1 pl-7">
+    <ul className="my-1 space-y-1 pl-7">
       {Object.keys(schemaProperties ?? {}).map((fieldName) => {
         const value = block.content[fieldName];
         const fieldSchema = schemaProperties?.[fieldName];

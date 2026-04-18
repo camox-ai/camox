@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { BlockErrorBoundary } from "@/features/preview/components/BlockErrorBoundary";
+
 /* -------------------------------------------------------------------------------------------------
  * createLayout
  * -----------------------------------------------------------------------------------------------*/
@@ -95,17 +97,19 @@ export function createLayout(options: CreateLayoutOptions) {
       if (!blockData) return null;
 
       return (
-        <block.Component
-          blockData={blockData}
-          mode="layout"
-          showAddBlockTop={isFirstAfter || undefined}
-          showAddBlockBottom={isLastBefore || undefined}
-          addBlockAfterPosition={(() => {
-            if (isLastBefore) return "";
-            if (isFirstAfter) return null;
-            return undefined;
-          })()}
-        />
+        <BlockErrorBoundary blockId={blockData._id} blockType={blockData.type}>
+          <block.Component
+            blockData={blockData}
+            mode="layout"
+            showAddBlockTop={isFirstAfter || undefined}
+            showAddBlockBottom={isLastBefore || undefined}
+            addBlockAfterPosition={(() => {
+              if (isLastBefore) return "";
+              if (isFirstAfter) return null;
+              return undefined;
+            })()}
+          />
+        </BlockErrorBoundary>
       );
     };
     SlotComponent.displayName = `LayoutSlot(${toPascalCase(block.id)})`;

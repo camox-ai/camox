@@ -4,6 +4,7 @@ import * as React from "react";
 import type { Block } from "../../../core/createBlock";
 import { NormalizedDataProvider } from "../../../lib/normalized-data";
 import { previewStore } from "../previewStore";
+import { BlockErrorBoundary } from "./BlockErrorBoundary";
 
 interface PeekedBlockProps {
   onExitComplete?: () => void;
@@ -98,21 +99,23 @@ export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
       onTransitionEnd={handleTransitionEnd}
     >
       <div style={{ overflow: "hidden" }}>
-        <NormalizedDataProvider
-          files={peekBundle.files}
-          repeatableItems={peekBundle.repeatableItems}
-        >
-          <displayedBlock.Component
-            blockData={{
-              _id: 0,
-              type: displayedBlock.id,
-              content: peekBundle.block.content as Record<string, unknown>,
-              settings: peekBundle.block.settings as Record<string, unknown> | undefined,
-              position: "",
-            }}
-            mode="peek"
-          />
-        </NormalizedDataProvider>
+        <BlockErrorBoundary blockId={0} blockType={displayedBlock.id}>
+          <NormalizedDataProvider
+            files={peekBundle.files}
+            repeatableItems={peekBundle.repeatableItems}
+          >
+            <displayedBlock.Component
+              blockData={{
+                _id: 0,
+                type: displayedBlock.id,
+                content: peekBundle.block.content as Record<string, unknown>,
+                settings: peekBundle.block.settings as Record<string, unknown> | undefined,
+                position: "",
+              }}
+              mode="peek"
+            />
+          </NormalizedDataProvider>
+        </BlockErrorBoundary>
       </div>
     </div>
   );
