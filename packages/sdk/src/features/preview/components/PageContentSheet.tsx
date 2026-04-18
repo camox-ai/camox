@@ -248,25 +248,32 @@ const PageContentSheet = () => {
     }
   }, [isOpen, block, page?.page.projectId]);
 
-  // Auto-focus selected field when sheet opens
-  const autoFocusFieldName =
-    selection?.type === "block-field" && selection.fieldType === "String"
-      ? selection.fieldName
-      : null;
+  // Scope field DOM ids with useId so label-input pairs and imperative focus
+  // lookups don't collide if this sheet is ever rendered more than once.
+  const fieldIdPrefix = React.useId();
 
-  const handleOpenAutoFocus = React.useCallback(
-    (e: Event) => {
-      e.preventDefault();
-      if (!autoFocusFieldName) return;
-      setTimeout(() => {
-        const element = document.getElementById(autoFocusFieldName) as HTMLTextAreaElement | null;
-        if (!element) return;
-        element.focus();
-        element.select();
-      }, 100);
-    },
-    [autoFocusFieldName],
-  );
+  // Auto-focus the selected field when the sheet opens — or fall back to the
+  // first text field in the current schema so the sheet is ready to type into.
+  const autoFocusFieldName = React.useMemo(() => {
+    if (
+      (selection?.type === "block-field" || selection?.type === "item-field") &&
+      (selection.fieldType === "String" || selection.fieldType === "Embed")
+    ) {
+      return selection.fieldName;
+    }
+    const properties = (currentSchema as any)?.properties;
+    if (!properties) return null;
+    for (const name of Object.keys(properties)) {
+      const ft = properties[name]?.fieldType;
+      if (ft === "String" || ft === "Embed") return name;
+    }
+    return null;
+  }, [selection, currentSchema]);
+
+  const getInitialFocus = React.useCallback((): HTMLElement | null => {
+    if (!autoFocusFieldName) return null;
+    return document.getElementById(`${fieldIdPrefix}-${autoFocusFieldName}`);
+  }, [autoFocusFieldName, fieldIdPrefix]);
 
   // Register action to toggle content sheet for current selection
   React.useEffect(() => {
@@ -345,7 +352,7 @@ const PageContentSheet = () => {
     <PreviewSideSheet
       open={isOpen}
       onOpenChange={handleOpenChange}
-      onOpenAutoFocus={handleOpenAutoFocus}
+      initialFocus={getInitialFocus}
       className="flex flex-col gap-0"
     >
       <SheetParts.SheetHeader className="border-border border-b">
@@ -480,6 +487,7 @@ const PageContentSheet = () => {
         )}
         {!isViewingAsset && !isViewingLink && (
           <ItemFieldsEditor
+            key={currentItemId ?? `block-${block.id}`}
             schema={currentSchema}
             data={currentData}
             blockId={block.id}
@@ -488,6 +496,8 @@ const PageContentSheet = () => {
             postToIframe={postToIframe}
             filesMap={filesMap}
             itemsMap={itemsMap}
+            fieldIdPrefix={fieldIdPrefix}
+            autoFocusFieldName={autoFocusFieldName}
           />
         )}
         {currentItemId == null && !fieldHasOwnView && settingsFields.length > 0 && (

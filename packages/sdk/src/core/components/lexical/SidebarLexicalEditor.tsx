@@ -12,6 +12,7 @@ import { INPUT_BASE_STYLES, INPUT_FOCUS_STYLES, cn } from "@/lib/utils";
 import { createEditorConfig, normalizeLexicalState } from "./editorConfig";
 
 interface SidebarLexicalEditorProps {
+  id?: string;
   value: string | Record<string, unknown>;
   onChange: (markdown: string) => void;
   onFocus?: () => void;
@@ -62,6 +63,7 @@ function ExternalStateSync({
 }
 
 export function SidebarLexicalEditor({
+  id,
   value,
   onChange,
   onFocus,
@@ -103,6 +105,7 @@ export function SidebarLexicalEditor({
       <RichTextPlugin
         contentEditable={
           <ContentEditable
+            id={id}
             className={cn(
               INPUT_BASE_STYLES,
               INPUT_FOCUS_STYLES,

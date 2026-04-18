@@ -12,7 +12,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@camox/ui/dropdown-menu";
-import { LogOut, Monitor, Moon, Settings, Sun, User } from "lucide-react";
+import { Check, LogOut, Monitor, Moon, Settings, Sun, User } from "lucide-react";
 
 import { useAuthContext, useAuthState } from "@/lib/auth";
 
@@ -20,7 +20,7 @@ import { useTheme } from "../useTheme";
 
 export const UserButton = () => {
   const { isAuthenticated, isLoading } = useAuthState();
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   if (!isAuthenticated || isLoading) {
     return (
@@ -30,12 +30,14 @@ export const UserButton = () => {
     );
   }
 
-  return <AuthenticatedUserButton setTheme={setTheme} />;
+  return <AuthenticatedUserButton theme={theme} setTheme={setTheme} />;
 };
 
 function AuthenticatedUserButton({
+  theme,
   setTheme,
 }: {
+  theme: "light" | "dark" | "system";
   setTheme: (theme: "light" | "dark" | "system") => void;
 }) {
   const authCtx = useAuthContext();
@@ -55,7 +57,7 @@ function AuthenticatedUserButton({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="outline" size="icon" />}>
-        <User className="text-muted-foreground h-4 w-4" />
+        <User className="text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="end">
         <DropdownMenuGroup>
@@ -76,32 +78,50 @@ function AuthenticatedUserButton({
         <DropdownMenuItem
           onClick={() => window.open(`${authenticationUrl}/dashboard/profile`, "_blank")}
         >
-          <Settings className="h-4 w-4" />
+          <Settings />
           <span>Manage account</span>
         </DropdownMenuItem>
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="gap-2">
-            <Sun className="text-muted-foreground h-4 w-4 dark:hidden" />
-            <Moon className="text-muted-foreground hidden h-4 w-4 dark:block" />
+          <DropdownMenuSubTrigger>
+            <Sun className="dark:hidden" />
+            <Moon className="hidden dark:block" />
             <span>Theme</span>
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuItem onClick={() => setTheme("light")}>
-              <Sun className="h-4 w-4" />
-              <span>Light</span>
+          <DropdownMenuSubContent className="min-w-36">
+            <DropdownMenuItem
+              onClick={() => setTheme("light")}
+              className="flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <Sun className="h-4 w-4" />
+                <span>Light</span>
+              </span>
+              {theme === "light" && <Check className="h-4 w-4 shrink-0" />}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("dark")}>
-              <Moon className="h-4 w-4" />
-              <span>Dark</span>
+            <DropdownMenuItem
+              onClick={() => setTheme("dark")}
+              className="flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <Moon className="h-4 w-4" />
+                <span>Dark</span>
+              </span>
+              {theme === "dark" && <Check className="h-4 w-4 shrink-0" />}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("system")}>
-              <Monitor className="h-4 w-4" />
-              <span>System</span>
+            <DropdownMenuItem
+              onClick={() => setTheme("system")}
+              className="flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <Monitor className="h-4 w-4" />
+                <span>System</span>
+              </span>
+              {theme === "system" && <Check className="h-4 w-4 shrink-0" />}
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuItem onClick={() => void authCtx.authClient.signOut()}>
-          <LogOut className="h-4 w-4" />
+          <LogOut />
           <span>Sign out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

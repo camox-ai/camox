@@ -73,6 +73,12 @@ interface ItemFieldsEditorProps {
   /** Lookup maps for resolving _fileId and _itemId markers */
   filesMap: Map<number, NormalizedFile>;
   itemsMap: Map<number, NormalizedItem>;
+  /** Prefix used to scope DOM ids for each field so label-input pairs and
+   * imperative focus lookups don't collide across sheet instances. */
+  fieldIdPrefix: string;
+  /** When this editor mounts, focus this field. Used to auto-focus on navigation
+   * between block/item levels (which remount this component via a `key`). */
+  autoFocusFieldName?: string | null;
 }
 
 const ItemFieldsEditor = ({
@@ -84,6 +90,8 @@ const ItemFieldsEditor = ({
   postToIframe,
   filesMap,
   itemsMap,
+  fieldIdPrefix,
+  autoFocusFieldName,
 }: ItemFieldsEditorProps) => {
   const fields = React.useMemo(() => getSchemaFieldsInOrder(schema), [schema]);
   const timerRef = React.useRef<number | null>(null);
@@ -94,6 +102,20 @@ const ItemFieldsEditor = ({
     if (itemId != null) return `${blockId}__${itemId}__${fieldName}`;
     return `${blockId}__${fieldName}`;
   };
+
+  const getFieldElementId = (fieldName: string) => `${fieldIdPrefix}-${fieldName}`;
+
+  // Auto-focus the target field once on mount. This runs both when the sheet
+  // opens and when the parent remounts us via `key` on block↔item navigation.
+  const initialAutoFocusRef = React.useRef({
+    fieldName: autoFocusFieldName,
+    prefix: fieldIdPrefix,
+  });
+  React.useLayoutEffect(() => {
+    const { fieldName, prefix } = initialAutoFocusRef.current;
+    if (!fieldName) return;
+    document.getElementById(`${prefix}-${fieldName}`)?.focus();
+  }, []);
 
   const scalarFields = React.useMemo(() => {
     return fields
@@ -207,8 +229,9 @@ const ItemFieldsEditor = ({
                     })
                   }
                 >
-                  <Label htmlFor={field.name}>{label}</Label>
+                  <Label htmlFor={getFieldElementId(field.name)}>{label}</Label>
                   <SidebarLexicalEditor
+                    id={getFieldElementId(field.name)}
                     value={fieldApi.state.value as string | Record<string, unknown>}
                     onChange={(value) => handleScalarChange(field.name, value, fieldApi)}
                     onFocus={() => handleFieldFocus(field.name, field.fieldType as FieldType)}
@@ -239,9 +262,9 @@ const ItemFieldsEditor = ({
                     })
                   }
                 >
-                  <Label htmlFor={field.name}>{label}</Label>
+                  <Label htmlFor={getFieldElementId(field.name)}>{label}</Label>
                   <Input
-                    id={field.name}
+                    id={getFieldElementId(field.name)}
                     type="url"
                     value={fieldApi.state.value as string}
                     onChange={(e) => handleScalarChange(field.name, e.target.value, fieldApi)}

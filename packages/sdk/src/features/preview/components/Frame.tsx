@@ -112,14 +112,14 @@ export const Frame = ({
   // Monitor for Base UI portaled popups in body
   React.useEffect(() => {
     const checkForOpenPopup = () => {
-      const hasPopup = document.body.querySelector(":scope > [data-open]") !== null;
+      const hasPopup = document.body.querySelector("[data-base-ui-portal] [data-open]") !== null;
       setHasOpenPopup(hasPopup);
     };
 
     // Initial check
     checkForOpenPopup();
 
-    // Watch direct children of body and their attributes (data-open is toggled, not added/removed)
+    // Watch for Base UI portal descendants whose data-open/data-closed attributes change
     const observer = new MutationObserver(checkForOpenPopup);
     observer.observe(document.body, {
       childList: true,

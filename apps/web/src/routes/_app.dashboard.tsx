@@ -12,7 +12,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@camox/ui/dropdown-menu";
@@ -30,14 +29,7 @@ import {
   useNavigate,
   useParams,
 } from "@tanstack/react-router";
-import {
-  ChevronRight,
-  ChevronsUpDownIcon,
-  Loader2,
-  PlusIcon,
-  SettingsIcon,
-  UsersIcon,
-} from "lucide-react";
+import { CheckIcon, ChevronRight, ChevronsUpDownIcon, Loader2, PlusIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 import slugify from "slugify";
 
@@ -61,7 +53,6 @@ function OrganizationPicker() {
   const { data: organizations } = useQuery(organizationQueries.list());
 
   const activeOrg = organizations?.find((org) => org.slug === orgSlug);
-  const otherOrgs = organizations?.filter((org) => org.slug !== orgSlug);
 
   const handleSetActive = (newOrgSlug: string) => {
     navigate({ to: "/dashboard/$orgSlug", params: { orgSlug: newOrgSlug } });
@@ -90,40 +81,23 @@ function OrganizationPicker() {
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
-                {activeOrg.name}
-              </DropdownMenuLabel>
-              <DropdownMenuItem
-                render={<Link to="/dashboard/$orgSlug/team" params={{ orgSlug: orgSlug! }} />}
-              >
-                <UsersIcon />
-                Members
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                render={<Link to="/dashboard/$orgSlug/settings" params={{ orgSlug: orgSlug! }} />}
-              >
-                <SettingsIcon />
-                Settings
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-
-            {otherOrgs && otherOrgs.length > 0 && (
+            {organizations && organizations.length > 0 && (
               <>
-                <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">
-                    Switch organization
-                  </DropdownMenuLabel>
-                  {otherOrgs.map((org) => (
-                    <DropdownMenuItem key={org.id} onClick={() => handleSetActive(org.slug)}>
+                  {organizations.map((org) => (
+                    <DropdownMenuItem
+                      key={org.id}
+                      onClick={() => handleSetActive(org.slug)}
+                      className="flex items-center justify-between"
+                    >
                       {org.name}
+                      {org.slug === orgSlug && <CheckIcon className="h-4 w-4 shrink-0" />}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuGroup>
+                <DropdownMenuSeparator />
               </>
             )}
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setCreateOpen(true)}>
               <PlusIcon />
               Create organization
@@ -308,7 +282,7 @@ function ProjectPicker() {
             {projects?.map((project) => (
               <DropdownMenuItem
                 key={project.id}
-                className={project.slug === projectSlug ? "bg-accent" : ""}
+                className="flex items-center justify-between"
                 onClick={() =>
                   navigate({
                     to: "/dashboard/$orgSlug/$projectSlug",
@@ -318,6 +292,7 @@ function ProjectPicker() {
                 }
               >
                 {project.name}
+                {project.slug === projectSlug && <CheckIcon className="h-4 w-4 shrink-0" />}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />

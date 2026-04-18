@@ -5,10 +5,12 @@ import * as React from "react";
 import { SHEET_WIDTH } from "../previewConstants";
 import { previewStore } from "../previewStore";
 
+type InitialFocus = React.ComponentProps<typeof Sheet.SheetContent>["initialFocus"];
+
 interface PreviewSideSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onOpenAutoFocus?: (e: Event) => void;
+  initialFocus?: InitialFocus;
   children: React.ReactNode;
   className?: string;
 }
@@ -16,19 +18,10 @@ interface PreviewSideSheetProps {
 const PreviewSideSheet = ({
   open,
   onOpenChange,
-  onOpenAutoFocus,
+  initialFocus,
   children,
   className,
 }: PreviewSideSheetProps) => {
-  const prevOpenRef = React.useRef(open);
-  React.useEffect(() => {
-    if (open && !prevOpenRef.current && onOpenAutoFocus) {
-      const e = new Event("focus");
-      onOpenAutoFocus(e);
-    }
-    prevOpenRef.current = open;
-  }, [open, onOpenAutoFocus]);
-
   return (
     <Sheet.Sheet open={open} onOpenChange={onOpenChange}>
       <Sheet.SheetContent
@@ -36,6 +29,7 @@ const PreviewSideSheet = ({
         side="left"
         showOverlay={false}
         style={{ minWidth: SHEET_WIDTH }}
+        initialFocus={initialFocus}
       >
         {children}
       </Sheet.SheetContent>
