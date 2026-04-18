@@ -59,7 +59,7 @@ const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => 
   const results = [];
 
   for (const def of layoutDefs) {
-    const existing = await context.db
+    const existingLayout = await context.db
       .select()
       .from(layouts)
       .where(
@@ -71,46 +71,80 @@ const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => 
       )
       .get();
 
-    if (existing) {
-      const updated = await context.db
-        .update(layouts)
-        .set({ description: def.description, updatedAt: now })
-        .where(eq(layouts.id, existing.id))
-        .returning()
-        .get();
-      results.push(updated);
-      continue;
+    const layout = existingLayout
+      ? await context.db
+          .update(layouts)
+          .set({ description: def.description, updatedAt: now })
+          .where(eq(layouts.id, existingLayout.id))
+          .returning()
+          .get()
+      : await context.db
+          .insert(layouts)
+          .values({
+            projectId,
+            environmentId: environment.id,
+            layoutId: def.layoutId,
+            description: def.description,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning()
+          .get();
+
+    const createdBlockTypes: string[] = [];
+
+    // Before/after blocks can only be declared in code — the UI can't create
+    // them — so every sync must backfill any declared block slot missing from
+    // the DB. Never overwrite an existing block: users may have edited its
+    // content in the UI.
+    const existingBlocks = await context.db
+      .select({
+        type: blocks.type,
+        placement: blocks.placement,
+        position: blocks.position,
+      })
+      .from(blocks)
+      .where(eq(blocks.layoutId, layout.id));
+
+    const existingByKey = new Map<string, string>();
+    for (const b of existingBlocks) {
+      existingByKey.set(`${b.type}:${b.placement ?? ""}`, b.position);
     }
 
-    const created = await context.db
-      .insert(layouts)
-      .values({
-        projectId,
-        environmentId: environment.id,
-        layoutId: def.layoutId,
-        description: def.description,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning()
-      .get();
-    results.push(created);
+    const slots = def.blocks.map((blockDef) => ({
+      def: blockDef,
+      position: existingByKey.get(`${blockDef.type}:${blockDef.placement ?? ""}`) ?? null,
+    }));
 
-    // Create blocks for newly created layouts
-    let prevPosition: string | null = null;
-    for (const blockDef of def.blocks) {
-      const position = generateKeyBetween(prevPosition, null);
-      prevPosition = position;
+    let lastPos: string | null = null;
+    for (let i = 0; i < slots.length; i++) {
+      const slot = slots[i];
+      if (slot.position !== null) {
+        lastPos = slot.position;
+        continue;
+      }
+
+      let nextPos: string | null = null;
+      for (let j = i + 1; j < slots.length; j++) {
+        if (slots[j].position !== null) {
+          nextPos = slots[j].position;
+          break;
+        }
+      }
+
+      const newPos = generateKeyBetween(lastPos, nextPos);
+      const blockDef = slot.def;
+      createdBlockTypes.push(blockDef.type);
 
       const block = await context.db
         .insert(blocks)
         .values({
-          layoutId: created.id,
+          layoutId: layout.id,
           type: blockDef.type,
           content: blockDef.content,
           settings: blockDef.settings ?? null,
           placement: blockDef.placement ?? null,
-          position,
+          position: newPos,
           summary: "",
           createdAt: now,
           updatedAt: now,
@@ -142,7 +176,16 @@ const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => 
           tempIdToRealId.set(seed.tempId, inserted.id);
         }
       }
+
+      slot.position = newPos;
+      lastPos = newPos;
     }
+
+    results.push({
+      layout,
+      wasExisting: Boolean(existingLayout),
+      createdBlockTypes,
+    });
   }
 
   broadcastInvalidation(context.env.ProjectRoom, projectId, [

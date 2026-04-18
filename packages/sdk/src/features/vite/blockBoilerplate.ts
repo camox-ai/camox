@@ -37,13 +37,14 @@ const ${camelName} = createBlock({
     title: Type.String({ default: "Title" }),
   },
   component: ${pascalName}Component,
+  toMarkdown: ['{{title}}']
 });
 
 function ${pascalName}Component() {
   return (
     <section>
       <${camelName}.Field name="title">
-        {(content) => <h1>{content}</h1>}
+        {(props) => <h1 {...props} />}
       </${camelName}.Field>
     </section>
   );

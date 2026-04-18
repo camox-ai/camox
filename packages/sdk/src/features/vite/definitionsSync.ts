@@ -80,8 +80,9 @@ export async function syncDefinitionsToApi(options: {
   // Sync layouts
   const layoutDefinitions = camoxApp.getSerializableLayoutDefinitions();
   if (layoutDefinitions.length > 0) {
+    let layoutSyncResults;
     try {
-      await client.layouts.sync({
+      layoutSyncResults = await client.layouts.sync({
         projectSlug,
         syncSecret,
         layouts: layoutDefinitions,
@@ -94,6 +95,15 @@ export async function syncDefinitionsToApi(options: {
       `[camox] Synced ${layoutDefinitions.length} layout${layoutDefinitions.length === 1 ? "" : "s"} to Camox API`,
       { timestamp: true },
     );
+    for (const result of layoutSyncResults) {
+      if (result.wasExisting && result.createdBlockTypes.length > 0) {
+        const blockList = result.createdBlockTypes.map((t) => `"${t}"`).join(", ");
+        logger.info(
+          `[camox] Added ${result.createdBlockTypes.length} block${result.createdBlockTypes.length === 1 ? "" : "s"} to existing layout "${result.layout.layoutId}": ${blockList}`,
+          { timestamp: true },
+        );
+      }
+    }
   }
 
   // Initialize content for fresh environments (no-ops if pages already exist)
