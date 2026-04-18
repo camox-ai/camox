@@ -42,16 +42,30 @@ export async function syncDefinitionsToApi(options: {
   const client = createServerApiClient(apiUrl, environmentName);
 
   const blocks = camoxApp.getBlocks();
-  const definitions = blocks.map((block: Block) => ({
-    blockId: block.id,
-    title: block.title,
-    description: block.description,
-    contentSchema: block.contentSchema,
-    settingsSchema: block.settingsSchema,
-    defaultContent: block.getInitialContent(),
-    defaultSettings: block.getInitialSettings(),
-    layoutOnly: block.layoutOnly || undefined,
-  }));
+  const layoutDefinitions = camoxApp.getSerializableLayoutDefinitions();
+
+  const typesUsedInLayouts = new Set<string>();
+  for (const layout of layoutDefinitions) {
+    for (const blockDef of layout.blocks) {
+      typesUsedInLayouts.add(blockDef.type);
+    }
+  }
+
+  // layoutOnly blocks are only meaningful when a layout references them —
+  // sync their definitions only in that case. Otherwise the DB accumulates
+  // dead rows for blocks the UI can never instantiate.
+  const definitions = blocks
+    .filter((block: Block) => !block.layoutOnly || typesUsedInLayouts.has(block.id))
+    .map((block: Block) => ({
+      blockId: block.id,
+      title: block.title,
+      description: block.description,
+      contentSchema: block.contentSchema,
+      settingsSchema: block.settingsSchema,
+      defaultContent: block.getInitialContent(),
+      defaultSettings: block.getInitialSettings(),
+      layoutOnly: block.layoutOnly || undefined,
+    }));
 
   let environmentCreated = false;
   try {
@@ -78,7 +92,6 @@ export async function syncDefinitionsToApi(options: {
   );
 
   // Sync layouts
-  const layoutDefinitions = camoxApp.getSerializableLayoutDefinitions();
   if (layoutDefinitions.length > 0) {
     let layoutSyncResults;
     try {
@@ -95,7 +108,7 @@ export async function syncDefinitionsToApi(options: {
       `[camox] Synced ${layoutDefinitions.length} layout${layoutDefinitions.length === 1 ? "" : "s"} to Camox API`,
       { timestamp: true },
     );
-    for (const result of layoutSyncResults) {
+    for (const result of layoutSyncResults.layouts) {
       if (result.wasExisting && result.createdBlockTypes.length > 0) {
         const blockList = result.createdBlockTypes.map((t) => `"${t}"`).join(", ");
         logger.info(
@@ -103,6 +116,36 @@ export async function syncDefinitionsToApi(options: {
           { timestamp: true },
         );
       }
+      if (result.removedBlockTypes.length > 0) {
+        const blockList = result.removedBlockTypes.map((t) => `"${t}"`).join(", ");
+        logger.info(
+          `[camox] Removed ${result.removedBlockTypes.length} layoutOnly block${result.removedBlockTypes.length === 1 ? "" : "s"} from layout "${result.layout.layoutId}": ${blockList}`,
+          { timestamp: true },
+        );
+      }
+      if (result.skippedOrphanTypes.length > 0) {
+        const blockList = result.skippedOrphanTypes.map((t) => `"${t}"`).join(", ");
+        logger.info(
+          `[camox] Layout "${result.layout.layoutId}" has ${result.skippedOrphanTypes.length} block${result.skippedOrphanTypes.length === 1 ? "" : "s"} still in DB but removed from code: ${blockList} (kept because not layoutOnly)`,
+          { timestamp: true },
+        );
+      }
+    }
+    for (const layoutId of layoutSyncResults.deletedLayoutIds) {
+      logger.info(`[camox] Deleted layout "${layoutId}"`, { timestamp: true });
+    }
+    for (const blocked of layoutSyncResults.blockedLayoutDeletions) {
+      logger.warn(
+        `[camox] Cannot delete layout "${blocked.layoutId}": still used by ${blocked.pageCount} page${blocked.pageCount === 1 ? "" : "s"}. Reassign or delete those pages first.`,
+        { timestamp: true },
+      );
+    }
+    if (layoutSyncResults.deletedDefinitionTypes.length > 0) {
+      const blockList = layoutSyncResults.deletedDefinitionTypes.map((t) => `"${t}"`).join(", ");
+      logger.info(
+        `[camox] Removed ${layoutSyncResults.deletedDefinitionTypes.length} layoutOnly block definition${layoutSyncResults.deletedDefinitionTypes.length === 1 ? "" : "s"} (no layout uses ${layoutSyncResults.deletedDefinitionTypes.length === 1 ? "it" : "them"} anymore): ${blockList}`,
+        { timestamp: true },
+      );
     }
   }
 
@@ -182,6 +225,16 @@ export async function syncDefinitions(
   const client = createServerApiClient(apiUrl, environmentName);
 
   async function performInitialSync(): Promise<void> {
+    // The SSR runner caches the resolved `camoxApp`. Without invalidation,
+    // re-importing returns the stale object with pre-change layout/block
+    // references, so layout reconciliation would be a no-op until the dev
+    // server restarts. Invalidate the app module (which propagates up from
+    // its glob-imported children) to force re-evaluation.
+    const appModule = server.moduleGraph.getModuleById(CAMOX_APP_PATH);
+    if (appModule) {
+      server.moduleGraph.invalidateModule(appModule);
+    }
+
     const camoxModule = (await ssrLoadModule(server, CAMOX_APP_PATH)) as {
       camoxApp?: CamoxApp;
     };
@@ -225,6 +278,11 @@ export async function syncDefinitions(
 
     const block = blockModule.block;
 
+    if (block.layoutOnly) {
+      // layoutOnly blocks only sync when a layout uses them
+      return;
+    }
+
     let result;
     try {
       result = await client.blockDefinitions.upsert({
@@ -245,7 +303,7 @@ export async function syncDefinitions(
     }
 
     server.config.logger.info(
-      `[camox] ${result.action === "created" ? "Created" : "Updated"} block "${block.id}"`,
+      `[camox] ${result.action === "created" ? "Created" : "Updated"} block definition "${block.id}"`,
       { timestamp: true },
     );
   }
@@ -266,7 +324,7 @@ export async function syncDefinitions(
     }
 
     if (result.deleted) {
-      server.config.logger.info(`[camox] Deleted block "${blockId}"`, {
+      server.config.logger.info(`[camox] Deleted block definition "${blockId}"`, {
         timestamp: true,
       });
     }
@@ -338,6 +396,12 @@ export async function syncDefinitions(
   const handleLayoutFileChange = (filePath: string) => {
     if (!isLayoutFile(filePath)) return;
 
+    const relativePath = "./" + path.relative(server.config.root, filePath);
+    const moduleNode = server.moduleGraph.getModuleById(relativePath);
+    if (moduleNode) {
+      server.moduleGraph.invalidateModule(moduleNode);
+    }
+
     if (layoutSyncTimer) clearTimeout(layoutSyncTimer);
     layoutSyncTimer = setTimeout(async () => {
       layoutSyncTimer = null;
@@ -354,4 +418,5 @@ export async function syncDefinitions(
   server.watcher.on("add", handleBlockFileUpsert);
   server.watcher.on("add", handleLayoutFileChange);
   server.watcher.on("unlink", handleBlockFileDelete);
+  server.watcher.on("unlink", handleLayoutFileChange);
 }

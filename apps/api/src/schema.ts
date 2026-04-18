@@ -229,7 +229,7 @@ export const blocks = sqliteTable(
   {
     id: int().primaryKey({ autoIncrement: true }),
     pageId: int("page_id").references(() => pages.id),
-    layoutId: int("layout_id").references(() => layouts.id),
+    layoutId: int("layout_id").references(() => layouts.id, { onDelete: "cascade" }),
     type: text().notNull(),
     content: text({ mode: "json" }).notNull(),
     settings: text({ mode: "json" }),

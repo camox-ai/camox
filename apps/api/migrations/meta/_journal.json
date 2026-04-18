@@ -85,6 +85,13 @@
       "when": 1776459290016,
       "tag": "0011_petite_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1776504724623,
+      "tag": "0012_smart_dorian_gray",
+      "breakpoints": true
     }
   ]
 }

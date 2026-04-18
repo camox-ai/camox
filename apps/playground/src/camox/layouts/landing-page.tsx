@@ -1,5 +1,6 @@
 import { createLayout } from "camox/createLayout";
 
+import { block as bannerBlock } from "../blocks/banner";
 import { block as footerBlock } from "../blocks/footer";
 import { block as heroBlock } from "../blocks/hero";
 import { block as navbarBlock } from "../blocks/navbar";
@@ -10,7 +11,7 @@ const landingPageLayout = createLayout({
   title: "Landing page",
   description:
     "Use for the home page, or other pages that are designed to be the first introduction of your site to visitors",
-  blocks: { before: [navbarBlock], after: [footerBlock] },
+  blocks: { before: [bannerBlock, navbarBlock], after: [footerBlock] },
   initialBlocks: [heroBlock, statisticsBlock],
   component: LandingPageLayout,
   buildMetaTitle: ({ pageMetaTitle, projectName }) => `${projectName} | ${pageMetaTitle}`,
@@ -76,6 +77,7 @@ const landingPageLayout = createLayout({
 function LandingPageLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen flex-col">
+      <landingPageLayout.blocks.Banner />
       <landingPageLayout.blocks.Navbar />
       <div className="flex-1">{children}</div>
       <landingPageLayout.blocks.Footer />

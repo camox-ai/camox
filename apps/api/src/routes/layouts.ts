@@ -1,5 +1,5 @@
 import { queryKeys } from "@camox/api-contract/query-keys";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { z } from "zod";
 
@@ -7,7 +7,7 @@ import { assertSyncSecret } from "../authorization";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { resolveEnvironment } from "../lib/resolve-environment";
 import { pub } from "../orpc";
-import { blocks, layouts, repeatableItems } from "../schema";
+import { blockDefinitions, blocks, layouts, pages, repeatableItems } from "../schema";
 
 // --- Procedures ---
 
@@ -58,6 +58,18 @@ const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => 
   const now = Date.now();
   const results = [];
 
+  const layoutOnlyDefs = await context.db
+    .select({ blockId: blockDefinitions.blockId })
+    .from(blockDefinitions)
+    .where(
+      and(
+        eq(blockDefinitions.projectId, projectId),
+        eq(blockDefinitions.environmentId, environment.id),
+        eq(blockDefinitions.layoutOnly, true),
+      ),
+    );
+  const layoutOnlyTypes = new Set(layoutOnlyDefs.map((d) => d.blockId));
+
   for (const def of layoutDefs) {
     const existingLayout = await context.db
       .select()
@@ -99,6 +111,7 @@ const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => 
     // content in the UI.
     const existingBlocks = await context.db
       .select({
+        id: blocks.id,
         type: blocks.type,
         placement: blocks.placement,
         position: blocks.position,
@@ -181,11 +194,92 @@ const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => 
       lastPos = newPos;
     }
 
+    const declaredKeys = new Set(def.blocks.map((bd) => `${bd.type}:${bd.placement ?? ""}`));
+    const removedBlockTypes: string[] = [];
+    const skippedOrphanTypes: string[] = [];
+    const orphanIdsToDelete: number[] = [];
+    for (const existing of existingBlocks) {
+      const key = `${existing.type}:${existing.placement ?? ""}`;
+      if (declaredKeys.has(key)) continue;
+      if (layoutOnlyTypes.has(existing.type)) {
+        orphanIdsToDelete.push(existing.id);
+        removedBlockTypes.push(existing.type);
+      } else {
+        skippedOrphanTypes.push(existing.type);
+      }
+    }
+    if (orphanIdsToDelete.length > 0) {
+      await context.db.delete(blocks).where(inArray(blocks.id, orphanIdsToDelete));
+    }
+
     results.push({
       layout,
       wasExisting: Boolean(existingLayout),
       createdBlockTypes,
+      removedBlockTypes,
+      skippedOrphanTypes,
     });
+  }
+
+  const submittedLayoutIds = layoutDefs.map((d) => d.layoutId);
+  const orphanLayoutQuery = context.db
+    .select({ id: layouts.id, layoutId: layouts.layoutId })
+    .from(layouts);
+  const orphanLayouts =
+    submittedLayoutIds.length > 0
+      ? await orphanLayoutQuery.where(
+          and(
+            eq(layouts.projectId, projectId),
+            eq(layouts.environmentId, environment.id),
+            notInArray(layouts.layoutId, submittedLayoutIds),
+          ),
+        )
+      : await orphanLayoutQuery.where(
+          and(eq(layouts.projectId, projectId), eq(layouts.environmentId, environment.id)),
+        );
+
+  const deletedLayoutIds: string[] = [];
+  const blockedLayoutDeletions: Array<{ layoutId: string; pageCount: number }> = [];
+  for (const orphan of orphanLayouts) {
+    const pagesUsing = await context.db
+      .select({ id: pages.id })
+      .from(pages)
+      .where(and(eq(pages.layoutId, orphan.id), eq(pages.environmentId, environment.id)));
+    if (pagesUsing.length > 0) {
+      blockedLayoutDeletions.push({ layoutId: orphan.layoutId, pageCount: pagesUsing.length });
+      continue;
+    }
+    await context.db.delete(layouts).where(eq(layouts.id, orphan.id));
+    deletedLayoutIds.push(orphan.layoutId);
+  }
+
+  // A layoutOnly block definition only makes sense while at least one
+  // layout-scoped `blocks` row references it. Once the last reference is
+  // pruned (either via orphan cleanup above or layout deletion), drop the
+  // definition too so the DB doesn't accumulate UI-invisible rows.
+  const usedTypes = await context.db
+    .selectDistinct({ type: blocks.type })
+    .from(blocks)
+    .innerJoin(layouts, eq(blocks.layoutId, layouts.id))
+    .where(eq(layouts.environmentId, environment.id));
+  const usedTypeSet = new Set(usedTypes.map((r) => r.type));
+
+  const deletedDefinitionTypes: string[] = [];
+  for (const layoutOnlyType of layoutOnlyTypes) {
+    if (!usedTypeSet.has(layoutOnlyType)) {
+      deletedDefinitionTypes.push(layoutOnlyType);
+    }
+  }
+  if (deletedDefinitionTypes.length > 0) {
+    await context.db
+      .delete(blockDefinitions)
+      .where(
+        and(
+          eq(blockDefinitions.projectId, projectId),
+          eq(blockDefinitions.environmentId, environment.id),
+          inArray(blockDefinitions.blockId, deletedDefinitionTypes),
+        ),
+      );
   }
 
   broadcastInvalidation(context.env.ProjectRoom, projectId, [
@@ -193,7 +287,12 @@ const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => 
     queryKeys.pages.getByPathAll,
   ]);
 
-  return results;
+  return {
+    layouts: results,
+    deletedLayoutIds,
+    blockedLayoutDeletions,
+    deletedDefinitionTypes,
+  };
 });
 
 export const layoutProcedures = { list, sync };
