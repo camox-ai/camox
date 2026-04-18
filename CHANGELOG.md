@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.9.1](https://github.com/camox-ai/camox/compare/camox-v0.9.0...camox-v0.9.1) (2026-04-18)
+
+
+### Bug Fixes
+
+* broken websocket in production ([b19d70b](https://github.com/camox-ai/camox/commit/b19d70b94790e225bdeb8617bf5972ba211514f0))
+* cascading deletes on block deletion ([6df62c2](https://github.com/camox-ai/camox/commit/6df62c26b583a70d76d2ca28a9a9e045e70e08f6))
+* create missing layout blocks on sync ([dc1373a](https://github.com/camox-ai/camox/commit/dc1373af592956d6835eaabcae217dc7c86b404d))
+* layout block creation ([4e8a481](https://github.com/camox-ai/camox/commit/4e8a481bab937e8d58e457ac64a765e10ad9abc6))
+* peeked page not clearing on popover close ([2019751](https://github.com/camox-ai/camox/commit/20197515b36b31fba7074afb5753777df83ebb38))
+* show sign in toast to unauthenticated users in dev ([d64549e](https://github.com/camox-ai/camox/commit/d64549eaf1261d4b5664d4d23c8b26546d5ae3f2))
+
+
+### Miscellaneous
+
+* extract pathless authorize layout ([f2ff4a1](https://github.com/camox-ai/camox/commit/f2ff4a108f73a159e19aea9f523a245a77ac7b80))
+* fix auth client type safety ([0084668](https://github.com/camox-ai/camox/commit/0084668e48137f49ec9024468758437c741209cf))
+* run studio in api dev script via concurrently ([fe92458](https://github.com/camox-ai/camox/commit/fe92458391522e8cf67a9a5f8d71fe38b46f4ae7))
+* **web:** organize route files in folders ([ee93ee8](https://github.com/camox-ai/camox/commit/ee93ee8450ebfcee8b2b8aa2cc574c7041ae0980))
+
 ## [0.9.0](https://github.com/camox-ai/camox/compare/camox-v0.8.0...camox-v0.9.0) (2026-04-17)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.1](https://github.com/camox-ai/camox/compare/camox-v0.9.0...@camox/cli-v0.9.1) (2026-04-18)
+
+
+### Bug Fixes
+
+* peeked page not clearing on popover close ([2019751](https://github.com/camox-ai/camox/commit/20197515b36b31fba7074afb5753777df83ebb38))
+* show sign in toast to unauthenticated users in dev ([d64549e](https://github.com/camox-ai/camox/commit/d64549eaf1261d4b5664d4d23c8b26546d5ae3f2))
+
 ## [0.9.0](https://github.com/camox-ai/camox/compare/camox-v0.8.0...@camox/cli-v0.9.0) (2026-04-17)
 
 
