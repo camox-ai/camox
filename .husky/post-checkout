@@ -31,3 +31,5 @@ fi
 
 pnpm install
 pnpm build
+# Re-link bins for workspace packages whose dist/ didn't exist on first install
+pnpm install
