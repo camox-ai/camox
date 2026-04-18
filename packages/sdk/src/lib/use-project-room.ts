@@ -12,7 +12,7 @@ export function useProjectRoom(apiUrl: string, projectId: number | undefined) {
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pendingRef = useRef<QueryKey[]>([]);
 
-  const host = apiUrl.replace(/^https?:\/\//, "");
+  const host = apiUrl.replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
   usePartySocket({
     host,
@@ -21,25 +21,41 @@ export function useProjectRoom(apiUrl: string, projectId: number | undefined) {
     prefix: "parties",
     query: () => ({ _authCookie: getAuthCookieHeader() }),
     enabled: !!projectId,
-    onMessage(event) {
-      try {
-        const data: InvalidationMessage = JSON.parse(event.data);
-        if (data.type !== "invalidate") return;
-
-        pendingRef.current.push(...data.targets);
-
-        clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => {
-          const targets = pendingRef.current;
-          pendingRef.current = [];
-
-          for (const queryKey of targets) {
-            queryClient.invalidateQueries({ queryKey });
-          }
-        }, DEBOUNCE_MS);
-      } catch {
-        // Ignore malformed messages
+    onOpen() {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[useProjectRoom] WebSocket connected");
       }
+    },
+    onClose(event) {
+      console.warn(
+        `[useProjectRoom] WebSocket closed (code=${event.code}, reason=${event.reason || "none"})`,
+      );
+    },
+    onError(event) {
+      console.error("[useProjectRoom] WebSocket error:", event);
+    },
+    onMessage(event) {
+      let data: InvalidationMessage;
+      try {
+        data = JSON.parse(event.data);
+      } catch {
+        // Ignore non-JSON messages (e.g. partysocket pings)
+        return;
+      }
+
+      if (data.type !== "invalidate") return;
+
+      pendingRef.current.push(...data.targets);
+
+      clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        const targets = pendingRef.current;
+        pendingRef.current = [];
+
+        for (const queryKey of targets) {
+          queryClient.invalidateQueries({ queryKey });
+        }
+      }, DEBOUNCE_MS);
     },
   });
 }

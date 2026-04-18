@@ -89,13 +89,14 @@ function getCookie(cookie: string) {
   } catch {
     // noop
   }
-  const toSend = Object.entries(parsed).reduce((acc, [key, value]) => {
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(parsed)) {
     if (value.expires && new Date(value.expires) < new Date()) {
-      return acc;
+      continue;
     }
-    return `${acc}; ${key}=${value.value}`;
-  }, "");
-  return toSend;
+    parts.push(`${key}=${value.value}`);
+  }
+  return parts.join("; ");
 }
 
 /**
