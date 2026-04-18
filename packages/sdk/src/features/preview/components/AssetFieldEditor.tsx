@@ -142,7 +142,7 @@ const SingleAssetFieldEditor = ({
             <div className="text-foreground hover:bg-accent/75 flex max-w-full flex-row items-center gap-2 rounded-lg border-2 px-1 py-1">
               <button
                 type="button"
-                className="flex min-w-0 flex-1 cursor-zoom-in items-center gap-2"
+                className="flex min-w-0 flex-1 cursor-zoom-in items-center gap-2 focus-visible:outline-2 rounded-sm p-1"
                 onClick={() => setLightboxOpen(true)}
               >
                 {isImage ? (

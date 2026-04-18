@@ -66,6 +66,7 @@ export const Route = createFileRoute("/_camox/$")({
     middleware: [markdownMiddleware],
   },
   component: PageRouteComponent,
+  notFoundComponent: () => <div>No Camox page on this path</div>,
   loader,
   head,
 });
