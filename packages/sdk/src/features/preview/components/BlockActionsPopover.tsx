@@ -98,7 +98,7 @@ const BlockActionsPopover = ({
   const handleAddBlockAbove = (block: NormalizedBlock) => {
     if (!page) return;
 
-    const blockIndex = pageBlocks.findIndex((b) => String(b.id) === String(block.id));
+    const blockIndex = pageBlocks.findIndex((b) => b.id === block.id);
     const afterPosition = blockIndex > 0 ? pageBlocks[blockIndex - 1].position : "";
 
     previewStore.send({
@@ -116,13 +116,13 @@ const BlockActionsPopover = ({
 
   const getBlocksAbove = (block: NormalizedBlock) => {
     if (!page) return [];
-    const blockIndex = pageBlocks.findIndex((b) => String(b.id) === String(block.id));
+    const blockIndex = pageBlocks.findIndex((b) => b.id === block.id);
     return pageBlocks.slice(0, blockIndex);
   };
 
   const getBlocksBelow = (block: NormalizedBlock) => {
     if (!page) return [];
-    const blockIndex = pageBlocks.findIndex((b) => String(b.id) === String(block.id));
+    const blockIndex = pageBlocks.findIndex((b) => b.id === block.id);
     return pageBlocks.slice(blockIndex + 1);
   };
 
@@ -167,7 +167,7 @@ const BlockActionsPopover = ({
                     onSelect={() => {
                       previewStore.send({
                         type: "openBlockContentSheet",
-                        blockId: String(block.id),
+                        blockId: block.id,
                       });
                       onOpenChange(false);
                     }}
@@ -193,7 +193,7 @@ const BlockActionsPopover = ({
                           onSelect={() => {
                             previewStore.send({
                               type: "openBlockContentSheet",
-                              blockId: String(block.id),
+                              blockId: block.id,
                             });
                             onOpenChange(false);
                           }}
@@ -371,10 +371,10 @@ const BlockActionsPopover = ({
   );
 };
 
-function isLayoutBlockId(page: ReturnType<typeof usePreviewedPage>, blockId: string): boolean {
+function isLayoutBlockId(page: ReturnType<typeof usePreviewedPage>, blockId: number): boolean {
   if (!page?.layout) return false;
   const layoutBlockIds = new Set([...page.layout.beforeBlockIds, ...page.layout.afterBlockIds]);
-  return layoutBlockIds.has(Number(blockId));
+  return layoutBlockIds.has(blockId);
 }
 
 function useBlockActionsShortcuts() {
@@ -404,16 +404,14 @@ function useBlockActionsShortcuts() {
           if (isLayoutBlockId(page, sel.blockId)) return false;
 
           const itemId = selectionItemId(sel);
-          if (itemId) {
+          if (itemId != null) {
             // Item — check if it's in an array with > 1 markers
             if (!page) return false;
-            const block = pageBlocks.find((b) => String(b.id) === sel.blockId);
+            const block = pageBlocks.find((b) => b.id === sel.blockId);
             if (!block) return false;
             for (const [, value] of Object.entries(block.content)) {
               if (!Array.isArray(value)) continue;
-              const hasItem = value.some(
-                (i: any) => i?._itemId != null && String(i._itemId) === itemId,
-              );
+              const hasItem = value.some((i: any) => i?._itemId === itemId);
               if (hasItem) return value.length > 1;
             }
             return false;
@@ -427,8 +425,8 @@ function useBlockActionsShortcuts() {
           if (!sel) return;
 
           const itemId = selectionItemId(sel);
-          if (itemId) {
-            deleteRepeatableItem.mutateAsync({ id: Number(itemId) }).then(
+          if (itemId != null) {
+            deleteRepeatableItem.mutateAsync({ id: itemId }).then(
               () => toast.success("Deleted item"),
               () => toast.error("Could not delete item"),
             );
@@ -436,8 +434,8 @@ function useBlockActionsShortcuts() {
             return;
           }
 
-          const block = pageBlocks.find((b) => String(b.id) === sel.blockId);
-          deleteBlockMutation.mutateAsync({ id: Number(sel.blockId) }).then(
+          const block = pageBlocks.find((b) => b.id === sel.blockId);
+          deleteBlockMutation.mutateAsync({ id: sel.blockId }).then(
             () => toast.success(`Deleted "${block?.summary || block?.type}" block`),
             () => toast.error("Could not delete block"),
           );
@@ -462,16 +460,16 @@ function useBlockActionsShortcuts() {
           if (!sel) return;
 
           const itemId = selectionItemId(sel);
-          if (itemId) {
-            duplicateRepeatableItem.mutateAsync({ id: Number(itemId) }).then(
+          if (itemId != null) {
+            duplicateRepeatableItem.mutateAsync({ id: itemId }).then(
               () => toast.success("Duplicated item"),
               () => toast.error("Could not duplicate item"),
             );
             return;
           }
 
-          const block = pageBlocks.find((b) => String(b.id) === sel.blockId);
-          duplicateBlockMutation.mutateAsync({ id: Number(sel.blockId) }).then(
+          const block = pageBlocks.find((b) => b.id === sel.blockId);
+          duplicateBlockMutation.mutateAsync({ id: sel.blockId }).then(
             () => toast.success(`Duplicated "${block?.summary}" block`),
             () => toast.error("Could not duplicate block"),
           );
@@ -488,20 +486,20 @@ function useBlockActionsShortcuts() {
           const sel = ctx.selection;
           if (!sel || !page) return false;
           if (isLayoutBlockId(page, sel.blockId)) return false;
-          const index = pageBlocks.findIndex((b) => String(b.id) === sel.blockId);
+          const index = pageBlocks.findIndex((b) => b.id === sel.blockId);
           return index > 0;
         },
         execute: () => {
           const sel = previewStore.getSnapshot().context.selection;
           if (!sel || !page) return;
-          const index = pageBlocks.findIndex((b) => String(b.id) === sel.blockId);
+          const index = pageBlocks.findIndex((b) => b.id === sel.blockId);
           if (index <= 0) return;
 
           const afterPosition = index > 1 ? pageBlocks[index - 2].position : undefined;
           const beforePosition = pageBlocks[index - 1].position;
 
           updatePositionMutation
-            .mutateAsync({ id: Number(sel.blockId), afterPosition, beforePosition })
+            .mutateAsync({ id: sel.blockId, afterPosition, beforePosition })
             .then(
               () => {},
               () => toast.error("Could not move block"),
@@ -519,13 +517,13 @@ function useBlockActionsShortcuts() {
           const sel = ctx.selection;
           if (!sel || !page) return false;
           if (isLayoutBlockId(page, sel.blockId)) return false;
-          const index = pageBlocks.findIndex((b) => String(b.id) === sel.blockId);
+          const index = pageBlocks.findIndex((b) => b.id === sel.blockId);
           return index !== -1 && index < pageBlocks.length - 1;
         },
         execute: () => {
           const sel = previewStore.getSnapshot().context.selection;
           if (!sel || !page) return;
-          const index = pageBlocks.findIndex((b) => String(b.id) === sel.blockId);
+          const index = pageBlocks.findIndex((b) => b.id === sel.blockId);
           if (index === -1 || index >= pageBlocks.length - 1) return;
 
           const afterPosition = pageBlocks[index + 1].position;
@@ -533,7 +531,7 @@ function useBlockActionsShortcuts() {
             index + 2 < pageBlocks.length ? pageBlocks[index + 2].position : undefined;
 
           updatePositionMutation
-            .mutateAsync({ id: Number(sel.blockId), afterPosition, beforePosition })
+            .mutateAsync({ id: sel.blockId, afterPosition, beforePosition })
             .then(
               () => {},
               () => toast.error("Could not move block"),
@@ -553,7 +551,7 @@ function useBlockActionsShortcuts() {
         execute: () => {
           const sel = previewStore.getSnapshot().context.selection;
           if (!sel || !page) return;
-          const block = pageBlocks.find((b) => String(b.id) === sel.blockId);
+          const block = pageBlocks.find((b) => b.id === sel.blockId);
           if (!block) return;
 
           previewStore.send({
@@ -575,7 +573,7 @@ function useBlockActionsShortcuts() {
         execute: () => {
           const sel = previewStore.getSnapshot().context.selection;
           if (!sel || !page) return;
-          const blockIndex = pageBlocks.findIndex((b) => String(b.id) === sel.blockId);
+          const blockIndex = pageBlocks.findIndex((b) => b.id === sel.blockId);
           if (blockIndex === -1) return;
 
           const afterPosition = blockIndex > 0 ? pageBlocks[blockIndex - 1].position : "";

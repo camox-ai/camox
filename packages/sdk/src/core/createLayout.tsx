@@ -11,7 +11,7 @@ export interface OgImageParams {
 }
 
 export interface LayoutBlockData {
-  _id: string;
+  _id: number;
   type: string;
   content: Record<string, unknown>;
   settings?: Record<string, unknown>;

@@ -9,10 +9,10 @@ import type { FieldType } from "../lib/fieldTypes.tsx";
  * Matches when the selection points to this exact field (type + name + optional repeater item).
  */
 export function useFieldSelection(
-  blockId: string,
+  blockId: number,
   fieldName: string,
   fieldType: FieldType,
-  repeaterItemId?: string,
+  repeaterItemId?: number,
 ): boolean {
   return useSelector(previewStore, (state) => {
     const sel = state.context.selection;

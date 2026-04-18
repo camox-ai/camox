@@ -140,14 +140,14 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
 
   // Check if a field is selected at block level
   const selectedFieldName =
-    selection?.type === "block-field" && selection.blockId === String(block.id)
+    selection?.type === "block-field" && selection.blockId === block.id
       ? selection.fieldName
       : null;
 
   const handleFieldClick = (fieldName: string, fieldType: string) => {
     previewStore.send({
       type: "selectBlockField",
-      blockId: String(block.id),
+      blockId: block.id,
       fieldName,
       fieldType: fieldType as "String" | "RepeatableItem",
     });
@@ -155,7 +155,7 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
 
   const handleFieldDoubleClick = (fieldName: string, fieldType: string) => {
     const fieldDef = fieldTypesDictionary[fieldType as keyof typeof fieldTypesDictionary];
-    fieldDef.onTreeDoubleClick({ blockId: String(block.id), fieldName });
+    fieldDef.onTreeDoubleClick({ blockId: block.id, fieldName });
   };
 
   const handleFieldMouseEnter = (fieldName: string, isRepeatable: boolean) => {
@@ -232,7 +232,7 @@ function useBlockTreeItem(block: NormalizedBlock, isDragging = false) {
   const [ellipsisPopoverOpen, setEllipsisPopoverOpen] = React.useState(false);
   const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
-  const isBlockSelected = selection?.type === "block" && selection.blockId === String(block.id);
+  const isBlockSelected = selection?.type === "block" && selection.blockId === block.id;
   const shouldShowHover = !isDragging && !isBlockSelected;
   const shouldShowActive = isDragging || isBlockSelected;
 
@@ -260,7 +260,7 @@ function useBlockTreeItem(block: NormalizedBlock, isDragging = false) {
     } else {
       previewStore.send({
         type: "setFocusedBlock",
-        blockId: String(block.id),
+        blockId: block.id,
       });
     }
   };
@@ -380,7 +380,7 @@ const SortableBlock = ({ block }: SortableBlockProps) => {
   const ctx = useBlockTreeItem(block, isDragging);
   const isBlockFocused = useSelector(
     previewStore,
-    (state) => state.context.selection?.blockId === String(block.id),
+    (state) => state.context.selection?.blockId === block.id,
   );
 
   return (
@@ -449,7 +449,7 @@ const LayoutBlockItem = ({ block, layoutName }: LayoutBlockItemProps) => {
   const displayText = blockDef?.title ?? block.type;
   const isBlockFocused = useSelector(
     previewStore,
-    (state) => state.context.selection?.blockId === String(block.id),
+    (state) => state.context.selection?.blockId === block.id,
   );
 
   return (

@@ -176,7 +176,7 @@ const AddBlockSheet = () => {
       projectId: page.page.projectId,
       blockType: block.id,
     });
-    previewStore.send({ type: "focusCreatedBlock", blockId: String(blockId) });
+    previewStore.send({ type: "focusCreatedBlock", blockId });
     previewStore.send({ type: "exitPeekedBlock" });
   };
 

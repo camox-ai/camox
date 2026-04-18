@@ -12,24 +12,24 @@ import type { FieldType } from "@/core/lib/fieldTypes";
  * ------------------------------------------------------------------------------------------------*/
 
 export type Selection =
-  | { type: "block"; blockId: string }
-  | { type: "item"; blockId: string; itemId: string }
-  | { type: "block-field"; blockId: string; fieldName: string; fieldType: FieldType }
+  | { type: "block"; blockId: number }
+  | { type: "item"; blockId: number; itemId: number }
+  | { type: "block-field"; blockId: number; fieldName: string; fieldType: FieldType }
   | {
       type: "item-field";
-      blockId: string;
-      itemId: string;
+      blockId: number;
+      itemId: number;
       fieldName: string;
       fieldType: FieldType;
     };
 
 /** Extract the blockId from any selection variant. */
-export function selectionBlockId(sel: Selection | null): string | null {
+export function selectionBlockId(sel: Selection | null): number | null {
   return sel?.blockId ?? null;
 }
 
 /** Extract the itemId from item or item-field selections. */
-export function selectionItemId(sel: Selection | null): string | null {
+export function selectionItemId(sel: Selection | null): number | null {
   if (!sel) return null;
   if (sel.type === "item" || sel.type === "item-field") return sel.itemId;
   return null;
@@ -141,20 +141,20 @@ export const previewStore = createStore({
       ...context,
       selection: event.selection,
     }),
-    setFocusedBlock: (context, event: { blockId: string }) => ({
+    setFocusedBlock: (context, event: { blockId: number }) => ({
       ...context,
       selection: { type: "block" as const, blockId: event.blockId },
       peekedBlock: null,
       peekedBlockPosition: null,
       isAddBlockSheetOpen: false,
     }),
-    selectItem: (context, event: { blockId: string; itemId: string }) => ({
+    selectItem: (context, event: { blockId: number; itemId: number }) => ({
       ...context,
       selection: { type: "item" as const, blockId: event.blockId, itemId: event.itemId },
     }),
     selectBlockField: (
       context,
-      event: { blockId: string; fieldName: string; fieldType: FieldType },
+      event: { blockId: number; fieldName: string; fieldType: FieldType },
     ) => ({
       ...context,
       selection: {
@@ -166,7 +166,7 @@ export const previewStore = createStore({
     }),
     selectItemField: (
       context,
-      event: { blockId: string; itemId: string; fieldName: string; fieldType: FieldType },
+      event: { blockId: number; itemId: number; fieldName: string; fieldType: FieldType },
     ) => ({
       ...context,
       selection: {
@@ -219,7 +219,7 @@ export const previewStore = createStore({
       peekedBlock: null,
       peekedBlockPosition: null,
     }),
-    focusCreatedBlock: (context, event: { blockId: string }) => ({
+    focusCreatedBlock: (context, event: { blockId: number }) => ({
       ...context,
       selection: { type: "block" as const, blockId: event.blockId },
       isAddBlockSheetOpen: false,
@@ -235,7 +235,7 @@ export const previewStore = createStore({
       ...context,
       isPageContentSheetOpen: !context.isPageContentSheetOpen,
     }),
-    openBlockContentSheet: (context, event: { blockId: string }) => {
+    openBlockContentSheet: (context, event: { blockId: number }) => {
       const currentBlockMatches = context.selection?.blockId === event.blockId;
       return {
         ...context,

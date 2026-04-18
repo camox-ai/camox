@@ -20,7 +20,7 @@ type FieldLabelMeta = {
 };
 
 type TreeDoubleClickParams = {
-  blockId: string;
+  blockId: number;
   fieldName: string;
 };
 

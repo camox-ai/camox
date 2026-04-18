@@ -104,7 +104,7 @@ export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
         >
           <displayedBlock.Component
             blockData={{
-              _id: "__peek__",
+              _id: 0,
               type: displayedBlock.id,
               content: peekBundle.block.content as Record<string, unknown>,
               settings: peekBundle.block.settings as Record<string, unknown> | undefined,

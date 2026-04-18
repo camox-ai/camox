@@ -142,7 +142,7 @@ interface CreateBlockOptions<
 }
 
 interface BlockData<TContent> {
-  _id: string;
+  _id: number;
   type: string;
   content: TContent;
   settings?: Record<string, unknown>;
@@ -391,7 +391,7 @@ export function createBlock<
       : Static<ReturnType<typeof TypeBoxType.Object<TSettingsShape>>>;
 
   type BlockContextValue = {
-    blockId: string;
+    blockId: number;
     content: TContent;
     settings: TSettings;
     isHovered: boolean;
@@ -402,7 +402,7 @@ export function createBlock<
     arrayFieldName: string;
     itemIndex: number;
     itemContent: any;
-    itemId?: string;
+    itemId?: number;
   }
 
   const Context = React.createContext<BlockContextValue | null>(null);
@@ -417,11 +417,11 @@ export function createBlock<
    * Repeater item fields: blockId__itemId__fieldName
    */
   const getOverlayFieldId = (
-    blockId: string,
+    blockId: number,
     repeaterContext: RepeaterItemContextValue | null,
     fieldName: string,
   ): string => {
-    if (repeaterContext?.itemId) {
+    if (repeaterContext?.itemId != null) {
       return `${blockId}__${repeaterContext.itemId}__${fieldName}`;
     }
     return `${blockId}__${fieldName}`;
@@ -650,15 +650,15 @@ export function createBlock<
       (newValue: string) => {
         if (repeaterContext) {
           const { itemId } = repeaterContext;
-          if (itemId) {
+          if (itemId != null) {
             updateRepeatableContent.mutate({
-              id: Number(itemId),
+              id: itemId,
               content: { [name]: newValue },
             });
           }
         } else {
           updateBlockContent.mutate({
-            id: Number(blockId),
+            id: blockId,
             content: { [name]: newValue },
           });
         }
@@ -668,7 +668,7 @@ export function createBlock<
 
     const handleFocus = React.useCallback(() => {
       setIsEditorFocused(true);
-      if (repeaterContext?.itemId) {
+      if (repeaterContext?.itemId != null) {
         previewStore.send({
           type: "selectItemField",
           blockId,
@@ -804,14 +804,14 @@ export function createBlock<
       }
 
       timerRef.current = window.setTimeout(() => {
-        if (repeaterContext?.itemId) {
+        if (repeaterContext?.itemId != null) {
           updateRepeatableContent.mutate({
-            id: Number(repeaterContext.itemId),
+            id: repeaterContext.itemId,
             content: { [name]: newValue },
           });
         } else {
           updateBlockContent.mutate({
-            id: Number(blockId),
+            id: blockId,
             content: { [name]: newValue },
           });
         }
@@ -821,7 +821,7 @@ export function createBlock<
     const handleOpenChange = (open: boolean, _eventDetails: unknown) => {
       setIsOpen(open);
       if (open) {
-        if (repeaterContext?.itemId) {
+        if (repeaterContext?.itemId != null) {
           previewStore.send({
             type: "selectItemField",
             blockId,
@@ -965,14 +965,14 @@ export function createBlock<
     }, [isHoveredFromSidebar]);
 
     const saveLinkValue = (newLinkValue: Record<string, unknown>) => {
-      if (repeaterContext?.itemId) {
+      if (repeaterContext?.itemId != null) {
         updateRepeatableContent.mutate({
-          id: Number(repeaterContext.itemId),
+          id: repeaterContext.itemId,
           content: { [name]: newLinkValue },
         });
       } else {
         updateBlockContent.mutate({
-          id: Number(blockId),
+          id: blockId,
           content: { [name]: newLinkValue },
         });
       }
@@ -986,7 +986,7 @@ export function createBlock<
     const handleFocus = () => {
       setIsEditing(true);
       setIsEditorFocused(true);
-      if (repeaterContext?.itemId) {
+      if (repeaterContext?.itemId != null) {
         previewStore.send({
           type: "selectItemField",
           blockId,
@@ -1130,9 +1130,11 @@ export function createBlock<
       // For inline array items (no itemId, e.g. multi-asset gallery),
       // use the array field name so the sidebar shows the gallery editor
       const imageFieldName =
-        repeaterContext && !repeaterContext.itemId ? repeaterContext.arrayFieldName : String(name);
+        repeaterContext && repeaterContext.itemId == null
+          ? repeaterContext.arrayFieldName
+          : String(name);
 
-      if (repeaterContext?.itemId) {
+      if (repeaterContext?.itemId != null) {
         previewStore.send({
           type: "selectItemField",
           blockId,
@@ -1212,8 +1214,8 @@ export function createBlock<
     mode,
     children,
   }: {
-    itemId: string | undefined;
-    blockId: string;
+    itemId: number | undefined;
+    blockId: number;
     mode: "site" | "peek" | "layout";
     children: React.ReactNode;
   }) => {
@@ -1228,7 +1230,7 @@ export function createBlock<
       isContentEditable,
       "CAMOX_HOVER_REPEATER_ITEM",
       "CAMOX_HOVER_REPEATER_ITEM_END",
-      { blockId, itemId },
+      { blockId: String(blockId), itemId: String(itemId) },
     );
 
     const showOverlay = isContentEditable && (isHovered || isRepeaterHovered);
@@ -1250,7 +1252,7 @@ export function createBlock<
     fieldName,
     children,
   }: {
-    blockId: string;
+    blockId: number;
     fieldName: string;
     children: React.ReactNode;
   }) => {
@@ -1262,7 +1264,7 @@ export function createBlock<
       isContentEditable,
       "CAMOX_HOVER_REPEATER",
       "CAMOX_HOVER_REPEATER_END",
-      { blockId, fieldName },
+      { blockId: String(blockId), fieldName },
     );
 
     return (
@@ -1466,11 +1468,11 @@ export function createBlock<
             ...repeatableItemDefaults[fieldName],
             ...(isDbItem ? item.content : item),
           } as TItem;
-          const itemId = isDbItem ? String(item.id) : undefined;
+          const itemId: number | undefined = isDbItem ? item.id : undefined;
 
           return (
             <RepeaterItemContext.Provider
-              key={itemId || index}
+              key={itemId ?? index}
               value={{
                 arrayFieldName: fieldName,
                 itemIndex: index,
@@ -1540,7 +1542,7 @@ export function createBlock<
       isContentEditable,
       "CAMOX_HOVER_BLOCK",
       "CAMOX_HOVER_BLOCK_END",
-      { blockId: blockData._id },
+      { blockId: String(blockData._id) },
     );
 
     React.useEffect(() => {
@@ -1735,7 +1737,7 @@ export function createBlock<
       isContentEditable,
       "CAMOX_HOVER_BLOCK",
       "CAMOX_HOVER_BLOCK_END",
-      { blockId },
+      { blockId: String(blockId) },
     );
 
     React.useEffect(() => {

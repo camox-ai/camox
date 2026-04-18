@@ -65,9 +65,9 @@ const getSchemaFieldsInOrder = (schema: unknown): SchemaField[] => {
 interface ItemFieldsEditorProps {
   schema: unknown;
   data: Record<string, unknown>;
-  blockId: string;
+  blockId: number;
   /** When editing a repeatable item's fields, pass its ID for correct overlay targeting */
-  itemId?: string;
+  itemId?: number;
   onFieldChange: (fieldName: string, value: unknown) => void;
   postToIframe: (message: OverlayMessage) => void;
   /** Lookup maps for resolving _fileId and _itemId markers */
@@ -91,7 +91,7 @@ const ItemFieldsEditor = ({
 
   // Build field ID matching the iframe's getOverlayFieldId format
   const getFieldId = (fieldName: string) => {
-    if (itemId) return `${blockId}__${itemId}__${fieldName}`;
+    if (itemId != null) return `${blockId}__${itemId}__${fieldName}`;
     return `${blockId}__${fieldName}`;
   };
 
@@ -142,7 +142,7 @@ const ItemFieldsEditor = ({
     const fieldId = getFieldId(fieldName);
     focusedFieldIdRef.current = fieldId;
     postToIframe({ type: "CAMOX_FOCUS_FIELD", fieldId });
-    if (itemId) {
+    if (itemId != null) {
       previewStore.send({ type: "selectItemField", blockId, itemId, fieldName, fieldType });
     } else {
       previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType });
@@ -164,7 +164,7 @@ const ItemFieldsEditor = ({
 
   /** Dispatch the correct drill-into event depending on whether we're at block or item level. */
   const drillIntoField = (fieldName: string, fieldType: "Link" | "Image" | "File") => {
-    if (itemId) {
+    if (itemId != null) {
       previewStore.send({
         type: "selectItemField",
         blockId,
@@ -310,14 +310,14 @@ const ItemFieldsEditor = ({
               onMouseEnter={() =>
                 postToIframe({
                   type: "CAMOX_HOVER_REPEATER",
-                  blockId,
+                  blockId: String(blockId),
                   fieldName: field.name,
                 })
               }
               onMouseLeave={() =>
                 postToIframe({
                   type: "CAMOX_HOVER_REPEATER_END",
-                  blockId,
+                  blockId: String(blockId),
                   fieldName: field.name,
                 })
               }
@@ -354,14 +354,14 @@ const ItemFieldsEditor = ({
               onMouseEnter={() =>
                 postToIframe({
                   type: "CAMOX_HOVER_REPEATER",
-                  blockId,
+                  blockId: String(blockId),
                   fieldName: field.name,
                 })
               }
               onMouseLeave={() =>
                 postToIframe({
                   type: "CAMOX_HOVER_REPEATER_END",
-                  blockId,
+                  blockId: String(blockId),
                   fieldName: field.name,
                 })
               }

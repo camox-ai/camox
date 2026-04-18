@@ -133,7 +133,7 @@ const BlockRenderer = ({
     <NormalizedDataProvider files={data.files} repeatableItems={data.repeatableItems}>
       <blockDef.Component
         blockData={{
-          _id: String(data.block.id) as any,
+          _id: data.block.id,
           type: data.block.type,
           content: data.block.content as Record<string, unknown>,
           settings: data.block.settings as Record<string, unknown> | undefined,
@@ -209,7 +209,7 @@ export const PageContent = () => {
     const blocks: Record<
       string,
       {
-        _id: string;
+        _id: number;
         type: string;
         content: Record<string, unknown>;
         settings?: Record<string, unknown>;
@@ -218,7 +218,7 @@ export const PageContent = () => {
     > = {};
     for (const block of allLayoutBlocks) {
       blocks[block.type] = {
-        _id: String(block.id),
+        _id: block.id,
         type: block.type,
         content: block.content as Record<string, unknown>,
         settings: block.settings as Record<string, unknown> | undefined,

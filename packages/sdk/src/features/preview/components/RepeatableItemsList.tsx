@@ -41,10 +41,10 @@ type RepeatableItem = {
 
 interface SortableRepeatableItemProps {
   item: RepeatableItem;
-  blockId: string;
+  blockId: number;
   fieldName: string;
   canRemove: boolean;
-  onRemove: (itemId: string) => void;
+  onRemove: (itemId: number) => void;
 }
 
 const SortableRepeatableItem = ({
@@ -67,7 +67,7 @@ const SortableRepeatableItem = ({
   // Check if this item is currently selected
   const isSelected = useSelector(
     previewStore,
-    (state) => selectionItemId(state.context.selection) === String(item.id),
+    (state) => selectionItemId(state.context.selection) === item.id,
   );
 
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
@@ -78,7 +78,7 @@ const SortableRepeatableItem = ({
     if (!iframeElement?.contentWindow) return;
     const message: OverlayMessage = {
       type: "CAMOX_HOVER_REPEATER_ITEM",
-      blockId,
+      blockId: String(blockId),
       itemId: String(item.id),
     };
     iframeElement.contentWindow.postMessage(message, "*");
@@ -88,7 +88,7 @@ const SortableRepeatableItem = ({
     if (!iframeElement?.contentWindow) return;
     const message: OverlayMessage = {
       type: "CAMOX_HOVER_REPEATER_ITEM_END",
-      blockId,
+      blockId: String(blockId),
       itemId: String(item.id),
     };
     iframeElement.contentWindow.postMessage(message, "*");
@@ -128,7 +128,7 @@ const SortableRepeatableItem = ({
               previewStore.send({
                 type: "selectItem",
                 blockId,
-                itemId: String(item.id),
+                itemId: item.id,
               });
             }}
           >
@@ -147,7 +147,7 @@ const SortableRepeatableItem = ({
                   className="text-muted-foreground hover:text-foreground hidden shrink-0 group-focus-within:flex group-hover:flex"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onRemove(String(item.id));
+                    onRemove(item.id);
                   }}
                 />
               }
@@ -168,7 +168,7 @@ const SortableRepeatableItem = ({
 
 interface RepeatableItemsListProps {
   items: RepeatableItem[];
-  blockId: string;
+  blockId: number;
   fieldName: string;
   minItems?: number;
   maxItems?: number;
@@ -254,15 +254,15 @@ const RepeatableItemsList = ({
     }
 
     createRepeatableItem.mutate({
-      blockId: Number(blockId),
+      blockId,
       fieldName,
       content: defaultContent,
       nestedItems: nestedItems.length > 0 ? nestedItems : undefined,
     });
   };
 
-  const handleRemoveItem = (itemId: string) => {
-    deleteRepeatableItem.mutate({ id: Number(itemId) });
+  const handleRemoveItem = (itemId: number) => {
+    deleteRepeatableItem.mutate({ id: itemId });
   };
 
   const sensors = useSensors(

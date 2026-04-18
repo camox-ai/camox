@@ -135,10 +135,9 @@ const PageContentSheet = () => {
 
   // Look up the actual block data from individual block cache (granular caching)
   const page = usePreviewedPage();
-  const numericBlockId = blockId ? Number(blockId) : undefined;
   const { data: blockBundle } = useQuery({
-    ...blockQueries.get(numericBlockId!),
-    enabled: numericBlockId != null,
+    ...blockQueries.get(blockId!),
+    enabled: blockId != null,
   });
   const block = blockBundle?.block ?? null;
   const itemsMap = React.useMemo(
@@ -173,11 +172,11 @@ const PageContentSheet = () => {
   // Compute schema and data based on selection
   const currentSchema = React.useMemo(() => {
     if (!blockDef) return null;
-    if (!currentItemId) return blockDef.contentSchema;
-    return getSchemaForItem(blockDef.contentSchema, Number(currentItemId), itemsMap);
+    if (currentItemId == null) return blockDef.contentSchema;
+    return getSchemaForItem(blockDef.contentSchema, currentItemId, itemsMap);
   }, [blockDef, currentItemId, itemsMap]);
 
-  const currentItem = currentItemId ? itemsMap.get(Number(currentItemId)) : null;
+  const currentItem = currentItemId != null ? itemsMap.get(currentItemId) : null;
 
   const rawCurrentData: Record<string, unknown> = currentItem
     ? (currentItem.content as Record<string, unknown>)
@@ -297,31 +296,33 @@ const PageContentSheet = () => {
 
   const handleItemFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
-      if (!currentItemId) return;
+      if (currentItemId == null) return;
       updateRepeatableContent.mutate({
-        id: Number(currentItemId),
+        id: currentItemId,
         content: { [fieldName]: value },
       });
     },
     [currentItemId, updateRepeatableContent],
   );
 
-  const activeFieldChangeHandler = currentItemId ? handleItemFieldChange : handleBlockFieldChange;
+  const activeFieldChangeHandler =
+    currentItemId != null ? handleItemFieldChange : handleBlockFieldChange;
 
   const handleOpenChange = (open: boolean) => {
     if (open) return;
     if (block && autoFocusFieldName) {
-      const fieldId = currentItemId
-        ? `${String(block.id)}__${currentItemId}__${autoFocusFieldName}`
-        : `${String(block.id)}__${autoFocusFieldName}`;
+      const fieldId =
+        currentItemId != null
+          ? `${block.id}__${currentItemId}__${autoFocusFieldName}`
+          : `${block.id}__${autoFocusFieldName}`;
       postToIframe({ type: "CAMOX_FOCUS_FIELD_END", fieldId });
     }
     // Clear any lingering hover/focus overlays for the current item
-    if (block && currentItemId) {
+    if (block && currentItemId != null) {
       postToIframe({
         type: "CAMOX_HOVER_REPEATER_ITEM_END",
         blockId: String(block.id),
-        itemId: currentItemId,
+        itemId: String(currentItemId),
       });
     }
     previewStore.send({ type: "closeBlockContentSheet" });
@@ -329,7 +330,7 @@ const PageContentSheet = () => {
 
   // Build breadcrumb display from the ancestor chain
   const ancestorChain = React.useMemo(
-    () => (currentItemId ? buildAncestorChain(Number(currentItemId), itemsMap) : []),
+    () => (currentItemId != null ? buildAncestorChain(currentItemId, itemsMap) : []),
     [currentItemId, itemsMap],
   );
 
@@ -358,9 +359,7 @@ const PageContentSheet = () => {
               ) : (
                 <BreadcrumbLink
                   className="cursor-pointer"
-                  onClick={() =>
-                    previewStore.send({ type: "setFocusedBlock", blockId: String(block.id) })
-                  }
+                  onClick={() => previewStore.send({ type: "setFocusedBlock", blockId: block.id })}
                 >
                   {blockDef.title}
                 </BreadcrumbLink>
@@ -385,8 +384,8 @@ const PageContentSheet = () => {
                               onClick={() =>
                                 previewStore.send({
                                   type: "selectItem",
-                                  blockId: String(block.id),
-                                  itemId: String(ancestor.id),
+                                  blockId: block.id,
+                                  itemId: ancestor.id,
                                 })
                               }
                             >
@@ -483,7 +482,7 @@ const PageContentSheet = () => {
           <ItemFieldsEditor
             schema={currentSchema}
             data={currentData}
-            blockId={String(block.id)}
+            blockId={block.id}
             itemId={currentItemId ?? undefined}
             onFieldChange={activeFieldChangeHandler}
             postToIframe={postToIframe}
@@ -491,7 +490,7 @@ const PageContentSheet = () => {
             itemsMap={itemsMap}
           />
         )}
-        {!currentItemId && !fieldHasOwnView && settingsFields.length > 0 && (
+        {currentItemId == null && !fieldHasOwnView && settingsFields.length > 0 && (
           <div className="border-border space-y-4 border-t px-4 py-4">
             <Label className="text-muted-foreground">Settings</Label>
             {settingsFields.map((field) => {
