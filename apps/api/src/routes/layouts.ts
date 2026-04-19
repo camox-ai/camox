@@ -282,7 +282,7 @@ const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => 
       );
   }
 
-  broadcastInvalidation(context.env.ProjectRoom, projectId, [
+  broadcastInvalidation(context.env.EnvironmentRoom, environment.id, [
     queryKeys.layouts.all,
     queryKeys.pages.getByPathAll,
   ]);

@@ -667,7 +667,7 @@ const create = authed.input(createPageSchema).handler(async ({ context, input })
     });
   }
 
-  broadcastInvalidation(context.env.ProjectRoom, projectId, [
+  broadcastInvalidation(context.env.EnvironmentRoom, environment.id, [
     queryKeys.pages.list,
     queryKeys.pages.getById(page.id),
   ]);
@@ -689,7 +689,7 @@ const update = authed
       .where(eq(pages.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+    broadcastInvalidation(context.env.EnvironmentRoom, access.page.environmentId, [
       queryKeys.pages.list,
       queryKeys.pages.getById(id),
     ]);
@@ -703,7 +703,7 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const result = await context.db.delete(pages).where(eq(pages.id, id)).returning().get();
-  broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+  broadcastInvalidation(context.env.EnvironmentRoom, access.page.environmentId, [
     queryKeys.pages.list,
     queryKeys.pages.getById(id),
   ]);
@@ -732,7 +732,7 @@ const setAiSeo = authed
         delayMs: 0,
       });
     }
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+    broadcastInvalidation(context.env.EnvironmentRoom, access.page.environmentId, [
       queryKeys.pages.list,
       queryKeys.pages.getById(id),
     ]);
@@ -753,7 +753,7 @@ const setMetaTitle = authed
       .where(eq(pages.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+    broadcastInvalidation(context.env.EnvironmentRoom, access.page.environmentId, [
       queryKeys.pages.list,
       queryKeys.pages.getById(id),
     ]);
@@ -774,7 +774,7 @@ const setMetaDescription = authed
       .where(eq(pages.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+    broadcastInvalidation(context.env.EnvironmentRoom, access.page.environmentId, [
       queryKeys.pages.list,
       queryKeys.pages.getById(id),
     ]);
@@ -795,7 +795,7 @@ const setLayout = authed
       .where(eq(pages.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+    broadcastInvalidation(context.env.EnvironmentRoom, access.page.environmentId, [
       queryKeys.pages.list,
       queryKeys.pages.getById(id),
     ]);
@@ -811,7 +811,7 @@ const generateSeo = authed
     if (!access) throw new ORPCError("NOT_FOUND");
 
     await executePageSeo(context.db, context.env.OPEN_ROUTER_API_KEY, id);
-    broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+    broadcastInvalidation(context.env.EnvironmentRoom, access.page.environmentId, [
       queryKeys.pages.list,
       queryKeys.pages.getById(id),
     ]);

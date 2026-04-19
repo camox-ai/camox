@@ -16,7 +16,7 @@ import {
   useSignInRedirect,
 } from "@/lib/auth";
 import { projectQueries } from "@/lib/queries";
-import { useProjectRoom } from "@/lib/use-project-room";
+import { useEnvironmentRoom } from "@/lib/use-environment-room";
 
 import { usePreviewPagesActions } from "../preview/CamoxPreview";
 import { useNavbarActions } from "../studio/components/Navbar";
@@ -43,7 +43,7 @@ const AuthenticatedCamoxProvider = ({ children }: AuthenticatedCamoxProviderProp
   // Real-time invalidation via WebSocket
   const { apiUrl, projectSlug } = React.useContext(AuthContext)!;
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
-  useProjectRoom(apiUrl, project?.id);
+  useEnvironmentRoom(apiUrl, project?.currentEnvironmentId);
 
   const { theme } = useTheme();
 

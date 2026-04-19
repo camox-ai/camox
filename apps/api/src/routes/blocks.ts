@@ -470,7 +470,7 @@ const create = authed.input(createBlockSchema).handler(async ({ context, input }
     type: "summary",
     delayMs: 0,
   });
-  broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
+  broadcastInvalidation(context.env.EnvironmentRoom, access.page.environmentId, [
     queryKeys.pages.getByPath(access.page.fullPath),
     queryKeys.blocks.getPageMarkdown(pageId),
     queryKeys.blocks.getUsageCounts,
@@ -506,7 +506,7 @@ const updateContent = authed
       delayMs: 5000,
     });
     // Granular invalidation: only refetch this block, not the entire page
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+    broadcastInvalidation(context.env.EnvironmentRoom, access.environmentId, [
       queryKeys.blocks.get(id),
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
     ]);
@@ -529,7 +529,7 @@ const updateSettings = authed
       .returning()
       .get();
     // Granular invalidation: only refetch this block, not the entire page
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+    broadcastInvalidation(context.env.EnvironmentRoom, access.environmentId, [
       queryKeys.blocks.get(id),
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
     ]);
@@ -584,7 +584,7 @@ const updatePosition = authed
       .where(eq(blocks.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+    broadcastInvalidation(context.env.EnvironmentRoom, access.environmentId, [
       ...(access.pagePath
         ? [queryKeys.pages.getByPath(access.pagePath)]
         : [queryKeys.pages.getByPathAll]),
@@ -601,7 +601,7 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const result = await context.db.delete(blocks).where(eq(blocks.id, id)).returning().get();
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+  broadcastInvalidation(context.env.EnvironmentRoom, access.environmentId, [
     ...(access.pagePath
       ? [queryKeys.pages.getByPath(access.pagePath)]
       : [queryKeys.pages.getByPathAll]),
@@ -619,7 +619,11 @@ const deleteMany = authed
 
     // Verify all blocks belong to an org the user is a member of
     const authorizedBlocks = await context.db
-      .select({ id: blocks.id, projectId: projects.id })
+      .select({
+        id: blocks.id,
+        projectId: projects.id,
+        environmentId: sql<number>`coalesce(${pages.environmentId}, ${layouts.environmentId})`,
+      })
       .from(blocks)
       .leftJoin(pages, eq(blocks.pageId, pages.id))
       .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
@@ -633,9 +637,9 @@ const deleteMany = authed
       throw new ORPCError("NOT_FOUND");
     }
     const result = await context.db.delete(blocks).where(inArray(blocks.id, blockIds)).returning();
-    const projectId = authorizedBlocks[0]?.projectId;
-    if (projectId) {
-      broadcastInvalidation(context.env.ProjectRoom, projectId, [
+    const environmentId = authorizedBlocks[0]?.environmentId;
+    if (environmentId) {
+      broadcastInvalidation(context.env.EnvironmentRoom, environmentId, [
         queryKeys.pages.getByPathAll,
         queryKeys.blocks.getUsageCounts,
       ]);
@@ -660,7 +664,7 @@ const generateSummary = authed
         delayMs: 15000,
       });
     }
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+    broadcastInvalidation(context.env.EnvironmentRoom, access.environmentId, [
       queryKeys.blocks.get(id),
       ...(access.pagePath
         ? [queryKeys.pages.getByPath(access.pagePath)]
@@ -707,7 +711,7 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
     })
     .returning()
     .get();
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
+  broadcastInvalidation(context.env.EnvironmentRoom, access.environmentId, [
     ...(access.pagePath
       ? [queryKeys.pages.getByPath(access.pagePath)]
       : [queryKeys.pages.getByPathAll]),

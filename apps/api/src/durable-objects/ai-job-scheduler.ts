@@ -1,6 +1,6 @@
 import { queryKeys } from "@camox/api-contract/query-keys";
 import { DurableObject } from "cloudflare:workers";
-import { eq, or } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 
 import { createDb } from "../db";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
@@ -60,9 +60,9 @@ export class AiJobScheduler extends DurableObject<Bindings> {
       }
 
       // Broadcast block summary update
-      const projectId = await this.getBlockProjectId(db, entityId);
-      if (projectId) {
-        broadcastInvalidation(this.env.ProjectRoom, projectId, [
+      const environmentId = await this.getBlockEnvironmentId(db, entityId);
+      if (environmentId) {
+        broadcastInvalidation(this.env.EnvironmentRoom, environmentId, [
           queryKeys.pages.getByPathAll,
           queryKeys.blocks.getUsageCounts,
         ]);
@@ -87,9 +87,9 @@ export class AiJobScheduler extends DurableObject<Bindings> {
         .where(eq(repeatableItems.id, entityId))
         .get();
       if (item) {
-        const projectId = await this.getBlockProjectId(db, item.blockId);
-        if (projectId) {
-          broadcastInvalidation(this.env.ProjectRoom, projectId, [
+        const environmentId = await this.getBlockEnvironmentId(db, item.blockId);
+        if (environmentId) {
+          broadcastInvalidation(this.env.EnvironmentRoom, environmentId, [
             queryKeys.pages.getByPathAll,
             queryKeys.blocks.getUsageCounts,
           ]);
@@ -99,8 +99,8 @@ export class AiJobScheduler extends DurableObject<Bindings> {
       await executeFileMetadata(db, apiKey, entityId);
 
       const file = await db.select().from(files).where(eq(files.id, entityId)).get();
-      if (file?.projectId) {
-        broadcastInvalidation(this.env.ProjectRoom, file.projectId, [
+      if (file?.environmentId) {
+        broadcastInvalidation(this.env.EnvironmentRoom, file.environmentId, [
           queryKeys.files.list,
           queryKeys.files.get(entityId),
         ]);
@@ -110,7 +110,7 @@ export class AiJobScheduler extends DurableObject<Bindings> {
 
       const page = await db.select().from(pages).where(eq(pages.id, entityId)).get();
       if (page) {
-        broadcastInvalidation(this.env.ProjectRoom, page.projectId, [
+        broadcastInvalidation(this.env.EnvironmentRoom, page.environmentId, [
           queryKeys.pages.list,
           queryKeys.pages.getById(entityId),
         ]);
@@ -118,18 +118,20 @@ export class AiJobScheduler extends DurableObject<Bindings> {
     }
   }
 
-  private async getBlockProjectId(
+  private async getBlockEnvironmentId(
     db: ReturnType<typeof createDb>,
     blockId: number,
   ): Promise<number | null> {
     const result = await db
-      .select({ projectId: projects.id })
+      .select({
+        environmentId: sql<number>`coalesce(${pages.environmentId}, ${layouts.environmentId})`,
+      })
       .from(blocks)
       .leftJoin(pages, eq(blocks.pageId, pages.id))
       .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
       .innerJoin(projects, or(eq(projects.id, pages.projectId), eq(projects.id, layouts.projectId)))
       .where(eq(blocks.id, blockId))
       .get();
-    return result?.projectId ?? null;
+    return result?.environmentId ?? null;
   }
 }

@@ -7,7 +7,7 @@ import { getAuthCookieHeader } from "./auth";
 
 const DEBOUNCE_MS = 300;
 
-export function useProjectRoom(apiUrl: string, projectId: number | undefined) {
+export function useEnvironmentRoom(apiUrl: string, environmentId: number | undefined) {
   const queryClient = useQueryClient();
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pendingRef = useRef<QueryKey[]>([]);
@@ -16,23 +16,23 @@ export function useProjectRoom(apiUrl: string, projectId: number | undefined) {
 
   usePartySocket({
     host,
-    party: "project-room",
-    room: String(projectId ?? ""),
+    party: "environment-room",
+    room: String(environmentId ?? ""),
     prefix: "parties",
     query: () => ({ _authCookie: getAuthCookieHeader() }),
-    enabled: !!projectId,
+    enabled: !!environmentId,
     onOpen() {
       if (process.env.NODE_ENV !== "production") {
-        console.debug("[useProjectRoom] WebSocket connected");
+        console.debug("[useEnvironmentRoom] WebSocket connected");
       }
     },
     onClose(event) {
       console.warn(
-        `[useProjectRoom] WebSocket closed (code=${event.code}, reason=${event.reason || "none"})`,
+        `[useEnvironmentRoom] WebSocket closed (code=${event.code}, reason=${event.reason || "none"})`,
       );
     },
     onError(event) {
-      console.error("[useProjectRoom] WebSocket error:", event);
+      console.error("[useEnvironmentRoom] WebSocket error:", event);
     },
     onMessage(event) {
       let data: InvalidationMessage;

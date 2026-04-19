@@ -25,8 +25,8 @@
         "class_name": "AiJobScheduler",
       },
       {
-        "name": "ProjectRoom",
-        "class_name": "ProjectRoom",
+        "name": "EnvironmentRoom",
+        "class_name": "EnvironmentRoom",
       },
     ],
   },
@@ -38,6 +38,10 @@
     {
       "tag": "v2",
       "new_sqlite_classes": ["ProjectRoom"],
+    },
+    {
+      "tag": "v3",
+      "renamed_classes": [{ "from": "ProjectRoom", "to": "EnvironmentRoom" }],
     },
   ],
   "dev": {

@@ -12,7 +12,7 @@ export type Bindings = {
   SITE_URL: string;
   OPEN_ROUTER_API_KEY: string;
   AI_JOB_SCHEDULER: DurableObjectNamespace;
-  ProjectRoom: DurableObjectNamespace;
+  EnvironmentRoom: DurableObjectNamespace;
   FILES_BUCKET: R2Bucket;
 };
 
