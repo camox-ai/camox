@@ -26,7 +26,7 @@ import { AddBlockSheet } from "./components/AddBlockSheet";
 import { AgentChatSheet } from "./components/AgentChatSheet";
 import { BlockErrorBoundary } from "./components/BlockErrorBoundary";
 import { CreatePageModal } from "./components/CreatePageModal";
-import { EditPageSheet } from "./components/EditPageSheet";
+import { EditPageModal } from "./components/EditPageModal";
 import { PageContentSheet } from "./components/PageContentSheet";
 import { PagePicker } from "./components/PagePicker";
 import { PageTree } from "./components/PageTree";
@@ -350,7 +350,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
                       variant="outline"
                       size="icon"
                       onClick={() =>
-                        previewStore.send({ type: "openEditPageSheet", pageId: pageData.page.id })
+                        previewStore.send({ type: "openEditPageModal", pageId: pageData.page.id })
                       }
                     />
                   }
@@ -376,7 +376,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       <AddBlockSheet />
       <AgentChatSheet />
       <CreatePageModal />
-      <EditPageSheet />
+      <EditPageModal />
     </div>
   );
 };
@@ -411,7 +411,7 @@ export function usePreviewPagesActions() {
         execute: () => {
           if (!currentPage) return;
           previewStore.send({
-            type: "openEditPageSheet",
+            type: "openEditPageModal",
             pageId: currentPage.id,
           });
         },

@@ -169,7 +169,7 @@ const PagePicker = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           previewStore.send({
-                            type: "openEditPageSheet",
+                            type: "openEditPageModal",
                             pageId: page.id,
                           });
                           closePopover();
@@ -180,7 +180,7 @@ const PagePicker = () => {
                             e.preventDefault();
                             e.stopPropagation();
                             previewStore.send({
-                              type: "openEditPageSheet",
+                              type: "openEditPageModal",
                               pageId: page.id,
                             });
                             closePopover();

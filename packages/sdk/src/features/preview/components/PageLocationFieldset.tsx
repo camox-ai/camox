@@ -1,7 +1,7 @@
 /* -------------------------------------------------------------------------------------------------
  * PageLocationFieldset
  * Shared fieldset for parent page select and page path input.
- * Used by CreatePageModal and EditPageSheet.
+ * Used by CreatePageModal and EditPageModal.
  * -----------------------------------------------------------------------------------------------*/
 
 import {

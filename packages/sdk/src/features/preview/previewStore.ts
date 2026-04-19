@@ -265,11 +265,11 @@ export const previewStore = createStore({
       ...context,
       isCreatePageModalOpen: false,
     }),
-    openEditPageSheet: (context, event: { pageId: number }) => ({
+    openEditPageModal: (context, event: { pageId: number }) => ({
       ...context,
       editingPageId: event.pageId,
     }),
-    closeEditPageSheet: (context) => ({
+    closeEditPageModal: (context) => ({
       ...context,
       editingPageId: null,
     }),
