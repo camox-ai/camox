@@ -3,7 +3,7 @@ import { Server } from "partyserver";
 
 import type { Bindings } from "../types";
 
-export class EnvironmentRoom extends Server<Bindings> {
+export class ProjectRoom extends Server<Bindings> {
   async onRequest(request: Request): Promise<Response> {
     if (request.method !== "POST") {
       return new Response("Method not allowed", { status: 405 });

@@ -213,7 +213,7 @@ const setAlt = authed
       .where(eq(files.id, input.id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.EnvironmentRoom, access.file.environmentId!, [
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
       queryKeys.files.list,
       queryKeys.files.get(input.id),
     ]);
@@ -232,7 +232,7 @@ const setFilename = authed
       .where(eq(files.id, input.id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.EnvironmentRoom, access.file.environmentId!, [
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
       queryKeys.files.list,
       queryKeys.files.get(input.id),
     ]);
@@ -247,7 +247,7 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
 
   await context.env.FILES_BUCKET.delete(access.file.blobId);
   const result = await context.db.delete(files).where(eq(files.id, input.id)).returning().get();
-  broadcastInvalidation(context.env.EnvironmentRoom, access.file.environmentId!, [
+  broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
     queryKeys.files.list,
     queryKeys.files.get(input.id),
     ...blockIds.map((id) => queryKeys.blocks.get(id)),
@@ -267,12 +267,7 @@ const deleteMany = authed
     if (ids.length === 0) return [];
 
     const authorizedFiles = await context.db
-      .select({
-        id: files.id,
-        blobId: files.blobId,
-        projectId: files.projectId,
-        environmentId: files.environmentId,
-      })
+      .select({ id: files.id, blobId: files.blobId, projectId: files.projectId })
       .from(files)
       .innerJoin(projects, eq(projects.id, files.projectId))
       .innerJoin(
@@ -298,11 +293,11 @@ const deleteMany = authed
     await Promise.all(authorizedFiles.map((f) => context.env.FILES_BUCKET.delete(f.blobId)));
     await context.db.delete(files).where(inArray(files.id, ids));
 
-    const environmentId = authorizedFiles[0]!.environmentId!;
+    const projectId = authorizedFiles[0]!.projectId!;
     const uniqueBlockIds = [...new Set(allBlockIds)];
     const uniqueBlockPageIds = [...new Set(allBlockPageIds)];
     const uniqueItemIds = [...new Set(allItemIds)];
-    broadcastInvalidation(context.env.EnvironmentRoom, environmentId, [
+    broadcastInvalidation(context.env.ProjectRoom, projectId, [
       queryKeys.files.list,
       ...ids.map((id) => queryKeys.files.get(id)),
       ...uniqueBlockIds.map((id) => queryKeys.blocks.get(id)),
@@ -327,7 +322,7 @@ const replace = authed
       sql`UPDATE ${blocks} SET ${blocks.content} = REPLACE(CAST(${blocks.content} AS TEXT), ${oldAccess.file.url}, ${newAccess.file.url}), ${blocks.updatedAt} = ${Date.now()} WHERE INSTR(${blocks.content}, ${oldAccess.file.url}) > 0`,
     );
 
-    broadcastInvalidation(context.env.EnvironmentRoom, oldAccess.file.environmentId!, [
+    broadcastInvalidation(context.env.ProjectRoom, oldAccess.file.projectId!, [
       queryKeys.files.list,
       queryKeys.files.get(input.id),
     ]);
@@ -354,7 +349,7 @@ const setAiMetadata = authed
         delayMs: 0,
       });
     }
-    broadcastInvalidation(context.env.EnvironmentRoom, access.file.environmentId!, [
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
       queryKeys.files.list,
       queryKeys.files.get(input.id),
     ]);
@@ -368,7 +363,7 @@ const generateMetadata = authed
     if (!access) throw new ORPCError("NOT_FOUND");
 
     await executeFileMetadata(context.db, context.env.OPEN_ROUTER_API_KEY, input.id);
-    broadcastInvalidation(context.env.EnvironmentRoom, access.file.environmentId!, [
+    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
       queryKeys.files.list,
       queryKeys.files.get(input.id),
     ]);
@@ -458,7 +453,7 @@ fileHonoRoutes.post("/upload", async (c) => {
     type: "fileMetadata",
     delayMs: 0,
   });
-  broadcastInvalidation(c.env.EnvironmentRoom, environment.id, [
+  broadcastInvalidation(c.env.ProjectRoom, projectId, [
     queryKeys.files.list,
     queryKeys.files.get(result.id),
   ]);

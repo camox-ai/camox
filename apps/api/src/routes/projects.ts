@@ -69,17 +69,7 @@ const getBySlug = authed
       .get();
     if (!result) throw new ORPCError("NOT_FOUND");
     await assertOrgMembership(context.db, context.user.id, result.project.organizationId);
-    const environment = await resolveEnvironment(
-      context.db,
-      result.project.id,
-      context.environmentName,
-      { autoCreate: true },
-    );
-    return {
-      ...result.project,
-      organizationSlug: result.organizationSlug,
-      currentEnvironmentId: environment.id,
-    };
+    return { ...result.project, organizationSlug: result.organizationSlug };
   });
 
 const get = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {

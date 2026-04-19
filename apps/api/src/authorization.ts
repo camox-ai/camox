@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server";
-import { and, eq, or, sql } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 
 import type { Database } from "./db";
 import { member, blocks, files, layouts, pages, projects, repeatableItems } from "./schema";
@@ -72,12 +72,7 @@ export async function assertPageAccess(db: Database, pageId: number, userId: str
 
 export async function assertBlockAccess(db: Database, blockId: number, userId: string) {
   const result = await db
-    .select({
-      block: blocks,
-      projectId: projects.id,
-      environmentId: sql<number>`coalesce(${pages.environmentId}, ${layouts.environmentId})`,
-      pagePath: pages.fullPath,
-    })
+    .select({ block: blocks, projectId: projects.id, pagePath: pages.fullPath })
     .from(blocks)
     .leftJoin(pages, eq(blocks.pageId, pages.id))
     .leftJoin(layouts, eq(blocks.layoutId, layouts.id))
@@ -91,12 +86,7 @@ export async function assertBlockAccess(db: Database, blockId: number, userId: s
 
 export async function assertRepeatableItemAccess(db: Database, itemId: number, userId: string) {
   const result = await db
-    .select({
-      item: repeatableItems,
-      projectId: projects.id,
-      environmentId: sql<number>`coalesce(${pages.environmentId}, ${layouts.environmentId})`,
-      pagePath: pages.fullPath,
-    })
+    .select({ item: repeatableItems, projectId: projects.id, pagePath: pages.fullPath })
     .from(repeatableItems)
     .innerJoin(blocks, eq(repeatableItems.blockId, blocks.id))
     .leftJoin(pages, eq(blocks.pageId, pages.id))

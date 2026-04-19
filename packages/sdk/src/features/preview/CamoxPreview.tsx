@@ -43,7 +43,7 @@ import { previewStore } from "./previewStore";
  * Also will switch to peeked page data if there is one.
  *
  * Data for the current route is guaranteed in queryClient cache from the loader's
- * ensureQueryData. Live updates are gated by useEnvironmentRoom only running in
+ * ensureQueryData. Live updates are gated by useProjectRoom only running in
  * AuthenticatedCamoxProvider — unauthenticated users get SSR data that never refetches.
  */
 /**

@@ -1,12 +1,12 @@
 import type { InvalidationMessage, QueryKey } from "@camox/api-contract/query-keys";
 
 export function broadcastInvalidation(
-  environmentRoomNamespace: DurableObjectNamespace,
-  environmentId: number,
+  projectRoomNamespace: DurableObjectNamespace,
+  projectId: number,
   targets: QueryKey[],
 ) {
-  const id = environmentRoomNamespace.idFromName(String(environmentId));
-  const stub = environmentRoomNamespace.get(id);
+  const id = projectRoomNamespace.idFromName(String(projectId));
+  const stub = projectRoomNamespace.get(id);
   const message: InvalidationMessage = { type: "invalidate", targets };
   // Fire-and-forget — don't block the mutation response
   stub.fetch("http://do/broadcast", {
