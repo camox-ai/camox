@@ -75,7 +75,13 @@ export function crossDomain({ siteUrl }: { siteUrl: string }) {
             if (headers.get("authorization")) return;
             const cookie = headers.get("better-auth-cookie");
             if (!cookie) return;
-            headers.append("cookie", cookie);
+            // Must build the cookie header manually rather than using
+            // `headers.append("cookie", cookie)` — on workerd, appending to
+            // an existing cookie header produces a value that better-auth
+            // can't parse, silently breaking session lookup whenever the
+            // browser also sends its own cookies for this origin.
+            const existingCookie = headers.get("cookie");
+            headers.set("cookie", existingCookie ? `${existingCookie}; ${cookie}` : cookie);
             return { context: { headers } };
           }),
         },
