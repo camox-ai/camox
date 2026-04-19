@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.10.0](https://github.com/camox-ai/camox/compare/camox-v0.9.1...camox-sdk-v0.10.0) (2026-04-19)
+
+
+### Features
+
+* **sdk:** add error boundary for each block ([48f04a8](https://github.com/camox-ai/camox/commit/48f04a81f5ce02095c1afbdf8c739478eeb2c2db))
+
+
+### Bug Fixes
+
+* debounced LinkFieldEditor url ([465db76](https://github.com/camox-ai/camox/commit/465db76647c9983bd33c183694c80a858e8c0c03))
+* various bugs ([86e66ba](https://github.com/camox-ai/camox/commit/86e66badfc79030e49513d5403fe7089b12814fd))
+* vite optimizer causing page reloads in dev ([6b62b5c](https://github.com/camox-ai/camox/commit/6b62b5c476b29b468c402440592c02f43fb22637))
+
+
+### Miscellaneous
+
+* add BeforeBlocks and AfterBlocks to createLayout instead of individual references ([7c44700](https://github.com/camox-ai/camox/commit/7c447001397052958240ce33b9efdec57023da43))
+* clean up api surface of createBlock and createLayout using _internal in return value ([71f8d8f](https://github.com/camox-ai/camox/commit/71f8d8f5a0987d4e00b7c793b1f57a1b97f7d6df))
+* convert create page sheet to modal ([40463a3](https://github.com/camox-ai/camox/commit/40463a3143cd16a4b0e2bed99668a2733dd847e8))
+* convert edit page sheet to modal ([487b0a5](https://github.com/camox-ai/camox/commit/487b0a5a664fcfe821289a877f3c66156067dd05))
+* misc fixes ([6fced4b](https://github.com/camox-ai/camox/commit/6fced4bf0ff5b56cd58bb8ed3098638daf7fd7fb))
+* move createLayout initial blocks to blocks object ([c4b6d96](https://github.com/camox-ai/camox/commit/c4b6d96dfa2566d9841928bfbd747ca4402454a0))
+* remove PageTree prop drilling ([1e1e6fd](https://github.com/camox-ai/camox/commit/1e1e6fdf4a3aab7b15d8c5ebdb2979f632f047f9))
+* scope partykit rooms by environment instead of project ([a316561](https://github.com/camox-ai/camox/commit/a31656130032fe206bc9758022b6ac5a9f501098))
+* store ids as numbers in selection state ([7892ff0](https://github.com/camox-ai/camox/commit/7892ff0dc19c986238fb5d774352d37c093fcf65))
+
 ## [0.9.1](https://github.com/camox-ai/camox/compare/camox-v0.9.0...camox-sdk-v0.9.1) (2026-04-18)
 
 

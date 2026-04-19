@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/camox-ai/camox/compare/camox-v0.9.1...@camox/cli-v0.10.0) (2026-04-19)
+
+
+### Bug Fixes
+
+* various bugs ([86e66ba](https://github.com/camox-ai/camox/commit/86e66badfc79030e49513d5403fe7089b12814fd))
+
+
+### Miscellaneous
+
+* add BeforeBlocks and AfterBlocks to createLayout instead of individual references ([7c44700](https://github.com/camox-ai/camox/commit/7c447001397052958240ce33b9efdec57023da43))
+* move createLayout initial blocks to blocks object ([c4b6d96](https://github.com/camox-ai/camox/commit/c4b6d96dfa2566d9841928bfbd747ca4402454a0))
+
 ## [0.9.1](https://github.com/camox-ai/camox/compare/camox-v0.9.0...@camox/cli-v0.9.1) (2026-04-18)
 
 
