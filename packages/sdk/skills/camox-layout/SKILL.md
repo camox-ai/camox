@@ -33,9 +33,9 @@ const myLayout = createLayout({
 function MyLayoutComponent({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen flex-col">
-      <myLayout.blocks.Navbar />
+      <myLayout.BeforeBlocks />
       <div className="flex-1">{children}</div>
-      <myLayout.blocks.Footer />
+      <myLayout.AfterBlocks />
     </main>
   );
 }
@@ -83,23 +83,23 @@ blocks: {
 
 ## The Layout Component
 
-The component is a named React function that receives `{ children }` and renders the overall page structure. Inside it, use the slot components from the layout constant to place each block.
-
-Slot components are accessed via `layoutVar.blocks.PascalCaseName`, where the name is the PascalCase version of the block's `id`. For example, a block with `id: "navbar"` becomes `layoutVar.blocks.Navbar`; `id: "cookie-bar"` becomes `layoutVar.blocks.CookieBar`.
+The component is a named React function that receives `{ children }` and renders the overall page structure. Inside it, use the layout constant's two slot components — `BeforeBlocks` and `AfterBlocks` — to place all of the `before` and `after` blocks, in the order you declared them in the `blocks` config.
 
 ```tsx
 function MyLayoutComponent({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen flex-col">
-      <myLayout.blocks.Navbar />
+      <myLayout.BeforeBlocks />
       <div className="flex-1">{children}</div>
-      <myLayout.blocks.Footer />
+      <myLayout.AfterBlocks />
     </main>
   );
 }
 ```
 
-The component controls the HTML structure — you decide how to wrap and position the blocks and page content. Use Tailwind CSS for styling.
+You don't list individual blocks in the component — `<myLayout.BeforeBlocks />` renders every block in `blocks.before` in order, and `<myLayout.AfterBlocks />` does the same for `blocks.after`. To reorder or add blocks, edit the `blocks` config; the component doesn't need to change.
+
+The component controls the HTML structure — you decide how to wrap and position the `BeforeBlocks` / `AfterBlocks` slots and the page content. Use Tailwind CSS for styling.
 
 ## Meta Title — `buildMetaTitle`
 
@@ -197,7 +197,7 @@ buildOgImage: ({ title, description, projectName }) => (
 4. **Import path is `"camox/createLayout"`.** The `createLayout` function comes from this import.
 5. **Import blocks from `"../blocks/filename"`.** Layout blocks are imported from the blocks directory. Import the named `block` export.
 6. **Use Tailwind CSS for the component.** Style the layout shell with Tailwind utility classes. The OG image function uses inline styles instead.
-7. **Slot names are PascalCase.** A block with `id: "my-block"` becomes `layout.blocks.MyBlock`.
+7. **Render groups, not individual blocks.** The component places `<layout.BeforeBlocks />` and `<layout.AfterBlocks />` — each renders every block in its group, in declared order. Don't reference blocks individually by name.
 8. **`buildMetaTitle` is required.** Every layout must define how page titles are constructed.
 9. **Description guides layout selection.** Write the `description` to help CMS users choose the right layout for their page — explain what types of pages it's suited for.
 10. **Layout blocks should use `layoutOnly: true`.** Blocks intended only for layouts (navbars, footers) should set `layoutOnly: true` in their block definition so they don't clutter the page block picker.

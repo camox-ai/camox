@@ -60,61 +60,68 @@ interface CreateLayoutOptions {
   buildOgImage?: (params: OgImageParams) => React.ReactElement;
 }
 
-function toPascalCase(str: string): string {
-  return str
-    .split(/[-_\s]+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join("");
-}
-
 export function createLayout(options: CreateLayoutOptions) {
   // Each layout gets its own context — avoids cross-module identity issues
   const LayoutContext = React.createContext<{
     layoutBlocks: Record<string, LayoutBlockData>;
   } | null>(null);
 
-  const allBlocks = [...options.blocks.before, ...options.blocks.after];
+  const beforeBlocks = options.blocks.before;
+  const afterBlocks = options.blocks.after;
 
-  // Build slot components keyed by PascalCase(block.id)
-  const slotComponents: Record<string, React.ComponentType> = {};
+  const BeforeBlocks = () => {
+    const ctx = React.use(LayoutContext);
+    if (!ctx) {
+      throw new Error(`Layout "${options.id}" BeforeBlocks must be rendered inside its Provider`);
+    }
+    return (
+      <>
+        {beforeBlocks.map((block, i) => {
+          const blockData = ctx.layoutBlocks[block.id];
+          if (!blockData) return null;
+          const isLastBefore = i === beforeBlocks.length - 1;
+          return (
+            <BlockErrorBoundary key={block.id} blockId={blockData._id} blockType={blockData.type}>
+              <block.Component
+                blockData={blockData}
+                mode="layout"
+                showAddBlockBottom={isLastBefore || undefined}
+                addBlockAfterPosition={isLastBefore ? "" : undefined}
+              />
+            </BlockErrorBoundary>
+          );
+        })}
+      </>
+    );
+  };
+  BeforeBlocks.displayName = `LayoutBeforeBlocks(${options.id})`;
 
-  const lastBeforeBlock = options.blocks.before[options.blocks.before.length - 1];
-  const firstAfterBlock = options.blocks.after[0];
-
-  for (const block of allBlocks) {
-    const isLastBefore = block === lastBeforeBlock;
-    const isFirstAfter = block === firstAfterBlock;
-
-    const SlotComponent = () => {
-      const ctx = React.use(LayoutContext);
-      if (!ctx) {
-        throw new Error(
-          `Layout slot "${block.id}" must be rendered inside a LayoutContextProvider`,
-        );
-      }
-
-      const blockData = ctx.layoutBlocks[block.id];
-      if (!blockData) return null;
-
-      return (
-        <BlockErrorBoundary blockId={blockData._id} blockType={blockData.type}>
-          <block.Component
-            blockData={blockData}
-            mode="layout"
-            showAddBlockTop={isFirstAfter || undefined}
-            showAddBlockBottom={isLastBefore || undefined}
-            addBlockAfterPosition={(() => {
-              if (isLastBefore) return "";
-              if (isFirstAfter) return null;
-              return undefined;
-            })()}
-          />
-        </BlockErrorBoundary>
-      );
-    };
-    SlotComponent.displayName = `LayoutSlot(${toPascalCase(block.id)})`;
-    slotComponents[toPascalCase(block.id)] = SlotComponent;
-  }
+  const AfterBlocks = () => {
+    const ctx = React.use(LayoutContext);
+    if (!ctx) {
+      throw new Error(`Layout "${options.id}" AfterBlocks must be rendered inside its Provider`);
+    }
+    return (
+      <>
+        {afterBlocks.map((block, i) => {
+          const blockData = ctx.layoutBlocks[block.id];
+          if (!blockData) return null;
+          const isFirstAfter = i === 0;
+          return (
+            <BlockErrorBoundary key={block.id} blockId={blockData._id} blockType={blockData.type}>
+              <block.Component
+                blockData={blockData}
+                mode="layout"
+                showAddBlockTop={isFirstAfter || undefined}
+                addBlockAfterPosition={isFirstAfter ? null : undefined}
+              />
+            </BlockErrorBoundary>
+          );
+        })}
+      </>
+    );
+  };
+  AfterBlocks.displayName = `LayoutAfterBlocks(${options.id})`;
 
   // Provider component that wraps the layout — shares context with slots
   const Provider = ({
@@ -180,7 +187,8 @@ export function createLayout(options: CreateLayoutOptions) {
     initialBlockBundles,
     component: options.component,
     Provider,
-    blocks: slotComponents as Record<string, React.ComponentType>,
+    BeforeBlocks,
+    AfterBlocks,
   };
 }
 

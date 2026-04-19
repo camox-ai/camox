@@ -75,9 +75,9 @@ const defaultLayout = createLayout({
 function DefaultLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen flex-col">
-      <defaultLayout.blocks.Navbar />
+      <defaultLayout.BeforeBlocks />
       <div className="flex-1">{children}</div>
-      <defaultLayout.blocks.Footer />
+      <defaultLayout.AfterBlocks />
     </main>
   );
 }

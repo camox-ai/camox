@@ -4,7 +4,7 @@ import { toast } from "@camox/ui/toaster";
 import { CopyIcon, TerminalIcon } from "lucide-react";
 import { useCallback } from "react";
 
-const CLI_COMMAND = "npx create camox@latest";
+const CLI_COMMAND = "npm create camox@latest";
 
 export function CreateProjectGuide() {
   const handleCopy = useCallback(() => {

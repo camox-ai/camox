@@ -76,9 +76,9 @@ const landingPageLayout = createLayout({
 function LandingPageLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen flex-col">
-      <landingPageLayout.blocks.Navbar />
+      <landingPageLayout.BeforeBlocks />
       <div className="flex-1">{children}</div>
-      <landingPageLayout.blocks.Footer />
+      <landingPageLayout.AfterBlocks />
     </main>
   );
 }

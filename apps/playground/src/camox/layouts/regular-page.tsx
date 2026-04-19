@@ -72,9 +72,9 @@ const regularPageLayout = createLayout({
 function RegularPageLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen flex-col">
-      <regularPageLayout.blocks.Navbar />
+      <regularPageLayout.BeforeBlocks />
       <div className="flex-1">{children}</div>
-      <regularPageLayout.blocks.Footer />
+      <regularPageLayout.AfterBlocks />
     </main>
   );
 }
