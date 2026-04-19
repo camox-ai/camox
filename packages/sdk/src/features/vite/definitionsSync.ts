@@ -170,7 +170,7 @@ export async function syncDefinitionsToApi(options: {
         } else {
           logger.info("[camox] Created empty homepage (using first layout)", { timestamp: true });
           logger.info(
-            "[camox] Tip: add initialBlocks to your layout to pre-populate pages with content",
+            "[camox] Tip: add blocks.initial to your layout to pre-populate pages with content",
             { timestamp: true },
           );
         }

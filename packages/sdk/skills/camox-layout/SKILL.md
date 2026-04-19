@@ -24,8 +24,8 @@ const myLayout = createLayout({
   blocks: {
     before: [navbarBlock], // Blocks rendered before page content
     after: [footerBlock], // Blocks rendered after page content
+    initial: [heroBlock], // Blocks to pre-populate on the homepage
   },
-  initialBlocks: [heroBlock], // Blocks to pre-populate on the homepage
   component: MyLayoutComponent,
   buildMetaTitle: ({ pageMetaTitle, projectName }) => `${pageMetaTitle} | ${projectName}`,
 });
@@ -45,25 +45,25 @@ export { myLayout as layout };
 
 ## The `createLayout` options
 
-| Option           | Required | Description                                                                                                                                                                                 |
-| ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`             | yes      | Unique kebab-case identifier. Must match the filename without extension.                                                                                                                    |
-| `title`          | yes      | Display name shown in the CMS UI.                                                                                                                                                           |
-| `description`    | yes      | Tells the CMS user (or AI agent) when to pick this layout. Write it as guidance — explain what kind of pages this layout suits.                                                             |
-| `blocks`         | yes      | An object with `before` and `after` arrays. Each array contains block instances (imported from block files). `before` blocks render above the page content, `after` blocks render below it. |
-| `component`      | yes      | A named React function component that renders the layout shell. Receives `{ children }` — the page content.                                                                                 |
-| `buildMetaTitle` | yes      | A function that builds the `<title>` tag. Receives `{ pageMetaTitle, projectName, pageFullPath }` and returns a string.                                                                     |
-| `initialBlocks`  | no       | Ordered array of block instances to pre-populate on the homepage when a project is first created. See [Initial Blocks](#initial-blocks--initialblocks-optional) below.                      |
-| `buildOgImage`   | no       | A function that returns a JSX element for generating Open Graph images. Receives `{ title, description, projectName }`.                                                                     |
+| Option           | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | yes      | Unique kebab-case identifier. Must match the filename without extension.                                                                                                                                                                                                                                                                                                                                                          |
+| `title`          | yes      | Display name shown in the CMS UI.                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `description`    | yes      | Tells the CMS user (or AI agent) when to pick this layout. Write it as guidance — explain what kind of pages this layout suits.                                                                                                                                                                                                                                                                                                   |
+| `blocks`         | yes      | An object with `before`, `after`, and optional `initial` arrays. `before` blocks (must be `layoutOnly: true`) render above the page content, `after` blocks (must be `layoutOnly: true`) render below it, and `initial` blocks (must NOT be `layoutOnly: true`) pre-populate the homepage. See [Block Placement](#block-placement--before-after-and-initial) and [Initial Blocks](#initial-blocks--blocksinitial-optional) below. |
+| `component`      | yes      | A named React function component that renders the layout shell. Receives `{ children }` — the page content.                                                                                                                                                                                                                                                                                                                       |
+| `buildMetaTitle` | yes      | A function that builds the `<title>` tag. Receives `{ pageMetaTitle, projectName, pageFullPath }` and returns a string.                                                                                                                                                                                                                                                                                                           |
+| `buildOgImage`   | no       | A function that returns a JSX element for generating Open Graph images. Receives `{ title, description, projectName }`.                                                                                                                                                                                                                                                                                                           |
 
-## Block Placement — `before` and `after`
+## Block Placement — `before`, `after`, and `initial`
 
-Layout blocks are split into two groups:
+The `blocks` object groups every block that belongs to this layout into three slots:
 
 - **`before`**: rendered above the page content (navbars, banners, announcements)
 - **`after`**: rendered below the page content (footers, cookie bars)
+- **`initial`** (optional): pre-populated on the homepage when a project is first created — see the dedicated section below
 
-The blocks you reference here are regular block definitions (created with `createBlock`). They're typically marked with `layoutOnly: true` in their block definition so they don't appear in the "add block" picker for page content.
+The blocks in `before` and `after` **must** be marked with `layoutOnly: true` in their block definition — the `createLayout` type rejects non-layout-only blocks in those slots, since layout blocks shouldn't appear in the page-content "add block" picker. Conversely, `initial` accepts only blocks where `layoutOnly` is omitted or `false` — it's for page content, not chrome.
 
 ```tsx
 blocks: {
@@ -124,9 +124,9 @@ buildMetaTitle: ({ pageMetaTitle, projectName }) =>
 buildMetaTitle: ({ pageMetaTitle }) => pageMetaTitle,
 ```
 
-## Initial Blocks — `initialBlocks` (optional)
+## Initial Blocks — `blocks.initial` (optional)
 
-When a project is first set up, Camox creates a homepage automatically. The `initialBlocks` option lets you specify which blocks (and in what order) should be pre-populated on that page. Each block is created with its default content from the block definition.
+When a project is first set up, Camox creates a homepage automatically. The `blocks.initial` option lets you specify which blocks (and in what order) should be pre-populated on that page. Each block is created with its default content from the block definition.
 
 ```tsx
 import { block as heroBlock } from "../blocks/hero";
@@ -134,14 +134,18 @@ import { block as statisticsBlock } from "../blocks/statistics";
 
 const myLayout = createLayout({
   // ...
-  initialBlocks: [heroBlock, statisticsBlock],
+  blocks: {
+    before: [navbarBlock],
+    after: [footerBlock],
+    initial: [heroBlock, statisticsBlock],
+  },
 });
 ```
 
-- **Only non-layout blocks.** These are page content blocks — layout blocks (`before`/`after`) are created separately as part of the layout itself.
-- **At most one layout per app can define `initialBlocks`.** If multiple layouts define it, the app will crash with a clear error at startup. This is enforced in `createApp`.
+- **Only non-layout blocks.** Blocks here must NOT be `layoutOnly: true` — the type system enforces it. Layout blocks (`before`/`after`) are created separately as part of the layout itself.
+- **At most one layout per app can define `blocks.initial`.** If multiple layouts define it, the app will crash with a clear error at startup. This is enforced in `createApp`.
 - **Order matters.** The blocks appear on the homepage in the order listed.
-- **If no layout defines `initialBlocks`**, Camox still creates an empty homepage using the first available layout (with its layout blocks like navbar/footer), but no page blocks are added.
+- **If no layout defines `blocks.initial`**, Camox still creates an empty homepage using the first available layout (with its layout blocks like navbar/footer), but no page blocks are added.
 
 ## OG Image — `buildOgImage` (optional)
 
@@ -200,4 +204,4 @@ buildOgImage: ({ title, description, projectName }) => (
 7. **Render groups, not individual blocks.** The component places `<layout.BeforeBlocks />` and `<layout.AfterBlocks />` — each renders every block in its group, in declared order. Don't reference blocks individually by name.
 8. **`buildMetaTitle` is required.** Every layout must define how page titles are constructed.
 9. **Description guides layout selection.** Write the `description` to help CMS users choose the right layout for their page — explain what types of pages it's suited for.
-10. **Layout blocks should use `layoutOnly: true`.** Blocks intended only for layouts (navbars, footers) should set `layoutOnly: true` in their block definition so they don't clutter the page block picker.
+10. **Layout blocks must use `layoutOnly: true`.** Blocks placed in `blocks.before` or `blocks.after` must be defined with `layoutOnly: true` (enforced by the `createLayout` type). Blocks placed in `blocks.initial` must NOT be `layoutOnly: true`.

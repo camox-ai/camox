@@ -76,6 +76,7 @@ interface CreateBlockOptions<
   TSchemaShape extends Record<string, TSchema> = Record<string, TSchema>,
   TSettingsShape extends Record<string, TSchema> = Record<string, TSchema>,
   TMarkdown extends readonly string[] = readonly string[],
+  TLayoutOnly extends boolean = false,
 > {
   id: string;
   /**
@@ -130,7 +131,7 @@ interface CreateBlockOptions<
    * When true, this block can only be used inside layouts and won't appear in the AddBlockSheet
    * or be available for AI page generation.
    */
-  layoutOnly?: boolean;
+  layoutOnly?: TLayoutOnly;
   /**
    * React component that renders the block.
    * Must be defined as a separate function (not inline, not an arrow function).
@@ -310,7 +311,8 @@ export function createBlock<
   TSchemaShape extends Record<string, TSchema>,
   TSettingsShape extends Record<string, TSchema> = Record<string, never>,
   const TMarkdown extends readonly string[] = readonly string[],
->(options: CreateBlockOptions<TSchemaShape, TSettingsShape, TMarkdown>) {
+  TLayoutOnly extends boolean = false,
+>(options: CreateBlockOptions<TSchemaShape, TSettingsShape, TMarkdown, TLayoutOnly>) {
   // Build TypeBox schema for runtime validation and default value creation
   const typeboxSchema = TypeBoxType.Object(options.content);
 
@@ -1829,7 +1831,7 @@ export function createBlock<
       description: options.description,
       contentSchema,
       settingsSchema,
-      layoutOnly: options.layoutOnly ?? false,
+      layoutOnly: (options.layoutOnly ?? false) as TLayoutOnly,
       getInitialBundle: () => {
         const counter = { value: 0 };
         const allSeeds: RepeatableItemSeed[] = [];

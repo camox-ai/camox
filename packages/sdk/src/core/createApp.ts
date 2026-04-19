@@ -18,12 +18,12 @@ export function createApp({ blocks, layouts = [] }: CreateAppOptions) {
     layoutsMap.set(layout._internal.id, layout);
   }
 
-  // Validate that at most one layout defines initialBlocks
+  // Validate that at most one layout defines blocks.initial
   const layoutsWithInitialBlocks = layouts.filter((l) => l._internal.initialBlockBundles);
   if (layoutsWithInitialBlocks.length > 1) {
     const ids = layoutsWithInitialBlocks.map((l) => `"${l._internal.id}"`).join(", ");
     throw new Error(
-      `[camox] Only one layout can define initialBlocks, but found ${layoutsWithInitialBlocks.length}: ${ids}`,
+      `[camox] Only one layout can define blocks.initial, but found ${layoutsWithInitialBlocks.length}: ${ids}`,
     );
   }
 

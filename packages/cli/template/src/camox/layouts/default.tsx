@@ -9,8 +9,11 @@ const defaultLayout = createLayout({
   id: "default",
   title: "Default",
   description: "Default page layout with a navbar and footer",
-  blocks: { before: [navbarBlock], after: [footerBlock] },
-  initialBlocks: [heroBlock, statisticsBlock],
+  blocks: {
+    before: [navbarBlock],
+    after: [footerBlock],
+    initial: [heroBlock, statisticsBlock],
+  },
   component: DefaultLayout,
   buildMetaTitle: ({ pageMetaTitle, projectName }) => `${pageMetaTitle} | ${projectName}`,
   buildOgImage: ({ title, description, projectName }) => (

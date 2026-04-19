@@ -21,9 +21,10 @@ export interface LayoutBlockData {
 }
 
 /** Minimal block interface — avoids importing the full generic Block type. */
-interface LayoutBlock {
+interface LayoutBlock<TLayoutOnly extends boolean = boolean> {
   _internal: {
     id: string;
+    layoutOnly: TLayoutOnly;
     Component: React.ComponentType<{
       blockData: any;
       mode: "site" | "peek" | "layout";
@@ -46,13 +47,39 @@ interface LayoutBlock {
   };
 }
 
-interface CreateLayoutOptions {
+/**
+ * Per-element validators that produce a human-readable error string when a block
+ * is in the wrong slot. We use mapped types (instead of `LayoutBlock<true>[]` /
+ * `LayoutBlock<false>[]`) so TypeScript reports
+ *   `Type 'X' is not assignable to type '❌ Camox: ...'`
+ * instead of the unreadable structural diff on the full Block shape.
+ */
+type ValidateLayoutOnlyBlocks<T extends readonly LayoutBlock[]> = {
+  [K in keyof T]: T[K] extends LayoutBlock<true>
+    ? T[K]
+    : "❌ Camox: blocks in `blocks.before` and `blocks.after` must be defined with `layoutOnly: true`. Add `layoutOnly: true` to this block's `createBlock` options.";
+};
+
+type ValidatePageContentBlocks<T extends readonly LayoutBlock[]> = {
+  [K in keyof T]: T[K] extends LayoutBlock<true>
+    ? "❌ Camox: blocks in `blocks.initial` must NOT be `layoutOnly: true` — `initial` is for page-content blocks. Remove `layoutOnly: true` from this block's `createBlock` options."
+    : T[K];
+};
+
+interface CreateLayoutOptions<
+  TBefore extends readonly LayoutBlock[],
+  TAfter extends readonly LayoutBlock[],
+  TInitial extends readonly LayoutBlock[],
+> {
   id: string;
   title: string;
   description: string;
-  blocks: { before: LayoutBlock[]; after: LayoutBlock[] };
-  /** Ordered list of blocks to create on the initial page when a project is first set up. */
-  initialBlocks?: LayoutBlock[];
+  blocks: {
+    before: ValidateLayoutOnlyBlocks<TBefore>;
+    after: ValidateLayoutOnlyBlocks<TAfter>;
+    /** Ordered list of blocks to create on the initial page when a project is first set up. */
+    initial?: ValidatePageContentBlocks<TInitial>;
+  };
   component: React.ComponentType<{ children: React.ReactNode }>;
   buildMetaTitle: (params: {
     pageMetaTitle: string;
@@ -62,14 +89,21 @@ interface CreateLayoutOptions {
   buildOgImage?: (params: OgImageParams) => React.ReactElement;
 }
 
-export function createLayout(options: CreateLayoutOptions) {
+export function createLayout<
+  const TBefore extends readonly LayoutBlock[],
+  const TAfter extends readonly LayoutBlock[],
+  const TInitial extends readonly LayoutBlock[] = [],
+>(options: CreateLayoutOptions<TBefore, TAfter, TInitial>) {
   // Each layout gets its own context — avoids cross-module identity issues
   const LayoutContext = React.createContext<{
     layoutBlocks: Record<string, LayoutBlockData>;
   } | null>(null);
 
-  const beforeBlocks = options.blocks.before;
-  const afterBlocks = options.blocks.after;
+  // Cast away the validation mapped type — once user-side type-checking has passed,
+  // the runtime values are valid LayoutBlock arrays.
+  const beforeBlocks = options.blocks.before as unknown as LayoutBlock<true>[];
+  const afterBlocks = options.blocks.after as unknown as LayoutBlock<true>[];
+  const initialBlocks = options.blocks.initial as unknown as LayoutBlock<false>[] | undefined;
 
   const BeforeBlocks = () => {
     const ctx = React.use(LayoutContext);
@@ -147,7 +181,7 @@ export function createLayout(options: CreateLayoutOptions) {
 
   // Build block definitions array for sync
   const blockDefinitions = [
-    ...options.blocks.before.map((block) => {
+    ...beforeBlocks.map((block) => {
       const bundle = block._internal.getInitialBundle();
       return {
         type: block._internal.id,
@@ -157,7 +191,7 @@ export function createLayout(options: CreateLayoutOptions) {
         placement: "before" as const,
       };
     }),
-    ...options.blocks.after.map((block) => {
+    ...afterBlocks.map((block) => {
       const bundle = block._internal.getInitialBundle();
       return {
         type: block._internal.id,
@@ -177,7 +211,7 @@ export function createLayout(options: CreateLayoutOptions) {
       }
     : undefined;
 
-  const initialBlockBundles = options.initialBlocks?.map((block) => {
+  const initialBlockBundles = initialBlocks?.map((block) => {
     const bundle = block._internal.getInitialBundle();
     return {
       type: block._internal.id,

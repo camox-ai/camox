@@ -10,8 +10,11 @@ const landingPageLayout = createLayout({
   title: "Landing page",
   description:
     "Use for the home page, or other pages that are designed to be the first introduction of your site to visitors",
-  blocks: { before: [navbarBlock], after: [footerBlock] },
-  initialBlocks: [heroBlock, statisticsBlock],
+  blocks: {
+    before: [navbarBlock],
+    after: [footerBlock],
+    initial: [heroBlock, statisticsBlock],
+  },
   component: LandingPageLayout,
   buildMetaTitle: ({ pageMetaTitle, projectName }) => `${projectName} | ${pageMetaTitle}`,
   buildOgImage: ({ title, description, projectName }) => (
