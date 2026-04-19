@@ -42,7 +42,7 @@ function TestimonialComponent() {
             </testimonial.Field>
             <div className="text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:gap-2">
               <testimonial.Field name="title">{(props) => <span {...props} />}</testimonial.Field>
-              <span className="">&nbsp;-&nbsp;</span>
+              <span className="">&nbsp;—&nbsp;</span>
               <testimonial.Field name="company">{(props) => <span {...props} />}</testimonial.Field>
             </div>
           </div>

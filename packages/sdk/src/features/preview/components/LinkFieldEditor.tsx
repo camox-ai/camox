@@ -45,6 +45,8 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
   const timerRef = React.useRef<number | null>(null);
   const [text, setText] = React.useState(linkValue.text);
   const [href, setHref] = React.useState(linkValue.type === "external" ? linkValue.href : "");
+  const [isTextFocused, setIsTextFocused] = React.useState(false);
+  const [isHrefFocused, setIsHrefFocused] = React.useState(false);
   const linkValueRef = React.useRef<LinkValue>(linkValue);
   const [pagePickerOpen, setPagePickerOpen] = React.useState(false);
 
@@ -63,14 +65,16 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
   }, [linkValue]);
 
   React.useEffect(() => {
-    setText(linkValue.text);
-  }, [linkValue.text]);
+    if (!isTextFocused) {
+      setText(linkValue.text);
+    }
+  }, [linkValue.text, isTextFocused]);
 
   React.useEffect(() => {
-    if (linkValue.type === "external") {
+    if (linkValue.type === "external" && !isHrefFocused) {
       setHref(linkValue.href);
     }
-  }, [linkValue]);
+  }, [linkValue, isHrefFocused]);
 
   React.useEffect(() => {
     return () => {
@@ -131,6 +135,8 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
             setText(e.target.value);
             handleTextChange(e.target.value);
           }}
+          onFocus={() => setIsTextFocused(true)}
+          onBlur={() => setIsTextFocused(false)}
           autoFocus
         />
       </div>
@@ -199,6 +205,8 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
               setHref(e.target.value);
               handleHrefChange(e.target.value);
             }}
+            onFocus={() => setIsHrefFocused(true)}
+            onBlur={() => setIsHrefFocused(false)}
           />
         )}
       </div>
