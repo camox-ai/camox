@@ -105,8 +105,14 @@ export function createPageLoader(apiUrl: string, projectSlug: string, environmen
         context.queryClient.ensureQueryData({
           queryKey: queryKeys.pages.getByPath(location.pathname),
           queryFn: async () => {
-            const data = await serverApi.pages.getByPath({ path: location.pathname, projectSlug });
+            const [data, pagesList] = await Promise.all([
+              serverApi.pages.getByPath({ path: location.pathname, projectSlug }),
+              serverApi.pages.listBySlug({ projectSlug }).catch(() => null),
+            ]);
             seedBlockCaches(context.queryClient, data);
+            if (pagesList) {
+              context.queryClient.setQueryData(queryKeys.pages.list, pagesList);
+            }
             return { page: data.page, layout: data.layout, projectName: data.projectName };
           },
           staleTime: Infinity,
