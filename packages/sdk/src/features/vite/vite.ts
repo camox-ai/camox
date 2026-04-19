@@ -112,6 +112,59 @@ export function camox(options: CamoxPluginOptions): Plugin {
           __CAMOX_API_URL__: JSON.stringify(apiUrl),
           __CAMOX_PROJECT_SLUG__: JSON.stringify(options.projectSlug),
         },
+        optimizeDeps: {
+          // When the Studio UI, loads dynamically at runtime, Vite discovers these dependencies in 3 batches,
+          // each causing a page reload if they weren't included in either include or exclude.
+          // All entries are prefixed with `camox >` because these packages are transitive
+          // dependencies of the SDK — under pnpm's strict resolution they aren't resolvable
+          // as bare specifiers from the user app's root. The `parent > child` form tells Vite
+          // to resolve the nested dep through the parent package's own node_modules.
+          include: [
+            // 1st batch
+            "camox > @base-ui/react/accordion",
+            "camox > @base-ui/react/alert-dialog",
+            "camox > @base-ui/react/avatar",
+            "camox > @base-ui/react/dialog",
+            "camox > @base-ui/react/input",
+            "camox > @base-ui/react/menu",
+            "camox > @base-ui/react/merge-props",
+            "camox > @base-ui/react/popover",
+            "camox > @base-ui/react/select",
+            "camox > @base-ui/react/separator",
+            "camox > @base-ui/react/switch",
+            "camox > @base-ui/react/tabs",
+            "camox > @base-ui/react/toggle",
+            "camox > @base-ui/react/tooltip",
+            "camox > @base-ui/react/use-render",
+            // 2nd batch
+            "camox > @dnd-kit/core",
+            "camox > @dnd-kit/modifiers",
+            "camox > @dnd-kit/sortable",
+            "camox > @dnd-kit/utilities",
+            "camox > @lexical/react/LexicalComposer",
+            "camox > @lexical/react/LexicalComposerContext",
+            "camox > @lexical/react/LexicalContentEditable",
+            "camox > @lexical/react/LexicalOnChangePlugin",
+            "camox > @lexical/react/LexicalRichTextPlugin",
+            "camox > @orpc/client",
+            "camox > @orpc/client/fetch",
+            "camox > @orpc/tanstack-query",
+            "camox > @sinclair/typebox",
+            "camox > @takumi-rs/image-response",
+            "camox > @tanstack/react-form",
+            "camox > @xstate/store",
+            "camox > @xstate/store/react",
+            "camox > @camox/ui > cmdk",
+            "camox > fractional-indexing",
+            "camox > lexical",
+            "camox > posthog-js",
+            "camox > shiki",
+            "camox > @camox/ui > sonner",
+            // 3rd batch
+            "camox > @tanstack/react-query-devtools/production",
+            "camox > partysocket/react",
+          ],
+        },
       };
     },
     configResolved(config) {
