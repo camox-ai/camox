@@ -166,14 +166,14 @@ const PageContentSheet = () => {
   const blockDef = block ? camoxApp.getBlockById(block.type) : null;
 
   const settingsFields = React.useMemo(() => {
-    return blockDef ? getSettingsFields(blockDef.settingsSchema) : [];
+    return blockDef ? getSettingsFields(blockDef._internal.settingsSchema) : [];
   }, [blockDef]);
 
   // Compute schema and data based on selection
   const currentSchema = React.useMemo(() => {
     if (!blockDef) return null;
-    if (currentItemId == null) return blockDef.contentSchema;
-    return getSchemaForItem(blockDef.contentSchema, currentItemId, itemsMap);
+    if (currentItemId == null) return blockDef._internal.contentSchema;
+    return getSchemaForItem(blockDef._internal.contentSchema, currentItemId, itemsMap);
   }, [blockDef, currentItemId, itemsMap]);
 
   const currentItem = currentItemId != null ? itemsMap.get(currentItemId) : null;
@@ -362,13 +362,13 @@ const PageContentSheet = () => {
             {/* Block title — always shown */}
             <BreadcrumbItem className="min-w-0">
               {isAtBlockLevel ? (
-                <BreadcrumbPage className="truncate">{blockDef.title}</BreadcrumbPage>
+                <BreadcrumbPage className="truncate">{blockDef._internal.title}</BreadcrumbPage>
               ) : (
                 <BreadcrumbLink
                   className="cursor-pointer"
                   onClick={() => previewStore.send({ type: "setFocusedBlock", blockId: block.id })}
                 >
-                  {blockDef.title}
+                  {blockDef._internal.title}
                 </BreadcrumbLink>
               )}
             </BreadcrumbItem>
@@ -510,7 +510,7 @@ const PageContentSheet = () => {
               if (field.fieldType === "Enum") {
                 const value =
                   (settingsValues[field.name] as string | undefined) ??
-                  (blockDef.settingsSchema?.properties?.[field.name] as any)?.default ??
+                  (blockDef._internal.settingsSchema?.properties?.[field.name] as any)?.default ??
                   "";
 
                 return (
@@ -543,7 +543,7 @@ const PageContentSheet = () => {
               if (field.fieldType === "Boolean") {
                 const checked =
                   (settingsValues[field.name] as boolean | undefined) ??
-                  (blockDef.settingsSchema?.properties?.[field.name] as any)?.default ??
+                  (blockDef._internal.settingsSchema?.properties?.[field.name] as any)?.default ??
                   false;
 
                 return (

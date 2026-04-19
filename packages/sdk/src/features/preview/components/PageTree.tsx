@@ -133,7 +133,7 @@ type BlockFieldsProps = {
 const BlockFields = ({ block }: BlockFieldsProps) => {
   const camoxApp = useCamoxApp();
   const blockDef = camoxApp.getBlockById(block.type);
-  const schemaProperties = blockDef?.contentSchema.properties;
+  const schemaProperties = blockDef?._internal.contentSchema.properties;
 
   const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
@@ -446,7 +446,7 @@ const LayoutBlockItem = ({ block, layoutName }: LayoutBlockItemProps) => {
   const camoxApp = useCamoxApp();
   const blockDef = camoxApp.getBlockById(block.type);
   const ctx = useBlockTreeItem(block);
-  const displayText = blockDef?.title ?? block.type;
+  const displayText = blockDef?._internal.title ?? block.type;
   const isBlockFocused = useSelector(
     previewStore,
     (state) => state.context.selection?.blockId === block.id,
@@ -589,7 +589,7 @@ const PageTree = () => {
           <LayoutBlockItem
             key={String(block.id)}
             block={block}
-            layoutName={layout?.title ?? "Unknown"}
+            layoutName={layout?._internal.title ?? "Unknown"}
           />
         ))}
         <DndContext
@@ -629,7 +629,7 @@ const PageTree = () => {
           <LayoutBlockItem
             key={String(block.id)}
             block={block}
-            layoutName={layout?.title ?? "Unknown"}
+            layoutName={layout?._internal.title ?? "Unknown"}
           />
         ))}
       </div>

@@ -122,7 +122,7 @@ const EditPageSheetContent = ({ pageId }: { pageId: number | null }) => {
     : undefined;
   const metaTitle =
     layoutDef && page
-      ? layoutDef.buildMetaTitle({
+      ? layoutDef._internal.buildMetaTitle({
           pageMetaTitle: page.metaTitle ?? "",
           projectName: project?.name ?? "",
           pageFullPath: page.fullPath,
@@ -195,7 +195,8 @@ const EditPageSheetContent = ({ pageId }: { pageId: number | null }) => {
                             onValueChange={(value) => field.handleChange(Number(value))}
                             items={layouts.map((t) => ({
                               value: String(t.id),
-                              label: camoxApp.getLayoutById(t.layoutId)?.title ?? t.layoutId,
+                              label:
+                                camoxApp.getLayoutById(t.layoutId)?._internal.title ?? t.layoutId,
                             }))}
                           >
                             <SelectTrigger>
@@ -204,7 +205,8 @@ const EditPageSheetContent = ({ pageId }: { pageId: number | null }) => {
                             <SelectContent>
                               {layouts.map((t) => (
                                 <SelectItem key={t.id} value={String(t.id)}>
-                                  {camoxApp.getLayoutById(t.layoutId)?.title ?? t.layoutId}
+                                  {camoxApp.getLayoutById(t.layoutId)?._internal.title ??
+                                    t.layoutId}
                                 </SelectItem>
                               ))}
                             </SelectContent>

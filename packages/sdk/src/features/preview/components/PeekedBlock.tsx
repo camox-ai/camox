@@ -79,7 +79,7 @@ export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
 
   const peekBundle = React.useMemo(() => {
     if (!displayedBlock) return null;
-    return displayedBlock.getPeekBundle();
+    return displayedBlock._internal.getPeekBundle();
   }, [displayedBlock]);
 
   if (!displayedBlock || !peekBundle) {
@@ -99,15 +99,15 @@ export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
       onTransitionEnd={handleTransitionEnd}
     >
       <div style={{ overflow: "hidden" }}>
-        <BlockErrorBoundary blockId={0} blockType={displayedBlock.id}>
+        <BlockErrorBoundary blockId={0} blockType={displayedBlock._internal.id}>
           <NormalizedDataProvider
             files={peekBundle.files}
             repeatableItems={peekBundle.repeatableItems}
           >
-            <displayedBlock.Component
+            <displayedBlock._internal.Component
               blockData={{
                 _id: 0,
-                type: displayedBlock.id,
+                type: displayedBlock._internal.id,
                 content: peekBundle.block.content as Record<string, unknown>,
                 settings: peekBundle.block.settings as Record<string, unknown> | undefined,
                 position: "",

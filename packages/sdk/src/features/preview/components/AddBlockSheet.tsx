@@ -132,7 +132,7 @@ const AddBlockSheet = () => {
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   const availableBlocks = useCamoxApp()
     .getBlocks()
-    .filter((b) => !b.layoutOnly);
+    .filter((b) => !b._internal.layoutOnly);
   const page = usePreviewedPage();
   const { pageBlocks } = usePageBlocks(page);
   const { data: totalCounts = {} } = useQuery({
@@ -163,10 +163,10 @@ const AddBlockSheet = () => {
         ? ""
         : (peekedBlockPosition ?? pageBlocks[pageBlocks.length - 1]?.position);
 
-    const bundle = block.getInitialBundle();
+    const bundle = block._internal.getInitialBundle();
     const { id: blockId } = await createBlock.mutateAsync({
       pageId: page.page.id,
-      type: block.id,
+      type: block._internal.id,
       content: bundle.content,
       settings: bundle.settings,
       afterPosition,
@@ -174,7 +174,7 @@ const AddBlockSheet = () => {
     });
     trackClientEvent("block_added", {
       projectId: page.page.projectId,
-      blockType: block.id,
+      blockType: block._internal.id,
     });
     previewStore.send({ type: "focusCreatedBlock", blockId });
     previewStore.send({ type: "exitPeekedBlock" });
@@ -191,7 +191,7 @@ const AddBlockSheet = () => {
 
   const handleValueChange = (value: string) => {
     setHighlightedValue(value);
-    const block = availableBlocks.find((b: Block) => b.title === value);
+    const block = availableBlocks.find((b: Block) => b._internal.title === value);
     if (block) {
       handlePreviewBlock(block);
     } else {
@@ -212,7 +212,7 @@ const AddBlockSheet = () => {
     }
   }, [isOpen]);
 
-  const displayCount = (blockId: Block["id"]) => {
+  const displayCount = (blockId: Block["_internal"]["id"]) => {
     const total = totalCounts[blockId] ?? 0;
     if (total === 0) return "Never used";
     const page = pageCounts[blockId] ?? "none";
@@ -243,26 +243,30 @@ const AddBlockSheet = () => {
             <CommandEmpty>No blocks found.</CommandEmpty>
             <CommandGroup>
               {availableBlocks
-                .sort((a, b) => (totalCounts[b.id] ?? 0) - (totalCounts[a.id] ?? 0))
+                .sort(
+                  (a, b) => (totalCounts[b._internal.id] ?? 0) - (totalCounts[a._internal.id] ?? 0),
+                )
                 .map((block: Block) => (
                   <CommandItem
-                    key={block.id}
-                    value={block.title}
+                    key={block._internal.id}
+                    value={block._internal.title}
                     onSelect={() => {
                       handleAddBlock(block);
                     }}
                     className="group flex items-center justify-between gap-2"
                   >
                     <div>
-                      <span>{block.title}</span>
-                      <span className="text-muted-foreground block">{displayCount(block.id)}</span>
+                      <span>{block._internal.title}</span>
+                      <span className="text-muted-foreground block">
+                        {displayCount(block._internal.id)}
+                      </span>
                     </div>
                     <Tooltip>
                       <TooltipTrigger className="hidden group-focus-within:flex group-hover:flex">
                         <InfoIcon />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-[300px]" side="right">
-                        {block.description}
+                        {block._internal.description}
                       </TooltipContent>
                     </Tooltip>
                   </CommandItem>

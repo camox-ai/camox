@@ -11,17 +11,17 @@ export function createApp({ blocks, layouts = [] }: CreateAppOptions) {
   const layoutsMap = new Map<string, Layout>();
 
   for (const block of blocks) {
-    blocksMap.set(block.id, block);
+    blocksMap.set(block._internal.id, block);
   }
 
   for (const layout of layouts) {
-    layoutsMap.set(layout.id, layout);
+    layoutsMap.set(layout._internal.id, layout);
   }
 
   // Validate that at most one layout defines initialBlocks
-  const layoutsWithInitialBlocks = layouts.filter((l) => l.initialBlockBundles);
+  const layoutsWithInitialBlocks = layouts.filter((l) => l._internal.initialBlockBundles);
   if (layoutsWithInitialBlocks.length > 1) {
-    const ids = layoutsWithInitialBlocks.map((l) => `"${l.id}"`).join(", ");
+    const ids = layoutsWithInitialBlocks.map((l) => `"${l._internal.id}"`).join(", ");
     throw new Error(
       `[camox] Only one layout can define initialBlocks, but found ${layoutsWithInitialBlocks.length}: ${ids}`,
     );
@@ -42,29 +42,33 @@ export function createApp({ blocks, layouts = [] }: CreateAppOptions) {
     },
     getSerializableDefinitions() {
       return Array.from(blocksMap.values()).map((block) => ({
-        blockId: block.id,
-        title: block.title,
-        description: block.description,
-        contentSchema: block.contentSchema,
-        settingsSchema: block.settingsSchema,
-        layoutOnly: block.layoutOnly || undefined,
+        blockId: block._internal.id,
+        title: block._internal.title,
+        description: block._internal.description,
+        contentSchema: block._internal.contentSchema,
+        settingsSchema: block._internal.settingsSchema,
+        layoutOnly: block._internal.layoutOnly || undefined,
       }));
     },
     getSerializableLayoutDefinitions() {
       return Array.from(layoutsMap.values()).map((layout) => ({
-        layoutId: layout.id,
-        description: layout.description,
-        blocks: layout.blockDefinitions,
+        layoutId: layout._internal.id,
+        description: layout._internal.description,
+        blocks: layout._internal.blockDefinitions,
       }));
     },
     getInitialPageBundles() {
       const layout = layoutsWithInitialBlocks[0];
       if (layout) {
-        return { layoutId: layout.id, blocks: layout.initialBlockBundles!, hasInitialBlocks: true };
+        return {
+          layoutId: layout._internal.id,
+          blocks: layout._internal.initialBlockBundles!,
+          hasInitialBlocks: true,
+        };
       }
       const fallback = layouts[0];
       if (!fallback) return null;
-      return { layoutId: fallback.id, blocks: [], hasInitialBlocks: false };
+      return { layoutId: fallback._internal.id, blocks: [], hasInitialBlocks: false };
     },
   };
 }

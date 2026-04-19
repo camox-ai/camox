@@ -142,7 +142,7 @@ export function createPageHead(camoxApp: CamoxApp) {
     if (page.layout) {
       const layout = camoxApp.getLayoutById(page.layout.layoutId);
       if (layout) {
-        title = layout.buildMetaTitle({
+        title = layout._internal.buildMetaTitle({
           pageMetaTitle,
           projectName: page.projectName,
           pageFullPath: page.page.fullPath,

@@ -22,25 +22,27 @@ export interface LayoutBlockData {
 
 /** Minimal block interface — avoids importing the full generic Block type. */
 interface LayoutBlock {
-  id: string;
-  Component: React.ComponentType<{
-    blockData: any;
-    mode: "site" | "peek" | "layout";
-    isFirstBlock?: boolean;
-    showAddBlockTop?: boolean;
-    showAddBlockBottom?: boolean;
-    addBlockAfterPosition?: string | null;
-  }>;
-  getInitialBundle: () => {
-    content: Record<string, unknown>;
-    settings: Record<string, unknown>;
-    repeatableItems: Array<{
-      tempId: string;
-      parentTempId: string | null;
-      fieldName: string;
-      content: Record<string, unknown>;
-      position: string;
+  _internal: {
+    id: string;
+    Component: React.ComponentType<{
+      blockData: any;
+      mode: "site" | "peek" | "layout";
+      isFirstBlock?: boolean;
+      showAddBlockTop?: boolean;
+      showAddBlockBottom?: boolean;
+      addBlockAfterPosition?: string | null;
     }>;
+    getInitialBundle: () => {
+      content: Record<string, unknown>;
+      settings: Record<string, unknown>;
+      repeatableItems: Array<{
+        tempId: string;
+        parentTempId: string | null;
+        fieldName: string;
+        content: Record<string, unknown>;
+        position: string;
+      }>;
+    };
   };
 }
 
@@ -77,12 +79,16 @@ export function createLayout(options: CreateLayoutOptions) {
     return (
       <>
         {beforeBlocks.map((block, i) => {
-          const blockData = ctx.layoutBlocks[block.id];
+          const blockData = ctx.layoutBlocks[block._internal.id];
           if (!blockData) return null;
           const isLastBefore = i === beforeBlocks.length - 1;
           return (
-            <BlockErrorBoundary key={block.id} blockId={blockData._id} blockType={blockData.type}>
-              <block.Component
+            <BlockErrorBoundary
+              key={block._internal.id}
+              blockId={blockData._id}
+              blockType={blockData.type}
+            >
+              <block._internal.Component
                 blockData={blockData}
                 mode="layout"
                 showAddBlockBottom={isLastBefore || undefined}
@@ -104,12 +110,16 @@ export function createLayout(options: CreateLayoutOptions) {
     return (
       <>
         {afterBlocks.map((block, i) => {
-          const blockData = ctx.layoutBlocks[block.id];
+          const blockData = ctx.layoutBlocks[block._internal.id];
           if (!blockData) return null;
           const isFirstAfter = i === 0;
           return (
-            <BlockErrorBoundary key={block.id} blockId={blockData._id} blockType={blockData.type}>
-              <block.Component
+            <BlockErrorBoundary
+              key={block._internal.id}
+              blockId={blockData._id}
+              blockType={blockData.type}
+            >
+              <block._internal.Component
                 blockData={blockData}
                 mode="layout"
                 showAddBlockTop={isFirstAfter || undefined}
@@ -138,9 +148,9 @@ export function createLayout(options: CreateLayoutOptions) {
   // Build block definitions array for sync
   const blockDefinitions = [
     ...options.blocks.before.map((block) => {
-      const bundle = block.getInitialBundle();
+      const bundle = block._internal.getInitialBundle();
       return {
-        type: block.id,
+        type: block._internal.id,
         content: bundle.content,
         settings: bundle.settings,
         repeatableItems: bundle.repeatableItems,
@@ -148,9 +158,9 @@ export function createLayout(options: CreateLayoutOptions) {
       };
     }),
     ...options.blocks.after.map((block) => {
-      const bundle = block.getInitialBundle();
+      const bundle = block._internal.getInitialBundle();
       return {
-        type: block.id,
+        type: block._internal.id,
         content: bundle.content,
         settings: bundle.settings,
         repeatableItems: bundle.repeatableItems,
@@ -168,9 +178,9 @@ export function createLayout(options: CreateLayoutOptions) {
     : undefined;
 
   const initialBlockBundles = options.initialBlocks?.map((block) => {
-    const bundle = block.getInitialBundle();
+    const bundle = block._internal.getInitialBundle();
     return {
-      type: block.id,
+      type: block._internal.id,
       content: bundle.content,
       settings: bundle.settings,
       repeatableItems: bundle.repeatableItems,
@@ -178,17 +188,19 @@ export function createLayout(options: CreateLayoutOptions) {
   });
 
   return {
-    id: options.id,
-    title: options.title,
-    description: options.description,
-    buildMetaTitle: options.buildMetaTitle,
-    buildOgImage,
-    blockDefinitions,
-    initialBlockBundles,
-    component: options.component,
-    Provider,
     BeforeBlocks,
     AfterBlocks,
+    _internal: {
+      id: options.id,
+      title: options.title,
+      description: options.description,
+      buildMetaTitle: options.buildMetaTitle,
+      buildOgImage,
+      blockDefinitions,
+      initialBlockBundles,
+      component: options.component,
+      Provider,
+    },
   };
 }
 

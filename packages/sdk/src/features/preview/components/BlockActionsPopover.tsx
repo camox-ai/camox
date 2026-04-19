@@ -184,8 +184,8 @@ const BlockActionsPopover = ({
                     (() => {
                       const blockDef = camoxApp.getBlockById(block.type);
                       const hasSettings =
-                        blockDef?.settingsSchema?.properties &&
-                        Object.keys(blockDef.settingsSchema.properties).length > 0;
+                        blockDef?._internal.settingsSchema?.properties &&
+                        Object.keys(blockDef._internal.settingsSchema.properties).length > 0;
                       if (!hasSettings) return null;
                       return (
                         <CommandItem

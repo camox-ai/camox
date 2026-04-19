@@ -55,16 +55,18 @@ export async function syncDefinitionsToApi(options: {
   // sync their definitions only in that case. Otherwise the DB accumulates
   // dead rows for blocks the UI can never instantiate.
   const definitions = blocks
-    .filter((block: Block) => !block.layoutOnly || typesUsedInLayouts.has(block.id))
+    .filter(
+      (block: Block) => !block._internal.layoutOnly || typesUsedInLayouts.has(block._internal.id),
+    )
     .map((block: Block) => ({
-      blockId: block.id,
-      title: block.title,
-      description: block.description,
-      contentSchema: block.contentSchema,
-      settingsSchema: block.settingsSchema,
-      defaultContent: block.getInitialContent(),
-      defaultSettings: block.getInitialSettings(),
-      layoutOnly: block.layoutOnly || undefined,
+      blockId: block._internal.id,
+      title: block._internal.title,
+      description: block._internal.description,
+      contentSchema: block._internal.contentSchema,
+      settingsSchema: block._internal.settingsSchema,
+      defaultContent: block._internal.getInitialContent(),
+      defaultSettings: block._internal.getInitialSettings(),
+      layoutOnly: block._internal.layoutOnly || undefined,
     }));
 
   let environmentCreated = false;
@@ -278,7 +280,7 @@ export async function syncDefinitions(
 
     const block = blockModule.block;
 
-    if (block.layoutOnly) {
+    if (block._internal.layoutOnly) {
       // layoutOnly blocks only sync when a layout uses them
       return;
     }
@@ -288,14 +290,14 @@ export async function syncDefinitions(
       result = await client.blockDefinitions.upsert({
         projectSlug,
         syncSecret,
-        blockId: block.id,
-        title: block.title,
-        description: block.description,
-        contentSchema: block.contentSchema,
-        settingsSchema: block.settingsSchema,
-        defaultContent: block.getInitialContent(),
-        defaultSettings: block.getInitialSettings(),
-        layoutOnly: block.layoutOnly || undefined,
+        blockId: block._internal.id,
+        title: block._internal.title,
+        description: block._internal.description,
+        contentSchema: block._internal.contentSchema,
+        settingsSchema: block._internal.settingsSchema,
+        defaultContent: block._internal.getInitialContent(),
+        defaultSettings: block._internal.getInitialSettings(),
+        layoutOnly: block._internal.layoutOnly || undefined,
       });
     } catch (error) {
       throwIfSyncAuthError(error);
@@ -303,7 +305,7 @@ export async function syncDefinitions(
     }
 
     server.config.logger.info(
-      `[camox] ${result.action === "created" ? "Created" : "Updated"} block definition "${block.id}"`,
+      `[camox] ${result.action === "created" ? "Created" : "Updated"} block definition "${block._internal.id}"`,
       { timestamp: true },
     );
   }

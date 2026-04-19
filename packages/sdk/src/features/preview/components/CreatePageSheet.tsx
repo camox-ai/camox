@@ -142,7 +142,7 @@ const CreatePageSheet = () => {
                   disabled={layouts != null && layouts.length <= 1}
                   items={layouts?.map((t) => ({
                     value: String(t.id),
-                    label: camoxApp.getLayoutById(t.layoutId)?.title ?? t.layoutId,
+                    label: camoxApp.getLayoutById(t.layoutId)?._internal.title ?? t.layoutId,
                   }))}
                 >
                   <SelectTrigger>
@@ -151,7 +151,7 @@ const CreatePageSheet = () => {
                   <SelectContent>
                     {layouts?.map((t) => (
                       <SelectItem key={t.id} value={String(t.id)}>
-                        {camoxApp.getLayoutById(t.layoutId)?.title ?? t.layoutId}
+                        {camoxApp.getLayoutById(t.layoutId)?._internal.title ?? t.layoutId}
                       </SelectItem>
                     ))}
                   </SelectContent>

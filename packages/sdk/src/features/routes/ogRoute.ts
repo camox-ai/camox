@@ -10,11 +10,11 @@ export function createOgHandler(camoxApp: CamoxApp) {
       const projectName = url.searchParams.get("projectName") || "";
 
       const layout = camoxApp.getLayoutById(layoutId);
-      if (!layout?.buildOgImage) {
+      if (!layout?._internal.buildOgImage) {
         return new Response("Not found", { status: 404 });
       }
 
-      return layout.buildOgImage({ title, description, projectName });
+      return layout._internal.buildOgImage({ title, description, projectName });
     },
   };
 }

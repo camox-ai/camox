@@ -1809,12 +1809,6 @@ export function createBlock<
   };
 
   return {
-    /**
-     * The react component to be used at the page level when mapping on blocks content.
-     * It exposes context that will be consumed by the Field component, and provides visual editing
-     * capabilities (e.g. delete and reorder blocks).
-     */
-    Component: BlockComponent,
     Detached,
     Field,
     Embed,
@@ -1823,78 +1817,86 @@ export function createBlock<
     File,
     Repeater,
     useSetting,
-    id: options.id,
-    title: options.title,
-    description: options.description,
-    contentSchema,
-    settingsSchema,
-    getInitialBundle: () => {
-      const counter = { value: 0 };
-      const allSeeds: RepeatableItemSeed[] = [];
+    _internal: {
+      /**
+       * The react component to be used at the page level when mapping on blocks content.
+       * It exposes context that will be consumed by the Field component, and provides visual editing
+       * capabilities (e.g. delete and reorder blocks).
+       */
+      Component: BlockComponent,
+      id: options.id,
+      title: options.title,
+      description: options.description,
+      contentSchema,
+      settingsSchema,
+      layoutOnly: options.layoutOnly ?? false,
+      getInitialBundle: () => {
+        const counter = { value: 0 };
+        const allSeeds: RepeatableItemSeed[] = [];
 
-      // Build content with _itemId markers for repeatable fields, scalar defaults for the rest
-      const content: Record<string, unknown> = { ...contentDefaults };
-      buildInitialSeeds(typeboxSchema.properties, null, content, allSeeds, counter);
+        // Build content with _itemId markers for repeatable fields, scalar defaults for the rest
+        const content: Record<string, unknown> = { ...contentDefaults };
+        buildInitialSeeds(typeboxSchema.properties, null, content, allSeeds, counter);
 
-      // Strip repeatable markers and asset placeholders for storage-safe content
-      const storageContent: Record<string, unknown> = {};
-      for (const [key, prop] of Object.entries(typeboxSchema.properties)) {
-        const ft = (prop as any).fieldType;
-        const ait = (prop as any).arrayItemType;
-        if (
-          ft === "Image" ||
-          ft === "File" ||
-          ft === "RepeatableItem" ||
-          ait === "Image" ||
-          ait === "File"
-        ) {
-          continue;
+        // Strip repeatable markers and asset placeholders for storage-safe content
+        const storageContent: Record<string, unknown> = {};
+        for (const [key, prop] of Object.entries(typeboxSchema.properties)) {
+          const ft = (prop as any).fieldType;
+          const ait = (prop as any).arrayItemType;
+          if (
+            ft === "Image" ||
+            ft === "File" ||
+            ft === "RepeatableItem" ||
+            ait === "Image" ||
+            ait === "File"
+          ) {
+            continue;
+          }
+          if ("default" in prop) {
+            storageContent[key] = prop.default;
+          }
         }
-        if ("default" in prop) {
-          storageContent[key] = prop.default;
-        }
-      }
 
-      return {
-        content: storageContent as Record<string, unknown>,
-        settings: { ...settingsDefaults },
-        repeatableItems: allSeeds,
-      };
-    },
-    getInitialContent: () => {
-      return { ...contentDefaultsForStorage } as TContent;
-    },
-    getInitialSettings: () => {
-      return { ...settingsDefaults };
-    },
-    getPeekBundle: () => {
-      const PEEK_BLOCK_ID = -1;
-      const counter = { value: 0 };
-      const allItems: PeekItem[] = [];
+        return {
+          content: storageContent as Record<string, unknown>,
+          settings: { ...settingsDefaults },
+          repeatableItems: allSeeds,
+        };
+      },
+      getInitialContent: () => {
+        return { ...contentDefaultsForStorage } as TContent;
+      },
+      getInitialSettings: () => {
+        return { ...settingsDefaults };
+      },
+      getPeekBundle: () => {
+        const PEEK_BLOCK_ID = -1;
+        const counter = { value: 0 };
+        const allItems: PeekItem[] = [];
 
-      // Build content with _itemId markers for repeatable fields, scalar defaults for the rest
-      const content: Record<string, unknown> = { ...contentDefaults };
-      buildPeekItems(typeboxSchema.properties, PEEK_BLOCK_ID, null, content, allItems, counter);
+        // Build content with _itemId markers for repeatable fields, scalar defaults for the rest
+        const content: Record<string, unknown> = { ...contentDefaults };
+        buildPeekItems(typeboxSchema.properties, PEEK_BLOCK_ID, null, content, allItems, counter);
 
-      return {
-        block: {
-          id: PEEK_BLOCK_ID,
-          pageId: null,
-          layoutId: null,
-          type: options.id,
-          content,
-          settings: settingsDefaults,
-          placement: null,
-          summary: "",
-          position: "",
-          createdAt: 0,
-          updatedAt: 0,
-        },
-        repeatableItems: allItems,
-        files: [],
-      };
+        return {
+          block: {
+            id: PEEK_BLOCK_ID,
+            pageId: null,
+            layoutId: null,
+            type: options.id,
+            content,
+            settings: settingsDefaults,
+            placement: null,
+            summary: "",
+            position: "",
+            createdAt: 0,
+            updatedAt: 0,
+          },
+          repeatableItems: allItems,
+          files: [],
+        };
+      },
     },
-    layoutOnly: options.layoutOnly ?? false,
   };
 }
 

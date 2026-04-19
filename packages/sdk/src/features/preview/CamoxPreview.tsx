@@ -132,7 +132,7 @@ const BlockRenderer = ({
 
   return (
     <NormalizedDataProvider files={data.files} repeatableItems={data.repeatableItems}>
-      <blockDef.Component
+      <blockDef._internal.Component
         blockData={{
           _id: data.block.id,
           type: data.block.type,
@@ -243,7 +243,8 @@ export const PageContent = () => {
               mode="site"
               showAddBlockTop={
                 index === 0
-                  ? (layout?.blockDefinitions.some((b) => b.placement === "before") ?? false)
+                  ? (layout?._internal.blockDefinitions.some((b) => b.placement === "before") ??
+                    false)
                   : true
               }
               showAddBlockBottom={true}
@@ -259,12 +260,12 @@ export const PageContent = () => {
   );
 
   if (layout && layoutBlocksMap) {
-    const LayoutComponent = layout.component;
+    const LayoutComponent = layout._internal.component;
     return (
       <NormalizedDataProvider files={layoutFiles} repeatableItems={layoutItems}>
-        <layout.Provider layoutBlocks={layoutBlocksMap}>
+        <layout._internal.Provider layoutBlocks={layoutBlocksMap}>
           <LayoutComponent>{pageBlocksContent}</LayoutComponent>
-        </layout.Provider>
+        </layout._internal.Provider>
       </NormalizedDataProvider>
     );
   }
