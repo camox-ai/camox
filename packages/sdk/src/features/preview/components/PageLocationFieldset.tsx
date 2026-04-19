@@ -1,7 +1,7 @@
 /* -------------------------------------------------------------------------------------------------
  * PageLocationFieldset
  * Shared fieldset for parent page select and page path input.
- * Used by CreatePageSheet and EditPageSheet.
+ * Used by CreatePageModal and EditPageSheet.
  * -----------------------------------------------------------------------------------------------*/
 
 import {
@@ -34,6 +34,7 @@ type PageLocationFieldsetProps = {
   pages: Page[] | undefined;
   /** Page ID to exclude from the parent page list (the page being edited). */
   excludePageId?: number;
+  autoFocusPathSegment?: boolean;
 };
 
 const PageLocationFieldset = ({
@@ -44,6 +45,7 @@ const PageLocationFieldset = ({
   disabled,
   pages,
   excludePageId,
+  autoFocusPathSegment,
 }: PageLocationFieldsetProps) => {
   const getParentPath = () => {
     if (!pages || !parentPageId) return "/";
@@ -103,6 +105,7 @@ const PageLocationFieldset = ({
             disabled={disabled}
             onChange={(e) => onPathSegmentChange(e.target.value)}
             placeholder="e.g. pricing, about-us"
+            autoFocus={autoFocusPathSegment}
           />
         </InputGroup>
         <p className="text-muted-foreground text-xs">

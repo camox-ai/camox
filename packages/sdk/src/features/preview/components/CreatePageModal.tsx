@@ -1,11 +1,17 @@
 /* -------------------------------------------------------------------------------------------------
- * CreatePageSheet
+ * CreatePageModal
  * -----------------------------------------------------------------------------------------------*/
 
 import { Button } from "@camox/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@camox/ui/dialog";
 import { Label } from "@camox/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
-import * as Sheet from "@camox/ui/sheet";
 import { Spinner } from "@camox/ui/spinner";
 import { Textarea } from "@camox/ui/textarea";
 import { toast } from "@camox/ui/toaster";
@@ -23,9 +29,9 @@ import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { previewStore } from "../previewStore";
 import { PageLocationFieldset } from "./PageLocationFieldset";
 
-const CreatePageSheet = () => {
+const CreatePageModal = () => {
   const projectSlug = useProjectSlug();
-  const open = useSelector(previewStore, (state) => state.context.isCreatePageSheetOpen);
+  const open = useSelector(previewStore, (state) => state.context.isCreatePageModalOpen);
   const createPage = useMutation(pageMutations.create());
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   const { data: pages } = useQuery({
@@ -74,7 +80,7 @@ const CreatePageSheet = () => {
           layoutId: values.value.layoutId,
           hasContentDescription: !!values.value.contentDescription,
         });
-        previewStore.send({ type: "closeCreatePageSheet" });
+        previewStore.send({ type: "closeCreatePageModal" });
         form.reset();
 
         // Small delay to allow database to sync before navigation
@@ -94,26 +100,26 @@ const CreatePageSheet = () => {
   }, [layouts, form]);
 
   return (
-    <Sheet.Sheet
+    <Dialog
       open={open}
       onOpenChange={(value) => {
-        if (!value) previewStore.send({ type: "closeCreatePageSheet" });
+        if (!value) previewStore.send({ type: "closeCreatePageModal" });
       }}
     >
-      <Sheet.SheetContent className="flex max-h-dvh min-w-[500px] flex-col">
-        <Sheet.SheetHeader className="border-border border-b">
-          <Sheet.SheetTitle>Create page</Sheet.SheetTitle>
-          <Sheet.SheetDescription>
+      <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Create page</DialogTitle>
+          <DialogDescription>
             Fill in the details to create a new page. It will be created as a draft.
-          </Sheet.SheetDescription>
-        </Sheet.SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
         <form
           onSubmit={(e) => {
             e.preventDefault();
             e.stopPropagation();
             form.handleSubmit();
           }}
-          className="space-y-4 overflow-y-auto px-4 py-4"
+          className="-mx-1 space-y-4 overflow-y-auto px-1 py-2"
         >
           <form.Field name="parentPageId">
             {(parentField) => (
@@ -125,6 +131,7 @@ const CreatePageSheet = () => {
                     pathSegment={pathField.state.value}
                     onPathSegmentChange={pathField.handleChange}
                     pages={pages}
+                    autoFocusPathSegment
                   />
                 )}
               </form.Field>
@@ -181,9 +188,9 @@ const CreatePageSheet = () => {
             {form.state.isSubmitting && "..."}
           </Button>
         </form>
-      </Sheet.SheetContent>
-    </Sheet.Sheet>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-export { CreatePageSheet };
+export { CreatePageModal };

@@ -25,7 +25,7 @@ import { Navbar } from "../studio/components/Navbar";
 import { AddBlockSheet } from "./components/AddBlockSheet";
 import { AgentChatSheet } from "./components/AgentChatSheet";
 import { BlockErrorBoundary } from "./components/BlockErrorBoundary";
-import { CreatePageSheet } from "./components/CreatePageSheet";
+import { CreatePageModal } from "./components/CreatePageModal";
 import { EditPageSheet } from "./components/EditPageSheet";
 import { PageContentSheet } from "./components/PageContentSheet";
 import { PagePicker } from "./components/PagePicker";
@@ -375,7 +375,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       <PageContentSheet />
       <AddBlockSheet />
       <AgentChatSheet />
-      <CreatePageSheet />
+      <CreatePageModal />
       <EditPageSheet />
     </div>
   );
@@ -401,7 +401,7 @@ export function usePreviewPagesActions() {
         label: "Create page",
         groupLabel: "Preview",
         checkIfAvailable: () => true,
-        execute: () => previewStore.send({ type: "openCreatePageSheet" }),
+        execute: () => previewStore.send({ type: "openCreatePageModal" }),
       },
       {
         id: "edit-current-page",

@@ -219,7 +219,7 @@ const PagePicker = () => {
               <CommandItem
                 onSelect={() => {
                   closePopover();
-                  previewStore.send({ type: "openCreatePageSheet" });
+                  previewStore.send({ type: "openCreatePageModal" });
                 }}
                 value={CREATE_PAGE_VALUE}
               >

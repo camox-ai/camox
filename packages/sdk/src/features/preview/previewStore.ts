@@ -52,7 +52,7 @@ interface PreviewContext {
   isPageContentSheetOpen: boolean;
   isAddBlockSheetOpen: boolean;
   isAgentChatSheetOpen: boolean;
-  isCreatePageSheetOpen: boolean;
+  isCreatePageModalOpen: boolean;
   editingPageId: number | null;
   isContentLocked: boolean;
   isMobileMode: boolean;
@@ -71,7 +71,7 @@ export const previewStore = createStore({
     isPageContentSheetOpen: false,
     isAddBlockSheetOpen: false,
     isAgentChatSheetOpen: false,
-    isCreatePageSheetOpen: false,
+    isCreatePageModalOpen: false,
     editingPageId: null,
     isContentLocked: false,
     isMobileMode: false,
@@ -257,13 +257,13 @@ export const previewStore = createStore({
       ...context,
       isAgentChatSheetOpen: false,
     }),
-    openCreatePageSheet: (context) => ({
+    openCreatePageModal: (context) => ({
       ...context,
-      isCreatePageSheetOpen: true,
+      isCreatePageModalOpen: true,
     }),
-    closeCreatePageSheet: (context) => ({
+    closeCreatePageModal: (context) => ({
       ...context,
-      isCreatePageSheetOpen: false,
+      isCreatePageModalOpen: false,
     }),
     openEditPageSheet: (context, event: { pageId: number }) => ({
       ...context,
