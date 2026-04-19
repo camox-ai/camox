@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/camox-ai/camox/compare/camox-v0.9.1...@camox/ui-v0.10.0) (2026-04-19)
+
+
+### Bug Fixes
+
+* various bugs ([86e66ba](https://github.com/camox-ai/camox/commit/86e66badfc79030e49513d5403fe7089b12814fd))
+
+
+### Miscellaneous
+
+* convert edit page sheet to modal ([487b0a5](https://github.com/camox-ai/camox/commit/487b0a5a664fcfe821289a877f3c66156067dd05))
+
 ## [0.9.1](https://github.com/camox-ai/camox/compare/camox-v0.9.0...@camox/ui-v0.9.1) (2026-04-18)
 
 
