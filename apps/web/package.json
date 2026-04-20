@@ -11,6 +11,7 @@
     "check": "tsgo --noEmit && oxlint --fix"
   },
   "dependencies": {
+    "@base-ui/react": "^1.4.0",
     "@camox/api-contract": "workspace:*",
     "@camox/ui": "workspace:*",
     "@daveyplate/better-auth-ui": "^3.4.0",
@@ -25,11 +26,15 @@
     "@tanstack/router-plugin": "^1.167.18",
     "better-auth": "1.5.5",
     "camox": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "hono": "^4.12.12",
     "lucide-react": "^0.476.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "shadcn": "^4.3.1",
     "slugify": "^1.6.9",
+    "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",
     "zod": "^4.3.6"
   },

@@ -1,6 +1,7 @@
-import { Button } from "@camox/ui/button";
 import { Link } from "@tanstack/react-router";
 import { Type, createBlock } from "camox/createBlock";
+
+import { Button } from "@/components/ui/button";
 
 const hero = createBlock({
   id: "hero",
