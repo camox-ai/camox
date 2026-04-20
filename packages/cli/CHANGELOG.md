@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/camox-ai/camox/compare/camox-v0.10.1...@camox/cli-v0.11.0) (2026-04-20)
+
+
+### Features
+
+* **camox:** new toMarkdown type safe builder api ([5b0f18e](https://github.com/camox-ai/camox/commit/5b0f18e55850ae685eab0a1f633560fbab9017b8))
+
 ## [0.10.1](https://github.com/camox-ai/camox/compare/camox-v0.10.0...@camox/cli-v0.10.1) (2026-04-20)
 
 

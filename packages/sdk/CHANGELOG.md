@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.11.0](https://github.com/camox-ai/camox/compare/camox-v0.10.1...camox-sdk-v0.11.0) (2026-04-20)
+
+
+### Features
+
+* **camox:** new toMarkdown type safe builder api ([5b0f18e](https://github.com/camox-ai/camox/commit/5b0f18e55850ae685eab0a1f633560fbab9017b8))
+
+
+### Bug Fixes
+
+* race condition breaking partykit in prod ([6ea3dfa](https://github.com/camox-ai/camox/commit/6ea3dfaf7569180239a90640f87960c72e2c4682))
+* sidebar lexical editor losing focus ([420264d](https://github.com/camox-ai/camox/commit/420264de34ea8b530ed0f27bbe5ca05a69464888))
+
 ## [0.10.1](https://github.com/camox-ai/camox/compare/camox-v0.10.0...camox-sdk-v0.10.1) (2026-04-20)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/camox-ai/camox/compare/camox-v0.10.1...@camox/ui-v0.11.0) (2026-04-20)
+
+
+### Bug Fixes
+
+* sidebar lexical editor losing focus ([420264d](https://github.com/camox-ai/camox/commit/420264de34ea8b530ed0f27bbe5ca05a69464888))
+
 ## [0.10.1](https://github.com/camox-ai/camox/compare/camox-v0.10.0...@camox/ui-v0.10.1) (2026-04-20)
 
 
