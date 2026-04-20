@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.1](https://github.com/camox-ai/camox/compare/camox-v0.10.0...camox-sdk-v0.10.1) (2026-04-20)
+
+
+### Bug Fixes
+
+* remaining hydration issues ([4432899](https://github.com/camox-ai/camox/commit/4432899f846491607cbbadeb4fce0485cdd6796c))
+* ssr Link href ([3015859](https://github.com/camox-ai/camox/commit/3015859946421702fe44d12c0f6a507433415c31))
+
 ## [0.10.0](https://github.com/camox-ai/camox/compare/camox-v0.9.1...camox-sdk-v0.10.0) (2026-04-19)
 
 
