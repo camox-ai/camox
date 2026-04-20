@@ -282,10 +282,12 @@ const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => 
       );
   }
 
-  broadcastInvalidation(context.env.ProjectRoom, projectId, [
-    queryKeys.layouts.all,
-    queryKeys.pages.getByPathAll,
-  ]);
+  broadcastInvalidation({
+    waitUntil: context.waitUntil,
+    projectRoomNamespace: context.env.ProjectRoom,
+    projectId,
+    targets: [queryKeys.layouts.all, queryKeys.pages.getByPathAll],
+  });
 
   return {
     layouts: results,

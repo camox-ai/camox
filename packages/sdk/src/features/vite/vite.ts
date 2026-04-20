@@ -164,6 +164,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
             "camox > @tanstack/react-query-devtools/production",
             "camox > partysocket/react",
           ],
+          exclude: ["virtual:tanstack-start-client-entry"],
         },
       };
     },

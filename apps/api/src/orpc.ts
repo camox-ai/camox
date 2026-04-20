@@ -13,6 +13,7 @@ export type BaseContext = {
   env: Bindings;
   headers: Headers;
   environmentName: string;
+  waitUntil: (promise: Promise<unknown>) => void;
 };
 
 export type AuthedContext = BaseContext & {

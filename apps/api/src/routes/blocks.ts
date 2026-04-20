@@ -470,11 +470,16 @@ const create = authed.input(createBlockSchema).handler(async ({ context, input }
     type: "summary",
     delayMs: 0,
   });
-  broadcastInvalidation(context.env.ProjectRoom, access.page.projectId, [
-    queryKeys.pages.getByPath(access.page.fullPath),
-    queryKeys.blocks.getPageMarkdown(pageId),
-    queryKeys.blocks.getUsageCounts,
-  ]);
+  broadcastInvalidation({
+    waitUntil: context.waitUntil,
+    projectRoomNamespace: context.env.ProjectRoom,
+    projectId: access.page.projectId,
+    targets: [
+      queryKeys.pages.getByPath(access.page.fullPath),
+      queryKeys.blocks.getPageMarkdown(pageId),
+      queryKeys.blocks.getUsageCounts,
+    ],
+  });
 
   return result;
 });
@@ -506,10 +511,15 @@ const updateContent = authed
       delayMs: 5000,
     });
     // Granular invalidation: only refetch this block, not the entire page
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-      queryKeys.blocks.get(id),
-      ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.projectId,
+      targets: [
+        queryKeys.blocks.get(id),
+        ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
+      ],
+    });
 
     return result;
   });
@@ -529,10 +539,15 @@ const updateSettings = authed
       .returning()
       .get();
     // Granular invalidation: only refetch this block, not the entire page
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-      queryKeys.blocks.get(id),
-      ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.projectId,
+      targets: [
+        queryKeys.blocks.get(id),
+        ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
+      ],
+    });
     return result;
   });
 
@@ -584,13 +599,18 @@ const updatePosition = authed
       .where(eq(blocks.id, id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-      ...(access.pagePath
-        ? [queryKeys.pages.getByPath(access.pagePath)]
-        : [queryKeys.pages.getByPathAll]),
-      ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
-      queryKeys.blocks.getUsageCounts,
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.projectId,
+      targets: [
+        ...(access.pagePath
+          ? [queryKeys.pages.getByPath(access.pagePath)]
+          : [queryKeys.pages.getByPathAll]),
+        ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
+        queryKeys.blocks.getUsageCounts,
+      ],
+    });
     return result;
   });
 
@@ -601,13 +621,18 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const result = await context.db.delete(blocks).where(eq(blocks.id, id)).returning().get();
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-    ...(access.pagePath
-      ? [queryKeys.pages.getByPath(access.pagePath)]
-      : [queryKeys.pages.getByPathAll]),
-    ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
-    queryKeys.blocks.getUsageCounts,
-  ]);
+  broadcastInvalidation({
+    waitUntil: context.waitUntil,
+    projectRoomNamespace: context.env.ProjectRoom,
+    projectId: access.projectId,
+    targets: [
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath)]
+        : [queryKeys.pages.getByPathAll]),
+      ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
+      queryKeys.blocks.getUsageCounts,
+    ],
+  });
   return result;
 });
 
@@ -635,10 +660,12 @@ const deleteMany = authed
     const result = await context.db.delete(blocks).where(inArray(blocks.id, blockIds)).returning();
     const projectId = authorizedBlocks[0]?.projectId;
     if (projectId) {
-      broadcastInvalidation(context.env.ProjectRoom, projectId, [
-        queryKeys.pages.getByPathAll,
-        queryKeys.blocks.getUsageCounts,
-      ]);
+      broadcastInvalidation({
+        waitUntil: context.waitUntil,
+        projectRoomNamespace: context.env.ProjectRoom,
+        projectId,
+        targets: [queryKeys.pages.getByPathAll, queryKeys.blocks.getUsageCounts],
+      });
     }
     return result;
   });
@@ -660,14 +687,19 @@ const generateSummary = authed
         delayMs: 15000,
       });
     }
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-      queryKeys.blocks.get(id),
-      ...(access.pagePath
-        ? [queryKeys.pages.getByPath(access.pagePath)]
-        : [queryKeys.pages.getByPathAll]),
-      ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
-      queryKeys.blocks.getUsageCounts,
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.projectId,
+      targets: [
+        queryKeys.blocks.get(id),
+        ...(access.pagePath
+          ? [queryKeys.pages.getByPath(access.pagePath)]
+          : [queryKeys.pages.getByPathAll]),
+        ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
+        queryKeys.blocks.getUsageCounts,
+      ],
+    });
     const updated = await context.db.select().from(blocks).where(eq(blocks.id, id)).get();
     return updated;
   });
@@ -707,13 +739,18 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
     })
     .returning()
     .get();
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-    ...(access.pagePath
-      ? [queryKeys.pages.getByPath(access.pagePath)]
-      : [queryKeys.pages.getByPathAll]),
-    ...(original.pageId ? [queryKeys.blocks.getPageMarkdown(original.pageId)] : []),
-    queryKeys.blocks.getUsageCounts,
-  ]);
+  broadcastInvalidation({
+    waitUntil: context.waitUntil,
+    projectRoomNamespace: context.env.ProjectRoom,
+    projectId: access.projectId,
+    targets: [
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath)]
+        : [queryKeys.pages.getByPathAll]),
+      ...(original.pageId ? [queryKeys.blocks.getPageMarkdown(original.pageId)] : []),
+      queryKeys.blocks.getUsageCounts,
+    ],
+  });
   return result;
 });
 

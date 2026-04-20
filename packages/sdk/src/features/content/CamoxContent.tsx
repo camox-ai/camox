@@ -106,7 +106,7 @@ export const CamoxContent = () => {
       </div>
       <UploadProgressDrawer uploads={uploads} onClose={clearAll} />
       {selectedIds.size > 0 && (
-        <FloatingToolbar className="bottom-4 min-w-xs justify-between gap-4">
+        <FloatingToolbar className="bottom-4 min-w-xs justify-between gap-4 pl-3">
           <span className="text-muted-foreground">
             <span className="font-semibold">{selectedIds.size}</span> asset
             {selectedIds.size > 1 ? "s" : ""} selected

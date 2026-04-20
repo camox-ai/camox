@@ -213,10 +213,12 @@ const setAlt = authed
       .where(eq(files.id, input.id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
-      queryKeys.files.list,
-      queryKeys.files.get(input.id),
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.file.projectId!,
+      targets: [queryKeys.files.list, queryKeys.files.get(input.id)],
+    });
     return result;
   });
 
@@ -232,10 +234,12 @@ const setFilename = authed
       .where(eq(files.id, input.id))
       .returning()
       .get();
-    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
-      queryKeys.files.list,
-      queryKeys.files.get(input.id),
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.file.projectId!,
+      targets: [queryKeys.files.list, queryKeys.files.get(input.id)],
+    });
     return result;
   });
 
@@ -247,16 +251,21 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
 
   await context.env.FILES_BUCKET.delete(access.file.blobId);
   const result = await context.db.delete(files).where(eq(files.id, input.id)).returning().get();
-  broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
-    queryKeys.files.list,
-    queryKeys.files.get(input.id),
-    ...blockIds.map((id) => queryKeys.blocks.get(id)),
-    ...blockPageIds.map((id) => queryKeys.blocks.getPageMarkdown(id)),
-    ...itemIds.map((id) => queryKeys.repeatableItems.get(id)),
-    ...(blockIds.length > 0 || itemIds.length > 0
-      ? [queryKeys.blocks.getUsageCounts, queryKeys.pages.getByPathAll]
-      : []),
-  ]);
+  broadcastInvalidation({
+    waitUntil: context.waitUntil,
+    projectRoomNamespace: context.env.ProjectRoom,
+    projectId: access.file.projectId!,
+    targets: [
+      queryKeys.files.list,
+      queryKeys.files.get(input.id),
+      ...blockIds.map((id) => queryKeys.blocks.get(id)),
+      ...blockPageIds.map((id) => queryKeys.blocks.getPageMarkdown(id)),
+      ...itemIds.map((id) => queryKeys.repeatableItems.get(id)),
+      ...(blockIds.length > 0 || itemIds.length > 0
+        ? [queryKeys.blocks.getUsageCounts, queryKeys.pages.getByPathAll]
+        : []),
+    ],
+  });
   return result;
 });
 
@@ -297,16 +306,21 @@ const deleteMany = authed
     const uniqueBlockIds = [...new Set(allBlockIds)];
     const uniqueBlockPageIds = [...new Set(allBlockPageIds)];
     const uniqueItemIds = [...new Set(allItemIds)];
-    broadcastInvalidation(context.env.ProjectRoom, projectId, [
-      queryKeys.files.list,
-      ...ids.map((id) => queryKeys.files.get(id)),
-      ...uniqueBlockIds.map((id) => queryKeys.blocks.get(id)),
-      ...uniqueBlockPageIds.map((id) => queryKeys.blocks.getPageMarkdown(id)),
-      ...uniqueItemIds.map((id) => queryKeys.repeatableItems.get(id)),
-      ...(uniqueBlockIds.length > 0 || uniqueItemIds.length > 0
-        ? [queryKeys.blocks.getUsageCounts, queryKeys.pages.getByPathAll]
-        : []),
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId,
+      targets: [
+        queryKeys.files.list,
+        ...ids.map((id) => queryKeys.files.get(id)),
+        ...uniqueBlockIds.map((id) => queryKeys.blocks.get(id)),
+        ...uniqueBlockPageIds.map((id) => queryKeys.blocks.getPageMarkdown(id)),
+        ...uniqueItemIds.map((id) => queryKeys.repeatableItems.get(id)),
+        ...(uniqueBlockIds.length > 0 || uniqueItemIds.length > 0
+          ? [queryKeys.blocks.getUsageCounts, queryKeys.pages.getByPathAll]
+          : []),
+      ],
+    });
     return ids;
   });
 
@@ -322,10 +336,12 @@ const replace = authed
       sql`UPDATE ${blocks} SET ${blocks.content} = REPLACE(CAST(${blocks.content} AS TEXT), ${oldAccess.file.url}, ${newAccess.file.url}), ${blocks.updatedAt} = ${Date.now()} WHERE INSTR(${blocks.content}, ${oldAccess.file.url}) > 0`,
     );
 
-    broadcastInvalidation(context.env.ProjectRoom, oldAccess.file.projectId!, [
-      queryKeys.files.list,
-      queryKeys.files.get(input.id),
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: oldAccess.file.projectId!,
+      targets: [queryKeys.files.list, queryKeys.files.get(input.id)],
+    });
     return { replaced: true };
   });
 
@@ -349,10 +365,12 @@ const setAiMetadata = authed
         delayMs: 0,
       });
     }
-    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
-      queryKeys.files.list,
-      queryKeys.files.get(input.id),
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.file.projectId!,
+      targets: [queryKeys.files.list, queryKeys.files.get(input.id)],
+    });
     return result;
   });
 
@@ -363,10 +381,12 @@ const generateMetadata = authed
     if (!access) throw new ORPCError("NOT_FOUND");
 
     await executeFileMetadata(context.db, context.env.OPEN_ROUTER_API_KEY, input.id);
-    broadcastInvalidation(context.env.ProjectRoom, access.file.projectId!, [
-      queryKeys.files.list,
-      queryKeys.files.get(input.id),
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.file.projectId!,
+      targets: [queryKeys.files.list, queryKeys.files.get(input.id)],
+    });
     const updated = await context.db.select().from(files).where(eq(files.id, input.id)).get();
     return updated;
   });
@@ -453,10 +473,12 @@ fileHonoRoutes.post("/upload", async (c) => {
     type: "fileMetadata",
     delayMs: 0,
   });
-  broadcastInvalidation(c.env.ProjectRoom, projectId, [
-    queryKeys.files.list,
-    queryKeys.files.get(result.id),
-  ]);
+  broadcastInvalidation({
+    waitUntil: (p) => c.executionCtx.waitUntil(p),
+    projectRoomNamespace: c.env.ProjectRoom,
+    projectId,
+    targets: [queryKeys.files.list, queryKeys.files.get(result.id)],
+  });
 
   return c.json(result, 201);
 });

@@ -106,6 +106,7 @@ app.all("/rpc/*", async (c) => {
       env: c.env,
       headers: c.req.raw.headers,
       environmentName: c.var.environmentName,
+      waitUntil: (promise) => c.executionCtx.waitUntil(promise),
     },
   });
 

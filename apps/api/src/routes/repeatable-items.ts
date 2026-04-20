@@ -231,10 +231,12 @@ const create = authed.input(createItemSchema).handler(async ({ context, input })
     delayMs: 0,
   });
   // Granular invalidation: refetch the parent block bundle (includes new item)
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-    queryKeys.blocks.get(blockId),
-    queryKeys.blocks.getUsageCounts,
-  ]);
+  broadcastInvalidation({
+    waitUntil: context.waitUntil,
+    projectRoomNamespace: context.env.ProjectRoom,
+    projectId: access.projectId,
+    targets: [queryKeys.blocks.get(blockId), queryKeys.blocks.getUsageCounts],
+  });
 
   return result;
 });
@@ -265,9 +267,12 @@ const updateContent = authed
       delayMs: 5000,
     });
     // Granular invalidation: only refetch the parent block bundle
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-      queryKeys.blocks.get(access.item.blockId),
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.projectId,
+      targets: [queryKeys.blocks.get(access.item.blockId)],
+    });
 
     return result;
   });
@@ -323,9 +328,12 @@ const updatePosition = authed
       .returning()
       .get();
     // Granular invalidation: only refetch the parent block bundle
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-      queryKeys.blocks.get(access.item.blockId),
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.projectId,
+      targets: [queryKeys.blocks.get(access.item.blockId)],
+    });
     return result;
   });
 
@@ -367,10 +375,12 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
     .returning()
     .get();
   // Granular invalidation: refetch the parent block bundle (includes new item)
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-    queryKeys.blocks.get(original.blockId),
-    queryKeys.blocks.getUsageCounts,
-  ]);
+  broadcastInvalidation({
+    waitUntil: context.waitUntil,
+    projectRoomNamespace: context.env.ProjectRoom,
+    projectId: access.projectId,
+    targets: [queryKeys.blocks.get(original.blockId), queryKeys.blocks.getUsageCounts],
+  });
   return result;
 });
 
@@ -395,10 +405,12 @@ const generateSummary = authed
       });
     }
     // Granular invalidation: refetch the parent block bundle (includes updated summary)
-    broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-      queryKeys.blocks.get(access.item.blockId),
-      queryKeys.blocks.getUsageCounts,
-    ]);
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.projectId,
+      targets: [queryKeys.blocks.get(access.item.blockId), queryKeys.blocks.getUsageCounts],
+    });
     const updated = await context.db
       .select()
       .from(repeatableItems)
@@ -419,10 +431,12 @@ const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ con
     .returning()
     .get();
   // Granular invalidation: refetch the parent block bundle (item removed)
-  broadcastInvalidation(context.env.ProjectRoom, access.projectId, [
-    queryKeys.blocks.get(blockId),
-    queryKeys.blocks.getUsageCounts,
-  ]);
+  broadcastInvalidation({
+    waitUntil: context.waitUntil,
+    projectRoomNamespace: context.env.ProjectRoom,
+    projectId: access.projectId,
+    targets: [queryKeys.blocks.get(blockId), queryKeys.blocks.getUsageCounts],
+  });
   return result;
 });
 

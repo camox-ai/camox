@@ -62,10 +62,12 @@ export class AiJobScheduler extends DurableObject<Bindings> {
       // Broadcast block summary update
       const projectId = await this.getBlockProjectId(db, entityId);
       if (projectId) {
-        broadcastInvalidation(this.env.ProjectRoom, projectId, [
-          queryKeys.pages.getByPathAll,
-          queryKeys.blocks.getUsageCounts,
-        ]);
+        broadcastInvalidation({
+          waitUntil: (p) => this.ctx.waitUntil(p),
+          projectRoomNamespace: this.env.ProjectRoom,
+          projectId,
+          targets: [queryKeys.pages.getByPathAll, queryKeys.blocks.getUsageCounts],
+        });
       }
     } else if (entityTable === "repeatableItems" && type === "summary") {
       const cascade = await executeRepeatableItemSummary(db, apiKey, entityId);
@@ -89,10 +91,12 @@ export class AiJobScheduler extends DurableObject<Bindings> {
       if (item) {
         const projectId = await this.getBlockProjectId(db, item.blockId);
         if (projectId) {
-          broadcastInvalidation(this.env.ProjectRoom, projectId, [
-            queryKeys.pages.getByPathAll,
-            queryKeys.blocks.getUsageCounts,
-          ]);
+          broadcastInvalidation({
+            waitUntil: (p) => this.ctx.waitUntil(p),
+            projectRoomNamespace: this.env.ProjectRoom,
+            projectId,
+            targets: [queryKeys.pages.getByPathAll, queryKeys.blocks.getUsageCounts],
+          });
         }
       }
     } else if (entityTable === "files" && type === "fileMetadata") {
@@ -100,20 +104,24 @@ export class AiJobScheduler extends DurableObject<Bindings> {
 
       const file = await db.select().from(files).where(eq(files.id, entityId)).get();
       if (file?.projectId) {
-        broadcastInvalidation(this.env.ProjectRoom, file.projectId, [
-          queryKeys.files.list,
-          queryKeys.files.get(entityId),
-        ]);
+        broadcastInvalidation({
+          waitUntil: (p) => this.ctx.waitUntil(p),
+          projectRoomNamespace: this.env.ProjectRoom,
+          projectId: file.projectId,
+          targets: [queryKeys.files.list, queryKeys.files.get(entityId)],
+        });
       }
     } else if (entityTable === "pages" && type === "seo") {
       await executePageSeo(db, apiKey, entityId);
 
       const page = await db.select().from(pages).where(eq(pages.id, entityId)).get();
       if (page) {
-        broadcastInvalidation(this.env.ProjectRoom, page.projectId, [
-          queryKeys.pages.list,
-          queryKeys.pages.getById(entityId),
-        ]);
+        broadcastInvalidation({
+          waitUntil: (p) => this.ctx.waitUntil(p),
+          projectRoomNamespace: this.env.ProjectRoom,
+          projectId: page.projectId,
+          targets: [queryKeys.pages.list, queryKeys.pages.getById(entityId)],
+        });
       }
     }
   }
