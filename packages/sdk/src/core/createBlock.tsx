@@ -5,6 +5,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@camox/ui/popover";
 import { toast } from "@camox/ui/toaster";
 import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store/react";
 import { generateKeyBetween } from "fractional-indexing";
 import * as React from "react";
@@ -54,14 +55,24 @@ const normalizeLinkValue = (value: Record<string, unknown>): LinkValue => {
   return value as LinkValue;
 };
 
-/** Resolve a LinkValue to an href string */
+/**
+ * Resolve a LinkValue to an href string.
+ *
+ * Hash-only and empty hrefs are anchored to `currentPathname` so TanStack Router's
+ * `<Link to>` builds the same `href` on SSR and client — bare `"#"` otherwise
+ * resolves inconsistently across environments, causing hydration mismatches.
+ */
 const resolveLinkHref = (
   link: LinkValue,
   pages: Array<{ id: number; fullPath: string }> | undefined,
+  currentPathname: string,
 ): string => {
   if (link.type === "page") {
     const page = pages?.find((p) => String(p.id) === link.pageId);
-    return page?.fullPath ?? "#";
+    return page?.fullPath ?? currentPathname;
+  }
+  if (!link.href || link.href.startsWith("#")) {
+    return `${currentPathname}${link.href ?? ""}`;
   }
   return link.href;
 };
@@ -928,7 +939,8 @@ export function createBlock<
       ...pageQueries.list(project?.id ?? 0),
       enabled: !!project,
     });
-    const resolvedHref = resolveLinkHref(fieldValue, pages as Page[] | undefined);
+    const currentPathname = useLocation({ select: (l) => l.pathname });
+    const resolvedHref = resolveLinkHref(fieldValue, pages as Page[] | undefined, currentPathname);
 
     const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));
 

@@ -76,7 +76,7 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
   }, [signInRedirect, authenticationUrl]);
 
   React.useEffect(() => {
-    if (!import.meta.env.PROD) {
+    if (import.meta.env.PROD) {
       return;
     }
     const toastId = toast("Sign in to open Camox Studio", {

@@ -67,7 +67,11 @@ function DownloadWhitebookComponent() {
               {(fileProps) => (
                 <downloadWhitebook.Field name="cta">
                   {(ctaProps) => (
-                    <Button size="lg" render={<a {...fileProps} {...ctaProps} />}>
+                    <Button
+                      size="lg"
+                      nativeButton={false}
+                      render={<a {...fileProps} {...ctaProps} />}
+                    >
                       <Download className="mr-2 h-5 w-5" />
                       {ctaProps.children}
                     </Button>
