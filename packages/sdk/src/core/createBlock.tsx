@@ -37,11 +37,12 @@ import { useIsEditable } from "./hooks/useIsEditable.ts";
 import { useOverlayMessage } from "./hooks/useOverlayMessage.ts";
 import {
   Type,
+  resolveToMarkdown,
   type EmbedURL,
   type LinkValue,
   type ImageValue,
   type FileValue,
-  type ExtractAllPlaceholders,
+  type ToMarkdownBuilder,
 } from "./lib/contentType.ts";
 import { markdownToReactNodes } from "./lib/lexicalReact";
 
@@ -86,7 +87,6 @@ let hasShownEmbedLockToast = false;
 interface CreateBlockOptions<
   TSchemaShape extends Record<string, TSchema> = Record<string, TSchema>,
   TSettingsShape extends Record<string, TSchema> = Record<string, TSchema>,
-  TMarkdown extends readonly string[] = readonly string[],
   TLayoutOnly extends boolean = false,
 > {
   id: string;
@@ -115,19 +115,6 @@ interface CreateBlockOptions<
    */
   content: TSchemaShape;
   /**
-   * Template for rendering block content as markdown.
-   * Each line is joined with `\n\n`. Use `{{fieldName}}` placeholders for field values.
-   * Lines where all placeholders resolve to empty are omitted.
-   *
-   * @example
-   * toMarkdown: ["# {{title}}", "{{description}}", "{{illustration}}", "{{cta}}"]
-   */
-  toMarkdown: [ExtractAllPlaceholders<TMarkdown>] extends [Extract<keyof TSchemaShape, string>]
-    ? TMarkdown
-    : readonly [
-        `Invalid toMarkdown placeholder {{${Exclude<ExtractAllPlaceholders<TMarkdown>, Extract<keyof TSchemaShape, string>>}}}`,
-      ];
-  /**
    * Optional schema defining block-level settings (e.g. layout variant, toggles).
    * Settings are not inline-editable; they use Type.Enum() and Type.Boolean().
    *
@@ -151,6 +138,16 @@ interface CreateBlockOptions<
   component: React.ComponentType<{
     content: Static<ReturnType<typeof TypeBoxType.Object<TSchemaShape>>>;
   }>;
+  /**
+   * Builder for rendering block content as markdown.
+   * `c` is a proxy typed on `content` keys — `c.title`, `c.description`, etc.
+   * Each returned entry becomes a paragraph (joined with `\n\n`).
+   * Lines where all referenced fields resolve to empty are omitted at render time.
+   *
+   * @example
+   * toMarkdown: (c) => [`# ${c.title}`, c.description, c.illustration, c.cta]
+   */
+  toMarkdown: ToMarkdownBuilder<TSchemaShape>;
 }
 
 interface BlockData<TContent> {
@@ -321,9 +318,8 @@ function buildPeekItems(
 export function createBlock<
   TSchemaShape extends Record<string, TSchema>,
   TSettingsShape extends Record<string, TSchema> = Record<string, never>,
-  const TMarkdown extends readonly string[] = readonly string[],
   TLayoutOnly extends boolean = false,
->(options: CreateBlockOptions<TSchemaShape, TSettingsShape, TMarkdown, TLayoutOnly>) {
+>(options: CreateBlockOptions<TSchemaShape, TSettingsShape, TLayoutOnly>) {
   // Build TypeBox schema for runtime validation and default value creation
   const typeboxSchema = TypeBoxType.Object(options.content);
 
@@ -334,7 +330,7 @@ export function createBlock<
     description: options.description,
     properties: typeboxSchema.properties,
     required: Object.keys(options.content),
-    toMarkdown: options.toMarkdown as readonly string[],
+    toMarkdown: resolveToMarkdown(options.toMarkdown),
   };
 
   // Build settings schema (if provided)

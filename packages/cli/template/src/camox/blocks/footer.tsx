@@ -6,7 +6,6 @@ const footer = createBlock({
   title: "Footer",
   layoutOnly: true,
   description: "A footer at the bottom of a page with a site name and navigation links.",
-  toMarkdown: ["{{title}}", "{{links}}"],
   content: {
     title: Type.String({ default: "{{projectName}}" }),
     links: Type.RepeatableItem(
@@ -20,11 +19,12 @@ const footer = createBlock({
         minItems: 1,
         maxItems: 12,
         title: "Links",
-        toMarkdown: ["{{link}}"],
+        toMarkdown: (c) => [c.link],
       },
     ),
   },
   component: FooterComponent,
+  toMarkdown: (c) => [c.title, c.links],
 });
 
 function FooterComponent() {

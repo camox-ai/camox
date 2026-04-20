@@ -5,7 +5,6 @@ const testimonial = createBlock({
   title: "Testimonial",
   description:
     "Display a customer testimonial or user review. Ideal for building trust and social proof.",
-  toMarkdown: ["> {{quote}}", "— {{author}}, {{title}}, {{company}}"],
   content: {
     quote: Type.String({
       default:
@@ -17,6 +16,7 @@ const testimonial = createBlock({
     company: Type.String({ default: "TechCorp", title: "Company" }),
   },
   component: TestimonialComponent,
+  toMarkdown: (c) => [`> ${c.quote}`, `— ${c.author}, ${c.title}, ${c.company}`],
 });
 
 function TestimonialComponent() {

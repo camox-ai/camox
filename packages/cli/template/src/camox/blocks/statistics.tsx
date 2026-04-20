@@ -5,7 +5,6 @@ const statistics = createBlock({
   title: "Statistics",
   description:
     "Showcase key metrics, achievements, or performance indicators. Ideal for displaying platform statistics or company milestones.",
-  toMarkdown: ["## {{subtitle}}", "{{description}}", "{{statistics}}"],
   content: {
     title: Type.String({
       default: "By the numbers",
@@ -37,11 +36,12 @@ const statistics = createBlock({
         minItems: 3,
         maxItems: 8,
         title: "Statistics",
-        toMarkdown: ["**{{number}}** — {{label}}"],
+        toMarkdown: (c) => [`**${c.number}** — ${c.label}`],
       },
     ),
   },
   component: StatisticsComponent,
+  toMarkdown: (c) => [`## ${c.subtitle}`, c.description, c.statistics],
 });
 
 function StatisticsComponent() {

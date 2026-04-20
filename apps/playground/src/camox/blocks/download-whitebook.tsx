@@ -8,7 +8,6 @@ const downloadWhitebook = createBlock({
   title: "Download Whitebook",
   description:
     "Use this block to offer a downloadable PDF whitebook or whitepaper. It displays a cover image alongside a title, description, and a download button. Ideal for lead magnets, research papers, guides, or any downloadable document you want to highlight.",
-  toMarkdown: ["## {{title}}", "{{description}}", "{{cover}}", "{{file}}"],
   content: {
     title: Type.String({
       default: "Download our whitebook",
@@ -34,6 +33,7 @@ const downloadWhitebook = createBlock({
     }),
   },
   component: DownloadWhitebookComponent,
+  toMarkdown: (c) => [`## ${c.title}`, c.description, c.cover, c.file],
 });
 
 function DownloadWhitebookComponent() {

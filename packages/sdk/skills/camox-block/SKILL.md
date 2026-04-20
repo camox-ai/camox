@@ -18,7 +18,6 @@ const myBlock = createBlock({
   id: "my-block", // Must match filename (kebab-case)
   title: "My Block", // Human-readable name
   description: "...", // Tells the AI when/how to use this block
-  toMarkdown: ["# {{title}}", "{{description}}"], // Markdown template
   content: {
     /* ... */
   }, // Editable content schema
@@ -26,6 +25,7 @@ const myBlock = createBlock({
     /* ... */
   }, // Optional config toggles
   component: MyBlockComponent,
+  toMarkdown: (c) => [`# ${c.title}`, c.description], // Markdown template
 });
 
 function MyBlockComponent() {
@@ -41,20 +41,26 @@ export { myBlock as block };
 
 ## The `createBlock` options
 
-| Option        | Required | Description                                                                                                                                                                                                   |
-| ------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`          | yes      | Unique kebab-case identifier. Must match the filename without extension.                                                                                                                                      |
-| `title`       | yes      | Display name shown in the CMS UI.                                                                                                                                                                             |
-| `description` | yes      | Tells the AI assistant when to use this block and what content it expects. Write it like guidance for an LLM — be specific about placement, tone, and content guidelines.                                     |
-| `toMarkdown`  | yes      | A `string[]` template for rendering block content as markdown. Each line is joined with `\n\n`. Use `{{fieldName}}` placeholders for field values. Lines where all placeholders resolve to empty are omitted. |
-| `content`     | yes      | An object where each key is a field name and each value is a `Type.*` call. These fields are inline-editable in the CMS.                                                                                      |
-| `settings`    | no       | Same shape as `content`, but for configuration that lives in a settings panel (not inline). Only `Type.Enum` and `Type.Boolean` should be used here.                                                          |
-| `layoutOnly`  | no       | If `true`, the block won't appear in the "add block" sheet — it can only be placed inside layouts (e.g. navbar, footer).                                                                                      |
-| `component`   | yes      | A named React function component that renders the block.                                                                                                                                                      |
+| Option        | Required | Description                                                                                                                                                                                                                                                                                                                  |
+| ------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | yes      | Unique kebab-case identifier. Must match the filename without extension.                                                                                                                                                                                                                                                     |
+| `title`       | yes      | Display name shown in the CMS UI.                                                                                                                                                                                                                                                                                            |
+| `description` | yes      | Tells the AI assistant when to use this block and what content it expects. Write it like guidance for an LLM — be specific about placement, tone, and content guidelines.                                                                                                                                                    |
+| `content`     | yes      | An object where each key is a field name and each value is a `Type.*` call. These fields are inline-editable in the CMS.                                                                                                                                                                                                     |
+| `settings`    | no       | Same shape as `content`, but for configuration that lives in a settings panel (not inline). Only `Type.Enum` and `Type.Boolean` should be used here.                                                                                                                                                                         |
+| `layoutOnly`  | no       | If `true`, the block won't appear in the "add block" sheet — it can only be placed inside layouts (e.g. navbar, footer).                                                                                                                                                                                                     |
+| `component`   | yes      | A named React function component that renders the block.                                                                                                                                                                                                                                                                     |
+| `toMarkdown`  | yes      | A builder function `(c) => (string \| FieldToken)[]` that renders block content as markdown. `c` is a proxy typed on your `content` keys — use `c.fieldName` bare or inside template literals. Each returned entry becomes a paragraph (joined with `\n\n`). Lines where all referenced fields resolve to empty are omitted. |
 
 ## Markdown Template (`toMarkdown`)
 
-The `toMarkdown` array controls how block content is rendered as markdown for AI features (summaries, SEO). Each string in the array becomes a paragraph (joined with `\n\n`). Use `{{fieldName}}` placeholders that reference keys in `content`.
+`toMarkdown` is a builder function that controls how block content is rendered as markdown for AI features (summaries, SEO). It receives `c`, a proxy typed on your `content` keys, and returns an array of entries. Each entry becomes a paragraph (joined with `\n\n`).
+
+A bare `c.fieldName` is the default for single-field lines. Use template literals when combining fields or adding markdown syntax:
+
+```tsx
+toMarkdown: (c) => [`# ${c.title}`, c.description, c.cta];
+```
 
 **Field resolution rules:**
 
@@ -63,29 +69,29 @@ The `toMarkdown` array controls how block content is rendered as markdown for AI
 - **Image**: `![alt](filename)`
 - **File**: `[filename](url)`
 - **Embed**: raw URL string
-- **RepeatableItem**: each item rendered via its own `toMarkdown` (if set on the RepeatableObject options), items joined with `\n\n`
+- **RepeatableItem**: each item rendered via its own `toMarkdown` (if set on the RepeatableItem options), items joined with `\n\n`
 - **Boolean/Enum**: raw string value
 
-Lines where ALL placeholders resolve to empty are omitted from output.
+Lines where ALL referenced fields resolve to empty are omitted from output.
 
 **Examples:**
 
 ```tsx
 // Hero block
 createBlock({
-  toMarkdown: ["# {{title}}", "{{description}}", "{{illustration}}", "{{cta}}"],
+  toMarkdown: (c) => [`# ${c.title}`, c.description, c.illustration, c.cta],
   content: { ... },
 })
 
 // Testimonial — combine fields on one line
 createBlock({
-  toMarkdown: ["> {{quote}}", "— {{author}}, {{title}}, {{company}}"],
+  toMarkdown: (c) => [`> ${c.quote}`, `— ${c.author}, ${c.title}, ${c.company}`],
   content: { ... },
 })
 
 // Statistics — RepeatableItem with its own toMarkdown
 createBlock({
-  toMarkdown: ["## {{subtitle}}", "{{description}}", "{{statistics}}"],
+  toMarkdown: (c) => [`## ${c.subtitle}`, c.description, c.statistics],
   content: {
     subtitle: Type.String({ default: "..." }),
     description: Type.String({ default: "..." }),
@@ -94,13 +100,13 @@ createBlock({
         number: Type.String({ default: "100M+" }),
         label: Type.String({ default: "pages served" }),
       },
-      { minItems: 4, maxItems: 8, toMarkdown: ["**{{number}}** — {{label}}"] }
+      { minItems: 4, maxItems: 8, toMarkdown: (c) => [`**${c.number}** — ${c.label}`] }
     ),
   },
 })
 ```
 
-The template is type-safe — `{{fieldName}}` placeholders are validated against the content keys at compile time. Typos like `{{titl}}` produce a TypeScript error.
+The builder is type-safe — accessing a key that doesn't exist on `content` (e.g. `c.titl`) is a TypeScript error.
 
 ## Content Field Types
 
@@ -212,12 +218,12 @@ Type.RepeatableItem(
     minItems: 1, // Must be >= 1
     maxItems: 10,
     title: "Features",
-    toMarkdown: ["### {{name}}", "{{description}}"], // Optional markdown template for each item
+    toMarkdown: (c) => [`### ${c.name}`, c.description], // Required markdown template for each item
   },
 );
 ```
 
-The `toMarkdown` option on RepeatableItem defines how each item is rendered as markdown when the parent block's `toMarkdown` references this field. If omitted, fields are joined with " — " as a fallback.
+The `toMarkdown` option on RepeatableItem defines how each item is rendered as markdown when the parent block's `toMarkdown` references this field. It is required, same as on the block itself.
 
 Repeatable items can be nested — an item can contain another RepeatableItem:
 
@@ -229,10 +235,10 @@ columns: Type.RepeatableItem(
       {
         link: Type.Link({ default: { text: "Link", href: "#", newTab: false } }),
       },
-      { minItems: 1, maxItems: 999, toMarkdown: ["{{link}}"] },
+      { minItems: 1, maxItems: 999, toMarkdown: (c) => [c.link] },
     ),
   },
-  { minItems: 2, maxItems: 4, title: "Columns", toMarkdown: ["### {{title}}", "{{links}}"] },
+  { minItems: 2, maxItems: 4, title: "Columns", toMarkdown: (c) => [`### ${c.title}`, c.links] },
 );
 ```
 
@@ -377,7 +383,7 @@ Renders content outside the block's DOM container. Useful for fixed/floating ele
 3. **Named function component.** Use `function MyComponent()`, not an arrow function. Reference it in `createBlock` before its declaration is fine (hoisting).
 4. **All fields need defaults.** Every `Type.*` call requires a default value (images and files get automatic placeholders).
 5. **Description is for the AI.** Write the `description` as guidance for an LLM — explain when to use this block, what kind of content it's for, and where it fits on a page.
-6. **`toMarkdown` is required.** Every block must define how its content renders as markdown. Use `{{fieldName}}` placeholders matching content keys.
+6. **`toMarkdown` is required.** Every block must define how its content renders as markdown. Use the builder function `(c) => [...]` and reference content fields via `c.fieldName`.
 7. **Settings = Enum and Boolean only.** Keep settings simple. Use `content` for everything the user edits inline.
 8. **RepeatableItem minItems >= 1.** You can't have an empty repeatable — there's always at least one item.
 9. **Import path is `"camox/createBlock"`.** Both `Type` and `createBlock` come from this import.

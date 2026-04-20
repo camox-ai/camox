@@ -9,7 +9,6 @@ const navbar = createBlock({
   layoutOnly: true,
   description:
     "A navigation bar at the top of a page with a brand name, navigation links, and a call-to-action link.",
-  toMarkdown: ["{{title}}", "{{links}}", "{{cta}}"],
   content: {
     title: Type.Link({
       title: "Site name",
@@ -30,7 +29,7 @@ const navbar = createBlock({
         minItems: 1,
         maxItems: 6,
         title: "Links",
-        toMarkdown: ["{{link}}"],
+        toMarkdown: (c) => [c.link],
       },
     ),
     cta: Type.Link({
@@ -39,6 +38,7 @@ const navbar = createBlock({
     }),
   },
   component: NavbarComponent,
+  toMarkdown: (c) => [c.title, c.links, c.cta],
 });
 
 function NavbarComponent() {

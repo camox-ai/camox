@@ -8,7 +8,6 @@ const hero = createBlock({
   title: "Hero",
   description:
     "Use this block as the main landing section at the top of a page. It should capture attention immediately with a clear value proposition.",
-  toMarkdown: ["# {{title}}", "{{description}}", "{{cta}}"],
   content: {
     title: Type.String({
       default: "Welcome to {{projectName}}",
@@ -25,6 +24,7 @@ const hero = createBlock({
     }),
   },
   component: HeroComponent,
+  toMarkdown: (c) => [`# ${c.title}`, c.description, c.cta],
 });
 
 function HeroComponent() {

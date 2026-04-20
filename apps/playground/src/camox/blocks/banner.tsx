@@ -9,7 +9,7 @@ const banner = createBlock({
     title: Type.String({ default: "Title" }),
   },
   component: BannerComponent,
-  toMarkdown: ["{{title}}"],
+  toMarkdown: (c) => [c.title],
 });
 
 function BannerComponent() {

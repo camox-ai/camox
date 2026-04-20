@@ -9,7 +9,6 @@ const terminalCommand = createBlock({
   title: "Terminal Command",
   description:
     "Use this block to display a terminal command that users can easily copy. Perfect for setup instructions, installation commands, or any CLI commands intended for developers.",
-  toMarkdown: ["{{label}}", "`{{command}}`"],
   content: {
     label: Type.String({
       default: "Create a new Camox website in your terminal:",
@@ -21,6 +20,7 @@ const terminalCommand = createBlock({
     }),
   },
   component: CopyTerminalCommandComponent,
+  toMarkdown: (c) => [c.label, `\`${c.command}\``],
 });
 
 function CopyTerminalCommandComponent() {
