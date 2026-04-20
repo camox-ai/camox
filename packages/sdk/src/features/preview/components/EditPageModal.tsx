@@ -334,8 +334,8 @@ const SearchEnginePreview = ({
           <TooltipTrigger delay={50} render={<Info className="text-muted-foreground size-3.5" />} />
 
           <TooltipContent>
-            Titles are cropped after 60 characters and descriptions after 155, like Google typically
-            does.
+            Titles are cropped after 60 characters and descriptions after 155, like on Google Search
+            results.
           </TooltipContent>
         </Tooltip>
       </div>

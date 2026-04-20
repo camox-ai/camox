@@ -212,6 +212,9 @@ importers:
       '@orpc/server':
         specifier: ^1.13.14
         version: 1.13.14(@opentelemetry/api@1.9.0)(crossws@0.4.5(srvx@0.11.15))(ws@8.20.0)
+      '@paper-design/shaders-react':
+        specifier: ^0.0.76
+        version: 0.0.76(@types/react@19.2.14)(react@19.2.5)
       '@tailwindcss/vite':
         specifier: ^4.2.2
         version: 4.2.2(vite@8.0.1(@types/node@24.12.2)(esbuild@0.27.4)(jiti@2.6.1)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.3))
@@ -257,6 +260,9 @@ importers:
       react-dom:
         specifier: ^19.2.5
         version: 19.2.5(react@19.2.5)
+      shadcn:
+        specifier: ^4.3.1
+        version: 4.3.1(@types/node@24.12.2)(typescript@5.9.2)
       slugify:
         specifier: ^1.6.9
         version: 1.6.9
@@ -306,9 +312,6 @@ importers:
       oxlint:
         specifier: ^0.15.15
         version: 0.15.15
-      shadcn:
-        specifier: ^4.3.1
-        version: 4.3.1(@types/node@24.12.2)(typescript@5.9.2)
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
@@ -2886,6 +2889,18 @@ packages:
     resolution: {integrity: sha512-ZM9T3/OpaQ3qvrk/VuHO2EQmhNH4cOZdr/b/Ju9VKwBr+ahhqMn3W5srrplWQWxfsb0yd1yBj7iD0jdAps2iLg==}
     cpu: [x64]
     os: [win32]
+
+  '@paper-design/shaders-react@0.0.76':
+    resolution: {integrity: sha512-uPJWrYRf6cJdO2H+fuXlahaqz0QjYglNAyUTaRfIInpzCa/d6guxBIK003soAZQFuQ035yg9FhtfFzKNWm+a5A==}
+    peerDependencies:
+      '@types/react': ^18 || ^19
+      react: ^19.2.5
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
+  '@paper-design/shaders@0.0.76':
+    resolution: {integrity: sha512-AcNDY4J66YQHUfQYFInkCP7M9VOje0od7wLpOR7LtCmc532opJy6ll+h1W9zBovz8tt9U7OADUmJ/qKEXyOX/A==}
 
   '@parcel/watcher-android-arm64@2.5.6':
     resolution: {integrity: sha512-YQxSS34tPF/6ZG7r/Ih9xy+kP/WwediEUsqmtf0cuCV5TPPKw/PQHRhueUo6JdeFJaqV3pyjm0GdYjZotbRt/A==}
@@ -10562,6 +10577,15 @@ snapshots:
 
   '@oxlint/win32-x64@0.15.15':
     optional: true
+
+  '@paper-design/shaders-react@0.0.76(@types/react@19.2.14)(react@19.2.5)':
+    dependencies:
+      '@paper-design/shaders': 0.0.76
+      react: 19.2.5
+    optionalDependencies:
+      '@types/react': 19.2.14
+
+  '@paper-design/shaders@0.0.76': {}
 
   '@parcel/watcher-android-arm64@2.5.6':
     optional: true

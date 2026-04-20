@@ -44,30 +44,32 @@ function NavbarComponent() {
           </Link>
 
           <div className="flex items-center gap-6">
-            <navbar.Repeater name="links">
-              {(linkItem) => (
-                <linkItem.Link name="link">
-                  {(props) => (
-                    <Link
-                      {...props}
-                      className="text-muted-foreground hover:text-foreground px-2 py-1 text-sm transition-colors"
-                    />
-                  )}
-                </linkItem.Link>
-              )}
-            </navbar.Repeater>
-          </div>
+            <div className="hidden items-center gap-6 md:flex">
+              <navbar.Repeater name="links">
+                {(linkItem) => (
+                  <linkItem.Link name="link">
+                    {(props) => (
+                      <Link
+                        {...props}
+                        className="text-muted-foreground hover:text-foreground px-2 py-1 text-sm transition-colors"
+                      />
+                    )}
+                  </linkItem.Link>
+                )}
+              </navbar.Repeater>
+            </div>
 
-          <Button
-            size="sm"
-            variant="outline"
-            nativeButton={false}
-            render={
-              <Link to="/dashboard">
-                Dashboard <ArrowRight />
-              </Link>
-            }
-          />
+            <Button
+              size="sm"
+              variant="outline"
+              nativeButton={false}
+              render={
+                <Link to="/dashboard">
+                  Dashboard <ArrowRight className="text-muted-foreground" />
+                </Link>
+              }
+            />
+          </div>
         </div>
       </div>
     </nav>

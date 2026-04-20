@@ -39,7 +39,7 @@ const faq = createBlock({
 
 function FaqComponent() {
   return (
-    <section className="py-24">
+    <section className="py-16 sm:py-24">
       <div className="mx-auto max-w-2xl px-4">
         <Accordion>
           <faq.Repeater name="items">

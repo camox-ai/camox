@@ -1,7 +1,5 @@
-import { Link } from "@tanstack/react-router";
+import { PulsingBorder } from "@paper-design/shaders-react";
 import { Type, createBlock } from "camox/createBlock";
-
-import { Button } from "@/components/ui/button";
 
 const hero = createBlock({
   id: "hero",
@@ -18,34 +16,48 @@ const hero = createBlock({
       maxLength: 280,
       title: "Description",
     }),
-    cta: Type.Link({
-      default: { text: "Get Started", href: "/", newTab: false },
-      title: "CTA",
-    }),
   },
   component: HeroComponent,
-  toMarkdown: (c) => [`# ${c.title}`, c.description, c.cta],
+  toMarkdown: (c) => [`# ${c.title}`, c.description],
 });
 
 function HeroComponent() {
   return (
-    <section className="bg-background dark flex flex-col items-center justify-center py-32">
-      <div className="container mx-auto px-4">
+    <section className="bg-background dark relative flex flex-col items-center justify-center overflow-hidden py-20 sm:py-32">
+      <PulsingBorder
+        colors={["#064e3b", "#022c22", "#011a14", "#1b2a2a", "#3b0764"]}
+        colorBack="#09090b"
+        roundness={0}
+        thickness={1}
+        softness={1}
+        intensity={0.1}
+        bloom={0.2}
+        spots={4}
+        spotSize={0.25}
+        pulse={0}
+        smoke={0.32}
+        smokeSize={0.5}
+        speed={0.15}
+        scale={1.1}
+        marginLeft={0}
+        marginRight={0}
+        marginTop={0}
+        marginBottom={0}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+      />
+      <div className="relative container mx-auto px-4">
         <div className="mx-auto max-w-3xl text-center">
           <hero.Field name="title">
             {(props) => (
               <h1
                 {...props}
-                className="text-foreground mb-6 text-5xl font-bold tracking-tight sm:text-6xl"
+                className="text-foreground mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl"
               />
             )}
           </hero.Field>
           <hero.Field name="description">
-            {(props) => <p {...props} className="text-muted-foreground mb-10 text-xl" />}
+            {(props) => <p {...props} className="mb-10 text-lg opacity-75 sm:text-xl" />}
           </hero.Field>
-          <hero.Link name="cta">
-            {(props) => <Button size="lg" nativeButton={false} render={<Link {...props} />} />}
-          </hero.Link>
         </div>
       </div>
     </section>

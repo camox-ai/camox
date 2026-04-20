@@ -23,6 +23,7 @@ const config = defineConfig(({ mode }) => {
     ],
     optimizeDeps: {
       exclude: ["@daveyplate/better-auth-ui"],
+      include: ["@paper-design/shaders-react"],
     },
   };
 });
