@@ -25,7 +25,7 @@ function HeroComponent() {
   return (
     <section className="bg-background dark relative flex flex-col items-center justify-center overflow-hidden py-20 sm:py-32">
       <PulsingBorder
-        colors={["#064e3b", "#022c22", "#011a14", "#1b2a2a", "#3b0764"]}
+        colors={["#047857", "#065f46", "#064e3b", "#3b0764", "#4c1d95"]}
         colorBack="#09090b"
         roundness={0}
         thickness={1}
@@ -45,6 +45,7 @@ function HeroComponent() {
         marginBottom={0}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black to-transparent" />
       <div className="relative container mx-auto px-4">
         <div className="mx-auto max-w-3xl text-center">
           <hero.Field name="title">

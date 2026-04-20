@@ -115,9 +115,26 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground m-0;
+    font-family:
+      "Lato",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      "Roboto",
+      "Oxygen",
+      "Ubuntu",
+      "Cantarell",
+      "Fira Sans",
+      "Droid Sans",
+      "Helvetica Neue",
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
   a:focus-visible,
   button:focus-visible {
     @apply outline-ring ring-ring/50 rounded-md ring-3 outline-1 -outline-offset-1;

@@ -34,7 +34,7 @@ const navbar = createBlock({
 
 function NavbarComponent() {
   return (
-    <nav className="border-border border-b">
+    <nav>
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center">
@@ -44,7 +44,7 @@ function NavbarComponent() {
           </Link>
 
           <div className="flex items-center gap-6">
-            <div className="hidden items-center gap-6 md:flex">
+            <div className="hidden items-center gap-4 md:flex">
               <navbar.Repeater name="links">
                 {(linkItem) => (
                   <linkItem.Link name="link">
