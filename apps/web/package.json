@@ -24,6 +24,7 @@
     "@tanstack/react-start": "^1.167.32",
     "@tanstack/router-plugin": "^1.167.18",
     "better-auth": "1.5.5",
+    "camox": "workspace:*",
     "hono": "^4.12.12",
     "lucide-react": "^0.476.0",
     "react": "^19.2.5",

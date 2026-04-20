@@ -160,11 +160,12 @@ export function camox(options: CamoxPluginOptions): Plugin {
             "camox > posthog-js",
             "camox > shiki",
             "camox > @camox/ui > sonner",
+            "camox > @camox/ui > lucide-react",
+            "camox > lucide-react",
             // 3rd batch
             "camox > @tanstack/react-query-devtools/production",
             "camox > partysocket/react",
           ],
-          exclude: ["virtual:tanstack-start-client-entry"],
         },
       };
     },
