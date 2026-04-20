@@ -27,28 +27,10 @@ function ExternalStateSync({
   isSyncingRef: React.RefObject<boolean>;
 }) {
   const [editor] = useLexicalComposerContext();
-  const isFocusedRef = React.useRef(false);
 
   React.useEffect(() => {
-    return editor.registerRootListener((root) => {
-      if (!root) return;
-      const handleFocus = () => {
-        isFocusedRef.current = true;
-      };
-      const handleBlur = () => {
-        isFocusedRef.current = false;
-      };
-      root.addEventListener("focus", handleFocus);
-      root.addEventListener("blur", handleBlur);
-      return () => {
-        root.removeEventListener("focus", handleFocus);
-        root.removeEventListener("blur", handleBlur);
-      };
-    });
-  }, [editor]);
-
-  React.useEffect(() => {
-    if (isFocusedRef.current) return;
+    const root = editor.getRootElement();
+    if (root !== null && root === document.activeElement) return;
     try {
       const normalized = normalizeLexicalState(value);
       const newState = editor.parseEditorState(normalized);

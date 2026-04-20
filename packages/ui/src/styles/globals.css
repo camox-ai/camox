@@ -118,7 +118,8 @@
   body {
     @apply bg-background text-foreground;
   }
-  a:focus-visible {
-    @apply border-ring ring-ring/50 rounded-md ring-3 outline-none;
+  a:focus-visible,
+  button:focus-visible {
+    @apply outline-ring ring-ring/50 rounded-md ring-3 outline-1 -outline-offset-1;
   }
 }
