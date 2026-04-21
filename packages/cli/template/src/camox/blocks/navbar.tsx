@@ -18,20 +18,18 @@ const navbar = createBlock({
         newTab: false,
       },
     }),
-    links: Type.RepeatableItem(
-      {
+    links: Type.RepeatableItem({
+      content: {
         link: Type.Link({
           default: { text: "Link", href: "#", newTab: false },
           title: "Link",
         }),
       },
-      {
-        minItems: 1,
-        maxItems: 6,
-        title: "Links",
-        toMarkdown: (c) => [c.link],
-      },
-    ),
+      minItems: 1,
+      maxItems: 6,
+      title: "Links",
+      toMarkdown: (c) => [c.link],
+    }),
     cta: Type.Link({
       default: { text: "Get Started", href: "#", newTab: false },
       title: "CTA",

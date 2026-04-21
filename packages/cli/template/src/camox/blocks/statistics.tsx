@@ -20,8 +20,8 @@ const statistics = createBlock({
         "Our platform empowers teams to build and ship faster. Here are some numbers we're proud of.",
       title: "Description",
     }),
-    statistics: Type.RepeatableItem(
-      {
+    statistics: Type.RepeatableItem({
+      content: {
         number: Type.String({
           default: "100+",
           maxLength: 7,
@@ -32,13 +32,11 @@ const statistics = createBlock({
           title: "Label",
         }),
       },
-      {
-        minItems: 3,
-        maxItems: 8,
-        title: "Statistics",
-        toMarkdown: (c) => [`**${c.number}** — ${c.label}`],
-      },
-    ),
+      minItems: 3,
+      maxItems: 8,
+      title: "Statistics",
+      toMarkdown: (c) => [`**${c.number}** — ${c.label}`],
+    }),
   },
   component: StatisticsComponent,
   toMarkdown: (c) => [`## ${c.subtitle}`, c.description, c.statistics],

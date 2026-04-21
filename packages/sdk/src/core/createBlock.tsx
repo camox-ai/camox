@@ -109,8 +109,11 @@ interface CreateBlockOptions<
    * content: {
    *   title: Type.String({ default: 'Hello' }),
    *   items: Type.RepeatableItem({
-   *     name: Type.String({ default: 'Item' })
-   *   }, { minItems: 1, maxItems: 10 })
+   *     content: { name: Type.String({ default: 'Item' }) },
+   *     minItems: 1,
+   *     maxItems: 10,
+   *     toMarkdown: (c) => [c.name],
+   *   })
    * }
    */
   content: TSchemaShape;

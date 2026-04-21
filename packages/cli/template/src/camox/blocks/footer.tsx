@@ -8,20 +8,18 @@ const footer = createBlock({
   description: "A footer at the bottom of a page with a site name and navigation links.",
   content: {
     title: Type.String({ default: "{{projectName}}" }),
-    links: Type.RepeatableItem(
-      {
+    links: Type.RepeatableItem({
+      content: {
         link: Type.Link({
           default: { text: "Link", href: "#", newTab: false },
           title: "Link",
         }),
       },
-      {
-        minItems: 1,
-        maxItems: 12,
-        title: "Links",
-        toMarkdown: (c) => [c.link],
-      },
-    ),
+      minItems: 1,
+      maxItems: 12,
+      title: "Links",
+      toMarkdown: (c) => [c.link],
+    }),
   },
   component: FooterComponent,
   toMarkdown: (c) => [c.title, c.links],

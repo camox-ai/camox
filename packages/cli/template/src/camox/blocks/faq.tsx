@@ -13,8 +13,8 @@ const faq = createBlock({
   description:
     "Use this block to answer common questions about the product, pricing, or company. Place it near the bottom of a page to address objections before a conversion section.",
   content: {
-    items: Type.RepeatableItem(
-      {
+    items: Type.RepeatableItem({
+      content: {
         question: Type.String({
           default: "What is your refund policy?",
           title: "Question",
@@ -25,13 +25,11 @@ const faq = createBlock({
           title: "Answer",
         }),
       },
-      {
-        minItems: 3,
-        maxItems: Infinity,
-        title: "Questions",
-        toMarkdown: (c) => [`Q: ${c.question}`, `A: ${c.answer}`],
-      },
-    ),
+      minItems: 3,
+      maxItems: Infinity,
+      title: "Questions",
+      toMarkdown: (c) => [`Q: ${c.question}`, `A: ${c.answer}`],
+    }),
   },
   component: FaqComponent,
   toMarkdown: (c) => [c.items],

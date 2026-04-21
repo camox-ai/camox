@@ -1,13 +1,16 @@
 ## Viewer-Scoped Environments
 
+## Phase 1 — Stop env from leaking into builds
+
 ### Goal
 
-Eliminate the class of bugs where a developer's dev environment leaks into production because environment identity is baked into the build. Shift environment from a **property of the deployment** to a **property of the viewer**, and introduce a strict two-tier env model:
+Eliminate the class of bugs where a developer's dev env leaks into production because env identity is baked into the build. Shift env from a **property of the deployment** to a **property of the viewer**:
 
-- **production** — the canonical env, the only one anonymous visitors ever see.
-- **forks of production** — temporary envs (per-developer, staging, etc.) created by forking production's content + schema, then diverging as code evolves.
+- The deployed bundle contains no env.
+- Every request resolves env per-viewer from a `camox-env` cookie.
+- Anonymous visitors always get `production`.
 
-The deployed build knows nothing about environments. Every request resolves env per-viewer from a cookie/account signal, defaulting to `production` for anonymous users.
+That's the entire scope of Phase 1. No ACL, no signed cookies, no fork/seed, no compat checks, no studio switcher. See **Phase 2 (longer vision)** at the end for where this is heading.
 
 ### Motivation
 
@@ -17,27 +20,30 @@ Today's model bakes `environmentName` into the bundle via Vite's `define` (`pack
 - **Laptop builds conflate build machine with deploy target:** building on a dev's machine has no reliable way to know whether the artifact is destined for prod, staging, or preview.
 - **Same artifact can't serve multiple envs:** env is compiled in, so promoting a build across environments requires rebuilding.
 
-Viewer-scoped envs dissolve all three: the bundle has no env, the dev watcher has nothing to fight over, and one artifact can serve anonymous-prod, editor-staging, editor-dev, etc. simultaneously.
+Viewer-scoped envs dissolve all three: the bundle has no env, the dev watcher has nothing to fight over, and one artifact can serve anonymous-prod and editor-envs simultaneously.
+
+### Security stance (Phase 1)
+
+Envs are **not** a security boundary in this phase. The only authorization check is "is the authenticated user a member of the project's org?" — which already exists. Within a project's org, any authenticated user can read or write any env by setting the cookie. That's acceptable because envs exist to keep teammates from stepping on each other's toes, not to isolate data between them.
+
+Anonymous visitors have no session and therefore cannot set a trusted cookie; they always resolve to `production`.
+
+Not addressed in Phase 1 (and pre-existing, not a regression): an authenticated org member can write to `production` by setting the cookie. Orthogonal to this plan.
 
 ### Architecture
 
-#### Env resolution per request
+#### Per-request env resolution
 
 Server middleware resolves env for each request:
 
 ```ts
 function resolveRequestEnv(req, authenticatedUser): string {
-  const cookieEnv = parseCookie(req, "camox-env");
-  if (cookieEnv && userCanAccess(authenticatedUser, cookieEnv)) {
-    return cookieEnv;
-  }
-  return "production"; // anonymous / no valid cookie → prod
+  if (!authenticatedUser) return "production";
+  return parseCookie(req, "camox-env") ?? "production";
 }
 ```
 
-Stores resolved env on `request.env.camoxEnv`. Downstream loaders and API clients read from here.
-
-**Security invariant:** the cookie names an env; the server verifies the authenticated user has access to that env before honoring it. Anonymous users always get `"production"`, regardless of cookie contents.
+No signing, no access check — cookie is trusted for authenticated org members. Anonymous → `production` unconditionally.
 
 #### SSR handoff via the Camox pathless layout
 
@@ -63,230 +69,111 @@ function CamoxPathlessLayout() {
 }
 ```
 
-`resolveEnvironmentNameServerFn` is a TanStack Start `createServerFn` that runs only server-side, reads the `camox-env` cookie and auth session from request headers, performs the user-access check, and returns the resolved env name. For anonymous requests it returns `"production"`.
+`resolveEnvironmentNameServerFn` is a TanStack Start `createServerFn` that runs only server-side, reads the `camox-env` cookie and auth session from request headers, and returns the resolved env name.
 
 Why this works without touching the root:
 
 - The `_camox` pathless layout already wraps every Camox-rendered route: the splat `/_camox/$`, `/cmx-studio`, `/cmx-studio/*`, `/og`, and the `cmx` redirect.
 - `beforeLoad` on a parent route makes its return value available as route context to all descendants.
-- Route context from `beforeLoad` persists for the lifetime of the layout's mount and doesn't re-resolve on child navigations. Env resolves exactly once per layout entry — same semantics as today's build-time constant.
-- Non-Camox routes (`/dashboard`, marketing pages that aren't rendered by Camox, etc.) aren't under `_camox`, so they're unaffected — they don't need env and don't pay the resolution cost.
+- Route context from `beforeLoad` persists for the lifetime of the layout's mount; TanStack Router doesn't re-run parent `beforeLoad` when only the child route changes. Env resolves once per layout entry — same semantics as today's build-time constant.
+- Non-Camox routes (`/dashboard`, marketing pages not rendered by Camox, etc.) aren't under `_camox`, so they're unaffected.
 
-**Client behavior:** after SSR, the route context is hydrated into the client, `CamoxProvider` consumes it, and `initApiClient` / downstream consumers read from there. No network call on client-side navigations within the layout. Switching envs in the studio triggers a full reload (per the Studio env switcher section), so SSR re-resolves with the new cookie on the next request.
+**Client behavior:** after SSR, the route context is hydrated into the client, `CamoxProvider` consumes it, and `initApiClient` / downstream consumers read from there. No network call on client-side navigations within the layout.
 
-#### Studio env switcher
+#### Non-layout server entry points
 
-The existing `EnvironmentMenu.tsx` (`packages/sdk/src/features/studio/components/EnvironmentMenu.tsx`) becomes interactive. A "switch env" action POSTs to a server action which:
+Several server entry points run _outside_ the `_camox` layout's `beforeLoad` and therefore don't see its route context. Each needs to call `resolveEnvironmentNameServerFn` (or the same underlying helper) directly:
 
-1. Verifies the authenticated user has access to the target env.
-2. Sets a signed `camox-env` cookie.
-3. Triggers a reload so SSR re-resolves with the new cookie.
+- `_camox/og` route handler (`createOgHandler`) — generates OG images, needs env to fetch the right content.
+- `_camox/$` page route's `markdownMiddleware` and `loader` (`createMarkdownMiddleware`, `createPageLoader`) — currently receive `environmentName` as a hardcoded string argument baked into the generated route file.
+- `sitemap.ts` (`packages/sdk/src/features/metadata/sitemap.ts:17`) — currently reads the baked-in env.
+
+After Phase 1, none of these accept an `environmentName` parameter; each resolves env from the incoming request.
+
+#### Studio cookie setter (minimal)
+
+No env-picker UI in Phase 1. A small server action writes the `camox-env` cookie for the authenticated user's default dev env (e.g. `${email-local-part}-dev`) and reloads. This replaces today's automatic build-time baking with an explicit "I'm in my dev env" cookie set on sign-in or first studio visit. The full interactive switcher is Phase 2.
 
 #### Caching
 
 Editor-facing pages (with `camox-env` cookie) must `Vary: Cookie` or be uncached. Anonymous pages cache normally at the edge. Standard pattern.
 
+### API changes
+
+The Hono middleware at `apps/api/src/index.ts:55-59` stops hardcoding `"production"` as the fallback and keeps trusting the `x-environment-name` header from the SDK. Anonymous (no session) requests without a header resolve to `"production"`. No access check added — matches the "envs are not a security boundary" stance above.
+
+The SDK's API client always sets `x-environment-name` from the per-request env it resolved at SSR, so the header is reliably present for authenticated traffic.
+
+### Vite plugin changes
+
+Everything env-related in the build pipeline is deleted. Dev-server behavior is unchanged: `vite dev` still auto-targets the user's `${email-local-part}-dev` env for definition sync, it just no longer bakes that name into generated files or the bundle.
+
+Removals:
+
+- `resolveEnvironmentName` (`vite.ts:25-49`) — dev path stays (computed at dev-server start for sync only, not embedded anywhere), build path deleted.
+- `__CAMOX_ENVIRONMENT_NAME__` in `define` (`vite.ts:111`).
+- `environmentName` threaded through `generateRouteFiles` / `watchRouteFiles` (`vite.ts:106,182,212`, `routeGeneration.ts` throughout). Generated route files become env-agnostic — kills the dev-server watcher race.
+- `environmentName` interpolated into generated route source (`routeGeneration.ts:39,60,61`).
+- `environmentName` prop on `CamoxProvider` (`CamoxProvider.tsx:106,115,121,131`) — replaced by route context.
+- `environmentName` parameter on `createMarkdownMiddleware`, `createPageLoader`, `createOgHandler`, and anything else that currently takes it as an argument.
+
+**Kept as-is in Phase 1:**
+
+- Build-time `closeBundle` sync targeting `"production"` (`vite.ts:229-262`). Still needed until Phase 2 moves sync to runtime. The only change: it's no longer parameterized by `environmentName` from `define` — "production" is passed explicitly as the sync target.
+- Dev-server sync at server start (`vite.ts:219-226`). Unchanged — still targets `${email}-dev` computed locally.
+
+### Implementation order
+
+Each step is independently testable.
+
+1. **`resolveEnvironmentNameServerFn`.** A `createServerFn` in the SDK that reads the `camox-env` cookie and session, returning a string. Anonymous → `"production"`.
+2. **Non-layout entry points read request-scoped env.** Update `createMarkdownMiddleware`, `createPageLoader`, `createOgHandler`, and `sitemap.ts` to call the resolver instead of accepting `environmentName` as an argument.
+3. **SSR handoff via `_camox.tsx`.** Add `beforeLoad` to the generated pathless layout template. `CamoxProvider` reads env from route context; `initApiClient` consumes it.
+4. **Studio cookie setter.** Server action that writes the `camox-env` cookie for the user's default dev env. Invoked on first studio visit / sign-in.
+5. **API middleware cleanup.** Remove the hardcoded `"production"` fallback in `apps/api/src/index.ts:55-59` — anonymous (no session) defaults to `"production"`, authenticated requests use the header verbatim.
+6. **Delete build-time env baking.** Remove `__CAMOX_ENVIRONMENT_NAME__`, the env parameter from route generation, and all `environmentName` plumbing listed in Removals above. Build-time `closeBundle` sync stays but passes `"production"` explicitly.
+
+### What this fixes
+
+- **Dev env leaking to production:** structurally impossible. Builds contain no env.
+- **Dev-server watcher race:** disappears. Generated routes are env-agnostic.
+- **Laptop builds targeting different envs:** single artifact serves all envs via cookie.
+
+---
+
+## Phase 2 — Longer vision (not scoped yet)
+
+Once Phase 1 is in, these become the natural follow-ups. Captured here so the direction isn't lost; none of this is designed in detail yet.
+
 ### Two-tier env model with fork-from-production
 
 Only two ways to create an env:
 
-- **Fork from production** — copies production's schema + content into a new env. Permitted only when the creating bundle's schema is **compatible** with production's schema.
+- **Fork from production** — copies production's schema + content into a new env. Permitted only when the creating bundle's schema is **compatible** with production's.
 - **Seed from bundle** — creates an empty env with auto-derived seed content (from block/layout default values). Used when a fork would be incompatible.
 
 Forks diverge freely after creation; their schema evolves with the developer's code.
 
-#### Compatibility rule
+### Schema manifest + compatibility rule
 
-Blocks in Camox have two parallel schemas: `content` (inline-editable fields) and `settings` (block-level configuration like alignment, variant, toggles — see `packages/sdk/src/core/createBlock.tsx:127,337-345`). Both are stored on the block row (`content` + `settings` columns) and both must be compat-checked.
+A canonical, order-stable JSON description of the bundle's block + layout definitions (both `content` and `settings` shapes), embedded in the bundle as a constant with a stable hash. Bundle `B` is compatible with parent `P` iff `B ⊇ P` for every block's content shape, settings shape, and for layout fields — adding optional fields is fine, removing or tightening is not.
 
-Bundle schema `B` is compatible with parent schema `P` iff, for every block type in `P`:
+Compatibility checked server-side by comparing two manifests.
 
-1. Every block type used in `P` exists in `B`.
-2. Every **content** field present in `P` is present in `B` with a compatible type.
-3. Every **settings** field present in `P` is present in `B` with a compatible type.
-4. Content and settings fields `B` adds that `P` doesn't have are optional or defaulted.
+### Fork-or-seed on dev startup
 
-Equivalently: `B ⊇ P` for both the content shape and the settings shape of every block (and for layout fields). Adding optional blocks / content fields / settings is fine; removing or tightening either is not.
+The Vite dev server replaces today's "compute env name" path with: check if the env exists; if not, attempt fork from production; on incompatible schema, auto-fall back to seed with a clear log explaining why.
 
-Checked server-side by comparing two schema manifests. Deterministic, cheap.
+### Runtime definition sync
 
-#### Schema manifest
+Build-time `closeBundle` sync goes away. Instead, on first request to a cold deployed server, the server checks whether its bundle's schema hash matches the env it's resolving for; if not, it pushes definitions. Cost: a slow first request after deploy.
 
-A canonical, order-stable JSON description of the bundle's block + layout definitions, including both content and settings shapes:
+Open problem to solve before building this: rollback. A rollback from v2→v1 would push a narrower schema to production and could drop editor content. Likely rule: runtime sync only ever widens; narrowing requires an explicit out-of-band migration.
 
-```ts
-type SchemaManifest = {
-  blocks: Record<
-    string,
-    {
-      content: Record<string, FieldType>;
-      settings: Record<string, FieldType>;
-      version: string;
-    }
-  >;
-  layouts: Record<string, { content: Record<string, FieldType> }>;
-};
-```
+### Studio env switcher + compat banner
 
-Computed at build time from the same `camoxApp` module already loaded in `closeBundle` (`packages/sdk/src/features/vite/vite.ts:243`). Embedded in the bundle as a constant:
+Interactive `EnvironmentMenu.tsx`: lists envs the user can access, switches via cookie + reload. When an editor views an env whose `schemaHash` differs from the bundle's, inject a banner ("this env was last synced with a different schema"). On production, schema-hash mismatch is a deploy-policy violation — hard 500.
 
-```ts
-__CAMOX_SCHEMA_MANIFEST__: JSON.stringify(manifest),
-__CAMOX_SCHEMA_HASH__: JSON.stringify(canonicalHash(manifest)),
-```
+### Access control (if/when it matters)
 
-Crucially, the manifest has **no env in it** — it describes what the bundle understands, not which env it's for.
-
-#### Seed content (auto-derived only)
-
-For each layout, generate a blank page using each block's default field values. The Vite plugin walks the definitions and emits seed content alongside the manifest. No explicit fixtures module — if users want richer seeds later, that can be added.
-
-### API surface
-
-#### Create env
-
-```
-POST /envs
-  body: {
-    name: string,
-    bundleManifest: SchemaManifest,
-    mode: "fork" | "seed",
-    parent?: "production"    // required when mode === "fork"
-  }
-```
-
-Server logic:
-
-```
-if mode === "fork":
-  diff = compareSchemas(parent.schema, bundleManifest)
-  if diff.breaking.length > 0:
-    return 409 {
-      reason: "incompatible-fork",
-      breakingChanges: diff.breaking
-    }
-  env.schema = bundleManifest
-  env.content = copy(parent.content)
-
-if mode === "seed":
-  env.schema = bundleManifest
-  env.content = seedContentFromBundle
-```
-
-#### Env record
-
-```ts
-type Env = {
-  name: string;
-  schema: SchemaManifest;
-  schemaHash: string;
-  parent: string | null; // "production" for forks, null for prod itself
-  forkedFromSchemaHash: string | null; // parent's schema hash at fork time
-  createdMode: "fork" | "seed";
-  createdAt: Date;
-};
-```
-
-`forkedFromSchemaHash` enables future three-way diffs for promotion UX. Trivially added now, hard to backfill later.
-
-#### Get env schema
-
-```
-GET /envs/:env/schema
-  → SchemaManifest + hash
-```
-
-Used by the studio to compute compatibility banners.
-
-### Vite plugin changes
-
-#### Dev startup (replaces today's `resolveEnvironmentName` dev path)
-
-```
-1. Compute bundle manifest + hash from camoxApp.
-2. Read ~/.camox/auth.json → determine target env name (e.g. "remi-dev").
-3. Check if env exists in API:
-     - Exists: sync definitions (today's behavior), continue.
-     - Missing: attempt fork.
-4. POST /envs { mode: "fork", parent: "production", name, bundleManifest }
-5. On 409 incompatible:
-     - Log breaking changes clearly (non-interactive: no prompt).
-     - Auto-fallback: POST /envs { mode: "seed", name, bundleManifest }.
-     - Log the fallback decision and why.
-6. Env ready, dev server continues.
-```
-
-Always auto-fallback — Vite plugin runs non-interactively. Log to explain.
-
-Example log output on fallback:
-
-```
-[camox] Cannot fork production into "remi-dev": schema incompatible.
-[camox] Breaking changes vs production:
-[camox]   - block `hero`: field `subtitle` removed
-[camox]   - block `cta`: field `variant` type changed (string → enum)
-[camox] Creating "remi-dev" from seed content instead.
-```
-
-#### Build
-
-The Vite plugin stops computing `environmentName` for builds. No `CAMOX_ENV` required, no `define` for env name. Build emits manifest + hash only.
-
-Removals:
-
-- `resolveEnvironmentName` (`vite.ts:25-49`).
-- `__CAMOX_ENVIRONMENT_NAME__` in `define` (`vite.ts:111`).
-- `environmentName` threaded through `generateRouteFiles` / `watchRouteFiles` / `syncDefinitions` (`vite.ts:106,182,212,224,256`).
-- `environmentName` interpolated into generated route source (`routeGeneration.ts:39,60,61`). Generated files become env-agnostic — kills the dev-server watcher race.
-- Build-time `closeBundle` sync (`vite.ts:229-262`). Sync moves runtime-side (see below).
-
-### Definition sync repositioning
-
-Today two paths:
-
-- Dev server sync (`vite.ts:219-226`) — runs at dev-server start, targets `remi-dev`. **Keep**, integrated with the fork flow above.
-- Build-time sync (`vite.ts:229-262`) — runs in `closeBundle`, targets hardcoded "production". **Delete.**
-
-Replacement: **sync on first request** from the deployed server. On cold start, the server checks whether its bundle's schema hash matches the env it's resolving for. If not, it pushes definitions. Cost: a slow first request after deploy. Acceptable, and naturally matches the viewer-scoped model.
-
-### Compatibility detection in the studio
-
-When an editor views an env whose `schemaHash` differs from the running bundle's `__CAMOX_SCHEMA_HASH__`:
-
-- **Editor context:** inject an SSR banner: "This environment was last synced with a different schema. [View changes] [Sync]".
-- **Anonymous on production:** enforce by deploy policy that `production.schemaHash === bundle.schemaHash`. On mismatch, 500 — a deploy happened without syncing, alert.
-
-v1 check is equality only (match or don't). Structural diff is a later enhancement.
-
-### Removals
-
-After this migration lands, the following can be deleted or simplified:
-
-- `resolveEnvironmentName` in `packages/sdk/src/features/vite/vite.ts:25-49`.
-- `__CAMOX_ENVIRONMENT_NAME__` define (`vite.ts:111`).
-- `environmentName` props and params across `CamoxProvider.tsx:106,115,121,131`, `pageRoute.tsx:40-94`, `routeGeneration.ts` (throughout).
-- Build-time `closeBundle` sync (`vite.ts:229-262`).
-- `environmentName` in `packages/sdk/src/features/metadata/sitemap.ts:17` — replaced with request-scoped env from SSR context.
-- Hardcoded `"production"` fallback in API middleware (`apps/api/src/index.ts:55-59`) — replaced with per-request env resolution including user access check.
-
-### Implementation order
-
-Each step independently usable and testable.
-
-1. **Schema manifest computation.** Add `computeSchemaManifest(camoxApp)` and `canonicalHash(manifest)` helpers. Emit both via Vite `define`. Verify hash stability.
-2. **API: env record + manifest storage.** Migration to add `schema`, `schemaHash`, `parent`, `forkedFromSchemaHash`, `createdMode` columns. Update sync endpoints to accept and record manifests.
-3. **API: `POST /envs` with fork/seed modes.** Include `compareSchemas` and seed-content generation. Return 409 with breaking changes on incompatible fork.
-4. **Vite plugin: fork-or-seed on dev startup.** Replace today's `resolveEnvironmentName` dev path. Log breaking changes on fallback.
-5. **Per-request env resolver + user access check.** Server middleware in the API and SDK's SSR entry. Signed `camox-env` cookie. Anonymous → `production`.
-6. **SSR handoff via `_camox.tsx`.** Add `beforeLoad` + `resolveEnvironmentNameServerFn` to the generated pathless layout template (`packages/sdk/src/features/vite/routeGeneration.ts:21-46`). `CamoxProvider` reads env from route context; `initApiClient` consumes it. No user-owned routes change.
-7. **Studio env switcher mutation.** Hook up `EnvironmentMenu.tsx` to the cookie-setting server action. Access check server-side.
-8. **Equality-check compat banner.** Studio shows a warning when `env.schemaHash !== bundle.schemaHash`.
-9. **Runtime definition sync.** On first request, server pushes definitions to its resolved env if the hash differs. Remove `closeBundle` build-time sync.
-10. **Remove build-time env baking end-to-end.** Delete `resolveEnvironmentName`, `__CAMOX_ENVIRONMENT_NAME__`, and all `environmentName` prop/param plumbing.
-
-### What this fixes
-
-- **Dev env leaking to production** (the bug that prompted this plan): structurally impossible. Builds contain no env.
-- **Dev-server watcher race:** disappears. Generated routes are env-agnostic.
-- **Laptop builds targeting different envs:** single artifact serves all envs via cookie.
-- **Forks starting in a broken state:** compatibility check enforces healthy forks; auto-seed fallback guarantees devs always get a working env.
+Phase 1 treats envs as non-security. If envs later need to be isolated (e.g. per-customer preview envs, untrusted collaborators), the resolver grows a real access check and the cookie becomes signed. Not needed today.

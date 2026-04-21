@@ -99,13 +99,15 @@ createBlock({
   content: {
     subtitle: Type.String({ default: "..." }),
     description: Type.String({ default: "..." }),
-    statistics: Type.RepeatableItem(
-      {
+    statistics: Type.RepeatableItem({
+      content: {
         number: Type.String({ default: "100M+" }),
         label: Type.String({ default: "pages served" }),
       },
-      { minItems: 4, maxItems: 8, toMarkdown: (c) => [`**${c.number}** — ${c.label}`] }
-    ),
+      minItems: 4,
+      maxItems: 8,
+      toMarkdown: (c) => [`**${c.number}** — ${c.label}`],
+    }),
   },
 })
 ```
@@ -213,18 +215,16 @@ The `default` must match the `pattern` — an error is thrown at definition time
 An array of structured items. Each item is an object with its own fields. This is how you create lists of things (testimonials, features, stats, links...).
 
 ```tsx
-Type.RepeatableItem(
-  {
+Type.RepeatableItem({
+  content: {
     name: Type.String({ default: "Feature" }),
     description: Type.String({ default: "Description" }),
   },
-  {
-    minItems: 1, // Must be >= 1
-    maxItems: 10,
-    title: "Features",
-    toMarkdown: (c) => [`### ${c.name}`, c.description], // Required markdown template for each item
-  },
-);
+  minItems: 1, // Must be >= 1
+  maxItems: 10,
+  title: "Features",
+  toMarkdown: (c) => [`### ${c.name}`, c.description], // Required markdown template for each item
+});
 ```
 
 The `toMarkdown` option on RepeatableItem defines how each item is rendered as markdown when the parent block's `toMarkdown` references this field. It is required, same as on the block itself.
@@ -232,18 +232,23 @@ The `toMarkdown` option on RepeatableItem defines how each item is rendered as m
 Repeatable items can be nested — an item can contain another RepeatableItem:
 
 ```tsx
-columns: Type.RepeatableItem(
-  {
+columns: Type.RepeatableItem({
+  content: {
     title: Type.String({ default: "Column" }),
-    links: Type.RepeatableItem(
-      {
+    links: Type.RepeatableItem({
+      content: {
         link: Type.Link({ default: { text: "Link", href: "#", newTab: false } }),
       },
-      { minItems: 1, maxItems: 999, toMarkdown: (c) => [c.link] },
-    ),
+      minItems: 1,
+      maxItems: 999,
+      toMarkdown: (c) => [c.link],
+    }),
   },
-  { minItems: 2, maxItems: 4, title: "Columns", toMarkdown: (c) => [`### ${c.title}`, c.links] },
-);
+  minItems: 2,
+  maxItems: 4,
+  title: "Columns",
+  toMarkdown: (c) => [`### ${c.title}`, c.links],
+});
 ```
 
 ## Rendering in the Component

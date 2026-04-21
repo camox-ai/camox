@@ -16,20 +16,18 @@ const navbar = createBlock({
     logo: Type.Image({
       title: "Logo",
     }),
-    links: Type.RepeatableItem(
-      {
+    links: Type.RepeatableItem({
+      content: {
         link: Type.Link({
           default: { text: "Link", href: "#", newTab: false },
           title: "Link",
         }),
       },
-      {
-        minItems: 1,
-        maxItems: 6,
-        title: "Links",
-        toMarkdown: (c) => [c.link],
-      },
-    ),
+      minItems: 1,
+      maxItems: 6,
+      title: "Links",
+      toMarkdown: (c) => [c.link],
+    }),
   },
   component: NavbarComponent,
   toMarkdown: (c) => [c.logo, c.links],

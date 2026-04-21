@@ -20,8 +20,8 @@ const statistics = createBlock({
         "Camox empowers developers to build and deploy websites with unprecedented speed and flexibility. Our platform handles millions of page views and serves content globally with enterprise-grade reliability.",
       title: "Description",
     }),
-    statistics: Type.RepeatableItem(
-      {
+    statistics: Type.RepeatableItem({
+      content: {
         number: Type.String({
           default: "100M+",
           maxLength: 7,
@@ -32,13 +32,11 @@ const statistics = createBlock({
           title: "Label",
         }),
       },
-      {
-        minItems: 4,
-        maxItems: 8,
-        title: "Statistics",
-        toMarkdown: (c) => [`**${c.number}** ${c.label}`],
-      },
-    ),
+      minItems: 4,
+      maxItems: 8,
+      title: "Statistics",
+      toMarkdown: (c) => [`**${c.number}** ${c.label}`],
+    }),
   },
   component: StatisticsComponent,
   toMarkdown: (c) => [`## ${c.subtitle}`, c.description, c.statistics],

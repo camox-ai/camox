@@ -233,28 +233,28 @@ export const Type = {
    *
    * @example
    * Type.RepeatableItem({
-   *   title: Type.String({ default: 'Item' }),
-   *   description: Type.String({ default: 'Description' })
-   * }, {
+   *   content: {
+   *     title: Type.String({ default: 'Item' }),
+   *     description: Type.String({ default: 'Description' }),
+   *   },
    *   minItems: 1,
    *   maxItems: 10,
-   *   title: 'Items'
+   *   title: 'Items',
+   *   toMarkdown: (c) => [`### ${c.title}`, c.description],
    * })
    */
-  RepeatableItem: <T extends Record<string, TSchema>>(
-    shape: T,
-    options: {
-      minItems: number;
-      maxItems: number;
-      title?: string;
-      toMarkdown: ToMarkdownBuilder<T>;
-    },
-  ) => {
+  RepeatableItem: <T extends Record<string, TSchema>>(options: {
+    content: T;
+    minItems: number;
+    maxItems: number;
+    title?: string;
+    toMarkdown: ToMarkdownBuilder<T>;
+  }) => {
     if (options.minItems < 1) {
       throw new Error("RepeatableItem requires minItems to be at least 1");
     }
 
-    const objectSchema = TypeBoxType.Object(shape);
+    const objectSchema = TypeBoxType.Object(options.content);
 
     // Extract defaults manually since Value.Create doesn't support Unsafe types (used by Type.Enum, Type.Embed, Type.Link)
     const defaultItem: Record<string, unknown> = {};

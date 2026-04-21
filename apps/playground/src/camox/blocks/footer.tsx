@@ -9,11 +9,11 @@ const footer = createBlock({
     "At the bottom of a page to provide the user with links and miscellaneous information.",
   content: {
     title: Type.String({ default: "Acme" }),
-    columns: Type.RepeatableItem(
-      {
+    columns: Type.RepeatableItem({
+      content: {
         title: Type.String({ default: "Column Title" }),
-        links: Type.RepeatableItem(
-          {
+        links: Type.RepeatableItem({
+          content: {
             link: Type.Link({
               default: {
                 text: "Resource",
@@ -23,20 +23,16 @@ const footer = createBlock({
               title: "Link",
             }),
           },
-          {
-            minItems: 1,
-            maxItems: 999,
-            toMarkdown: (c) => [c.link],
-          },
-        ),
+          minItems: 1,
+          maxItems: 999,
+          toMarkdown: (c) => [c.link],
+        }),
       },
-      {
-        minItems: 2,
-        maxItems: 4,
-        title: "Columns",
-        toMarkdown: (c) => [`### ${c.title}`, c.links],
-      },
-    ),
+      minItems: 2,
+      maxItems: 4,
+      title: "Columns",
+      toMarkdown: (c) => [`### ${c.title}`, c.links],
+    }),
   },
   component: FooterComponent,
   toMarkdown: (c) => [c.title, c.columns],
