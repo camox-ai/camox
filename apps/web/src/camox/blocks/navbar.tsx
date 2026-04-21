@@ -2,6 +2,9 @@ import { Button } from "@camox/ui/button";
 import { Link } from "@tanstack/react-router";
 import { Type, createBlock } from "camox/createBlock";
 import { ArrowRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
+import { cn } from "@/lib/utils";
 
 const navbar = createBlock({
   id: "navbar",
@@ -32,47 +35,76 @@ const navbar = createBlock({
   toMarkdown: (c) => [c.logo, c.links],
 });
 
-function NavbarComponent() {
+function NavbarContent() {
   return (
-    <nav>
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center">
-            <navbar.Image name="logo">
-              {(props) => <img {...props} className="h-8 w-auto" />}
-            </navbar.Image>
-          </Link>
+    <div className="container mx-auto px-4">
+      <div className="flex h-16 items-center justify-between">
+        <Link to="/" className="flex items-center">
+          <navbar.Image name="logo">
+            {(props) => <img {...props} className="h-8 w-auto" />}
+          </navbar.Image>
+        </Link>
 
-          <div className="flex items-center gap-6">
-            <div className="hidden items-center gap-4 md:flex">
-              <navbar.Repeater name="links">
-                {(linkItem) => (
-                  <linkItem.Link name="link">
-                    {(props) => (
-                      <Link
-                        {...props}
-                        className="text-muted-foreground hover:text-foreground px-2 py-1 text-sm transition-colors"
-                      />
-                    )}
-                  </linkItem.Link>
-                )}
-              </navbar.Repeater>
-            </div>
-
-            <Button
-              size="sm"
-              variant="outline"
-              nativeButton={false}
-              render={
-                <Link to="/dashboard">
-                  Dashboard <ArrowRight className="text-muted-foreground" />
-                </Link>
-              }
-            />
+        <div className="flex items-center gap-6">
+          <div className="hidden items-center gap-4 md:flex">
+            <navbar.Repeater name="links">
+              {(linkItem) => (
+                <linkItem.Link name="link">
+                  {(props) => <Link {...props} className="px-2 py-1 text-sm transition-colors" />}
+                </linkItem.Link>
+              )}
+            </navbar.Repeater>
           </div>
+
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link to="/dashboard">
+                Dashboard <ArrowRight className="text-muted-foreground" />
+              </Link>
+            }
+          />
         </div>
       </div>
-    </nav>
+    </div>
+  );
+}
+
+function NavbarComponent() {
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsScrolled(!entry.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <>
+      <div ref={sentinelRef} className="absolute top-0 h-px w-full" />
+      <navbar.Detached>
+        {(props) => (
+          <nav
+            {...props}
+            className={cn("fixed inset-x-0 top-0 z-50 transition-colors", isScrolled && "bg-black")}
+          >
+            <NavbarContent />
+          </nav>
+        )}
+      </navbar.Detached>
+    </>
   );
 }
 
