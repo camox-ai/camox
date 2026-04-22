@@ -68,7 +68,7 @@ function HeroComponent() {
           </div>
         </div>
       </section>
-      <div className="bg-background pb-8 sm:pb-12">
+      <div className="bg-background pb-8 sm:pb-4">
         <div className="container mx-auto px-4">
           <div className="relative z-10 mx-auto max-w-xl -translate-y-1/2">
             <TerminalCard>

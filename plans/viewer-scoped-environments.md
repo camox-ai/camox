@@ -24,9 +24,14 @@ Viewer-scoped envs dissolve all three: the bundle has no env, the dev watcher ha
 
 ### Security stance (Phase 1)
 
-Envs are **not** a security boundary in this phase. The only authorization check is "is the authenticated user a member of the project's org?" — which already exists. Within a project's org, any authenticated user can read or write any env by setting the cookie. That's acceptable because envs exist to keep teammates from stepping on each other's toes, not to isolate data between them.
+Envs are **not** a security boundary in this phase. The cookie is trusted at read time; authorization is enforced **at issuance**, not at resolution.
 
-Anonymous visitors have no session and therefore cannot set a trusted cookie; they always resolve to `production`.
+- The cookie-setter endpoint is the only way a `camox-env` cookie gets issued. That endpoint verifies the caller's BetterAuth session (by forwarding `Better-Auth-Cookie` to `api.camox.ai/api/auth/get-session`) before emitting `Set-Cookie`.
+- SSR blindly trusts whatever `camox-env` cookie is present. No per-request session check — none is possible anyway, since document navigations on Camox-powered sites carry no session material (the cross-domain plugin routes BetterAuth sessions through `localStorage` + custom headers, not same-host cookies).
+- Anonymous visitors are never issued a cookie; no mechanism exists for them to acquire one (`HttpOnly` blocks JS-side writes; the setter endpoint rejects unauthenticated callers).
+- Sign-out clears the cookie (`Set-Cookie: camox-env=; Max-Age=0`), closing the "stale cookie reads dev content after sign-out" window.
+
+Within a project's org, any authenticated user can read or write any env by setting the cookie. That's acceptable because envs exist to keep teammates from stepping on each other's toes, not to isolate data between them.
 
 Not addressed in Phase 1 (and pre-existing, not a regression): an authenticated org member can write to `production` by setting the cookie. Orthogonal to this plan.
 
@@ -37,13 +42,12 @@ Not addressed in Phase 1 (and pre-existing, not a regression): an authenticated 
 Server middleware resolves env for each request:
 
 ```ts
-function resolveRequestEnv(req, authenticatedUser): string {
-  if (!authenticatedUser) return "production";
+function resolveRequestEnv(req): string {
   return parseCookie(req, "camox-env") ?? "production";
 }
 ```
 
-No signing, no access check — cookie is trusted for authenticated org members. Anonymous → `production` unconditionally.
+No signing, no session check — the cookie is trusted unconditionally. Authorization is enforced at issuance (see "Studio cookie setter" below). Missing cookie → `production`.
 
 #### SSR handoff via the Camox pathless layout
 
@@ -69,7 +73,7 @@ function CamoxPathlessLayout() {
 }
 ```
 
-`resolveEnvironmentNameServerFn` is a TanStack Start `createServerFn` that runs only server-side, reads the `camox-env` cookie and auth session from request headers, and returns the resolved env name.
+`resolveEnvironmentNameServerFn` is a TanStack Start `createServerFn` declared inline in the generated `_camox.tsx` (server-only code is stripped from the client bundle by TanStack Start). It reads the `camox-env` cookie from request headers and returns the resolved env name (or `"production"` if absent). The SDK exports the underlying resolver helper (pure function of request → string); the generated file just wraps it in `createServerFn` so TanStack Start's per-app build picks it up. User-owned code never touches it — same ownership model as today's generated routes.
 
 Why this works without touching the root:
 
@@ -80,23 +84,71 @@ Why this works without touching the root:
 
 **Client behavior:** after SSR, the route context is hydrated into the client, `CamoxProvider` consumes it, and `initApiClient` / downstream consumers read from there. No network call on client-side navigations within the layout.
 
+#### Client-side API client and `x-environment-name`
+
+The API client keeps today's shape: module-level state seeded once by `initApiClient(apiUrl, environmentName)` at provider init, read on every outbound fetch to attach `x-environment-name`. `CamoxProvider` calls `initApiClient` with the env from route context instead of from a build-time constant.
+
+Why this is safe under Phase 1:
+
+- Parent `beforeLoad` doesn't re-run on child navigations, so route context env is stable for the lifetime of the `_camox` layout's mount.
+- The only way to change env is cookie-set → full reload → SSR re-runs → module re-inits. No in-tab env change, no staleness window.
+- `initApiClient` must ref-check **both** `apiUrl` and `environmentName` and re-init when either changes. Today's code (`CamoxProvider.tsx:119-123`) only keys on `apiUrl`, so a future env change without an apiUrl change would leave a stale `x-environment-name` baked into the client's headers. Required fix, not defensive — closes a latent bug and removes a Phase 2 switcher footgun.
+
+Trade-off accepted: one env per page at a time. If Phase 2 or later needs two envs live on the same page (e.g. anonymous-prod preview next to an editor in a dev env), this singleton must be replaced with a per-call or per-React-context env source. Out of scope now.
+
 #### Non-layout server entry points
 
-Several server entry points run _outside_ the `_camox` layout's `beforeLoad` and therefore don't see its route context. Each needs to call `resolveEnvironmentNameServerFn` (or the same underlying helper) directly:
+Several entry points currently receive `environmentName` as a baked-in argument. Each gets it from the `_camox` layout's route context instead, via the normal TanStack Router parent→child context flow:
 
-- `_camox/og` route handler (`createOgHandler`) — generates OG images, needs env to fetch the right content.
-- `_camox/$` page route's `markdownMiddleware` and `loader` (`createMarkdownMiddleware`, `createPageLoader`) — currently receive `environmentName` as a hardcoded string argument baked into the generated route file.
-- `sitemap.ts` (`packages/sdk/src/features/metadata/sitemap.ts:17`) — currently reads the baked-in env.
+- `_camox/$` page route's `loader` (`createPageLoader`): reads `context.environmentName` from its loader argument. No direct cookie parsing — it's a child of `_camox`, so the parent's `beforeLoad` context is already merged in.
+- `_camox/$` page route's `markdownMiddleware` (`createMarkdownMiddleware`): runs on `server.middleware` and doesn't receive loader-style context. It calls the server-fn resolver helper from the request instead — functionally identical to what the parent's `beforeLoad` does, just invoked from a server-handler context.
+- `sitemap.ts` (`packages/sdk/src/features/metadata/sitemap.ts:17`): same — calls the resolver from the request, since it's a standalone server endpoint outside the route tree. **The public export `generateSitemap(origin)` keeps its current signature**; env is resolved internally via `getRequest()`. User-owned `src/routes/sitemap.xml.ts` (in CLI template + playground) does not change.
 
-After Phase 1, none of these accept an `environmentName` parameter; each resolves env from the incoming request.
+`createOgHandler` is untouched: it makes no API calls, has no `environmentName` parameter today (`ogRoute.ts:3`), and only transforms URL query params into an image via `layout._internal.buildOgImage`.
+
+After Phase 1, none of the affected entry points accept an `environmentName` parameter; each derives it from the request-scoped source (route context for loaders, resolver helper for server handlers).
 
 #### Studio cookie setter (minimal)
 
-No env-picker UI in Phase 1. A small server action writes the `camox-env` cookie for the authenticated user's default dev env (e.g. `${email-local-part}-dev`) and reloads. This replaces today's automatic build-time baking with an explicit "I'm in my dev env" cookie set on sign-in or first studio visit. The full interactive switcher is Phase 2.
+No env-picker UI in Phase 1. The `camox-env` cookie for the authenticated user's default dev env (`${email-local-part}-dev`) is set via a single client-side effect in `CamoxProvider`:
+
+On mount, if the user is authenticated (known from `authClient.useSession()`) and the app has not yet recorded a cookie-set attempt for this browser, the provider POSTs to a server action on the same site, forwarding the `Better-Auth-Cookie` header (read from localStorage via the existing `getAuthCookieHeader()` helper). The server action:
+
+1. Calls `api.camox.ai/api/auth/get-session` with that header to validate the session and retrieve the user's email. This mirrors the cross-domain trick the RPC link already uses — no new auth plumbing.
+2. On success, computes `${email-local-part}-dev` and responds with `Set-Cookie: camox-env=<env>; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=31536000`.
+3. On failure (no session, expired session), responds 401 and sets no cookie.
+
+The client reloads on a 2xx response. This causes a one-time content flash — first render resolves to `production`, reload lands on the dev env — but fires at most once per browser. The "already-authenticated-in-a-fresh-browser" case (session in localStorage, env cookie absent) is the common trigger; post-sign-in is the other.
+
+**Sign-out clears the cookie.** `authClient.signOut()` is wrapped (or a hook on the `sign-out` endpoint is added) so that the same flow also POSTs to a sibling server action which emits `Set-Cookie: camox-env=; Max-Age=0; Path=/`. This closes the "stale cookie keeps serving dev content after sign-out" window that falls out of Fix 1's trust-the-cookie model.
+
+The env name is computed deterministically from the session's email — no user input, no UI. The full interactive switcher (pick among accessible envs) is Phase 2.
+
+#### Cookie attributes
+
+```
+Set-Cookie: camox-env=${envName};
+            HttpOnly;
+            Secure;
+            SameSite=Lax;
+            Path=/;
+            Max-Age=31536000
+```
+
+- **`HttpOnly`** — only the server reads the cookie (the resolver server fn and API middleware). JS never needs it, since the client API client gets env from route context (see "Client-side API client" above).
+- **`SameSite=Lax`** — blocks CSRF on cross-site state-changing requests while still sending the cookie on top-level navigations (following a link into the site). `Strict` would drop the cookie on those first-click navigations and show production content for one request.
+- **`Secure`** — HTTPS-only. `localhost` is treated as secure by modern browsers even without TLS, so local dev still works; verify during implementation if any dev tooling complains.
+- **`Path=/`** — required because multiple server entry points outside `_camox` read env (`sitemap.ts`, future non-layout endpoints).
+- **No `Domain`** — cookie stays bound to the exact host. Camox sites run on arbitrary user domains, so there's no useful subdomain-sharing story.
+- **`Max-Age=31536000`** (~1 year) — it's a preference cookie, not a credential. Persists across browser restarts so editors don't re-trigger the fallback reload every session. Safe even after sign-out: the resolver requires an authenticated user, so anonymous requests return `production` regardless of cookie contents.
+
+Cookie name is literal `camox-env`. Reserve the `camox-` prefix for future Camox-owned cookies so they can't collide with user-owned cookies on the same host.
 
 #### Caching
 
-Editor-facing pages (with `camox-env` cookie) must `Vary: Cookie` or be uncached. Anonymous pages cache normally at the edge. Standard pattern.
+Requests carrying a `camox-env` cookie respond with `Cache-Control: private, no-store`. Requests without one respond with today's cache headers unchanged — and crucially, no `Vary: Cookie` is ever emitted.
+
+Why not `Vary: Cookie`: CDNs key the cache entry on the entire `Cookie` header, including unrelated cookies (PostHog, analytics, ad tech). Emitting `Vary: Cookie` fragments the anonymous cache by every cookie combination seen in the wild and collapses hit rates. Splitting the behavior by cookie presence sidesteps the trap: anonymous traffic caches cleanly; editors (a small fraction of traffic, already doing live edits) don't cache. If editor-side latency becomes a complaint, a Phase 2 option is edge-level cookie normalization (strip `Cookie` down to `camox-env` before `Vary`), but that needs per-CDN config and isn't worth it now.
 
 ### API changes
 
@@ -115,23 +167,25 @@ Removals:
 - `environmentName` threaded through `generateRouteFiles` / `watchRouteFiles` (`vite.ts:106,182,212`, `routeGeneration.ts` throughout). Generated route files become env-agnostic — kills the dev-server watcher race.
 - `environmentName` interpolated into generated route source (`routeGeneration.ts:39,60,61`).
 - `environmentName` prop on `CamoxProvider` (`CamoxProvider.tsx:106,115,121,131`) — replaced by route context.
-- `environmentName` parameter on `createMarkdownMiddleware`, `createPageLoader`, `createOgHandler`, and anything else that currently takes it as an argument.
+- `environmentName` parameter on `createMarkdownMiddleware` and `createPageLoader`, and anything else that currently takes it as an argument. (`createOgHandler` never took one — leave as-is.)
 
 **Kept as-is in Phase 1:**
 
 - Build-time `closeBundle` sync targeting `"production"` (`vite.ts:229-262`). Still needed until Phase 2 moves sync to runtime. The only change: it's no longer parameterized by `environmentName` from `define` — "production" is passed explicitly as the sync target.
 - Dev-server sync at server start (`vite.ts:219-226`). Unchanged — still targets `${email}-dev` computed locally.
+- `createServerApiClient(apiUrl, environmentName)` in `packages/sdk/src/lib/api-client-server.ts`. Used by `definitionsSync.ts` at build/dev time; sync is not viewer-scoped, so this parameter stays intentionally.
+- `EnvironmentMenu.tsx` (`features/studio/components/EnvironmentMenu.tsx`). Keeps reading env from `AuthContext`; the upstream source changes (route context instead of `CamoxProvider` prop literal) but the component itself doesn't.
 
 ### Implementation order
 
 Each step is independently testable.
 
 1. **`resolveEnvironmentNameServerFn`.** A `createServerFn` in the SDK that reads the `camox-env` cookie and session, returning a string. Anonymous → `"production"`.
-2. **Non-layout entry points read request-scoped env.** Update `createMarkdownMiddleware`, `createPageLoader`, `createOgHandler`, and `sitemap.ts` to call the resolver instead of accepting `environmentName` as an argument.
+2. **Non-layout entry points read request-scoped env.** Update `createMarkdownMiddleware`, `createPageLoader`, and `sitemap.ts` to call the resolver instead of accepting `environmentName` as an argument. (`createOgHandler` is unaffected — see "Non-layout server entry points".)
 3. **SSR handoff via `_camox.tsx`.** Add `beforeLoad` to the generated pathless layout template. `CamoxProvider` reads env from route context; `initApiClient` consumes it.
 4. **Studio cookie setter.** Server action that writes the `camox-env` cookie for the user's default dev env. Invoked on first studio visit / sign-in.
 5. **API middleware cleanup.** Remove the hardcoded `"production"` fallback in `apps/api/src/index.ts:55-59` — anonymous (no session) defaults to `"production"`, authenticated requests use the header verbatim.
-6. **Delete build-time env baking.** Remove `__CAMOX_ENVIRONMENT_NAME__`, the env parameter from route generation, and all `environmentName` plumbing listed in Removals above. Build-time `closeBundle` sync stays but passes `"production"` explicitly.
+6. **Delete build-time env baking.** Remove `__CAMOX_ENVIRONMENT_NAME__`, the env parameter from route generation, and all `environmentName` plumbing listed in Removals above. Build-time `closeBundle` sync stays but passes `"production"` explicitly. **Before deleting the `define`:** grep the monorepo + published CLI templates for `__CAMOX_ENVIRONMENT_NAME__` to confirm only `sitemap.ts` references it. `closeBundle`'s inner Vite server is created with `configFile: false` (`vite.ts:234-240`) and inherits no `define`, so any user-authored module referencing the constant would silently break. Low probability (private internal name) but cheap to verify.
 
 ### What this fixes
 
