@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/camox-ai/camox/compare/camox-v0.11.0...@camox/api-contract-v0.12.0) (2026-04-23)
+
+
+### Miscellaneous
+
+* **@camox/api-contract:** Synchronize camox versions
+
 ## [0.11.0](https://github.com/camox-ai/camox/compare/camox-v0.10.1...@camox/api-contract-v0.11.0) (2026-04-20)
 
 

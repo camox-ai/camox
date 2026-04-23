@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.12.0](https://github.com/camox-ai/camox/compare/camox-v0.11.0...camox-v0.12.0) (2026-04-23)
+
+
+### Features
+
+* add faq block ([0daa3d6](https://github.com/camox-ai/camox/commit/0daa3d6f42dd3e3c28bf59500dc2d39531709602))
+* add selling points grid ([af1d869](https://github.com/camox-ai/camox/commit/af1d869e32562e391ddde958329eb382e1c4cbce))
+* add terminal command to hero component ([f5d754b](https://github.com/camox-ai/camox/commit/f5d754b8678e8ebf6f443bd016509ae1f562ff2a))
+* **web:** add cool blocks and shaders ([7a020ad](https://github.com/camox-ai/camox/commit/7a020ad0d071749e086d5df0d97172e82ad227d9))
+
+
+### Bug Fixes
+
+* stop assuming the build camox environment ([b99b2e8](https://github.com/camox-ai/camox/commit/b99b2e856d748200c3a13c1f5827d3390aefcb81))
+
+
+### Miscellaneous
+
+* merge Type.RepeatableItem params ([42c418e](https://github.com/camox-ai/camox/commit/42c418e0f726ceedd27050f7c873648ca634dc78))
+* remove cmd+escape shortcut in favor of cmd+enter ([eb9de35](https://github.com/camox-ai/camox/commit/eb9de350e5c20c8e9215991c356c4f3b5beb228b))
+* **web:** init camox app ([d32518c](https://github.com/camox-ai/camox/commit/d32518c43ab8dd5e7e361a3514e3079328e8e03d))
+* **web:** ui tweaks ([7c16f65](https://github.com/camox-ai/camox/commit/7c16f65af2432c01da2c1334976ce2da48b6e3d9))
+
 ## [0.11.0](https://github.com/camox-ai/camox/compare/camox-v0.10.1...camox-v0.11.0) (2026-04-20)
 
 
