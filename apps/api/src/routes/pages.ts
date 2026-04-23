@@ -659,12 +659,14 @@ const create = authed.input(createPageSchema).handler(async ({ context, input })
       }
     }
 
-    scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
-      entityTable: "blocks",
-      entityId: block.id,
-      type: "summary",
-      delayMs: 0,
-    });
+    context.waitUntil(
+      scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+        entityTable: "blocks",
+        entityId: block.id,
+        type: "summary",
+        delayMs: 0,
+      }),
+    );
   }
 
   broadcastInvalidation({
@@ -731,12 +733,14 @@ const setAiSeo = authed
       .returning()
       .get();
     if (enabled) {
-      scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
-        entityTable: "pages",
-        entityId: id,
-        type: "seo",
-        delayMs: 0,
-      });
+      context.waitUntil(
+        scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+          entityTable: "pages",
+          entityId: id,
+          type: "seo",
+          delayMs: 0,
+        }),
+      );
     }
     broadcastInvalidation({
       waitUntil: context.waitUntil,

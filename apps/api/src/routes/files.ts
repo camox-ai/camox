@@ -358,12 +358,14 @@ const setAiMetadata = authed
       .returning()
       .get();
     if (input.enabled) {
-      scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
-        entityTable: "files",
-        entityId: input.id,
-        type: "fileMetadata",
-        delayMs: 0,
-      });
+      context.waitUntil(
+        scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+          entityTable: "files",
+          entityId: input.id,
+          type: "fileMetadata",
+          delayMs: 0,
+        }),
+      );
     }
     broadcastInvalidation({
       waitUntil: context.waitUntil,
@@ -467,12 +469,14 @@ fileHonoRoutes.post("/upload", async (c) => {
     .returning()
     .get();
 
-  scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
-    entityTable: "files",
-    entityId: result.id,
-    type: "fileMetadata",
-    delayMs: 0,
-  });
+  c.executionCtx.waitUntil(
+    scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
+      entityTable: "files",
+      entityId: result.id,
+      type: "fileMetadata",
+      delayMs: 0,
+    }),
+  );
   broadcastInvalidation({
     waitUntil: (p) => c.executionCtx.waitUntil(p),
     projectRoomNamespace: c.env.ProjectRoom,

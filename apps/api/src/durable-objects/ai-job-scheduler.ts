@@ -51,12 +51,14 @@ export class AiJobScheduler extends DurableObject<Bindings> {
       if (seoStale) {
         // Cascade: schedule page SEO regeneration
         const { scheduleAiJob } = await import("../lib/schedule-ai-job");
-        scheduleAiJob(this.env.AI_JOB_SCHEDULER, {
-          entityTable: "pages",
-          entityId: seoStale.pageId,
-          type: "seo",
-          delayMs: 15000,
-        });
+        this.ctx.waitUntil(
+          scheduleAiJob(this.env.AI_JOB_SCHEDULER, {
+            entityTable: "pages",
+            entityId: seoStale.pageId,
+            type: "seo",
+            delayMs: 15000,
+          }),
+        );
       }
 
       // Broadcast block summary update
@@ -74,12 +76,14 @@ export class AiJobScheduler extends DurableObject<Bindings> {
       if (cascade) {
         // Cascade: schedule parent block summary regeneration
         const { scheduleAiJob } = await import("../lib/schedule-ai-job");
-        scheduleAiJob(this.env.AI_JOB_SCHEDULER, {
-          entityTable: "blocks",
-          entityId: cascade.blockId,
-          type: "summary",
-          delayMs: 5000,
-        });
+        this.ctx.waitUntil(
+          scheduleAiJob(this.env.AI_JOB_SCHEDULER, {
+            entityTable: "blocks",
+            entityId: cascade.blockId,
+            type: "summary",
+            delayMs: 5000,
+          }),
+        );
       }
 
       // Broadcast repeatable item summary update

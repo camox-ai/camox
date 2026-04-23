@@ -224,12 +224,14 @@ const create = authed.input(createItemSchema).handler(async ({ context, input })
     }
   }
 
-  scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
-    entityTable: "repeatableItems",
-    entityId: result.id,
-    type: "summary",
-    delayMs: 0,
-  });
+  context.waitUntil(
+    scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+      entityTable: "repeatableItems",
+      entityId: result.id,
+      type: "summary",
+      delayMs: 0,
+    }),
+  );
   // Granular invalidation: refetch the parent block bundle (includes new item)
   broadcastInvalidation({
     waitUntil: context.waitUntil,
@@ -260,12 +262,14 @@ const updateContent = authed
       .returning()
       .get();
 
-    scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
-      entityTable: "repeatableItems",
-      entityId: id,
-      type: "summary",
-      delayMs: 5000,
-    });
+    context.waitUntil(
+      scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+        entityTable: "repeatableItems",
+        entityId: id,
+        type: "summary",
+        delayMs: 5000,
+      }),
+    );
     // Granular invalidation: only refetch the parent block bundle
     broadcastInvalidation({
       waitUntil: context.waitUntil,
@@ -397,12 +401,14 @@ const generateSummary = authed
       id,
     );
     if (cascade) {
-      scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
-        entityTable: "blocks",
-        entityId: cascade.blockId,
-        type: "summary",
-        delayMs: 5000,
-      });
+      context.waitUntil(
+        scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+          entityTable: "blocks",
+          entityId: cascade.blockId,
+          type: "summary",
+          delayMs: 5000,
+        }),
+      );
     }
     // Granular invalidation: refetch the parent block bundle (includes updated summary)
     broadcastInvalidation({

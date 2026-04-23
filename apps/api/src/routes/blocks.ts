@@ -464,12 +464,14 @@ const create = authed.input(createBlockSchema).handler(async ({ context, input }
     }
   }
 
-  scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
-    entityTable: "blocks",
-    entityId: result.id,
-    type: "summary",
-    delayMs: 0,
-  });
+  context.waitUntil(
+    scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+      entityTable: "blocks",
+      entityId: result.id,
+      type: "summary",
+      delayMs: 0,
+    }),
+  );
   broadcastInvalidation({
     waitUntil: context.waitUntil,
     projectRoomNamespace: context.env.ProjectRoom,
@@ -504,12 +506,14 @@ const updateContent = authed
       .returning()
       .get();
 
-    scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
-      entityTable: "blocks",
-      entityId: id,
-      type: "summary",
-      delayMs: 5000,
-    });
+    context.waitUntil(
+      scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+        entityTable: "blocks",
+        entityId: id,
+        type: "summary",
+        delayMs: 5000,
+      }),
+    );
     // Granular invalidation: only refetch this block, not the entire page
     broadcastInvalidation({
       waitUntil: context.waitUntil,
@@ -680,12 +684,14 @@ const generateSummary = authed
 
     const seoStale = await executeBlockSummary(context.db, context.env.OPEN_ROUTER_API_KEY, id);
     if (seoStale) {
-      scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
-        entityTable: "pages",
-        entityId: seoStale.pageId,
-        type: "seo",
-        delayMs: 15000,
-      });
+      context.waitUntil(
+        scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+          entityTable: "pages",
+          entityId: seoStale.pageId,
+          type: "seo",
+          delayMs: 15000,
+        }),
+      );
     }
     broadcastInvalidation({
       waitUntil: context.waitUntil,
