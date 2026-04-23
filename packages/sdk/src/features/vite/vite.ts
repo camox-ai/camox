@@ -201,9 +201,6 @@ export function camox(options: CamoxPluginOptions): Plugin {
         generateRouteFiles({
           routesDir,
           authenticationUrl,
-          apiUrl,
-          projectSlug: options.projectSlug,
-          environmentName,
         });
         generateSkillFiles(config.root);
       }
@@ -231,9 +228,6 @@ export function camox(options: CamoxPluginOptions): Plugin {
           server,
           routesDir,
           authenticationUrl,
-          apiUrl,
-          projectSlug: options.projectSlug,
-          environmentName,
         });
         watchSkillFiles(server, server.config.root);
 

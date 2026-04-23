@@ -18,12 +18,7 @@ const HEADER = `/* =============================================================
 
 `;
 
-function generateCamoxLayout(
-  authenticationUrl: string,
-  apiUrl: string,
-  projectSlug: string,
-  environmentName: string,
-): string {
+function generateCamoxLayout(authenticationUrl: string): string {
   return (
     HEADER +
     `import { Outlet, createFileRoute } from "@tanstack/react-router";
@@ -36,7 +31,7 @@ export const Route = createFileRoute("/_camox")({
 
 function CamoxPathlessLayout() {
   return (
-    <CamoxProvider camoxApp={camoxApp} authenticationUrl="${authenticationUrl}" apiUrl="${apiUrl}" projectSlug="${projectSlug}" environmentName="${environmentName}">
+    <CamoxProvider camoxApp={camoxApp} authenticationUrl="${authenticationUrl}" apiUrl={__CAMOX_API_URL__} projectSlug={__CAMOX_PROJECT_SLUG__} environmentName={__CAMOX_ENVIRONMENT_NAME__}>
       <Outlet />
     </CamoxProvider>
   );
@@ -45,7 +40,7 @@ function CamoxPathlessLayout() {
   );
 }
 
-function generatePageRoute(apiUrl: string, projectSlug: string, environmentName: string): string {
+function generatePageRoute(): string {
   return (
     HEADER +
     `import { createFileRoute } from "@tanstack/react-router";
@@ -57,8 +52,8 @@ import {
 } from "camox/_internal/pageRoute";
 import { camoxApp } from "@/camox/app";
 
-const markdownMiddleware = createMarkdownMiddleware("${apiUrl}", "${projectSlug}", "${environmentName}");
-const loader = createPageLoader("${apiUrl}", "${projectSlug}", "${environmentName}");
+const markdownMiddleware = createMarkdownMiddleware(__CAMOX_API_URL__, __CAMOX_PROJECT_SLUG__, __CAMOX_ENVIRONMENT_NAME__);
+const loader = createPageLoader(__CAMOX_API_URL__, __CAMOX_PROJECT_SLUG__, __CAMOX_ENVIRONMENT_NAME__);
 const head = createPageHead(camoxApp);
 
 export const Route = createFileRoute("/_camox/$")({
@@ -173,27 +168,18 @@ function RouteComponent() {
 type RouteFilesOptions = {
   routesDir: string;
   authenticationUrl: string;
-  apiUrl: string;
-  projectSlug: string;
-  environmentName: string;
 };
 
-function getRouteFileEntries({
-  routesDir,
-  authenticationUrl,
-  apiUrl,
-  projectSlug,
-  environmentName,
-}: RouteFilesOptions) {
+function getRouteFileEntries({ routesDir, authenticationUrl }: RouteFilesOptions) {
   const camoxDir = resolve(routesDir, "_camox");
   return [
     {
       path: resolve(routesDir, "_camox.tsx"),
-      content: generateCamoxLayout(authenticationUrl, apiUrl, projectSlug, environmentName),
+      content: generateCamoxLayout(authenticationUrl),
     },
     {
       path: resolve(camoxDir, "$.tsx"),
-      content: generatePageRoute(apiUrl, projectSlug, environmentName),
+      content: generatePageRoute(),
     },
     { path: resolve(camoxDir, "og.tsx"), content: generateOgRoute() },
     { path: resolve(camoxDir, "cmx.tsx"), content: generateCmxRedirect() },
