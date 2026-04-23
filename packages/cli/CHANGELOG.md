@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.12.0](https://github.com/camox-ai/camox/compare/camox-v0.11.0...@camox/cli-v0.12.0) (2026-04-23)
+
+
+### Features
+
+* add faq block ([0daa3d6](https://github.com/camox-ai/camox/commit/0daa3d6f42dd3e3c28bf59500dc2d39531709602))
+
+
+### Miscellaneous
+
+* merge Type.RepeatableItem params ([42c418e](https://github.com/camox-ai/camox/commit/42c418e0f726ceedd27050f7c873648ca634dc78))
+
 ## [0.11.0](https://github.com/camox-ai/camox/compare/camox-v0.10.1...@camox/cli-v0.11.0) (2026-04-20)
 
 

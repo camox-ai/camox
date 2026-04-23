@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.12.0](https://github.com/camox-ai/camox/compare/camox-v0.11.0...camox-sdk-v0.12.0) (2026-04-23)
+
+
+### Features
+
+* **web:** add cool blocks and shaders ([7a020ad](https://github.com/camox-ai/camox/commit/7a020ad0d071749e086d5df0d97172e82ad227d9))
+
+
+### Bug Fixes
+
+* stop assuming the build camox environment ([b99b2e8](https://github.com/camox-ai/camox/commit/b99b2e856d748200c3a13c1f5827d3390aefcb81))
+
+
+### Miscellaneous
+
+* merge Type.RepeatableItem params ([42c418e](https://github.com/camox-ai/camox/commit/42c418e0f726ceedd27050f7c873648ca634dc78))
+* remove cmd+escape shortcut in favor of cmd+enter ([eb9de35](https://github.com/camox-ai/camox/commit/eb9de350e5c20c8e9215991c356c4f3b5beb228b))
+* **web:** init camox app ([d32518c](https://github.com/camox-ai/camox/commit/d32518c43ab8dd5e7e361a3514e3079328e8e03d))
+
 ## [0.11.0](https://github.com/camox-ai/camox/compare/camox-v0.10.1...camox-sdk-v0.11.0) (2026-04-20)
 
 

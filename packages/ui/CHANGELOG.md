@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/camox-ai/camox/compare/camox-v0.11.0...@camox/ui-v0.12.0) (2026-04-23)
+
+
+### Miscellaneous
+
+* **web:** ui tweaks ([7c16f65](https://github.com/camox-ai/camox/commit/7c16f65af2432c01da2c1334976ce2da48b6e3d9))
+
 ## [0.11.0](https://github.com/camox-ai/camox/compare/camox-v0.10.1...@camox/ui-v0.11.0) (2026-04-20)
 
 
