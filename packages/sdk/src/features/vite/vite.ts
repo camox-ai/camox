@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { type Plugin, type ResolvedConfig, type ViteDevServer, createServer } from "vite";
+import { z } from "zod";
 
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
@@ -22,30 +23,45 @@ import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 /** Authentication URL to use for Camox authentication (production Camox web app) */
 const DEFAULT_AUTHENTICATION_URL = "https://camox.ai";
 
-function resolveEnvironmentName(isDev: boolean, authenticationUrl: string): string {
-  if (!isDev) return "production";
+const authTokenSchema = z.object({
+  token: z.string(),
+  name: z.string(),
+  email: z.string(),
+});
+const authFileSchema = z.record(z.string(), authTokenSchema);
 
+function readAuthEmail(authenticationUrl: string): string | null {
   const authFile = join(homedir(), ".camox", "auth.json");
   const key = authenticationUrl.replace(/\/+$/, "");
-  let auth: { email?: string } | undefined;
   try {
-    const tokens = JSON.parse(readFileSync(authFile, "utf-8"));
-    auth = tokens[key];
+    const raw = JSON.parse(readFileSync(authFile, "utf-8"));
+    const tokens = authFileSchema.parse(raw);
+    return tokens[key]?.email ?? null;
   } catch {
-    throw new Error(
-      `Camox: not authenticated for ${key}. Run \`camox login\` before starting the dev server.\n` +
-        "Authentication is required so your dev environment is scoped to your user.",
-    );
+    return null;
+  }
+}
+
+function resolveEnvironmentName(command: "serve" | "build", authenticationUrl: string): string {
+  if (command === "serve") {
+    const email = readAuthEmail(authenticationUrl);
+    if (!email) {
+      throw new Error(
+        "Camox: not authenticated. Run `npx camox login` to create your personal dev environment.",
+      );
+    }
+    return `dev:${email}`;
   }
 
-  if (!auth?.email) {
-    throw new Error(
-      `Camox: no session found for ${key} in ~/.camox/auth.json. Run \`camox login\` again.`,
-    );
-  }
+  const envFromProcess = process.env.CAMOX_ENV;
+  if (envFromProcess) return envFromProcess;
 
-  const localPart = auth.email.split("@")[0];
-  return `${localPart}-dev`;
+  const email = readAuthEmail(authenticationUrl);
+  const suggestion = email
+    ? `  CAMOX_ENV=dev:${email}    (your personal dev environment)\n  CAMOX_ENV=production     (release build)`
+    : `  CAMOX_ENV=production     (release build)\n\nIf you want to build against a dev environment, run \`npx camox login\` first.`;
+
+  throw new Error(`Camox: CAMOX_ENV is required on build. Set it to one of:\n${suggestion}`);
 }
 
 export interface CamoxPluginOptions {
@@ -103,7 +119,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
     },
     config(_config, env) {
       isBuild = env.command === "build";
-      environmentName = resolveEnvironmentName(env.command === "serve", authenticationUrl);
+      environmentName = resolveEnvironmentName(env.command, authenticationUrl);
       return {
         define: {
           __CAMOX_ANALYTICS_DISABLED__: JSON.stringify(!!options.disableAnalytics),
@@ -120,6 +136,14 @@ export function camox(options: CamoxPluginOptions): Plugin {
           // as bare specifiers from the user app's root. The `parent > child` form tells Vite
           // to resolve the nested dep through the parent package's own node_modules.
           include: [
+            // React entries reached through `virtual:tanstack-start-client-entry`, which Vite's
+            // scanner can't crawl — without these they're discovered at runtime, triggering a
+            // re-optimize and 504 "Outdated Optimize Dep" errors on the in-flight requests.
+            "react",
+            "react-dom",
+            "react-dom/client",
+            "react/jsx-runtime",
+            "react/jsx-dev-runtime",
             // 1st batch
             "camox > @base-ui/react/accordion",
             "camox > @base-ui/react/alert-dialog",
@@ -222,6 +246,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
           syncSecret: options.syncSecret,
           apiUrl,
           environmentName,
+          autoCreate: true,
         });
       });
     },
@@ -254,6 +279,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
           apiUrl,
           syncSecret: options.syncSecret,
           environmentName,
+          autoCreate: false,
           logger: resolvedConfig.logger,
         });
       } finally {

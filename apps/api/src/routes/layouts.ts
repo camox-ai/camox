@@ -22,6 +22,7 @@ const repeatableItemSeedSchema = z.object({
 const syncLayoutsSchema = z.object({
   projectSlug: z.string(),
   syncSecret: z.string(),
+  autoCreate: z.boolean(),
   layouts: z.array(
     z.object({
       layoutId: z.string(),
@@ -49,11 +50,11 @@ const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ con
 });
 
 const sync = pub.input(syncLayoutsSchema).handler(async ({ context, input }) => {
-  const { projectSlug, layouts: layoutDefs } = input;
+  const { projectSlug, layouts: layoutDefs, autoCreate } = input;
   const project = await assertSyncSecret(context.db, projectSlug, input.syncSecret);
   const projectId = project.id;
   const environment = await resolveEnvironment(context.db, projectId, context.environmentName, {
-    autoCreate: true,
+    autoCreate,
   });
   const now = Date.now();
   const results = [];

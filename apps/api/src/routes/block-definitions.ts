@@ -24,6 +24,7 @@ const definitionSchema = z.object({
 const syncSchema = z.object({
   projectSlug: z.string(),
   syncSecret: z.string(),
+  autoCreate: z.boolean(),
   definitions: z.array(
     z.object({
       blockId: z.string(),
@@ -57,11 +58,11 @@ const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ con
 });
 
 const sync = pub.input(syncSchema).handler(async ({ context, input }) => {
-  const { projectSlug, definitions } = input;
+  const { projectSlug, definitions, autoCreate } = input;
   const project = await assertSyncSecret(context.db, projectSlug, input.syncSecret);
   const projectId = project.id;
   const environment = await resolveEnvironment(context.db, projectId, context.environmentName, {
-    autoCreate: true,
+    autoCreate,
   });
   const now = Date.now();
   const results = [];

@@ -22,8 +22,7 @@ const config = defineConfig(({ mode }) => {
       camox({ projectSlug: "camox-landing", syncSecret: env.CAMOX_SYNC_SECRET }),
     ],
     optimizeDeps: {
-      exclude: ["@daveyplate/better-auth-ui"],
-      include: ["@paper-design/shaders-react"],
+      include: ["@paper-design/shaders-react", "@daveyplate/better-auth-ui"],
     },
   };
 });

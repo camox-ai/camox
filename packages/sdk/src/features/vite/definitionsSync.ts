@@ -14,6 +14,7 @@ interface SyncDefinitionsOptions {
   syncSecret: string;
   apiUrl: string;
   environmentName: string;
+  autoCreate: boolean;
 }
 
 /**
@@ -30,15 +31,33 @@ function throwIfSyncAuthError(error: unknown): void {
   }
 }
 
+function isNotFoundError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.name === "ORPCError" &&
+    error.message.toLowerCase().includes("not found")
+  );
+}
+
+function throwUnknownEnvironmentError(environmentName: string): never {
+  throw new Error(
+    `[camox] Environment "${environmentName}" does not exist. ` +
+      `CAMOX_ENV must be "production" or a dev environment previously created by ` +
+      `running the dev server while authenticated. Run \`npx camox login\` if needed.`,
+  );
+}
+
 export async function syncDefinitionsToApi(options: {
   camoxApp: CamoxApp;
   projectSlug: string;
   apiUrl: string;
   syncSecret: string;
-  environmentName?: string;
+  environmentName: string;
+  autoCreate: boolean;
   logger: Logger;
 }): Promise<void> {
-  const { camoxApp, projectSlug, apiUrl, syncSecret, environmentName, logger } = options;
+  const { camoxApp, projectSlug, apiUrl, syncSecret, environmentName, autoCreate, logger } =
+    options;
   const client = createServerApiClient(apiUrl, environmentName);
 
   const blocks = camoxApp.getBlocks();
@@ -74,18 +93,18 @@ export async function syncDefinitionsToApi(options: {
     const result = await client.blockDefinitions.sync({
       projectSlug,
       syncSecret,
+      autoCreate,
       definitions,
     });
     environmentCreated = result.environmentCreated;
   } catch (error) {
     throwIfSyncAuthError(error);
+    if (!autoCreate && isNotFoundError(error)) throwUnknownEnvironmentError(environmentName);
     throw error;
   }
 
-  if (environmentCreated && environmentName) {
-    logger.info(`[camox] Created environment "${environmentName}" (forked from production)`, {
-      timestamp: true,
-    });
+  if (environmentCreated) {
+    logger.info(`[camox] Created empty environment "${environmentName}"`, { timestamp: true });
   }
 
   logger.info(
@@ -100,10 +119,12 @@ export async function syncDefinitionsToApi(options: {
       layoutSyncResults = await client.layouts.sync({
         projectSlug,
         syncSecret,
+        autoCreate,
         layouts: layoutDefinitions,
       });
     } catch (error) {
       throwIfSyncAuthError(error);
+      if (!autoCreate && isNotFoundError(error)) throwUnknownEnvironmentError(environmentName);
       throw error;
     }
     logger.info(
@@ -222,7 +243,7 @@ export async function syncDefinitions(
   server: ViteDevServer,
   options: SyncDefinitionsOptions,
 ): Promise<void> {
-  const { projectSlug, syncSecret, apiUrl, environmentName } = options;
+  const { projectSlug, syncSecret, apiUrl, environmentName, autoCreate } = options;
   const blocksDir = path.resolve(server.config.root, "src/camox/blocks");
   const client = createServerApiClient(apiUrl, environmentName);
 
@@ -254,6 +275,7 @@ export async function syncDefinitions(
       apiUrl,
       syncSecret,
       environmentName,
+      autoCreate,
       logger: server.config.logger,
     });
   }
