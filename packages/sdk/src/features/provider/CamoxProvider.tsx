@@ -64,8 +64,8 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
     const handleKeyDown = (event: KeyboardEvent) => {
       const isMetaOrCtrl = event.metaKey || event.ctrlKey;
 
-      // Unauthenticated keyboard handler - Cmd+Escape opens sign in
-      if (isMetaOrCtrl && event.key === "Escape") {
+      // Unauthenticated keyboard handler - Cmd+Enter opens sign in
+      if (isMetaOrCtrl && event.key === "Enter") {
         event.preventDefault();
         signInRedirect();
       }
@@ -89,9 +89,11 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
     return () => void toast.dismiss(toastId);
   }, [signInRedirect]);
 
+  const { theme } = useTheme();
+
   return (
     <>
-      <Toaster theme="light" position="bottom-right" offset={{ bottom: "1rem" }} />
+      <Toaster theme={theme} position="bottom-right" offset={{ bottom: "1rem" }} />
       <div className="bg-background min-h-screen">{children}</div>
     </>
   );

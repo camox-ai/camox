@@ -106,7 +106,7 @@ export const PreviewToolbar = () => {
             Preview
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent>
-            Hide all Camox UI {getActionShortcut(actions, "enter-presentation-mode")}
+            Hide Camox Studio {getActionShortcut(actions, "enter-presentation-mode")}
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>
       </ButtonGroup>

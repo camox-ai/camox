@@ -287,7 +287,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
     const actions = [
       {
         id: "enter-presentation-mode",
-        label: "Enter presentation mode",
+        label: "Hide Camox Studio",
         groupLabel: "Preview",
         checkIfAvailable: () => isAuthenticated && !isPresentationMode,
         execute: () => previewStore.send({ type: "enterPresentationMode" }),
@@ -295,11 +295,11 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       },
       {
         id: "exit-presentation-mode",
-        label: "Exit presentation mode",
+        label: "",
         groupLabel: "Preview",
         checkIfAvailable: () => isAuthenticated && isPresentationMode,
         execute: () => previewStore.send({ type: "exitPresentationMode" }),
-        shortcut: { key: "Escape", withMeta: true },
+        shortcut: { key: "Enter", withMeta: true },
       },
       {
         id: "clear-selection",

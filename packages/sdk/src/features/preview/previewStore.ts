@@ -86,17 +86,14 @@ export const previewStore = createStore({
     enterPresentationMode: (context, _, enqueue) => {
       if (context.isPresentationMode) return context;
       enqueue.effect(() => {
-        toast("Entering presentation mode. Press ⌘ + Escape to restore admin interface", {
-          duration: 4000,
+        toast("Press ⌘ + Enter to restore Camox Studio", {
+          duration: 2500,
         });
       });
       return { ...context, isPresentationMode: true };
     },
-    exitPresentationMode: (context, _, enqueue) => {
+    exitPresentationMode: (context) => {
       if (!context.isPresentationMode) return context;
-      enqueue.effect(() => {
-        toast("Leaving presentation mode");
-      });
       return { ...context, isPresentationMode: false };
     },
     toggleSidebar: (context) => {
