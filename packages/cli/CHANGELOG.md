@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.1](https://github.com/camox-ai/camox/compare/camox-v0.12.0...@camox/cli-v0.12.1) (2026-04-23)
+
+
+### Miscellaneous
+
+* set up nx groups ([2e2128a](https://github.com/camox-ai/camox/commit/2e2128a80133c7c9e599d85ef855223aefb64d4c))
+
 ## [0.12.0](https://github.com/camox-ai/camox/compare/camox-v0.11.0...@camox/cli-v0.12.0) (2026-04-23)
 
 
