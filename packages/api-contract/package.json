@@ -33,5 +33,10 @@
   },
   "devDependencies": {
     "dts-bundle-generator": "^9.5.1"
+  },
+  "nx": {
+    "tags": [
+      "type:pkg"
+    ]
   }
 }

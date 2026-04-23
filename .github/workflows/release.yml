@@ -42,7 +42,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm nx run-many -t build --all --exclude=playground
+      - run: pnpm nx run-many -t build --projects=tag:type:pkg
 
       - name: Publish @camox/api-contract
         run: pnpm publish --no-git-checks --access public

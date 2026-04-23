@@ -64,7 +64,7 @@ export const PeekedBlock = ({ onExitComplete }: PeekedBlockProps) => {
       if (isExpanded) {
         // Scroll into view after expand animation completes (initial peek)
         peekedBlockRef.current?.scrollIntoView({
-          behavior: "instant",
+          behavior: "smooth",
           block: "start",
         });
         return;

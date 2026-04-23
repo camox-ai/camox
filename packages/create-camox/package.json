@@ -10,5 +10,10 @@
   "type": "module",
   "dependencies": {
     "@camox/cli": "workspace:*"
+  },
+  "nx": {
+    "tags": [
+      "type:pkg"
+    ]
   }
 }
