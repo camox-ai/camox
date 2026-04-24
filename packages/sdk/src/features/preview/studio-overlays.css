@@ -118,8 +118,7 @@
 .camox-sheet-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.66);
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
   pointer-events: none;

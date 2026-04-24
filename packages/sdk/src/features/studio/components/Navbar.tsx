@@ -67,7 +67,7 @@ const Navbar = () => {
       {/* Preview sheet overlay */}
       <div
         className={cn(
-          "absolute top-0 left-0 w-full h-[calc(100%+2px)] bg-black/10 transition-opacity z-10 will-change-auto pointer-events-none supports-backdrop-filter:backdrop-blur-xs",
+          "absolute top-0 left-0 w-full h-[calc(100%+2px)] bg-black/66 transition-opacity z-10 will-change-auto pointer-events-none",
           isPreviewSheetOpen ? "opacity-100" : "opacity-0",
         )}
       />
