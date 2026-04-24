@@ -293,7 +293,7 @@ const updateSettings = authed
     if (!access) throw new ORPCError("NOT_FOUND");
 
     const merged = {
-      ...((access.item.settings as Record<string, unknown> | null) ?? {}),
+      ...(access.item.settings as Record<string, unknown> | null),
       ...(settings as Record<string, unknown>),
     };
     const result = await context.db

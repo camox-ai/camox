@@ -536,9 +536,13 @@ const updateSettings = authed
     const access = await assertBlockAccess(context.db, id, userId);
     if (!access) throw new ORPCError("NOT_FOUND");
 
+    const merged = {
+      ...(access.block.settings as Record<string, unknown> | null),
+      ...(settings as Record<string, unknown>),
+    };
     const result = await context.db
       .update(blocks)
-      .set({ settings, updatedAt: Date.now() })
+      .set({ settings: merged, updatedAt: Date.now() })
       .where(eq(blocks.id, id))
       .returning()
       .get();
