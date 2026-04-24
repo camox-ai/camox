@@ -43,6 +43,7 @@ import {
   type ImageValue,
   type FileValue,
   type ToMarkdownBuilder,
+  type ItemSettingsBrand,
 } from "./lib/contentType.ts";
 import { markdownToReactNodes } from "./lib/lexicalReact";
 
@@ -180,6 +181,7 @@ export interface PeekItem {
   parentItemId: number | null;
   fieldName: string;
   content: unknown;
+  settings: Record<string, unknown> | null;
   summary: string;
   position: string;
   createdAt: number;
@@ -191,6 +193,7 @@ export interface RepeatableItemSeed {
   parentTempId: string | null;
   fieldName: string;
   content: Record<string, unknown>;
+  settings?: Record<string, unknown>;
   position: string;
 }
 
@@ -226,6 +229,10 @@ function buildInitialSeeds(
       }
     }
 
+    const itemSettingsDefaults = fieldSchema.defaultItemSettings as
+      | Record<string, unknown>
+      | undefined;
+
     const markers: { _itemId: string }[] = [];
     let prevPosition: string | null = null;
 
@@ -239,6 +246,7 @@ function buildInitialSeeds(
         parentTempId,
         fieldName,
         content: { ...itemContent },
+        settings: itemSettingsDefaults ? { ...itemSettingsDefaults } : undefined,
         position,
       });
 
@@ -283,6 +291,10 @@ function buildPeekItems(
       }
     }
 
+    const itemSettingsDefaults = fieldSchema.defaultItemSettings as
+      | Record<string, unknown>
+      | undefined;
+
     const markers: { _itemId: number }[] = [];
     let prevPosition: string | null = null;
 
@@ -297,6 +309,7 @@ function buildPeekItems(
         parentItemId,
         fieldName,
         content: { ...itemContent },
+        settings: itemSettingsDefaults ? { ...itemSettingsDefaults } : null,
         summary: "",
         position,
         createdAt: 0,
@@ -372,6 +385,7 @@ export function createBlock<
 
   // Extract per-item defaults for repeatable (array) fields
   const repeatableItemDefaults: Record<string, Record<string, unknown>> = {};
+  const repeatableItemSettingsDefaults: Record<string, Record<string, unknown>> = {};
   for (const [key, prop] of Object.entries(typeboxSchema.properties)) {
     const p = prop as any;
     if (p.type === "array" && p.items?.properties) {
@@ -383,6 +397,9 @@ export function createBlock<
       }
       if (Object.keys(itemDefaults).length > 0) {
         repeatableItemDefaults[key] = itemDefaults;
+      }
+      if (p.defaultItemSettings && typeof p.defaultItemSettings === "object") {
+        repeatableItemSettingsDefaults[key] = p.defaultItemSettings as Record<string, unknown>;
       }
     }
   }
@@ -414,6 +431,7 @@ export function createBlock<
     arrayFieldName: string;
     itemIndex: number;
     itemContent: any;
+    itemSettings: Record<string, unknown>;
     itemId?: number;
   }
 
@@ -530,6 +548,16 @@ export function createBlock<
       ? F
       : never]: RepeatableItemType<K>[F];
   };
+
+  // Extract the per-item settings shape recorded by Type.RepeatableItem
+  // via the `WithItemSettings` phantom brand.
+  type ItemSettingsStatic<K extends keyof RepeatableFields> = TSchemaShape[K] extends {
+    readonly [ItemSettingsBrand]?: infer S;
+  }
+    ? S extends Record<string, TSchema>
+      ? Static<ReturnType<typeof TypeBoxType.Object<S>>>
+      : Record<string, never>
+    : Record<string, never>;
 
   /* ----- Render prop types ------------------------------------------------
    * These describe exactly what `props` (and `data`) each field renderer
@@ -1340,10 +1368,12 @@ export function createBlock<
                 name: string;
                 children: (item: any, index: number) => React.ReactNode;
               }) => React.ReactNode;
+              useSetting: (name: string) => unknown;
             },
             index: number,
           ) => React.ReactNode;
         }) => React.ReactNode;
+        useSetting: <F extends keyof ItemSettingsStatic<K>>(name: F) => ItemSettingsStatic<K>[F];
       },
       index: number,
     ) => React.ReactNode;
@@ -1414,19 +1444,11 @@ export function createBlock<
             name: string;
             children: (item: any, index: number) => React.ReactNode;
           }) => React.ReactNode;
+          useSetting: (name: string) => unknown;
         },
         index: number,
       ) => React.ReactNode;
     }) => React.ReactNode;
-
-    const itemComponents = {
-      Field: ItemField,
-      Link: ItemLink,
-      Embed: ItemEmbed,
-      Image: ItemImage,
-      File: ItemFile,
-      Repeater: ItemRepeater,
-    };
 
     // Items come from either the parent repeater context (nested) or block content (top-level)
     const source = parentRepeaterContext ? parentRepeaterContext.itemContent[name] : content[name];
@@ -1472,6 +1494,8 @@ export function createBlock<
 
     type TItem = RepeatableItemType<K>;
 
+    const settingsDefaultsForField = repeatableItemSettingsDefaults[fieldName];
+
     return (
       <RepeaterHoverProvider blockId={blockId} fieldName={fieldName}>
         {arrayValue.map((item: any, index: number) => {
@@ -1481,7 +1505,24 @@ export function createBlock<
             ...repeatableItemDefaults[fieldName],
             ...(isDbItem ? item.content : item),
           } as TItem;
+          const itemSettings: Record<string, unknown> = {
+            ...settingsDefaultsForField,
+            ...((isDbItem ? (item.settings as Record<string, unknown> | null) : null) ?? {}),
+          };
           const itemId: number | undefined = isDbItem ? item.id : undefined;
+          const useItemSetting = (settingName: string) => itemSettings[settingName];
+
+          const itemApi = {
+            Field: ItemField,
+            Link: ItemLink,
+            Embed: ItemEmbed,
+            Image: ItemImage,
+            File: ItemFile,
+            Repeater: ItemRepeater,
+            useSetting: useItemSetting as <F extends keyof ItemSettingsStatic<K>>(
+              name: F,
+            ) => ItemSettingsStatic<K>[F],
+          };
 
           return (
             <RepeaterItemContext.Provider
@@ -1490,11 +1531,12 @@ export function createBlock<
                 arrayFieldName: fieldName,
                 itemIndex: index,
                 itemContent: itemContent,
+                itemSettings,
                 itemId: itemId,
               }}
             >
               <RepeaterItemWrapper itemId={itemId} blockId={blockId} mode={mode}>
-                {children(itemComponents, index)}
+                {children(itemApi, index)}
               </RepeaterItemWrapper>
             </RepeaterItemContext.Provider>
           );

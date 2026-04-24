@@ -139,6 +139,7 @@ const nestedItemSeedSchema = z.object({
   parentTempId: z.string().nullable(),
   fieldName: z.string(),
   content: z.unknown(),
+  settings: z.unknown().optional(),
   position: z.string(),
 });
 
@@ -147,12 +148,13 @@ const createItemSchema = z.object({
   parentItemId: z.number().nullable().optional(),
   fieldName: z.string(),
   content: z.unknown(),
+  settings: z.unknown().optional(),
   afterPosition: z.string().nullable().optional(),
   nestedItems: z.array(nestedItemSeedSchema).optional(),
 });
 
 const create = authed.input(createItemSchema).handler(async ({ context, input }) => {
-  const { blockId, parentItemId, fieldName, content, afterPosition, nestedItems } = input;
+  const { blockId, parentItemId, fieldName, content, settings, afterPosition, nestedItems } = input;
   const access = await assertBlockAccess(context.db, blockId, context.user.id);
   if (!access) throw new ORPCError("NOT_FOUND");
 
@@ -189,6 +191,7 @@ const create = authed.input(createItemSchema).handler(async ({ context, input })
       parentItemId: parentItemId ?? null,
       fieldName,
       content,
+      settings: (settings as Record<string, unknown> | undefined) ?? null,
       summary: "",
       position,
       createdAt: now,
@@ -213,6 +216,7 @@ const create = authed.input(createItemSchema).handler(async ({ context, input })
           parentItemId: seedParentId,
           fieldName: seed.fieldName,
           content: seed.content,
+          settings: (seed.settings as Record<string, unknown> | undefined) ?? null,
           summary: "",
           position: seed.position,
           createdAt: now,
@@ -271,6 +275,34 @@ const updateContent = authed
       }),
     );
     // Granular invalidation: only refetch the parent block bundle
+    broadcastInvalidation({
+      waitUntil: context.waitUntil,
+      projectRoomNamespace: context.env.ProjectRoom,
+      projectId: access.projectId,
+      targets: [queryKeys.blocks.get(access.item.blockId)],
+    });
+
+    return result;
+  });
+
+const updateSettings = authed
+  .input(z.object({ id: z.number(), settings: z.unknown() }))
+  .handler(async ({ context, input }) => {
+    const { id, settings } = input;
+    const access = await assertRepeatableItemAccess(context.db, id, context.user.id);
+    if (!access) throw new ORPCError("NOT_FOUND");
+
+    const merged = {
+      ...((access.item.settings as Record<string, unknown> | null) ?? {}),
+      ...(settings as Record<string, unknown>),
+    };
+    const result = await context.db
+      .update(repeatableItems)
+      .set({ settings: merged, updatedAt: Date.now() })
+      .where(eq(repeatableItems.id, id))
+      .returning()
+      .get();
+
     broadcastInvalidation({
       waitUntil: context.waitUntil,
       projectRoomNamespace: context.env.ProjectRoom,
@@ -371,6 +403,7 @@ const duplicate = authed.input(z.object({ id: z.number() })).handler(async ({ co
       blockId: original.blockId,
       fieldName: original.fieldName,
       content: original.content,
+      settings: original.settings,
       summary: original.summary,
       position,
       createdAt: now,
@@ -476,6 +509,7 @@ export const repeatableItemProcedures = {
   get,
   create,
   updateContent,
+  updateSettings,
   updatePosition,
   duplicate,
   generateSummary,

@@ -145,6 +145,7 @@ export const repeatableItemMutations = {
   delete: () => getOrpc().repeatableItems.delete.mutationOptions(),
   duplicate: () => getOrpc().repeatableItems.duplicate.mutationOptions(),
   updateContent: () => getOrpc().repeatableItems.updateContent.mutationOptions(),
+  updateSettings: () => getOrpc().repeatableItems.updateSettings.mutationOptions(),
   updatePosition: () => getOrpc().repeatableItems.updatePosition.mutationOptions(),
 };
 

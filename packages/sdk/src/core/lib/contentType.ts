@@ -53,6 +53,17 @@ declare const EmbedURLBrand: unique symbol;
 export type EmbedURL = string & { readonly [EmbedURLBrand]: true };
 
 /* -------------------------------------------------------------------------------------------------
+ * RepeatableItem settings brand
+ * Carries the per-item settings shape on the TArray schema at the type level only,
+ * so createBlock can infer a typed `item.useSetting` signature without runtime cost.
+ * -----------------------------------------------------------------------------------------------*/
+
+export declare const ItemSettingsBrand: unique symbol;
+export type WithItemSettings<S extends Record<string, TSchema>> = {
+  readonly [ItemSettingsBrand]?: S;
+};
+
+/* -------------------------------------------------------------------------------------------------
  * LinkValue branded type
  * -----------------------------------------------------------------------------------------------*/
 
@@ -231,11 +242,18 @@ export const Type = {
    * Creates a repeatable array of object items.
    * The default array is auto-generated based on minItems.
    *
+   * Items may also declare per-item `settings` (Enum/Boolean only) — not
+   * inline-editable; they appear in the sidebar when the item is selected,
+   * similar to block-level settings.
+   *
    * @example
    * Type.RepeatableItem({
    *   content: {
    *     title: Type.String({ default: 'Item' }),
    *     description: Type.String({ default: 'Description' }),
+   *   },
+   *   settings: {
+   *     highlighted: Type.Boolean({ default: false, title: 'Highlighted' }),
    *   },
    *   minItems: 1,
    *   maxItems: 10,
@@ -243,8 +261,12 @@ export const Type = {
    *   toMarkdown: (c) => [`### ${c.title}`, c.description],
    * })
    */
-  RepeatableItem: <T extends Record<string, TSchema>>(options: {
+  RepeatableItem: <
+    T extends Record<string, TSchema>,
+    S extends Record<string, TSchema> = Record<string, never>,
+  >(options: {
     content: T;
+    settings?: S;
     minItems: number;
     maxItems: number;
     title?: string;
@@ -267,6 +289,25 @@ export const Type = {
       .fill(null)
       .map(() => ({ ...defaultItem }));
 
+    const settingsTypeboxSchema = options.settings ? TypeBoxType.Object(options.settings) : null;
+
+    const itemSettingsSchema = settingsTypeboxSchema
+      ? {
+          type: "object" as const,
+          properties: settingsTypeboxSchema.properties,
+          required: Object.keys(options.settings!),
+        }
+      : undefined;
+
+    const defaultItemSettings: Record<string, unknown> = {};
+    if (settingsTypeboxSchema) {
+      for (const [key, prop] of Object.entries(settingsTypeboxSchema.properties)) {
+        if ("default" in prop) {
+          defaultItemSettings[key] = (prop as { default: unknown }).default;
+        }
+      }
+    }
+
     return TypeBoxType.Array(objectSchema, {
       minItems: options.minItems,
       maxItems: options.maxItems,
@@ -274,7 +315,9 @@ export const Type = {
       title: options.title,
       fieldType: "RepeatableItem" as const,
       toMarkdown: resolveToMarkdown(options.toMarkdown),
-    });
+      itemSettingsSchema,
+      defaultItemSettings: settingsTypeboxSchema ? defaultItemSettings : undefined,
+    }) as TArray<TObject<T>> & WithItemSettings<S>;
   },
 
   /**

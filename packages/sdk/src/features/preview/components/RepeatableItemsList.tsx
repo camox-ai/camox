@@ -205,12 +205,17 @@ const RepeatableItemsList = ({
       }
     }
 
+    const defaultSettings = (schema as any)?.defaultItemSettings as
+      | Record<string, unknown>
+      | undefined;
+
     // Build nested item seeds for any nested repeatable fields in this item's schema
     const nestedItems: Array<{
       tempId: string;
       parentTempId: string | null;
       fieldName: string;
       content: Record<string, unknown>;
+      settings?: Record<string, unknown>;
       position: string;
     }> = [];
 
@@ -233,6 +238,10 @@ const RepeatableItemsList = ({
             }
           }
 
+          const nestedSettingsDefaults = fs.defaultItemSettings as
+            | Record<string, unknown>
+            | undefined;
+
           let prevPos: string | null = null;
           for (let i = 0; i < defaultCount; i++) {
             const tempId = `nested_${++seedCounter}`;
@@ -243,6 +252,7 @@ const RepeatableItemsList = ({
               parentTempId,
               fieldName: nestedFieldName,
               content: { ...nestedContent },
+              settings: nestedSettingsDefaults ? { ...nestedSettingsDefaults } : undefined,
               position,
             });
             // Recurse for deeper nesting
@@ -257,6 +267,7 @@ const RepeatableItemsList = ({
       blockId,
       fieldName,
       content: defaultContent,
+      settings: defaultSettings ? { ...defaultSettings } : undefined,
       nestedItems: nestedItems.length > 0 ? nestedItems : undefined,
     });
   };

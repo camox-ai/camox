@@ -90,6 +90,32 @@ const getSchemaForItem = (
 };
 
 /**
+ * Like `getSchemaForItem` but returns the **array** schema (one level above
+ * the items schema), where per-item settings metadata lives.
+ */
+const getArraySchemaForItem = (
+  contentSchema: unknown,
+  itemId: number,
+  itemsMap: Map<number, NormalizedItem>,
+): unknown => {
+  const path: string[] = [];
+  let current = itemsMap.get(itemId);
+  while (current) {
+    path.unshift(current.fieldName);
+    current = current.parentItemId ? itemsMap.get(current.parentItemId) : undefined;
+  }
+
+  let schema = contentSchema;
+  for (let i = 0; i < path.length; i++) {
+    const prop = (schema as any)?.properties?.[path[i]];
+    if (!prop?.items) return null;
+    if (i === path.length - 1) return prop;
+    schema = prop.items;
+  }
+  return null;
+};
+
+/**
  * Builds the ancestor chain from root to this item (inclusive).
  * Returns items in order from root-most ancestor to the item itself.
  */
@@ -115,6 +141,7 @@ const PageContentSheet = () => {
   const updateContent = useMutation(blockMutations.updateContent());
   const updateSettings = useMutation(blockMutations.updateSettings());
   const updateRepeatableContent = useMutation(repeatableItemMutations.updateContent());
+  const updateRepeatableSettings = useMutation(repeatableItemMutations.updateSettings());
 
   // Get state from store
   const isOpen = useSelector(previewStore, (state) => state.context.isPageContentSheetOpen);
@@ -168,6 +195,15 @@ const PageContentSheet = () => {
   const settingsFields = React.useMemo(() => {
     return blockDef ? getSettingsFields(blockDef._internal.settingsSchema) : [];
   }, [blockDef]);
+
+  const itemArraySchema = React.useMemo(() => {
+    if (!blockDef || currentItemId == null) return null;
+    return getArraySchemaForItem(blockDef._internal.contentSchema, currentItemId, itemsMap);
+  }, [blockDef, currentItemId, itemsMap]);
+
+  const itemSettingsFields = React.useMemo(() => {
+    return getSettingsFields((itemArraySchema as any)?.itemSettingsSchema);
+  }, [itemArraySchema]);
 
   // Compute schema and data based on selection
   const currentSchema = React.useMemo(() => {
@@ -504,6 +540,75 @@ const PageContentSheet = () => {
                       onCheckedChange={(newValue) => {
                         updateSettings.mutate({
                           id: block.id,
+                          settings: { [field.name]: newValue },
+                        });
+                      }}
+                    />
+                  </div>
+                );
+              }
+
+              return null;
+            })}
+          </div>
+        )}
+        {currentItemId != null && !fieldHasOwnView && itemSettingsFields.length > 0 && (
+          <div className="border-border space-y-4 border-b px-4 py-4">
+            <Label className="text-muted-foreground">Settings</Label>
+            {itemSettingsFields.map((field) => {
+              const label = field.label ?? formatFieldName(field.name);
+              const itemSettingsValues = (currentItem?.settings ?? {}) as Record<string, unknown>;
+              const itemSettingsSchemaProps = (itemArraySchema as any)?.itemSettingsSchema
+                ?.properties as Record<string, any> | undefined;
+
+              if (field.fieldType === "Enum") {
+                const value =
+                  (itemSettingsValues[field.name] as string | undefined) ??
+                  (itemSettingsSchemaProps?.[field.name]?.default as string | undefined) ??
+                  "";
+
+                return (
+                  <div key={field.name} className="space-y-2">
+                    <Label htmlFor={`item-setting-${field.name}`}>{label}</Label>
+                    <Select
+                      value={value}
+                      onValueChange={(newValue) => {
+                        updateRepeatableSettings.mutate({
+                          id: currentItemId,
+                          settings: { [field.name]: newValue },
+                        });
+                      }}
+                    >
+                      <SelectTrigger id={`item-setting-${field.name}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.enumValues?.map((enumValue) => (
+                          <SelectItem key={enumValue} value={enumValue}>
+                            {field.enumLabels?.[enumValue] ?? enumValue}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              }
+
+              if (field.fieldType === "Boolean") {
+                const checked =
+                  (itemSettingsValues[field.name] as boolean | undefined) ??
+                  (itemSettingsSchemaProps?.[field.name]?.default as boolean | undefined) ??
+                  false;
+
+                return (
+                  <div key={field.name} className="flex items-center justify-between">
+                    <Label htmlFor={`item-setting-${field.name}`}>{label}</Label>
+                    <Switch
+                      id={`item-setting-${field.name}`}
+                      checked={checked}
+                      onCheckedChange={(newValue) => {
+                        updateRepeatableSettings.mutate({
+                          id: currentItemId,
                           settings: { [field.name]: newValue },
                         });
                       }}

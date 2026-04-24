@@ -260,6 +260,7 @@ export const repeatableItems = sqliteTable(
     }),
     fieldName: text("field_name").notNull(),
     content: text({ mode: "json" }).notNull(),
+    settings: text({ mode: "json" }),
     summary: text().notNull().default(""),
     position: text().notNull(),
     createdAt: int("created_at").notNull(),

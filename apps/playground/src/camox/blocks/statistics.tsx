@@ -32,6 +32,18 @@ const statistics = createBlock({
           title: "Label",
         }),
       },
+      settings: {
+        color: Type.Enum({
+          default: "teal",
+          options: {
+            teal: "Teal",
+            purple: "Purple",
+            amber: "Amber",
+            rose: "Rose",
+          },
+          title: "Color",
+        }),
+      },
       minItems: 4,
       maxItems: 8,
       title: "Statistics",
@@ -75,23 +87,32 @@ function StatisticsComponent() {
           {/* Statistics grid layout */}
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
             <statistics.Repeater name="statistics">
-              {(stat) => (
-                <div className="flex gap-3">
-                  <div className="w-0.5 bg-linear-to-b from-teal-400 to-blue-500" />
-                  <div className="flex flex-col">
-                    <stat.Field name="number">
-                      {(props) => (
-                        <div {...props} className="text-foreground mb-2 text-4xl font-bold" />
-                      )}
-                    </stat.Field>
-                    <stat.Field name="label">
-                      {(props) => (
-                        <p {...props} className="text-muted-foreground text-sm leading-relaxed" />
-                      )}
-                    </stat.Field>
+              {(stat) => {
+                const color = stat.useSetting("color");
+                const borderClass = {
+                  teal: "bg-linear-to-b from-teal-400 to-blue-500",
+                  purple: "bg-linear-to-b from-purple-400 to-fuchsia-500",
+                  amber: "bg-linear-to-b from-amber-400 to-orange-500",
+                  rose: "bg-linear-to-b from-rose-400 to-pink-500",
+                }[color];
+                return (
+                  <div className="flex gap-3">
+                    <div className={`w-0.5 ${borderClass}`} />
+                    <div className="flex flex-col">
+                      <stat.Field name="number">
+                        {(props) => (
+                          <div {...props} className="text-foreground mb-2 text-4xl font-bold" />
+                        )}
+                      </stat.Field>
+                      <stat.Field name="label">
+                        {(props) => (
+                          <p {...props} className="text-muted-foreground text-sm leading-relaxed" />
+                        )}
+                      </stat.Field>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              }}
             </statistics.Repeater>
           </div>
         </div>
