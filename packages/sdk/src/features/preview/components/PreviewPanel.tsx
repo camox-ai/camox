@@ -10,12 +10,12 @@ import { SHEET_WIDTH } from "../previewConstants";
 import { previewStore } from "../previewStore";
 import { useBlockActionsShortcuts } from "./BlockActionsPopover";
 import { FieldOverlayStyles } from "./FieldOverlayStyles";
+import { FieldToolbar } from "./FieldToolbar";
 import { Frame, useFrame } from "./Frame";
 import { Overlays } from "./Overlays";
 import { OverlayTracker } from "./OverlayTracker";
 import { useIsPreviewSheetOpen } from "./PreviewSideSheet";
 import { PreviewToolbar } from "./PreviewToolbar";
-import { TextFormatToolbar } from "./TextFormatToolbar";
 
 /* -------------------------------------------------------------------------------------------------
  * Frame
@@ -233,7 +233,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
                 </PreviewFrame>
                 <Overlays iframeElement={iframeElement} />
               </div>
-              <TextFormatToolbar />
+              <FieldToolbar />
               <PreviewToolbar />
             </div>
           ) : (
@@ -242,7 +242,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
                 {children}
               </PreviewFrame>
               <Overlays iframeElement={iframeElement} />
-              <TextFormatToolbar />
+              <FieldToolbar />
               <PreviewToolbar />
             </>
           )}

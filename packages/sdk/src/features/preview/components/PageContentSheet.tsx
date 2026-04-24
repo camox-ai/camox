@@ -278,13 +278,12 @@ const PageContentSheet = () => {
   // Register action to toggle content sheet for current selection
   React.useEffect(() => {
     const action: Action = {
-      id: "open-content-sheet",
-      label: isOpen ? "Close content sheet" : "Open content sheet",
+      id: "toggle-content-sheet",
+      label: isOpen ? "Close form" : "Open in form",
       groupLabel: "Preview",
-      shortcut: { key: "j", withMeta: true },
-      checkIfAvailable: () => isOpen || !!blockId,
+      shortcut: { key: "j", withAlt: true },
+      checkIfAvailable: () => blockId != null,
       execute: () => {
-        if (!blockId) return;
         previewStore.send({ type: "toggleContentSheet" });
       },
     };

@@ -1,13 +1,14 @@
+import { Button } from "@camox/ui/button";
 import { ButtonGroup } from "@camox/ui/button-group";
 import { FloatingToolbar } from "@camox/ui/floating-toolbar";
 import { Kbd } from "@camox/ui/kbd";
 import { Toggle } from "@camox/ui/toggle";
 import * as Tooltip from "@camox/ui/tooltip";
 import { useSelector } from "@xstate/store/react";
-import { Bold, Italic } from "lucide-react";
+import { Bold, Italic, Pen } from "lucide-react";
 import * as React from "react";
 
-import { cn } from "@/lib/utils";
+import { cn, formatShortcut } from "@/lib/utils";
 
 import { FORMAT_FLAGS } from "../../../core/lib/modifierFormats";
 import type { OverlayMessage } from "../overlayMessages";
@@ -20,8 +21,9 @@ const FORMAT_BUTTONS = [
   { key: "italic", flag: FORMAT_FLAGS.italic, icon: Italic, label: "Italic", shortcut: "⌘ I" },
 ] as const;
 
-export const TextFormatToolbar = () => {
+export const FieldToolbar = () => {
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
+  const selection = useSelector(previewStore, (state) => state.context.selection);
   const isAnySideSheetOpen = useIsPreviewSheetOpen();
 
   const [hasSelection, setHasSelection] = React.useState(false);
@@ -47,7 +49,13 @@ export const TextFormatToolbar = () => {
     );
   };
 
-  const isVisible = hasSelection && !isAnySideSheetOpen;
+  const isOnField = selection?.type === "block-field" || selection?.type === "item-field";
+  const isVisible = isOnField && !isAnySideSheetOpen;
+
+  const handleEditInForm = () => {
+    if (!selection) return;
+    previewStore.send({ type: "openBlockContentSheet", blockId: selection.blockId });
+  };
 
   return (
     <FloatingToolbar
@@ -57,31 +65,36 @@ export const TextFormatToolbar = () => {
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 pointer-events-none translate-y-2",
       )}
     >
-      <span className="text-muted-foreground text-sm">Selected text</span>
-      <ButtonGroup>
-        {FORMAT_BUTTONS.map(({ key, flag, icon: Icon, label, shortcut }) => {
-          const isActive = !!(activeFormats & flag);
-          return (
-            <Tooltip.Tooltip key={key}>
-              <Tooltip.TooltipTrigger
-                render={
-                  <Toggle
-                    data-state={isActive ? "on" : "off"}
-                    pressed={isActive}
-                    variant="outline"
-                    onPressedChange={() => sendFormat(key)}
-                  />
-                }
-              >
-                <Icon />
-              </Tooltip.TooltipTrigger>
-              <Tooltip.TooltipContent>
-                {label} <Kbd>{shortcut}</Kbd>
-              </Tooltip.TooltipContent>
-            </Tooltip.Tooltip>
-          );
-        })}
-      </ButtonGroup>
+      <Button variant="ghost" size="sm" onClick={handleEditInForm}>
+        <Pen className="text-muted-foreground" />
+        Edit in form <Kbd className="ml-2">{formatShortcut({ key: "j", withAlt: true })}</Kbd>
+      </Button>
+      {hasSelection && (
+        <ButtonGroup>
+          {FORMAT_BUTTONS.map(({ key, flag, icon: Icon, label, shortcut }) => {
+            const isActive = !!(activeFormats & flag);
+            return (
+              <Tooltip.Tooltip key={key}>
+                <Tooltip.TooltipTrigger
+                  render={
+                    <Toggle
+                      data-state={isActive ? "on" : "off"}
+                      pressed={isActive}
+                      variant="outline"
+                      onPressedChange={() => sendFormat(key)}
+                    />
+                  }
+                >
+                  <Icon />
+                </Tooltip.TooltipTrigger>
+                <Tooltip.TooltipContent>
+                  {label} <Kbd>{shortcut}</Kbd>
+                </Tooltip.TooltipContent>
+              </Tooltip.Tooltip>
+            );
+          })}
+        </ButtonGroup>
+      )}
     </FloatingToolbar>
   );
 };
