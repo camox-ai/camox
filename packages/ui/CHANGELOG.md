@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.13.0](https://github.com/camox-ai/camox/compare/camox-v0.12.1...@camox/ui-v0.13.0) (2026-04-24)
+
+
+### Features
+
+* support line breaks ([c24ed66](https://github.com/camox-ai/camox/commit/c24ed667fa74921a2d42c1bbd87a08ac3e44b1e3))
+
+
+### Bug Fixes
+
+* remove backdrop blur for performance ([8897627](https://github.com/camox-ai/camox/commit/8897627235b9bc9c70048aae93b60965f6f7c3e1))
+
+
+### Miscellaneous
+
+* **web:** add large-paragraphs-group block ([20b6ab2](https://github.com/camox-ai/camox/commit/20b6ab28313577c744d70e6d74467ea86863dee9))
+
 ## [0.12.1](https://github.com/camox-ai/camox/compare/camox-v0.12.0...@camox/ui-v0.12.1) (2026-04-23)
 
 
