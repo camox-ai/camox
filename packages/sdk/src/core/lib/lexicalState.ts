@@ -113,7 +113,7 @@ function extractMarkdown(node: any): string {
 export function markdownToLexicalState(markdown: string): Record<string, unknown> {
   const paragraphs = markdown.split(/\n\n+/);
   const children = paragraphs.map((para) => ({
-    children: parseInlineMarkdown(para),
+    children: parseParagraphWithLineBreaks(para),
     direction: "ltr" as const,
     format: "" as const,
     indent: 0,
@@ -138,6 +138,18 @@ export function markdownToLexicalState(markdown: string): Record<string, unknown
 interface TextSegment {
   text: string;
   format: number;
+}
+
+function parseParagraphWithLineBreaks(para: string): any[] {
+  const lines = para.split("\n");
+  const nodes: any[] = [];
+  lines.forEach((line, index) => {
+    if (index > 0) {
+      nodes.push({ type: "linebreak", version: 1 });
+    }
+    nodes.push(...parseInlineMarkdown(line));
+  });
+  return nodes;
 }
 
 function parseInlineMarkdown(text: string): any[] {

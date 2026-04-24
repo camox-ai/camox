@@ -14,8 +14,8 @@
   --secondary-foreground: theme(--color-zinc-900);
   --muted: theme(--color-zinc-100);
   --muted-foreground: theme(--color-zinc-500);
-  --accent: oklch(0.95 0.01 190);
-  --accent-foreground: oklch(0.2 0.02 190);
+  --accent: oklch(0.95 0.005 190);
+  --accent-foreground: oklch(0.2 0.01 190);
   --destructive: theme(--color-red-600);
   --destructive-foreground: theme(--color-red-600);
   --border: theme(--color-zinc-200);
@@ -50,8 +50,8 @@
   --secondary-foreground: theme(--color-zinc-50);
   --muted: theme(--color-zinc-800);
   --muted-foreground: theme(--color-zinc-400);
-  --accent: oklch(0.27 0.02 182);
-  --accent-foreground: oklch(0.97 0.02 182);
+  --accent: oklch(0.27 0.01 182);
+  --accent-foreground: oklch(0.97 0.01 182);
   --destructive: theme(--color-red-400);
   --destructive-foreground: theme(--color-red-500);
   --border: oklch(1 0 0 / 10%);

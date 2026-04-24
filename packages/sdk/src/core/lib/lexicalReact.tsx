@@ -15,10 +15,17 @@ export function markdownToReactNodes(value: unknown): React.ReactNode {
   let match;
   let key = 0;
 
+  const pushWithLineBreaks = (text: string) => {
+    const lines = text.split("\n");
+    lines.forEach((line, i) => {
+      if (i > 0) parts.push(<br key={key++} />);
+      if (line) parts.push(line);
+    });
+  };
+
   while ((match = regex.exec(value)) !== null) {
-    // Add plain text before this match
     if (match.index > lastIndex) {
-      parts.push(value.slice(lastIndex, match.index));
+      pushWithLineBreaks(value.slice(lastIndex, match.index));
     }
 
     const stars = match[1].length;
@@ -39,9 +46,8 @@ export function markdownToReactNodes(value: unknown): React.ReactNode {
     lastIndex = match.index + match[0].length;
   }
 
-  // Add remaining plain text
   if (lastIndex < value.length) {
-    parts.push(value.slice(lastIndex));
+    pushWithLineBreaks(value.slice(lastIndex));
   }
 
   if (parts.length === 0) return value;

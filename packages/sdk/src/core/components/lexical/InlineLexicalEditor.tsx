@@ -3,7 +3,12 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import type { EditorState } from "lexical";
-import { COMMAND_PRIORITY_LOW, KEY_ESCAPE_COMMAND } from "lexical";
+import {
+  COMMAND_PRIORITY_LOW,
+  INSERT_LINE_BREAK_COMMAND,
+  KEY_ENTER_COMMAND,
+  KEY_ESCAPE_COMMAND,
+} from "lexical";
 import * as React from "react";
 
 import { useFrame } from "../../../features/preview/components/Frame";
@@ -65,6 +70,24 @@ function EscapeHandler() {
       () => {
         const root = editor.getRootElement();
         root?.blur();
+        return true;
+      },
+      COMMAND_PRIORITY_LOW,
+    );
+  }, [editor]);
+
+  return null;
+}
+
+function EnterAsLineBreakHandler() {
+  const [editor] = useLexicalComposerContext();
+
+  React.useEffect(() => {
+    return editor.registerCommand(
+      KEY_ENTER_COMMAND,
+      (event) => {
+        event?.preventDefault();
+        editor.dispatchCommand(INSERT_LINE_BREAK_COMMAND, false);
         return true;
       },
       COMMAND_PRIORITY_LOW,
@@ -148,6 +171,7 @@ export function InlineLexicalEditor({
       <OnChangePlugin onChange={handleChange} />
       <ExternalStateSync externalState={externalState} />
       <EscapeHandler />
+      <EnterAsLineBreakHandler />
       <FocusBlurHandler onFocus={handleFocus} onBlur={handleBlur} />
       {iframeWindow && <SelectionBroadcaster targetWindow={iframeWindow} />}
     </LexicalComposer>

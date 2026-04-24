@@ -449,58 +449,8 @@ const PageContentSheet = () => {
         </SheetParts.SheetDescription>
       </SheetParts.SheetHeader>
       <div className="flex-1 overflow-auto">
-        {isViewingAsset && assetFieldName && isMultipleAsset && (
-          <MultipleAssetFieldEditor
-            fieldName={assetFieldName}
-            assetType={assetType}
-            currentData={currentData}
-            onFieldChange={activeFieldChangeHandler}
-          />
-        )}
-        {isViewingAsset && assetFieldName && !isMultipleAsset && (
-          <SingleAssetFieldEditor
-            fieldName={assetFieldName}
-            assetType={assetType}
-            currentData={currentData}
-            onFieldChange={activeFieldChangeHandler}
-          />
-        )}
-        {!isViewingAsset && isViewingLink && linkFieldName && (
-          <div className="px-4 py-4">
-            <LinkFieldEditor
-              fieldName={linkFieldName}
-              linkValue={
-                (currentData[linkFieldName] as Record<string, unknown>) ??
-                ({
-                  type: "external",
-                  text: "",
-                  href: "",
-                  newTab: false,
-                } as Record<string, unknown>)
-              }
-              onSave={(fieldName, value) => {
-                activeFieldChangeHandler(fieldName, value);
-              }}
-            />
-          </div>
-        )}
-        {!isViewingAsset && !isViewingLink && (
-          <ItemFieldsEditor
-            key={currentItemId ?? `block-${block.id}`}
-            schema={currentSchema}
-            data={currentData}
-            blockId={block.id}
-            itemId={currentItemId ?? undefined}
-            onFieldChange={activeFieldChangeHandler}
-            postToIframe={postToIframe}
-            filesMap={filesMap}
-            itemsMap={itemsMap}
-            fieldIdPrefix={fieldIdPrefix}
-            autoFocusFieldName={autoFocusFieldName}
-          />
-        )}
         {currentItemId == null && !fieldHasOwnView && settingsFields.length > 0 && (
-          <div className="border-border space-y-4 border-t px-4 py-4">
+          <div className="border-border space-y-4 border-b px-4 py-4">
             <Label className="text-muted-foreground">Settings</Label>
             {settingsFields.map((field) => {
               const label = field.label ?? formatFieldName(field.name);
@@ -565,6 +515,56 @@ const PageContentSheet = () => {
               return null;
             })}
           </div>
+        )}
+        {isViewingAsset && assetFieldName && isMultipleAsset && (
+          <MultipleAssetFieldEditor
+            fieldName={assetFieldName}
+            assetType={assetType}
+            currentData={currentData}
+            onFieldChange={activeFieldChangeHandler}
+          />
+        )}
+        {isViewingAsset && assetFieldName && !isMultipleAsset && (
+          <SingleAssetFieldEditor
+            fieldName={assetFieldName}
+            assetType={assetType}
+            currentData={currentData}
+            onFieldChange={activeFieldChangeHandler}
+          />
+        )}
+        {!isViewingAsset && isViewingLink && linkFieldName && (
+          <div className="px-4 py-4">
+            <LinkFieldEditor
+              fieldName={linkFieldName}
+              linkValue={
+                (currentData[linkFieldName] as Record<string, unknown>) ??
+                ({
+                  type: "external",
+                  text: "",
+                  href: "",
+                  newTab: false,
+                } as Record<string, unknown>)
+              }
+              onSave={(fieldName, value) => {
+                activeFieldChangeHandler(fieldName, value);
+              }}
+            />
+          </div>
+        )}
+        {!isViewingAsset && !isViewingLink && (
+          <ItemFieldsEditor
+            key={currentItemId ?? `block-${block.id}`}
+            schema={currentSchema}
+            data={currentData}
+            blockId={block.id}
+            itemId={currentItemId ?? undefined}
+            onFieldChange={activeFieldChangeHandler}
+            postToIframe={postToIframe}
+            filesMap={filesMap}
+            itemsMap={itemsMap}
+            fieldIdPrefix={fieldIdPrefix}
+            autoFocusFieldName={autoFocusFieldName}
+          />
         )}
       </div>
     </PreviewSideSheet>

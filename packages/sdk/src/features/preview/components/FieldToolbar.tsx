@@ -5,7 +5,7 @@ import { Kbd } from "@camox/ui/kbd";
 import { Toggle } from "@camox/ui/toggle";
 import * as Tooltip from "@camox/ui/tooltip";
 import { useSelector } from "@xstate/store/react";
-import { Bold, Italic, Pen } from "lucide-react";
+import { Bold, Italic } from "lucide-react";
 import * as React from "react";
 
 import { cn, formatShortcut } from "@/lib/utils";
@@ -66,7 +66,6 @@ export const FieldToolbar = () => {
       )}
     >
       <Button variant="ghost" size="sm" onClick={handleEditInForm}>
-        <Pen className="text-muted-foreground" />
         Edit in form <Kbd className="ml-2">{formatShortcut({ key: "j", withAlt: true })}</Kbd>
       </Button>
       {hasSelection && (
