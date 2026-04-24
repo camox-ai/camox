@@ -43,11 +43,18 @@ const illustratedFeatures = createBlock({
       toMarkdown: (c) => [`**${c.title}** ${c.description}`, c.illustration],
     }),
   },
+  settings: {
+    alternateLayout: Type.Boolean({
+      default: false,
+      title: "Alternate layout",
+    }),
+  },
   component: IllustratedFeaturesComponent,
   toMarkdown: (c) => [c.pill, `# ${c.title}`, c.description, c.items],
 });
 
 function IllustratedFeaturesComponent() {
+  const alternateLayout = illustratedFeatures.useSetting("alternateLayout");
   return (
     <section className="py-12 sm:py-20">
       <div className="container mx-auto px-4">
@@ -70,30 +77,31 @@ function IllustratedFeaturesComponent() {
         </div>
         <div className="flex flex-col gap-8 sm:gap-20">
           <illustratedFeatures.Repeater name="items">
-            {(item) => (
-              <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-2 md:gap-12">
-                <div className="flex flex-col gap-3">
-                  <item.Field name="title">
-                    {(props) => (
-                      <h3
-                        {...props}
-                        className="text-foreground text-lg font-semibold tracking-tight sm:text-xl"
-                      />
-                    )}
-                  </item.Field>
-                  <item.Field name="description">
-                    {(props) => (
-                      <p {...props} className="text-muted-foreground text-base sm:text-lg" />
-                    )}
-                  </item.Field>
-                </div>
-                <div className="bg-accent/30 border-accent overflow-hidden rounded-xl border">
+            {(item, index) => {
+              const reverse = alternateLayout && index % 2 === 1;
+              return (
+                <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-2 md:gap-12">
+                  <div className={`flex flex-col gap-3 ${reverse ? "md:order-2" : ""}`}>
+                    <item.Field name="title">
+                      {(props) => (
+                        <h3
+                          {...props}
+                          className="text-foreground text-lg font-semibold tracking-tight sm:text-xl"
+                        />
+                      )}
+                    </item.Field>
+                    <item.Field name="description">
+                      {(props) => (
+                        <p {...props} className="text-muted-foreground text-base sm:text-lg" />
+                      )}
+                    </item.Field>
+                  </div>
                   <item.Image name="illustration">
                     {(props) => <img {...props} className="h-full w-full object-cover" />}
                   </item.Image>
                 </div>
-              </div>
-            )}
+              );
+            }}
           </illustratedFeatures.Repeater>
         </div>
       </div>
