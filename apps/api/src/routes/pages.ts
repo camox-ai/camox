@@ -236,7 +236,9 @@ export async function executePageSeo(db: Database, apiKey: string, pageId: numbe
       type: block.type,
       markdown:
         schema?.toMarkdown && schema?.properties
-          ? contentToMarkdown(schema.toMarkdown, schema.properties, stripped)
+          ? contentToMarkdown(schema.toMarkdown, schema.properties, stripped, {
+              settings: block.settings as Record<string, unknown> | null | undefined,
+            })
           : JSON.stringify(stripped),
     };
   });

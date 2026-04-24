@@ -41,20 +41,25 @@ export { myBlock as block };
 
 ## The `createBlock` options
 
-| Option        | Required | Description                                                                                                                                                                                                                                                                                                                  |
-| ------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`          | yes      | Unique kebab-case identifier. Must match the filename without extension.                                                                                                                                                                                                                                                     |
-| `title`       | yes      | Display name shown in the CMS UI.                                                                                                                                                                                                                                                                                            |
-| `description` | yes      | Tells the AI assistant when to use this block and what content it expects. Write it like guidance for an LLM — be specific about placement, tone, and content guidelines.                                                                                                                                                    |
-| `content`     | yes      | An object where each key is a field name and each value is a `Type.*` call. These fields are inline-editable in the CMS.                                                                                                                                                                                                     |
-| `settings`    | no       | Same shape as `content`, but for configuration that lives in a settings panel (not inline). Only `Type.Enum` and `Type.Boolean` should be used here.                                                                                                                                                                         |
-| `layoutOnly`  | no       | If `true`, the block won't appear in the "add block" sheet — it can only be placed inside layouts (e.g. navbar, footer).                                                                                                                                                                                                     |
-| `component`   | yes      | A named React function component that renders the block.                                                                                                                                                                                                                                                                     |
-| `toMarkdown`  | yes      | A builder function `(c) => (string \| FieldToken)[]` that renders block content as markdown. `c` is a proxy typed on your `content` keys — use `c.fieldName` bare or inside template literals. Each returned entry becomes a paragraph (joined with `\n\n`). Lines where all referenced fields resolve to empty are omitted. |
+| Option        | Required | Description                                                                                                                                                                                                                                                                                                                                                                |
+| ------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | yes      | Unique kebab-case identifier. Must match the filename without extension.                                                                                                                                                                                                                                                                                                   |
+| `title`       | yes      | Display name shown in the CMS UI.                                                                                                                                                                                                                                                                                                                                          |
+| `description` | yes      | Tells the AI assistant when to use this block and what content it expects. Write it like guidance for an LLM — be specific about placement, tone, and content guidelines.                                                                                                                                                                                                  |
+| `content`     | yes      | An object where each key is a field name and each value is a `Type.*` call. These fields are inline-editable in the CMS.                                                                                                                                                                                                                                                   |
+| `settings`    | no       | Same shape as `content`, but for configuration that lives in a settings panel (not inline). Only `Type.Enum` and `Type.Boolean` should be used here.                                                                                                                                                                                                                       |
+| `layoutOnly`  | no       | If `true`, the block won't appear in the "add block" sheet — it can only be placed inside layouts (e.g. navbar, footer).                                                                                                                                                                                                                                                   |
+| `component`   | yes      | A named React function component that renders the block.                                                                                                                                                                                                                                                                                                                   |
+| `toMarkdown`  | yes      | A builder function `(c, s) => (...)[]` that renders block content as markdown. `c` is a proxy typed on your `content` keys; `s` is a proxy typed on your `settings` keys used to wrap lines in conditionals. Each returned entry becomes a paragraph (joined with `\n\n`). Lines where all referenced fields resolve to empty — or whose condition is false — are omitted. |
 
 ## Markdown Template (`toMarkdown`)
 
-`toMarkdown` is a builder function that controls how block content is rendered as markdown for AI features (summaries, SEO). It receives `c`, a proxy typed on your `content` keys, and returns an array of entries. Each entry becomes a paragraph (joined with `\n\n`).
+`toMarkdown` is a builder function that controls how block content is rendered as markdown for AI features (summaries, SEO). It receives:
+
+- `c` — a proxy typed on your `content` keys (`c.title`, `c.description`…)
+- `s` — a proxy typed on your `settings` keys, used to wrap lines in conditionals
+
+…and returns an array of entries. Each entry becomes a paragraph (joined with `\n\n`).
 
 A bare `c.fieldName` is the default for single-field lines. Use template literals when combining fields or adding markdown syntax:
 
@@ -109,6 +114,31 @@ createBlock({
 ```
 
 The builder is type-safe — accessing a key that doesn't exist on `content` (e.g. `c.titl`) is a TypeScript error.
+
+### Conditional lines from settings
+
+The second `s` argument is a proxy over your `settings` keys. Wrap a line (or array of lines) to make it conditional on a setting:
+
+```tsx
+// Boolean setting — include a line only when the setting is true
+toMarkdown: (c, s) => [`# ${c.title}`, c.description, s.showCta(c.cta)];
+
+// Boolean wrapping multiple lines — all included together, or all dropped
+toMarkdown: (c, s) => [
+  `# ${c.title}`,
+  s.showDetails([c.subtitle, c.description, c.backgroundImage]),
+  c.cta,
+];
+
+// Enum — emit different lines depending on the selected variant
+toMarkdown: (c, s) => [
+  `# ${c.title}`,
+  s.variant("banner", `**${c.headline}** — ${c.subtext}`),
+  s.variant("inline", `${c.headline}: ${c.cta}`),
+];
+```
+
+Only `Type.Boolean` and `Type.Enum` settings can be used this way — trying to reference any other setting is a type error. On a `RepeatableItem`'s own `toMarkdown`, `s` refers to the item's own `settings` (not the parent block's).
 
 ## Content Field Types
 

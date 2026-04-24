@@ -145,13 +145,16 @@ interface CreateBlockOptions<
   /**
    * Builder for rendering block content as markdown.
    * `c` is a proxy typed on `content` keys — `c.title`, `c.description`, etc.
-   * Each returned entry becomes a paragraph (joined with `\n\n`).
-   * Lines where all referenced fields resolve to empty are omitted at render time.
+   * `s` is a proxy typed on `settings` keys — call a boolean setting with a line
+   * (`s.showCta(c.cta)`) or an enum with a value (`s.variant("banner", [...])`)
+   * to wrap lines in a conditional. Each returned entry becomes a paragraph
+   * (joined with `\n\n`). Lines where all referenced fields resolve to empty
+   * (or whose condition is false) are omitted at render time.
    *
    * @example
-   * toMarkdown: (c) => [`# ${c.title}`, c.description, c.illustration, c.cta]
+   * toMarkdown: (c, s) => [`# ${c.title}`, c.description, s.showCta(c.cta)]
    */
-  toMarkdown: ToMarkdownBuilder<TSchemaShape>;
+  toMarkdown: ToMarkdownBuilder<TSchemaShape, TSettingsShape>;
 }
 
 interface BlockData<TContent> {
@@ -346,7 +349,11 @@ export function createBlock<
     description: options.description,
     properties: typeboxSchema.properties,
     required: Object.keys(options.content),
-    toMarkdown: resolveToMarkdown(options.toMarkdown),
+    toMarkdown: resolveToMarkdown<TSchemaShape, TSettingsShape>(
+      options.toMarkdown,
+      options.settings,
+      "block",
+    ),
   };
 
   // Build settings schema (if provided)

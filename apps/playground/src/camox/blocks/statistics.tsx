@@ -47,7 +47,7 @@ const statistics = createBlock({
       minItems: 4,
       maxItems: 8,
       title: "Statistics",
-      toMarkdown: (c) => [`**${c.number}** ${c.label}`],
+      toMarkdown: (c, s) => [s.color("teal", `**${c.number}** — ${c.label}`)],
     }),
   },
   component: StatisticsComponent,

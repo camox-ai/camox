@@ -1,6 +1,7 @@
 import {
   Type as TypeBoxType,
   type TSchema,
+  type Static,
   type TUnsafe,
   type TArray,
   type TObject,
@@ -19,13 +20,62 @@ export class FieldToken {
   }
 }
 
+export type SettingsScope = "block" | "item";
+
+/**
+ * Serializable conditional block produced by the settings proxy. Emits Handlebars-style
+ * `{{#if ...}}...{{/if}}` syntax wrapping each child line, tagged with its scope so the
+ * server-side resolver knows whether to read from `settings` or `itemSettings`.
+ */
+export class Conditional {
+  constructor(
+    public readonly scope: SettingsScope,
+    public readonly settingName: string,
+    public readonly enumValue: string | null,
+    public readonly children: ReadonlyArray<string | FieldToken | Conditional>,
+  ) {}
+
+  get openTag(): string {
+    const root = this.scope === "block" ? "settings" : "itemSettings";
+    if (this.enumValue === null) return `{{#if ${root}.${this.settingName}}}`;
+    return `{{#if (eq ${root}.${this.settingName} "${this.enumValue}")}}`;
+  }
+
+  get closeTag(): string {
+    return "{{/if}}";
+  }
+}
+
+export type ConditionalChild = string | FieldToken | Conditional;
+export type ConditionalLines = ConditionalChild | ReadonlyArray<ConditionalChild>;
+
 export type ContentProxy<TShape extends Record<string, TSchema>> = {
   [K in keyof TShape & string]: FieldToken;
 };
 
-export type ToMarkdownBuilder<TShape extends Record<string, TSchema>> = (
-  c: ContentProxy<TShape>,
-) => ReadonlyArray<string | FieldToken>;
+/**
+ * Callable shape for one entry on the settings proxy. Booleans take a single `lines`
+ * argument; enums take `(value, lines)`. Settings of other shapes are disallowed — they
+ * don't make sense as conditions.
+ */
+type SettingCallable<T extends TSchema> =
+  Static<T> extends boolean
+    ? (lines: ConditionalLines) => Conditional
+    : Static<T> extends string
+      ? (value: Static<T>, lines: ConditionalLines) => Conditional
+      : never;
+
+export type SettingsProxy<TShape extends Record<string, TSchema>> = {
+  [K in keyof TShape & string]: SettingCallable<TShape[K]>;
+};
+
+export type ToMarkdownBuilder<
+  TContent extends Record<string, TSchema>,
+  TSettings extends Record<string, TSchema> = Record<string, never>,
+> = (
+  c: ContentProxy<TContent>,
+  s: SettingsProxy<TSettings>,
+) => ReadonlyArray<string | FieldToken | Conditional>;
 
 function createContentProxy<TShape extends Record<string, TSchema>>(): ContentProxy<TShape> {
   return new Proxy({} as ContentProxy<TShape>, {
@@ -36,13 +86,67 @@ function createContentProxy<TShape extends Record<string, TSchema>>(): ContentPr
   });
 }
 
-export function resolveToMarkdown<TShape extends Record<string, TSchema>>(
-  builder: ToMarkdownBuilder<TShape>,
+function createSettingsProxy<TShape extends Record<string, TSchema>>(
+  settingsShape: TShape | undefined,
+  scope: SettingsScope,
+): SettingsProxy<TShape> {
+  return new Proxy({} as SettingsProxy<TShape>, {
+    get(_target, prop) {
+      if (typeof prop !== "string") return undefined;
+      const schema = settingsShape?.[prop] as { fieldType?: string } | undefined;
+      const fieldType = schema?.fieldType;
+
+      if (fieldType === "Boolean") {
+        return (lines: ConditionalLines) =>
+          new Conditional(scope, prop, null, Array.isArray(lines) ? lines : [lines]);
+      }
+      if (fieldType === "Enum") {
+        return (value: string, lines: ConditionalLines) =>
+          new Conditional(scope, prop, value, Array.isArray(lines) ? lines : [lines]);
+      }
+      throw new Error(
+        `toMarkdown settings proxy: "${prop}" is not a Boolean or Enum setting on this ${scope}.`,
+      );
+    },
+  }) as SettingsProxy<TShape>;
+}
+
+/** Flatten a `Conditional`'s children into wrapped lines, recursing into nested Conditionals. */
+function serializeConditional(cond: Conditional): string[] {
+  const out: string[] = [];
+  for (const child of cond.children) {
+    if (child instanceof Conditional) {
+      for (const nested of serializeConditional(child)) {
+        out.push(`${cond.openTag}${nested}${cond.closeTag}`);
+      }
+    } else {
+      out.push(`${cond.openTag}${String(child)}${cond.closeTag}`);
+    }
+  }
+  return out;
+}
+
+export function resolveToMarkdown<
+  TContent extends Record<string, TSchema>,
+  TSettings extends Record<string, TSchema> = Record<string, never>,
+>(
+  builder: ToMarkdownBuilder<TContent, TSettings>,
+  settingsShape: TSettings | undefined,
+  scope: SettingsScope,
 ): string[] {
-  const proxy = createContentProxy<TShape>();
-  return builder(proxy).map((entry) =>
-    entry instanceof FieldToken ? entry.toString() : String(entry),
-  );
+  const contentProxy = createContentProxy<TContent>();
+  const settingsProxy = createSettingsProxy<TSettings>(settingsShape, scope);
+  const entries = builder(contentProxy, settingsProxy);
+
+  const out: string[] = [];
+  for (const entry of entries) {
+    if (entry instanceof Conditional) {
+      out.push(...serializeConditional(entry));
+    } else {
+      out.push(entry instanceof FieldToken ? entry.toString() : String(entry));
+    }
+  }
+  return out;
 }
 
 /* -------------------------------------------------------------------------------------------------
@@ -270,7 +374,7 @@ export const Type = {
     minItems: number;
     maxItems: number;
     title?: string;
-    toMarkdown: ToMarkdownBuilder<T>;
+    toMarkdown: ToMarkdownBuilder<T, S>;
   }) => {
     if (options.minItems < 1) {
       throw new Error("RepeatableItem requires minItems to be at least 1");
@@ -314,7 +418,7 @@ export const Type = {
       default: defaultArray,
       title: options.title,
       fieldType: "RepeatableItem" as const,
-      toMarkdown: resolveToMarkdown(options.toMarkdown),
+      toMarkdown: resolveToMarkdown<T, S>(options.toMarkdown, options.settings, "item"),
       itemSettingsSchema,
       defaultItemSettings: settingsTypeboxSchema ? defaultItemSettings : undefined,
     }) as TArray<TObject<T>> & WithItemSettings<S>;
@@ -330,9 +434,13 @@ export const Type = {
    *   title: 'Alignment'
    * })
    */
-  Enum: (options: { default: string; options: Record<string, string>; title?: string }) => {
+  Enum: <const O extends Record<string, string>>(options: {
+    default: keyof O & string;
+    options: O;
+    title?: string;
+  }) => {
     const enumValues = Object.keys(options.options);
-    return TypeBoxType.Unsafe<string>({
+    return TypeBoxType.Unsafe<keyof O & string>({
       type: "string",
       enum: enumValues,
       default: options.default,

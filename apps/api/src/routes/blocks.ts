@@ -215,7 +215,9 @@ export async function executeBlockSummary(
 
   const markdown =
     contentSchema?.toMarkdown && contentSchema?.properties
-      ? contentToMarkdown(contentSchema.toMarkdown, contentSchema.properties, content)
+      ? contentToMarkdown(contentSchema.toMarkdown, contentSchema.properties, content, {
+          settings: block.settings as Record<string, unknown> | null | undefined,
+        })
       : JSON.stringify(content);
 
   const summary = await generateObjectSummary(apiKey, {
@@ -346,7 +348,14 @@ const getPageMarkdown = pub
         for (const fieldName of new Set(items.map((i) => i.fieldName))) {
           content[fieldName] = items.filter((i) => i.fieldName === fieldName);
         }
-        const md = `<!-- ${schema.title} -->\n${contentToMarkdown(schema.toMarkdown, schema.properties, content)}`;
+        const md = `<!-- ${schema.title} -->\n${contentToMarkdown(
+          schema.toMarkdown,
+          schema.properties,
+          content,
+          {
+            settings: block.settings as Record<string, unknown> | null | undefined,
+          },
+        )}`;
         if (block.placement === "before") beforeParts.push(md);
         else afterParts.push(md);
       }
@@ -363,7 +372,9 @@ const getPageMarkdown = pub
       for (const fieldName of new Set(items.map((i) => i.fieldName))) {
         content[fieldName] = items.filter((i) => i.fieldName === fieldName);
       }
-      const md = contentToMarkdown(schema.toMarkdown, schema.properties, content);
+      const md = contentToMarkdown(schema.toMarkdown, schema.properties, content, {
+        settings: block.settings as Record<string, unknown> | null | undefined,
+      });
       return `<!-- ${schema.title} -->\n${md}`;
     });
 
