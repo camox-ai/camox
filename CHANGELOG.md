@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.13.0](https://github.com/camox-ai/camox/compare/camox-v0.12.1...camox-v0.13.0) (2026-04-24)
+
+
+### Features
+
+* add field toolbar ([b9d8612](https://github.com/camox-ai/camox/commit/b9d8612dbf998e448bd40b06e464ae3580929a65))
+* alternate illustrated features layout sides ([04c75a5](https://github.com/camox-ai/camox/commit/04c75a5b7dfb828f26bfe3a5aa728132740e47dc))
+* support line breaks ([c24ed66](https://github.com/camox-ai/camox/commit/c24ed667fa74921a2d42c1bbd87a08ac3e44b1e3))
+* **web:** add new blocks ([cf90a11](https://github.com/camox-ai/camox/commit/cf90a11c51f4b9a20e9dbe54278b415f8484f5d5))
+
+
+### Bug Fixes
+
+* ai jobs in production ([8924d22](https://github.com/camox-ai/camox/commit/8924d22455c875b027a8684db78ee5289e43a5b3))
+* dev server leaking into prod deployments ([92fc8b4](https://github.com/camox-ai/camox/commit/92fc8b48e2e2b3404932b93d63da105cb4a7fd3c))
+* remove backdrop blur for performance ([8897627](https://github.com/camox-ai/camox/commit/8897627235b9bc9c70048aae93b60965f6f7c3e1))
+
+
+### Miscellaneous
+
+* **web:** add large-paragraphs-group block ([20b6ab2](https://github.com/camox-ai/camox/commit/20b6ab28313577c744d70e6d74467ea86863dee9))
+
 ## [0.12.1](https://github.com/camox-ai/camox/compare/camox-v0.12.0...camox-v0.12.1) (2026-04-23)
 
 
