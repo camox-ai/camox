@@ -25,17 +25,19 @@
   --camox-overlay-inset-block-selected: 0px;
 }
 
-/* Position context for field-level and repeater elements.
+/* Position context for typed-field, repeater, and detached overlays.
    BlockComponent already has position: relative inline.
-   Detached wraps user elements (e.g. fixed navbars) so must NOT get position: relative. */
-[data-camox-field-id],
+   Inline string fields don't use ::after (see box-shadow rules below) so they
+   don't need position: relative — adding it to inline elements wouldn't help
+   since inline-relative containing blocks collapse to the start fragment. */
+[data-camox-field-id][data-camox-field-type],
 [data-camox-repeater-item-id] {
   position: relative;
 }
 
 /* ---- Hovered state ---- */
 
-[data-camox-field-id][data-camox-hovered]::after,
+[data-camox-field-id][data-camox-field-type][data-camox-hovered]::after,
 [data-camox-block-id][data-camox-hovered]:not([data-camox-detached])::after,
 [data-camox-repeater-item-id][data-camox-hovered]::after {
   content: "";
@@ -46,14 +48,9 @@
   border: var(--camox-overlay-width-hover) solid var(--camox-overlay-color-hover);
 }
 
-/* Field-level elements use field-specific inset */
-[data-camox-field-id][data-camox-hovered]:not([data-camox-field-type])::after {
-  inset: var(--camox-overlay-inset-field-hover);
-}
-
 /* ---- Focused state (overrides hovered via source order) ---- */
 
-[data-camox-field-id][data-camox-focused]::after,
+[data-camox-field-id][data-camox-field-type][data-camox-focused]::after,
 [data-camox-block-id][data-camox-focused]:not([data-camox-detached])::after {
   content: "";
   position: absolute;
@@ -63,14 +60,28 @@
   border: var(--camox-overlay-width-selected) solid var(--camox-overlay-color-selected);
 }
 
-/* Field-level elements use field-specific inset */
-[data-camox-field-id][data-camox-focused]:not([data-camox-field-type])::after {
-  inset: var(--camox-overlay-inset-field-selected);
+/* ---- Inline string fields ----
+   Use box-shadow + box-decoration-break: clone so the outline repeats per line
+   fragment when the inline wraps. Applied directly to the element via attribute
+   selectors with !important so user-supplied className/style box-shadows can't
+   clobber it. */
+[data-camox-field-id]:not([data-camox-field-type])[data-camox-hovered],
+[data-camox-field-id]:not([data-camox-field-type])[data-camox-focused] {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+[data-camox-field-id]:not([data-camox-field-type])[data-camox-hovered] {
+  box-shadow: 0 0 0 var(--camox-overlay-width-hover) var(--camox-overlay-color-hover) !important;
+}
+
+[data-camox-field-id]:not([data-camox-field-type])[data-camox-focused] {
+  box-shadow: 0 0 0 var(--camox-overlay-width-selected) var(--camox-overlay-color-selected) !important;
 }
 
 /* ---- Layout mode color overrides ---- */
 
-[data-camox-field-id][data-camox-overlay-mode="layout"][data-camox-hovered]::after,
+[data-camox-field-id][data-camox-field-type][data-camox-overlay-mode="layout"][data-camox-hovered]::after,
 [data-camox-block-id][data-camox-overlay-mode="layout"][data-camox-hovered]:not(
     [data-camox-detached]
   )::after,
@@ -78,11 +89,23 @@
   border-color: var(--camox-overlay-layout-color-hover);
 }
 
-[data-camox-field-id][data-camox-overlay-mode="layout"][data-camox-focused]::after,
+[data-camox-field-id][data-camox-field-type][data-camox-overlay-mode="layout"][data-camox-focused]::after,
 [data-camox-block-id][data-camox-overlay-mode="layout"][data-camox-focused]:not(
     [data-camox-detached]
   )::after {
   border-color: var(--camox-overlay-layout-color-selected);
+}
+
+[data-camox-field-id]:not(
+    [data-camox-field-type]
+  )[data-camox-overlay-mode="layout"][data-camox-hovered] {
+  box-shadow: 0 0 0 var(--camox-overlay-width-hover) var(--camox-overlay-layout-color-hover) !important;
+}
+
+[data-camox-field-id]:not(
+    [data-camox-field-type]
+  )[data-camox-overlay-mode="layout"][data-camox-focused] {
+  box-shadow: 0 0 0 var(--camox-overlay-width-selected) var(--camox-overlay-layout-color-selected) !important;
 }
 
 /* ---- Embed: z-index above click-interceptor ---- */
