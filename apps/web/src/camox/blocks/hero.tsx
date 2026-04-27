@@ -52,7 +52,7 @@ function HeroComponent() {
           marginBottom={0}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
         />
-        <div className="relative container mx-auto px-4">
+        <div className="relative container">
           <div className="mx-auto max-w-3xl text-center">
             <hero.Field name="title">
               {(props) => (
@@ -69,7 +69,7 @@ function HeroComponent() {
         </div>
       </section>
       <div className="bg-background pb-8 sm:pb-4">
-        <div className="container mx-auto px-4">
+        <div className="container">
           <div className="relative z-10 mx-auto max-w-xl -translate-y-1/2">
             <TerminalCard>
               <hero.Field name="command">

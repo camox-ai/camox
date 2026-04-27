@@ -36,7 +36,7 @@ function LargeVideoComponent() {
   const hideControls = largeVideo.useSetting("hideControls");
   return (
     <section className="py-12 sm:py-16">
-      <div className="container mx-auto px-4">
+      <div className="container">
         <largeVideo.Field name="pill">
           {(props) => <Pill {...props} className="mb-4 sm:mb-6" />}
         </largeVideo.Field>

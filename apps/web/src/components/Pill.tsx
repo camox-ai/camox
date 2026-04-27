@@ -9,7 +9,7 @@ export function Pill({ className, ...props }: PillProps) {
     <span
       {...props}
       className={cn(
-        "bg-accent/50 border-accent text-accent-foreground inline-block rounded-full border px-4 py-1.5 text-sm font-medium",
+        "text-primary inline-block rounded-full text-sm font-semibold uppercase",
         className,
       )}
     />

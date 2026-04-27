@@ -51,7 +51,7 @@ const illustratedFeatures = createBlock({
 function IllustratedFeaturesComponent() {
   return (
     <section className="py-12 sm:py-20">
-      <div className="container mx-auto px-4">
+      <div className="container">
         <div className="mb-12 max-w-4xl sm:mb-16">
           <illustratedFeatures.Field name="pill">
             {(props) => <Pill {...props} className="mb-4 sm:mb-6" />}
@@ -84,9 +84,7 @@ function IllustratedFeaturesComponent() {
                       )}
                     </item.Field>
                     <item.Field name="description">
-                      {(props) => (
-                        <p {...props} className="text-muted-foreground text-base sm:text-lg" />
-                      )}
+                      {(props) => <p {...props} className="text-muted-foreground text-base" />}
                     </item.Field>
                   </div>
                   <div className="mx-auto mt-auto w-full max-w-[480px] overflow-hidden">

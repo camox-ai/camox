@@ -41,7 +41,7 @@ const footer = createBlock({
 function FooterComponent() {
   return (
     <footer className="dark bg-background py-16">
-      <div className="container mx-auto px-4">
+      <div className="container">
         <div className="flex flex-col gap-12 md:flex-row md:justify-between md:gap-16">
           {/* Left side: Logo + copyright */}
           <div className="shrink-0 md:w-1/4">

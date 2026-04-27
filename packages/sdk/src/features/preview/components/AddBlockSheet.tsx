@@ -231,7 +231,7 @@ const AddBlockSheet = () => {
         <Command
           value={highlightedValue}
           onValueChange={handleValueChange}
-          className="bg-background overflow-visible"
+          className="overflow-visible"
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               previewStore.send({ type: "closeAddBlockSheet" });
@@ -255,7 +255,7 @@ const AddBlockSheet = () => {
                     }}
                     className="group flex items-center justify-between gap-2"
                   >
-                    <div>
+                    <div className="flex-1">
                       <span>{block._internal.title}</span>
                       <span className="text-muted-foreground block">
                         {displayCount(block._internal.id)}

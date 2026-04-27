@@ -37,12 +37,14 @@ const largeParagraphsGroup = createBlock({
 
 function LargeParagraphsGroupComponent() {
   return (
-    <section className="container mx-auto py-12 sm:py-16">
-      <div className="container mx-auto px-4">
-        <largeParagraphsGroup.Field name="title">
-          {(props) => <Pill {...props} className="mb-4 sm:mb-6" />}
-        </largeParagraphsGroup.Field>
-        <div className="flex max-w-4xl flex-col gap-8 sm:gap-12">
+    <section className="container py-12 sm:py-16">
+      <div className="flex flex-col gap-8 sm:flex-row sm:gap-12">
+        <div className="sm:w-3/12 sm:flex-shrink-0 sm:mt-3">
+          <largeParagraphsGroup.Field name="title">
+            {(props) => <Pill {...props} />}
+          </largeParagraphsGroup.Field>
+        </div>
+        <div className="flex flex-1 flex-col gap-8 sm:gap-12">
           <largeParagraphsGroup.Repeater name="items">
             {(item) => (
               <InlineHeading

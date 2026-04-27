@@ -6,7 +6,7 @@ const youtubeVideo = createBlock({
   id: "youtube-video",
   title: "YouTube Video",
   description:
-    "Embeds a YouTube video. Use this block to display a single YouTube video on a page.",
+    "Embeds a YouTube video. Use this block to display a single YouTube video on a page. Don't try to guess the URL, use a web search tool to find a specific video URL instead.",
   content: {
     url: Type.Embed({
       pattern:

@@ -24,7 +24,7 @@ const terminalCommand = createBlock({
 function TerminalCommandComponent() {
   return (
     <section className="py-16 sm:py-24">
-      <div className="container mx-auto px-4">
+      <div className="container">
         <div className="mx-auto max-w-xl">
           <terminalCommand.Field name="label">
             {(props) => (

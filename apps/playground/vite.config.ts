@@ -28,17 +28,11 @@ const config = defineConfig({
       },
       {
         find: "camox/CamoxPreview",
-        replacement: resolve(
-          __dirname,
-          "../../packages/sdk/src/features/preview/CamoxPreview.tsx",
-        ),
+        replacement: resolve(__dirname, "../../packages/sdk/src/features/preview/CamoxPreview.tsx"),
       },
       {
         find: "camox/CamoxContent",
-        replacement: resolve(
-          __dirname,
-          "../../packages/sdk/src/features/content/CamoxContent.tsx",
-        ),
+        replacement: resolve(__dirname, "../../packages/sdk/src/features/content/CamoxContent.tsx"),
       },
       {
         find: "camox/CamoxProvider",
