@@ -327,20 +327,111 @@ const deleteMany = authed
 const replace = authed
   .input(z.object({ id: z.number(), newFileId: z.number() }))
   .handler(async ({ context, input }) => {
+    if (input.id === input.newFileId) throw new ORPCError("BAD_REQUEST");
     const oldAccess = await assertFileAccess(context.db, input.id, context.user.id);
     const newAccess = await assertFileAccess(context.db, input.newFileId, context.user.id);
     if (!oldAccess || !newAccess) throw new ORPCError("NOT_FOUND");
+    if (oldAccess.file.projectId !== newAccess.file.projectId) {
+      throw new ORPCError("FORBIDDEN");
+    }
 
-    // Update all blocks that reference the old file URL
-    await context.db.run(
-      sql`UPDATE ${blocks} SET ${blocks.content} = REPLACE(CAST(${blocks.content} AS TEXT), ${oldAccess.file.url}, ${newAccess.file.url}), ${blocks.updatedAt} = ${Date.now()} WHERE INSTR(${blocks.content}, ${oldAccess.file.url}) > 0`,
-    );
+    const oldUrl = oldAccess.file.url;
+    const oldBlobId = oldAccess.file.blobId;
+    const newAsset = newAccess.file;
+    const now = Date.now();
+
+    // Move the new asset onto the old file row. The id stays the same so
+    // every `_fileId: <id>` reference automatically resolves to the new asset.
+    await context.db
+      .update(files)
+      .set({
+        blobId: newAsset.blobId,
+        path: newAsset.path,
+        url: newAsset.url,
+        filename: newAsset.filename,
+        mimeType: newAsset.mimeType,
+        size: newAsset.size,
+        updatedAt: now,
+      })
+      .where(eq(files.id, input.id));
+
+    // Drop the temporary file row created by the upload step.
+    await context.db.delete(files).where(eq(files.id, input.newFileId));
+
+    // Migrate any rich-text/HTML content that embeds the old URL directly.
+    await context.db
+      .update(blocks)
+      .set({
+        content: sql`REPLACE(CAST(${blocks.content} AS TEXT), ${oldUrl}, ${newAsset.url})`,
+        updatedAt: now,
+      })
+      .where(sql`INSTR(${blocks.content}, ${oldUrl}) > 0`);
+    await context.db
+      .update(repeatableItems)
+      .set({
+        content: sql`REPLACE(CAST(${repeatableItems.content} AS TEXT), ${oldUrl}, ${newAsset.url})`,
+        updatedAt: now,
+      })
+      .where(sql`INSTR(${repeatableItems.content}, ${oldUrl}) > 0`);
+
+    // Find blocks/items referencing the file by _fileId so we can invalidate them.
+    const marker = `"_fileId":${input.id}`;
+    const affectedBlocks = await context.db
+      .select({ id: blocks.id, pageId: blocks.pageId })
+      .from(blocks)
+      .where(sql`INSTR(${blocks.content}, ${marker}) > 0`);
+    const affectedItems = await context.db
+      .select({ id: repeatableItems.id, blockId: repeatableItems.blockId })
+      .from(repeatableItems)
+      .where(sql`INSTR(${repeatableItems.content}, ${marker}) > 0`);
+
+    const itemBlockIds = [...new Set(affectedItems.map((i) => i.blockId))];
+    let itemBlockPageIds: number[] = [];
+    if (itemBlockIds.length > 0) {
+      const parentBlocks = await context.db
+        .select({ id: blocks.id, pageId: blocks.pageId })
+        .from(blocks)
+        .where(inArray(blocks.id, itemBlockIds));
+      itemBlockPageIds = parentBlocks.map((b) => b.pageId).filter((id): id is number => id != null);
+    }
+    const allBlockIds = [...new Set([...affectedBlocks.map((b) => b.id), ...itemBlockIds])];
+    const allPageIds = [
+      ...new Set([
+        ...affectedBlocks.map((b) => b.pageId).filter((id): id is number => id != null),
+        ...itemBlockPageIds,
+      ]),
+    ];
+
+    // Drop the old R2 blob now that nothing references it.
+    await context.env.FILES_BUCKET.delete(oldBlobId);
+
+    // Re-run AI metadata if it was enabled — the asset is different.
+    if (oldAccess.file.aiMetadataEnabled !== false) {
+      context.waitUntil(
+        scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
+          entityTable: "files",
+          entityId: input.id,
+          type: "fileMetadata",
+          delayMs: 0,
+        }),
+      );
+    }
 
     broadcastInvalidation({
       waitUntil: context.waitUntil,
       projectRoomNamespace: context.env.ProjectRoom,
       projectId: oldAccess.file.projectId!,
-      targets: [queryKeys.files.list, queryKeys.files.get(input.id)],
+      targets: [
+        queryKeys.files.list,
+        queryKeys.files.get(input.id),
+        queryKeys.files.get(input.newFileId),
+        ...allBlockIds.map((id) => queryKeys.blocks.get(id)),
+        ...allPageIds.map((id) => queryKeys.blocks.getPageMarkdown(id)),
+        ...affectedItems.map((i) => queryKeys.repeatableItems.get(i.id)),
+        ...(allBlockIds.length > 0 || affectedItems.length > 0
+          ? [queryKeys.blocks.getUsageCounts, queryKeys.pages.getByPathAll]
+          : []),
+      ],
     });
     return { replaced: true };
   });

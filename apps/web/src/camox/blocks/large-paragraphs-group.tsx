@@ -39,7 +39,7 @@ function LargeParagraphsGroupComponent() {
   return (
     <section className="container py-12 sm:py-16">
       <div className="flex flex-col gap-8 sm:flex-row sm:gap-12">
-        <div className="sm:w-3/12 sm:flex-shrink-0 sm:mt-3">
+        <div className="sm:mt-3 sm:w-3/12 sm:flex-shrink-0">
           <largeParagraphsGroup.Field name="title">
             {(props) => <Pill {...props} />}
           </largeParagraphsGroup.Field>
