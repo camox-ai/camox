@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/camox-ai/camox/compare/camox-v0.13.0...@camox/ui-v0.14.0) (2026-04-27)
+
+
+### Features
+
+* repetable item level settings ([5f27cc5](https://github.com/camox-ai/camox/commit/5f27cc5aef3f2a54a680736528569bd44991da03))
+
 ## [0.13.0](https://github.com/camox-ai/camox/compare/camox-v0.12.1...@camox/ui-v0.13.0) (2026-04-24)
 
 

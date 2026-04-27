@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/camox-ai/camox/compare/camox-v0.13.0...@camox/cli-v0.14.0) (2026-04-27)
+
+
+### Bug Fixes
+
+* cli template lsp errors ([593eb0e](https://github.com/camox-ai/camox/commit/593eb0e8a2ea47596f00937e457acdc5ab0d8fd3))
+
 ## [0.13.0](https://github.com/camox-ai/camox/compare/camox-v0.12.1...@camox/cli-v0.13.0) (2026-04-24)
 
 
