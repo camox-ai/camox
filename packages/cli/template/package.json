@@ -1,5 +1,6 @@
 {
-  "name": "{{projectSlug}}",
+  "name": "@camox/template",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,7 +20,7 @@
     "@tanstack/react-router-ssr-query": "^1.166.11",
     "@tanstack/react-start": "^1.167.32",
     "@tanstack/router-plugin": "^1.167.18",
-    "camox": "{{camoxVersion}}",
+    "camox": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.476.0",

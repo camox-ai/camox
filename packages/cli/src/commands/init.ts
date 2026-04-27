@@ -184,8 +184,16 @@ export async function init() {
   copyDir(templateDir, targetDir, {
     "{{projectName}}": name,
     "{{projectSlug}}": project.slug,
-    "{{camoxVersion}}": ownPkg.version,
   });
+
+  // Rewrite package.json: the template ships with workspace placeholders
+  // (so it can live in the monorepo) which need real values for users.
+  const pkgPath = path.join(targetDir, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+  pkg.name = project.slug;
+  delete pkg.version;
+  pkg.dependencies.camox = `^${ownPkg.version}`;
+  fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
 
   // .env and .gitignore can't live in the template dir:
   // - .gitignore is stripped by npm when publishing
