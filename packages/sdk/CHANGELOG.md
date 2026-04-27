@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.14.0](https://github.com/camox-ai/camox/compare/camox-v0.13.0...camox-sdk-v0.14.0) (2026-04-27)
+
+
+### Features
+
+* conditional toMarkdown based on settings ([544b0e6](https://github.com/camox-ai/camox/commit/544b0e6b01662ac78da5b28d01ab8f50c90c1c3d))
+* repetable item level settings ([5f27cc5](https://github.com/camox-ai/camox/commit/5f27cc5aef3f2a54a680736528569bd44991da03))
+
+
+### Bug Fixes
+
+* inline text overlays ([02de1b5](https://github.com/camox-ai/camox/commit/02de1b5136b8126d297d21b52a1af638e4507ea6))
+
 ## [0.13.0](https://github.com/camox-ai/camox/compare/camox-v0.12.1...camox-sdk-v0.13.0) (2026-04-24)
 
 

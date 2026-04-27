@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.14.0](https://github.com/camox-ai/camox/compare/camox-v0.13.0...camox-v0.14.0) (2026-04-27)
+
+
+### Features
+
+* conditional toMarkdown based on settings ([544b0e6](https://github.com/camox-ai/camox/commit/544b0e6b01662ac78da5b28d01ab8f50c90c1c3d))
+* repetable item level settings ([5f27cc5](https://github.com/camox-ai/camox/commit/5f27cc5aef3f2a54a680736528569bd44991da03))
+* revamp illustrated features block ([8c843e0](https://github.com/camox-ai/camox/commit/8c843e0925347a6c61f5111ca1ca375e08459538))
+
+
+### Bug Fixes
+
+* cli template lsp errors ([593eb0e](https://github.com/camox-ai/camox/commit/593eb0e8a2ea47596f00937e457acdc5ab0d8fd3))
+* inline text overlays ([02de1b5](https://github.com/camox-ai/camox/commit/02de1b5136b8126d297d21b52a1af638e4507ea6))
+* merge settings on update ([a1ca22d](https://github.com/camox-ai/camox/commit/a1ca22d9fccd6f1d4c615047449e6df5a34017f1))
+
 ## [0.13.0](https://github.com/camox-ai/camox/compare/camox-v0.12.1...camox-v0.13.0) (2026-04-24)
 
 
