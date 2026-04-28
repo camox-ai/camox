@@ -3,11 +3,11 @@ import { DurableObject } from "cloudflare:workers";
 import { eq, or } from "drizzle-orm";
 
 import { createDb } from "../db";
+import { executeBlockSummary } from "../domains/blocks/routes";
+import { executeFileMetadata } from "../domains/files/routes";
+import { executePageSeo } from "../domains/pages/routes";
+import { executeRepeatableItemSummary } from "../domains/repeatable-items/routes";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
-import { executeBlockSummary } from "../routes/blocks";
-import { executeFileMetadata } from "../routes/files";
-import { executePageSeo } from "../routes/pages";
-import { executeRepeatableItemSummary } from "../routes/repeatable-items";
 import { blocks, files, layouts, pages, projects, repeatableItems } from "../schema";
 import type { Bindings } from "../types";
 

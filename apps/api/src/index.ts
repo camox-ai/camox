@@ -4,9 +4,9 @@ import { partyserverMiddleware } from "hono-party";
 import { cors } from "hono/cors";
 
 import { createDb } from "./db";
+import { authRoutes, createAuth } from "./domains/auth/routes";
+import { fileHonoRoutes } from "./domains/files/routes";
 import { router } from "./router";
-import { authRoutes, createAuth } from "./routes/auth";
-import { fileHonoRoutes } from "./routes/files";
 import type { AppEnv } from "./types";
 
 export type { Router } from "./router";

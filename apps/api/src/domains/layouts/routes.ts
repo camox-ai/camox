@@ -3,11 +3,11 @@ import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { z } from "zod";
 
-import { assertSyncSecret } from "../authorization";
-import { broadcastInvalidation } from "../lib/broadcast-invalidation";
-import { resolveEnvironment } from "../lib/resolve-environment";
-import { pub } from "../orpc";
-import { blockDefinitions, blocks, layouts, pages, repeatableItems } from "../schema";
+import { assertSyncSecret } from "../../authorization";
+import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
+import { resolveEnvironment } from "../../lib/resolve-environment";
+import { pub } from "../../orpc";
+import { blockDefinitions, blocks, layouts, pages, repeatableItems } from "../../schema";
 
 // --- Procedures ---
 

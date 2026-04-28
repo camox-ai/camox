@@ -7,14 +7,14 @@ import { Hono } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { assertFileAccess, getAuthorizedProject } from "../authorization";
-import type { Database } from "../db";
-import { broadcastInvalidation } from "../lib/broadcast-invalidation";
-import { resolveEnvironment } from "../lib/resolve-environment";
-import { scheduleAiJob } from "../lib/schedule-ai-job";
-import { pub, authed } from "../orpc";
-import { blocks, files, member, projects, repeatableItems } from "../schema";
-import type { AppEnv } from "../types";
+import { assertFileAccess, getAuthorizedProject } from "../../authorization";
+import type { Database } from "../../db";
+import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
+import { resolveEnvironment } from "../../lib/resolve-environment";
+import { scheduleAiJob } from "../../lib/schedule-ai-job";
+import { pub, authed } from "../../orpc";
+import { blocks, files, member, projects, repeatableItems } from "../../schema";
+import type { AppEnv } from "../../types";
 
 // --- AI Executor ---
 

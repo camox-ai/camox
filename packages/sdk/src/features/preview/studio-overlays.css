@@ -100,12 +100,14 @@
     [data-camox-field-type]
   )[data-camox-overlay-mode="layout"][data-camox-hovered] {
   box-shadow: 0 0 0 var(--camox-overlay-width-hover) var(--camox-overlay-layout-color-hover) !important;
+  border-radius: 0 !important;
 }
 
 [data-camox-field-id]:not(
     [data-camox-field-type]
   )[data-camox-overlay-mode="layout"][data-camox-focused] {
   box-shadow: 0 0 0 var(--camox-overlay-width-selected) var(--camox-overlay-layout-color-selected) !important;
+  border-radius: 0 !important;
 }
 
 /* ---- Embed: z-index above click-interceptor ---- */

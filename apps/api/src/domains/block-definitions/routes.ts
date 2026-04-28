@@ -1,10 +1,10 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { assertSyncSecret } from "../authorization";
-import { resolveEnvironment } from "../lib/resolve-environment";
-import { pub } from "../orpc";
-import { blockDefinitions } from "../schema";
+import { assertSyncSecret } from "../../authorization";
+import { resolveEnvironment } from "../../lib/resolve-environment";
+import { pub } from "../../orpc";
+import { blockDefinitions } from "../../schema";
 
 // --- Procedures ---
 

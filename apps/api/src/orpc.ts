@@ -1,7 +1,7 @@
 import { os, ORPCError } from "@orpc/server";
 
 import type { Database } from "./db";
-import type { Auth } from "./routes/auth";
+import type { Auth } from "./domains/auth/routes";
 import type { Bindings } from "./types";
 
 // --- Context types ---

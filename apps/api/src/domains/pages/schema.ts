@@ -1,0 +1,34 @@
+import { index, int, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+import { layouts } from "../layouts/schema";
+import { environments, projects } from "../projects/schema";
+
+export const pages = sqliteTable(
+  "pages",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    projectId: int("project_id")
+      .notNull()
+      .references(() => projects.id),
+    environmentId: int("environment_id")
+      .notNull()
+      .references(() => environments.id),
+    pathSegment: text("path_segment").notNull(),
+    fullPath: text("full_path").notNull(),
+    parentPageId: int("parent_page_id"),
+    layoutId: int("layout_id")
+      .notNull()
+      .references(() => layouts.id),
+    metaTitle: text("meta_title"),
+    metaDescription: text("meta_description"),
+    aiSeoEnabled: int("ai_seo_enabled", { mode: "boolean" }),
+    createdAt: int("created_at").notNull(),
+    updatedAt: int("updated_at").notNull(),
+  },
+  (table) => [
+    index("pages_full_path_idx").on(table.fullPath),
+    index("pages_parent_idx").on(table.parentPageId),
+    index("pages_project_idx").on(table.projectId),
+    index("pages_environment_full_path_idx").on(table.environmentId, table.fullPath),
+  ],
+);

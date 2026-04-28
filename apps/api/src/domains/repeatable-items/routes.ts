@@ -7,13 +7,13 @@ import { generateKeyBetween } from "fractional-indexing";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { assertBlockAccess, assertRepeatableItemAccess } from "../authorization";
-import type { Database } from "../db";
-import { broadcastInvalidation } from "../lib/broadcast-invalidation";
-import { scheduleAiJob } from "../lib/schedule-ai-job";
-import { pub, authed } from "../orpc";
-import { blocks, files, repeatableItems } from "../schema";
-import { collectFileIds } from "./pages";
+import { assertBlockAccess, assertRepeatableItemAccess } from "../../authorization";
+import type { Database } from "../../db";
+import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
+import { scheduleAiJob } from "../../lib/schedule-ai-job";
+import { pub, authed } from "../../orpc";
+import { blocks, files, repeatableItems } from "../../schema";
+import { collectFileIds } from "../pages/routes";
 
 function comparePositions(a: string, b: string): number {
   if (a < b) return -1;

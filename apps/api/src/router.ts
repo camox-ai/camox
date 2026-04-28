@@ -1,10 +1,10 @@
-import { blockDefinitionProcedures } from "./routes/block-definitions";
-import { blockProcedures } from "./routes/blocks";
-import { fileProcedures } from "./routes/files";
-import { layoutProcedures } from "./routes/layouts";
-import { pageProcedures } from "./routes/pages";
-import { projectProcedures } from "./routes/projects";
-import { repeatableItemProcedures } from "./routes/repeatable-items";
+import { blockDefinitionProcedures } from "./domains/block-definitions/routes";
+import { blockProcedures } from "./domains/blocks/routes";
+import { fileProcedures } from "./domains/files/routes";
+import { layoutProcedures } from "./domains/layouts/routes";
+import { pageProcedures } from "./domains/pages/routes";
+import { projectProcedures } from "./domains/projects/routes";
+import { repeatableItemProcedures } from "./domains/repeatable-items/routes";
 
 export const router = {
   projects: projectProcedures,

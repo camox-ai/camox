@@ -3,9 +3,9 @@ import { and, eq, inArray, or } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { z } from "zod";
 
-import { assertOrgMembership, assertSyncSecret, getAuthorizedProject } from "../authorization";
-import { resolveEnvironment } from "../lib/resolve-environment";
-import { authed, pub } from "../orpc";
+import { assertOrgMembership, assertSyncSecret, getAuthorizedProject } from "../../authorization";
+import { resolveEnvironment } from "../../lib/resolve-environment";
+import { authed, pub } from "../../orpc";
 import {
   aiJobs,
   blockDefinitions,
@@ -17,7 +17,7 @@ import {
   pages,
   projects,
   repeatableItems,
-} from "../schema";
+} from "../../schema";
 
 // --- Procedures ---
 

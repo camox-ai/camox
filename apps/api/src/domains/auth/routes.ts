@@ -4,8 +4,7 @@ import { bearer, oneTimeToken, organization } from "better-auth/plugins";
 import { Hono } from "hono";
 import slugify from "slugify";
 
-import type { Database } from "../db";
-import { crossDomain } from "../lib/cross-domain";
+import type { Database } from "../../db";
 import {
   user,
   session,
@@ -14,8 +13,9 @@ import {
   organizationTable,
   member,
   invitation,
-} from "../schema";
-import type { AppEnv, Bindings } from "../types";
+} from "../../schema";
+import type { AppEnv, Bindings } from "../../types";
+import { crossDomain } from "./cross-domain";
 
 // --- Auth Factory ---
 

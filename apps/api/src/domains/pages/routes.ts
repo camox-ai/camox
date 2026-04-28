@@ -7,13 +7,13 @@ import { generateKeyBetween } from "fractional-indexing";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { assertPageAccess, getAuthorizedProject } from "../authorization";
-import type { Database } from "../db";
-import { broadcastInvalidation } from "../lib/broadcast-invalidation";
-import { contentToMarkdown } from "../lib/content-markdown";
-import { resolveEnvironment } from "../lib/resolve-environment";
-import { scheduleAiJob } from "../lib/schedule-ai-job";
-import { pub, authed } from "../orpc";
+import { assertPageAccess, getAuthorizedProject } from "../../authorization";
+import type { Database } from "../../db";
+import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
+import { contentToMarkdown } from "../../lib/content-markdown";
+import { resolveEnvironment } from "../../lib/resolve-environment";
+import { scheduleAiJob } from "../../lib/schedule-ai-job";
+import { pub, authed } from "../../orpc";
 import {
   blockDefinitions,
   blocks,
@@ -22,7 +22,7 @@ import {
   pages,
   projects,
   repeatableItems,
-} from "../schema";
+} from "../../schema";
 
 // --- AI Executors ---
 
