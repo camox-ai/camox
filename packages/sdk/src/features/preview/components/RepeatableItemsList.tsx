@@ -263,13 +263,20 @@ const RepeatableItemsList = ({
       buildNestedSeeds(itemsSchema.properties, null);
     }
 
-    createRepeatableItem.mutate({
-      blockId,
-      fieldName,
-      content: defaultContent,
-      settings: defaultSettings ? { ...defaultSettings } : undefined,
-      nestedItems: nestedItems.length > 0 ? nestedItems : undefined,
-    });
+    createRepeatableItem.mutate(
+      {
+        blockId,
+        fieldName,
+        content: defaultContent,
+        settings: defaultSettings ? { ...defaultSettings } : undefined,
+        nestedItems: nestedItems.length > 0 ? nestedItems : undefined,
+      },
+      {
+        onSuccess: (created) => {
+          previewStore.send({ type: "selectItem", blockId, itemId: created.id });
+        },
+      },
+    );
   };
 
   const handleRemoveItem = (itemId: number) => {

@@ -21,7 +21,9 @@ const AgentChatSheet = () => {
         </SheetParts.SheetDescription>
       </SheetParts.SheetHeader>
       <div className="flex flex-1 items-center justify-center p-6">
-        <p className="text-muted-foreground text-center text-sm">Coming soon</p>
+        <p className="text-muted-foreground text-center text-sm">
+          Coming soon: MCP server and integrated chat
+        </p>
       </div>
     </PreviewSideSheet>
   );

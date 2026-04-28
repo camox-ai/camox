@@ -656,7 +656,7 @@ const PageContentSheet = () => {
             />
           </div>
         )}
-        {!isViewingAsset && !isViewingLink && (
+        {!isViewingAsset && !isViewingLink && (currentItemId == null || currentItem) && (
           <ItemFieldsEditor
             key={currentItemId ?? `block-${block.id}`}
             schema={currentSchema}

@@ -22,12 +22,14 @@ import {
   type AnimateLayoutChanges,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
 import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react";
 import * as React from "react";
 
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
 import { type NormalizedBlock, usePageBlocks } from "@/lib/normalized-data";
+import { blockQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -137,12 +139,23 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
 
   const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
+  const { data: blockBundle } = useQuery(blockQueries.get(block.id));
 
-  // Check if a field is selected at block level
-  const selectedFieldName =
-    selection?.type === "block-field" && selection.blockId === block.id
-      ? selection.fieldName
-      : null;
+  let selectedFieldName: string | null = null;
+  if (selection?.type === "block-field" && selection.blockId === block.id) {
+    selectedFieldName = selection.fieldName;
+  } else if (
+    (selection?.type === "item" || selection?.type === "item-field") &&
+    selection.blockId === block.id &&
+    blockBundle
+  ) {
+    const itemsById = new Map(blockBundle.repeatableItems.map((i) => [i.id, i]));
+    let current = itemsById.get(selection.itemId);
+    while (current?.parentItemId != null) {
+      current = itemsById.get(current.parentItemId);
+    }
+    selectedFieldName = current?.fieldName ?? null;
+  }
 
   const handleFieldClick = (fieldName: string, fieldType: string) => {
     previewStore.send({
