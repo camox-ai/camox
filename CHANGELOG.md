@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.2](https://github.com/camox-ai/camox/compare/camox-v0.14.1...camox-v0.14.2) (2026-04-28)
+
+
+### Bug Fixes
+
+* broken css import in template ([be42c5f](https://github.com/camox-ai/camox/commit/be42c5f72b0a4e96bfc5f8c64fe4e670a98d28ef))
+
 ## [0.14.1](https://github.com/camox-ai/camox/compare/camox-v0.14.0...camox-v0.14.1) (2026-04-28)
 
 
