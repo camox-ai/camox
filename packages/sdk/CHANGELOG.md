@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.14.1](https://github.com/camox-ai/camox/compare/camox-v0.14.0...camox-sdk-v0.14.1) (2026-04-28)
+
+
+### Bug Fixes
+
+* deleting files used in repeatable items ([d609e16](https://github.com/camox-ai/camox/commit/d609e16988e346a80fdd85a5f152fcd912ac2b56))
+* sdk papercuts ([28dc8d7](https://github.com/camox-ai/camox/commit/28dc8d75c47839da5f19c369035d8a83c0b64203))
+
+
+### Miscellaneous
+
+* **api:** refactor structure to domain directories ([68a957b](https://github.com/camox-ai/camox/commit/68a957bd6a4b02bf6ad81295e4c086b3a701ae6d))
+
 ## [0.14.0](https://github.com/camox-ai/camox/compare/camox-v0.13.0...camox-sdk-v0.14.0) (2026-04-27)
 
 
