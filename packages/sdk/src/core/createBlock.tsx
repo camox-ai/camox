@@ -1151,7 +1151,10 @@ export function createBlock<
     const rawValue = isFileMarker(rawSource)
       ? (resolveFileMarker(rawSource, filesMap) as unknown as ImageValue)
       : (rawSource as ImageValue | null);
-    const fieldValue = rawValue ?? (contentDefaults[String(name)] as ImageValue);
+    const defaultValue = repeaterContext
+      ? repeatableItemDefaults[repeaterContext.arrayFieldName]?.[String(name)]
+      : contentDefaults[String(name)];
+    const fieldValue = rawValue ?? (defaultValue as ImageValue);
 
     const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));
 
@@ -1243,7 +1246,10 @@ export function createBlock<
     const rawValue = isFileMarker(rawSource)
       ? (resolveFileMarker(rawSource, filesMap) as unknown as FileValue)
       : (rawSource as FileValue | null);
-    const fieldValue = rawValue ?? (contentDefaults[String(name)] as FileValue);
+    const defaultValue = repeaterContext
+      ? repeatableItemDefaults[repeaterContext.arrayFieldName]?.[String(name)]
+      : contentDefaults[String(name)];
+    const fieldValue = rawValue ?? (defaultValue as FileValue);
 
     return (
       <>

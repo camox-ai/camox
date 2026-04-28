@@ -22,6 +22,9 @@ const statistics = createBlock({
     }),
     statistics: Type.RepeatableItem({
       content: {
+        icon: Type.Image({
+          title: "Icon",
+        }),
         number: Type.String({
           default: "100M+",
           maxLength: 7,
@@ -99,6 +102,9 @@ function StatisticsComponent() {
                   <div className="flex gap-3">
                     <div className={`w-0.5 ${borderClass}`} />
                     <div className="flex flex-col">
+                      <stat.Image name="icon">
+                        {(props) => <img {...props} className="mb-2 size-8 object-contain" />}
+                      </stat.Image>
                       <stat.Field name="number">
                         {(props) => (
                           <div {...props} className="text-foreground mb-2 text-4xl font-bold" />

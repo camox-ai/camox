@@ -24,6 +24,9 @@ const sellingPointsGrid = createBlock({
     }),
     items: Type.RepeatableItem({
       content: {
+        icon: Type.Image({
+          title: "Icon",
+        }),
         title: Type.String({
           default: "Fast by default",
           title: "Title",
@@ -70,6 +73,9 @@ function SellingPointsGridComponent() {
             <sellingPointsGrid.Repeater name="items">
               {(item) => (
                 <div className="bg-background flex h-full flex-col p-4 sm:p-5">
+                  <item.Image name="icon">
+                    {(props) => <img {...props} className="mb-2 size-8 object-contain" />}
+                  </item.Image>
                   <item.Field name="title">
                     {(props) => (
                       <h3 {...props} className="text-foreground mb-1.5 text-base font-semibold" />

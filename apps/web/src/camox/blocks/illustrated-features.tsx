@@ -43,12 +43,19 @@ const illustratedFeatures = createBlock({
       toMarkdown: (c) => [`**${c.title}** ${c.description}`, c.illustration],
     }),
   },
-  settings: {},
+  settings: {
+    columns: Type.Enum({
+      default: "2",
+      options: { "2": "2 columns", "3": "3 columns" },
+      title: "Columns per row",
+    }),
+  },
   component: IllustratedFeaturesComponent,
   toMarkdown: (c) => [c.pill, `# ${c.title}`, c.description, c.items],
 });
 
 function IllustratedFeaturesComponent() {
+  const columns = illustratedFeatures.useSetting("columns");
   return (
     <section className="py-12 sm:py-20">
       <div className="container">
@@ -70,11 +77,13 @@ function IllustratedFeaturesComponent() {
           />
         </div>
         <div className="border-border overflow-hidden rounded-2xl border">
-          <div className="bg-border grid grid-cols-1 gap-px md:grid-cols-2">
+          <div
+            className={`bg-border grid grid-cols-1 gap-px ${columns === "3" ? "md:grid-cols-3" : "md:grid-cols-2"}`}
+          >
             <illustratedFeatures.Repeater name="items">
               {(item) => (
-                <div className="bg-background flex h-full flex-col">
-                  <div className="flex flex-col gap-2 px-6 pt-6 pb-4 sm:px-8 sm:pt-8 sm:pb-5">
+                <div className="bg-background flex h-full flex-col justify-between gap-4 px-4 pt-4 sm:gap-6 sm:px-6 sm:pt-6">
+                  <div className="flex flex-col gap-2">
                     <item.Field name="title">
                       {(props) => (
                         <h3
@@ -87,16 +96,14 @@ function IllustratedFeaturesComponent() {
                       {(props) => <p {...props} className="text-muted-foreground text-base" />}
                     </item.Field>
                   </div>
-                  <div className="mx-auto mt-auto w-full max-w-[480px] overflow-hidden">
-                    <item.Image name="illustration">
-                      {(props) => (
-                        <img
-                          {...props}
-                          className="-mb-2 w-full rounded-t-lg object-cover object-top sm:-mb-4"
-                        />
-                      )}
-                    </item.Image>
-                  </div>
+                  <item.Image name="illustration">
+                    {(props) => (
+                      <img
+                        {...props}
+                        // className="w-full object-cover object-top"
+                      />
+                    )}
+                  </item.Image>
                 </div>
               )}
             </illustratedFeatures.Repeater>
