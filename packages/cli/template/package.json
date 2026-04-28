@@ -9,8 +9,7 @@
     "build": "vp build",
     "serve": "vp preview",
     "lint": "vp lint",
-    "check": "vp check",
-    "prepare": "vp config"
+    "check": "vp check"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
