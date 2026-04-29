@@ -440,6 +440,12 @@ export function createBlock<
     itemContent: any;
     itemSettings: Record<string, unknown>;
     itemId?: number;
+    /**
+     * Nearest ancestor item with a normalized (DB-backed) id. Used so clicks
+     * inside inline arrays (e.g. multi-asset galleries) can attribute the
+     * selection to the enclosing DB item rather than to the block.
+     */
+    containerItemId?: number;
   }
 
   const Context = React.createContext<BlockContextValue | null>(null);
@@ -1156,12 +1162,24 @@ export function createBlock<
       : contentDefaults[String(name)];
     const fieldValue = rawValue ?? (defaultValue as ImageValue);
 
-    const fieldId = getOverlayFieldId(blockId, repeaterContext, String(name));
+    // Inline gallery images (multi-asset) attribute hover/focus/selection to
+    // the enclosing array field on the nearest DB item, not to the per-item
+    // `image` field — that property doesn't exist on any reachable schema.
+    const isInlineArrayItem = repeaterContext != null && repeaterContext.itemId == null;
+    const overlayFieldName = isInlineArrayItem ? repeaterContext.arrayFieldName : String(name);
+    const overlayItemId = isInlineArrayItem
+      ? repeaterContext.containerItemId
+      : repeaterContext?.itemId;
+
+    const fieldId =
+      overlayItemId != null
+        ? `${blockId}__${overlayItemId}__${overlayFieldName}`
+        : `${blockId}__${overlayFieldName}`;
 
     const [isHovered, setIsHovered] = React.useState(false);
 
     // Derive selected state from selection
-    const isFocused = useFieldSelection(blockId, String(name), "Image", repeaterContext?.itemId);
+    const isFocused = useFieldSelection(blockId, overlayFieldName, "Image", overlayItemId);
 
     // Keep sidebar hover via postMessage (transient state)
     const isHoveredFromSidebar = useOverlayMessage(
@@ -1178,26 +1196,19 @@ export function createBlock<
 
     const handleClick = () => {
       if (!isContentEditable) return;
-      // For inline array items (no itemId, e.g. multi-asset gallery),
-      // use the array field name so the sidebar shows the gallery editor
-      const imageFieldName =
-        repeaterContext && repeaterContext.itemId == null
-          ? repeaterContext.arrayFieldName
-          : String(name);
-
-      if (repeaterContext?.itemId != null) {
+      if (overlayItemId != null) {
         previewStore.send({
           type: "selectItemField",
           blockId,
-          itemId: repeaterContext.itemId,
-          fieldName: imageFieldName,
+          itemId: overlayItemId,
+          fieldName: overlayFieldName,
           fieldType: "Image",
         });
       } else {
         previewStore.send({
           type: "selectBlockField",
           blockId,
-          fieldName: imageFieldName,
+          fieldName: overlayFieldName,
           fieldType: "Image",
         });
       }
@@ -1546,6 +1557,7 @@ export function createBlock<
                 itemContent: itemContent,
                 itemSettings,
                 itemId: itemId,
+                containerItemId: itemId ?? parentRepeaterContext?.containerItemId,
               }}
             >
               <RepeaterItemWrapper itemId={itemId} blockId={blockId} mode={mode}>
