@@ -24,7 +24,7 @@ import {
   projects,
   repeatableItems,
 } from "../../schema";
-import { collectFileIds } from "../pages/routes";
+import { collectFileIds } from "../pages/ai";
 
 // --- AI Executor ---
 

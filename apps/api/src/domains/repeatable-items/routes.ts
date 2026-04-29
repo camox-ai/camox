@@ -13,7 +13,7 @@ import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
 import { pub, authed } from "../../orpc";
 import { blocks, files, repeatableItems } from "../../schema";
-import { collectFileIds } from "../pages/routes";
+import { collectFileIds } from "../pages/ai";
 
 function comparePositions(a: string, b: string): number {
   if (a < b) return -1;

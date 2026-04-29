@@ -5,7 +5,7 @@ import { eq, or } from "drizzle-orm";
 import { createDb } from "../db";
 import { executeBlockSummary } from "../domains/blocks/routes";
 import { executeFileMetadata } from "../domains/files/routes";
-import { executePageSeo } from "../domains/pages/routes";
+import { executePageSeo } from "../domains/pages/ai";
 import { executeRepeatableItemSummary } from "../domains/repeatable-items/routes";
 import { broadcastInvalidation } from "../lib/broadcast-invalidation";
 import { blocks, files, layouts, pages, projects, repeatableItems } from "../schema";
