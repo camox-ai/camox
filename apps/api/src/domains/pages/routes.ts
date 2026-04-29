@@ -1,84 +1,61 @@
-import { pub, authed } from "../../orpc";
-import {
-  createPage,
-  createPageInput,
-  deletePage,
-  deletePageInput,
-  generatePageSeo,
-  generatePageSeoInput,
-  getPage,
-  getPageByPath,
-  getPageByPathInput,
-  getPageInput,
-  getPageStructure,
-  getPageStructureInput,
-  listPages,
-  listPagesBySlug,
-  listPagesBySlugInput,
-  listPagesInput,
-  setPageAiSeo,
-  setPageAiSeoInput,
-  setPageLayout,
-  setPageLayoutInput,
-  setPageMetaDescription,
-  setPageMetaDescriptionInput,
-  setPageMetaTitle,
-  setPageMetaTitleInput,
-  updatePage,
-  updatePageInput,
-} from "./service";
+import { authed, pub } from "../../orpc";
+import * as service from "./service";
 
 // Public procedures
 
 const getByPath = pub
-  .input(getPageByPathInput)
-  .handler(({ context, input }) => getPageByPath(context, input));
+  .input(service.getPageByPathInput)
+  .handler(({ context, input }) => service.getPageByPath(context, input));
 
 const getStructure = pub
-  .input(getPageStructureInput)
-  .handler(({ context, input }) => getPageStructure(context, input));
+  .input(service.getPageStructureInput)
+  .handler(({ context, input }) => service.getPageStructure(context, input));
 
-const list = pub.input(listPagesInput).handler(({ context, input }) => listPages(context, input));
+const list = pub
+  .input(service.listPagesInput)
+  .handler(({ context, input }) => service.listPages(context, input));
 
 const listBySlug = pub
-  .input(listPagesBySlugInput)
-  .handler(({ context, input }) => listPagesBySlug(context, input));
+  .input(service.listPagesBySlugInput)
+  .handler(({ context, input }) => service.listPagesBySlug(context, input));
 
-const get = pub.input(getPageInput).handler(({ context, input }) => getPage(context, input));
+const get = pub
+  .input(service.getPageInput)
+  .handler(({ context, input }) => service.getPage(context, input));
 
 // Protected procedures
 
 const create = authed
-  .input(createPageInput)
-  .handler(({ context, input }) => createPage(context, input));
+  .input(service.createPageInput)
+  .handler(({ context, input }) => service.createPage(context, input));
 
 const update = authed
-  .input(updatePageInput)
-  .handler(({ context, input }) => updatePage(context, input));
+  .input(service.updatePageInput)
+  .handler(({ context, input }) => service.updatePage(context, input));
 
 const deleteFn = authed
-  .input(deletePageInput)
-  .handler(({ context, input }) => deletePage(context, input));
+  .input(service.deletePageInput)
+  .handler(({ context, input }) => service.deletePage(context, input));
 
 const setAiSeo = authed
-  .input(setPageAiSeoInput)
-  .handler(({ context, input }) => setPageAiSeo(context, input));
+  .input(service.setPageAiSeoInput)
+  .handler(({ context, input }) => service.setPageAiSeo(context, input));
 
 const setMetaTitle = authed
-  .input(setPageMetaTitleInput)
-  .handler(({ context, input }) => setPageMetaTitle(context, input));
+  .input(service.setPageMetaTitleInput)
+  .handler(({ context, input }) => service.setPageMetaTitle(context, input));
 
 const setMetaDescription = authed
-  .input(setPageMetaDescriptionInput)
-  .handler(({ context, input }) => setPageMetaDescription(context, input));
+  .input(service.setPageMetaDescriptionInput)
+  .handler(({ context, input }) => service.setPageMetaDescription(context, input));
 
 const setLayout = authed
-  .input(setPageLayoutInput)
-  .handler(({ context, input }) => setPageLayout(context, input));
+  .input(service.setPageLayoutInput)
+  .handler(({ context, input }) => service.setPageLayout(context, input));
 
 const generateSeo = authed
-  .input(generatePageSeoInput)
-  .handler(({ context, input }) => generatePageSeo(context, input));
+  .input(service.generatePageSeoInput)
+  .handler(({ context, input }) => service.generatePageSeo(context, input));
 
 export const pageProcedures = {
   getByPath,

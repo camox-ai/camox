@@ -3,7 +3,7 @@ import { DurableObject } from "cloudflare:workers";
 import { eq, or } from "drizzle-orm";
 
 import { createDb } from "../db";
-import { executeBlockSummary } from "../domains/blocks/routes";
+import { executeBlockSummary } from "../domains/blocks/service";
 import { executeFileMetadata } from "../domains/files/routes";
 import { executePageSeo } from "../domains/pages/ai";
 import { executeRepeatableItemSummary } from "../domains/repeatable-items/routes";
