@@ -1,488 +1,58 @@
 import { queryKeys } from "@camox/api-contract/query-keys";
-import { ORPCError } from "@orpc/server";
-import { chat } from "@tanstack/ai";
-import { createOpenRouterText } from "@tanstack/ai-openrouter";
-import { and, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { outdent } from "outdent";
-import { z } from "zod";
 
-import { assertFileAccess, getAuthorizedProject } from "../../authorization";
-import type { Database } from "../../db";
+import { getAuthorizedProject } from "../../authorization";
 import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
 import { resolveEnvironment } from "../../lib/resolve-environment";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
-import { pub, authed } from "../../orpc";
-import { blocks, files, member, projects, repeatableItems } from "../../schema";
+import { authed, pub } from "../../orpc";
+import { files } from "../../schema";
 import type { AppEnv } from "../../types";
+import * as service from "./service";
 
-// --- AI Executor ---
+// Public procedures
 
-async function generateImageMetadata(apiKey: string, imageUrl: string, currentFilename: string) {
-  // Fetch image server-side — the AI provider can't reach localhost URLs in development
-  const response = await fetch(imageUrl);
-  const buffer = await response.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  const base64 = btoa(binary);
-  const mimeType = response.headers.get("content-type") || "image/jpeg";
+const list = pub
+  .input(service.listFilesInput)
+  .handler(({ context, input }) => service.listFiles(context, input));
 
-  return await chat({
-    adapter: createOpenRouterText("google/gemini-2.5-flash-lite", apiKey),
-    outputSchema: z.object({
-      filename: z.string(),
-      alt: z.string(),
-    }),
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image" as const,
-            source: { type: "data" as const, value: base64, mimeType: mimeType as "image/png" },
-          },
-          {
-            type: "text" as const,
-            content: outdent`
-              Analyze this image and generate metadata for it:
-              - "filename": a clean, descriptive filename in kebab-case (no extension). The current filename is "${currentFilename}". If it's already human-readable and descriptive, keep it as-is (without the extension). Only rewrite it if it's gibberish, a random hash, or not meaningful (e.g. "IMG_2847", "DSC0042", "a7f3b2c9").
-              - "alt": SEO-optimized alt text describing the image content. Be concise but descriptive (1 sentence max).
-            `,
-          },
-        ],
-      },
-    ],
-  });
-}
-
-export async function executeFileMetadata(db: Database, apiKey: string, fileId: number) {
-  const file = await db.select().from(files).where(eq(files.id, fileId)).get();
-  if (!file || file.aiMetadataEnabled === false) return;
-
-  const metadata = await generateImageMetadata(apiKey, file.url, file.filename);
-
-  await db
-    .update(files)
-    .set({ filename: metadata.filename, alt: metadata.alt, updatedAt: Date.now() })
-    .where(eq(files.id, fileId));
-}
-
-// --- File reference cleanup ---
-
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
-
-function cleanFileReferences(value: JsonValue, fileId: number): JsonValue {
-  if (value === null || typeof value !== "object") return value;
-
-  if (Array.isArray(value)) {
-    return value
-      .filter((entry) => !containsFileRef(entry, fileId))
-      .map((entry) => cleanFileReferences(entry, fileId) as JsonValue);
-  }
-
-  // Object with _fileId — direct file reference
-  if ("_fileId" in value && value._fileId === fileId) return null;
-
-  // Recurse into object properties
-  const cleaned: Record<string, JsonValue> = {};
-  for (const [k, v] of Object.entries(value)) {
-    cleaned[k] = cleanFileReferences(v as JsonValue, fileId);
-  }
-  return cleaned;
-}
-
-function containsFileRef(value: JsonValue, fileId: number): boolean {
-  if (value === null || typeof value !== "object") return false;
-  if (Array.isArray(value)) return value.some((v) => containsFileRef(v, fileId));
-  if ("_fileId" in value && value._fileId === fileId) return true;
-  return Object.values(value).some((v) => containsFileRef(v as JsonValue, fileId));
-}
-
-async function removeFileReferences(db: Database, fileId: number) {
-  const marker = `"_fileId":${fileId}`;
-  const now = Date.now();
-
-  const affectedBlocks = await db
-    .select({ id: blocks.id, content: blocks.content, pageId: blocks.pageId })
-    .from(blocks)
-    .where(sql`INSTR(${blocks.content}, ${marker}) > 0`);
-
-  const affectedItems = await db
-    .select({
-      id: repeatableItems.id,
-      content: repeatableItems.content,
-      blockId: repeatableItems.blockId,
-    })
-    .from(repeatableItems)
-    .where(sql`INSTR(${repeatableItems.content}, ${marker}) > 0`);
-
-  for (const block of affectedBlocks) {
-    const cleaned = cleanFileReferences(block.content as JsonValue, fileId);
-    await db
-      .update(blocks)
-      .set({ content: cleaned, updatedAt: now })
-      .where(eq(blocks.id, block.id));
-  }
-
-  for (const item of affectedItems) {
-    const cleaned = cleanFileReferences(item.content as JsonValue, fileId);
-    await db
-      .update(repeatableItems)
-      .set({ content: cleaned, updatedAt: now })
-      .where(eq(repeatableItems.id, item.id));
-  }
-
-  const itemBlockIds = affectedItems.map((i) => i.blockId);
-  const allBlockIds = [...new Set([...affectedBlocks.map((b) => b.id), ...itemBlockIds])];
-
-  // Look up pageIds for blocks referenced by affected repeatable items
-  let itemBlockPageIds: number[] = [];
-  if (itemBlockIds.length > 0) {
-    const uniqueItemBlockIds = [...new Set(itemBlockIds)];
-    const parentBlocks = await db
-      .select({ id: blocks.id, pageId: blocks.pageId })
-      .from(blocks)
-      .where(inArray(blocks.id, uniqueItemBlockIds));
-    itemBlockPageIds = parentBlocks.map((b) => b.pageId).filter((id) => id != null);
-  }
-
-  const allPageIds = [
-    ...new Set([
-      ...affectedBlocks.map((b) => b.pageId).filter((id) => id != null),
-      ...itemBlockPageIds,
-    ]),
-  ];
-
-  return {
-    blockIds: allBlockIds,
-    blockPageIds: allPageIds,
-    itemIds: affectedItems.map((i) => i.id),
-  };
-}
-
-// --- oRPC Procedures ---
-
-const list = pub.input(z.object({ projectId: z.number() })).handler(async ({ context, input }) => {
-  const environment = await resolveEnvironment(
-    context.db,
-    input.projectId,
-    context.environmentName,
-  );
-  return context.db
-    .select()
-    .from(files)
-    .where(and(eq(files.projectId, input.projectId), eq(files.environmentId, environment.id)));
-});
-
-const get = pub.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
-  const result = await context.db.select().from(files).where(eq(files.id, input.id)).get();
-  if (!result) throw new ORPCError("NOT_FOUND");
-  return result;
-});
+const get = pub
+  .input(service.getFileInput)
+  .handler(({ context, input }) => service.getFile(context, input));
 
 const getUsageCount = pub
-  .input(z.object({ id: z.number() }))
-  .handler(async ({ context, input }) => {
-    const file = await context.db.select().from(files).where(eq(files.id, input.id)).get();
-    if (!file) throw new ORPCError("NOT_FOUND");
+  .input(service.getFileUsageCountInput)
+  .handler(({ context, input }) => service.getFileUsageCount(context, input));
 
-    const marker = `"_fileId":${file.id}`;
-    const blockCount = await context.db
-      .select({ count: sql<number>`count(*)` })
-      .from(blocks)
-      .where(sql`INSTR(${blocks.content}, ${marker}) > 0`)
-      .get();
-    const itemCount = await context.db
-      .select({ count: sql<number>`count(*)` })
-      .from(repeatableItems)
-      .where(sql`INSTR(${repeatableItems.content}, ${marker}) > 0`)
-      .get();
-    return { count: (blockCount?.count ?? 0) + (itemCount?.count ?? 0) };
-  });
+// Protected procedures
 
 const setAlt = authed
-  .input(z.object({ id: z.number(), alt: z.string() }))
-  .handler(async ({ context, input }) => {
-    const access = await assertFileAccess(context.db, input.id, context.user.id);
-    if (!access) throw new ORPCError("NOT_FOUND");
-
-    const result = await context.db
-      .update(files)
-      .set({ alt: input.alt, updatedAt: Date.now() })
-      .where(eq(files.id, input.id))
-      .returning()
-      .get();
-    broadcastInvalidation({
-      waitUntil: context.waitUntil,
-      projectRoomNamespace: context.env.ProjectRoom,
-      projectId: access.file.projectId!,
-      targets: [queryKeys.files.list, queryKeys.files.get(input.id)],
-    });
-    return result;
-  });
+  .input(service.setFileAltInput)
+  .handler(({ context, input }) => service.setFileAlt(context, input));
 
 const setFilename = authed
-  .input(z.object({ id: z.number(), filename: z.string() }))
-  .handler(async ({ context, input }) => {
-    const access = await assertFileAccess(context.db, input.id, context.user.id);
-    if (!access) throw new ORPCError("NOT_FOUND");
+  .input(service.setFileFilenameInput)
+  .handler(({ context, input }) => service.setFileFilename(context, input));
 
-    const result = await context.db
-      .update(files)
-      .set({ filename: input.filename, updatedAt: Date.now() })
-      .where(eq(files.id, input.id))
-      .returning()
-      .get();
-    broadcastInvalidation({
-      waitUntil: context.waitUntil,
-      projectRoomNamespace: context.env.ProjectRoom,
-      projectId: access.file.projectId!,
-      targets: [queryKeys.files.list, queryKeys.files.get(input.id)],
-    });
-    return result;
-  });
-
-const deleteFn = authed.input(z.object({ id: z.number() })).handler(async ({ context, input }) => {
-  const access = await assertFileAccess(context.db, input.id, context.user.id);
-  if (!access) throw new ORPCError("NOT_FOUND");
-
-  const { blockIds, blockPageIds, itemIds } = await removeFileReferences(context.db, input.id);
-
-  await context.env.FILES_BUCKET.delete(access.file.blobId);
-  const result = await context.db.delete(files).where(eq(files.id, input.id)).returning().get();
-  broadcastInvalidation({
-    waitUntil: context.waitUntil,
-    projectRoomNamespace: context.env.ProjectRoom,
-    projectId: access.file.projectId!,
-    targets: [
-      queryKeys.files.list,
-      queryKeys.files.get(input.id),
-      ...blockIds.map((id) => queryKeys.blocks.get(id)),
-      ...blockPageIds.map((id) => queryKeys.blocks.getPageMarkdown(id)),
-      ...itemIds.map((id) => queryKeys.repeatableItems.get(id)),
-      ...(blockIds.length > 0 || itemIds.length > 0
-        ? [queryKeys.blocks.getUsageCounts, queryKeys.pages.getByPathAll]
-        : []),
-    ],
-  });
-  return result;
-});
+const deleteFn = authed
+  .input(service.deleteFileInput)
+  .handler(({ context, input }) => service.deleteFile(context, input));
 
 const deleteMany = authed
-  .input(z.object({ ids: z.array(z.number()) }))
-  .handler(async ({ context, input }) => {
-    const { ids } = input;
-    if (ids.length === 0) return [];
-
-    const authorizedFiles = await context.db
-      .select({ id: files.id, blobId: files.blobId, projectId: files.projectId })
-      .from(files)
-      .innerJoin(projects, eq(projects.id, files.projectId))
-      .innerJoin(
-        member,
-        and(eq(member.organizationId, projects.organizationId), eq(member.userId, context.user.id)),
-      )
-      .where(inArray(files.id, ids));
-
-    if (authorizedFiles.length !== ids.length) {
-      throw new ORPCError("FORBIDDEN");
-    }
-
-    const allBlockIds: number[] = [];
-    const allBlockPageIds: number[] = [];
-    const allItemIds: number[] = [];
-    for (const id of ids) {
-      const { blockIds, blockPageIds, itemIds } = await removeFileReferences(context.db, id);
-      allBlockIds.push(...blockIds);
-      allBlockPageIds.push(...blockPageIds);
-      allItemIds.push(...itemIds);
-    }
-
-    await Promise.all(authorizedFiles.map((f) => context.env.FILES_BUCKET.delete(f.blobId)));
-    await context.db.delete(files).where(inArray(files.id, ids));
-
-    const projectId = authorizedFiles[0]!.projectId!;
-    const uniqueBlockIds = [...new Set(allBlockIds)];
-    const uniqueBlockPageIds = [...new Set(allBlockPageIds)];
-    const uniqueItemIds = [...new Set(allItemIds)];
-    broadcastInvalidation({
-      waitUntil: context.waitUntil,
-      projectRoomNamespace: context.env.ProjectRoom,
-      projectId,
-      targets: [
-        queryKeys.files.list,
-        ...ids.map((id) => queryKeys.files.get(id)),
-        ...uniqueBlockIds.map((id) => queryKeys.blocks.get(id)),
-        ...uniqueBlockPageIds.map((id) => queryKeys.blocks.getPageMarkdown(id)),
-        ...uniqueItemIds.map((id) => queryKeys.repeatableItems.get(id)),
-        ...(uniqueBlockIds.length > 0 || uniqueItemIds.length > 0
-          ? [queryKeys.blocks.getUsageCounts, queryKeys.pages.getByPathAll]
-          : []),
-      ],
-    });
-    return ids;
-  });
+  .input(service.deleteFilesInput)
+  .handler(({ context, input }) => service.deleteFiles(context, input));
 
 const replace = authed
-  .input(z.object({ id: z.number(), newFileId: z.number() }))
-  .handler(async ({ context, input }) => {
-    if (input.id === input.newFileId) throw new ORPCError("BAD_REQUEST");
-    const oldAccess = await assertFileAccess(context.db, input.id, context.user.id);
-    const newAccess = await assertFileAccess(context.db, input.newFileId, context.user.id);
-    if (!oldAccess || !newAccess) throw new ORPCError("NOT_FOUND");
-    if (oldAccess.file.projectId !== newAccess.file.projectId) {
-      throw new ORPCError("FORBIDDEN");
-    }
-
-    const oldUrl = oldAccess.file.url;
-    const oldBlobId = oldAccess.file.blobId;
-    const newAsset = newAccess.file;
-    const now = Date.now();
-
-    // Move the new asset onto the old file row. The id stays the same so
-    // every `_fileId: <id>` reference automatically resolves to the new asset.
-    await context.db
-      .update(files)
-      .set({
-        blobId: newAsset.blobId,
-        path: newAsset.path,
-        url: newAsset.url,
-        filename: newAsset.filename,
-        mimeType: newAsset.mimeType,
-        size: newAsset.size,
-        updatedAt: now,
-      })
-      .where(eq(files.id, input.id));
-
-    // Drop the temporary file row created by the upload step.
-    await context.db.delete(files).where(eq(files.id, input.newFileId));
-
-    // Migrate any rich-text/HTML content that embeds the old URL directly.
-    await context.db
-      .update(blocks)
-      .set({
-        content: sql`REPLACE(CAST(${blocks.content} AS TEXT), ${oldUrl}, ${newAsset.url})`,
-        updatedAt: now,
-      })
-      .where(sql`INSTR(${blocks.content}, ${oldUrl}) > 0`);
-    await context.db
-      .update(repeatableItems)
-      .set({
-        content: sql`REPLACE(CAST(${repeatableItems.content} AS TEXT), ${oldUrl}, ${newAsset.url})`,
-        updatedAt: now,
-      })
-      .where(sql`INSTR(${repeatableItems.content}, ${oldUrl}) > 0`);
-
-    // Find blocks/items referencing the file by _fileId so we can invalidate them.
-    const marker = `"_fileId":${input.id}`;
-    const affectedBlocks = await context.db
-      .select({ id: blocks.id, pageId: blocks.pageId })
-      .from(blocks)
-      .where(sql`INSTR(${blocks.content}, ${marker}) > 0`);
-    const affectedItems = await context.db
-      .select({ id: repeatableItems.id, blockId: repeatableItems.blockId })
-      .from(repeatableItems)
-      .where(sql`INSTR(${repeatableItems.content}, ${marker}) > 0`);
-
-    const itemBlockIds = [...new Set(affectedItems.map((i) => i.blockId))];
-    let itemBlockPageIds: number[] = [];
-    if (itemBlockIds.length > 0) {
-      const parentBlocks = await context.db
-        .select({ id: blocks.id, pageId: blocks.pageId })
-        .from(blocks)
-        .where(inArray(blocks.id, itemBlockIds));
-      itemBlockPageIds = parentBlocks.map((b) => b.pageId).filter((id): id is number => id != null);
-    }
-    const allBlockIds = [...new Set([...affectedBlocks.map((b) => b.id), ...itemBlockIds])];
-    const allPageIds = [
-      ...new Set([
-        ...affectedBlocks.map((b) => b.pageId).filter((id): id is number => id != null),
-        ...itemBlockPageIds,
-      ]),
-    ];
-
-    // Drop the old R2 blob now that nothing references it.
-    await context.env.FILES_BUCKET.delete(oldBlobId);
-
-    // Re-run AI metadata if it was enabled — the asset is different.
-    if (oldAccess.file.aiMetadataEnabled !== false) {
-      context.waitUntil(
-        scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
-          entityTable: "files",
-          entityId: input.id,
-          type: "fileMetadata",
-          delayMs: 0,
-        }),
-      );
-    }
-
-    broadcastInvalidation({
-      waitUntil: context.waitUntil,
-      projectRoomNamespace: context.env.ProjectRoom,
-      projectId: oldAccess.file.projectId!,
-      targets: [
-        queryKeys.files.list,
-        queryKeys.files.get(input.id),
-        queryKeys.files.get(input.newFileId),
-        ...allBlockIds.map((id) => queryKeys.blocks.get(id)),
-        ...allPageIds.map((id) => queryKeys.blocks.getPageMarkdown(id)),
-        ...affectedItems.map((i) => queryKeys.repeatableItems.get(i.id)),
-        ...(allBlockIds.length > 0 || affectedItems.length > 0
-          ? [queryKeys.blocks.getUsageCounts, queryKeys.pages.getByPathAll]
-          : []),
-      ],
-    });
-    return { replaced: true };
-  });
+  .input(service.replaceFileInput)
+  .handler(({ context, input }) => service.replaceFile(context, input));
 
 const setAiMetadata = authed
-  .input(z.object({ id: z.number(), enabled: z.boolean() }))
-  .handler(async ({ context, input }) => {
-    const access = await assertFileAccess(context.db, input.id, context.user.id);
-    if (!access) throw new ORPCError("NOT_FOUND");
-
-    const result = await context.db
-      .update(files)
-      .set({ aiMetadataEnabled: input.enabled, updatedAt: Date.now() })
-      .where(eq(files.id, input.id))
-      .returning()
-      .get();
-    if (input.enabled) {
-      context.waitUntil(
-        scheduleAiJob(context.env.AI_JOB_SCHEDULER, {
-          entityTable: "files",
-          entityId: input.id,
-          type: "fileMetadata",
-          delayMs: 0,
-        }),
-      );
-    }
-    broadcastInvalidation({
-      waitUntil: context.waitUntil,
-      projectRoomNamespace: context.env.ProjectRoom,
-      projectId: access.file.projectId!,
-      targets: [queryKeys.files.list, queryKeys.files.get(input.id)],
-    });
-    return result;
-  });
+  .input(service.setFileAiMetadataInput)
+  .handler(({ context, input }) => service.setFileAiMetadata(context, input));
 
 const generateMetadata = authed
-  .input(z.object({ id: z.number() }))
-  .handler(async ({ context, input }) => {
-    const access = await assertFileAccess(context.db, input.id, context.user.id);
-    if (!access) throw new ORPCError("NOT_FOUND");
-
-    await executeFileMetadata(context.db, context.env.OPEN_ROUTER_API_KEY, input.id);
-    broadcastInvalidation({
-      waitUntil: context.waitUntil,
-      projectRoomNamespace: context.env.ProjectRoom,
-      projectId: access.file.projectId!,
-      targets: [queryKeys.files.list, queryKeys.files.get(input.id)],
-    });
-    const updated = await context.db.select().from(files).where(eq(files.id, input.id)).get();
-    return updated;
-  });
+  .input(service.generateFileMetadataInput)
+  .handler(({ context, input }) => service.generateFileMetadata(context, input));
 
 export const fileProcedures = {
   list,
