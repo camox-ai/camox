@@ -1,0 +1,35 @@
+{
+  "name": "@camox/ai-tools",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "src"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "lint": "oxlint",
+    "check": "tsgo --noEmit && oxlint --fix"
+  },
+  "dependencies": {
+    "@camox/api-contract": "workspace:*",
+    "@orpc/server": "^1.13.13",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260317.1",
+    "@typescript/native-preview": "7.0.0-dev.20260412.1",
+    "oxlint": "^0.15.15"
+  },
+  "nx": {
+    "tags": [
+      "type:pkg"
+    ]
+  }
+}

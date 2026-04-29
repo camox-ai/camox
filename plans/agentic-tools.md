@@ -199,17 +199,42 @@ app.all("/mcp", async (c) => {
 
 #### Phase 5: CLI Dispatch
 
-**CLI** — new commands in `packages/cli/src/commands/`:
+Ships **before Phase 3 (MCP)** — coding agents are the only near-term consumer, the CLI already has auth (`packages/cli/lib/auth.ts` stores a bearer token), and going CLI-first lets us dogfood the `@camox/ai-tools` registry against a trivial adapter before paying the MCP transport / OAuth tax.
 
-- `camox tools list` — prints resolved registry as JSON (name, description, input/output schemas)
-- `camox tools call <name> [--json <payload>]` — HTTP-calls a new oRPC endpoint `agent.callTool({ name, input })` authed with the stored CLI token
+**Surface shape: verb subcommands generated from the registry (Option B).** Each tool is exposed as a real `optique` subcommand with typed flags, not a generic `tools call <name>`. This makes `camox --help` discoverable, gives humans real flags, and lets the skill teach the agent to run e.g. `camox pages create --path-segment about --layout-id 3` directly.
+
+```
+camox pages list
+camox pages get --id 12
+camox pages create --path-segment about --layout-id 3 [--parent-page-id N] [--content-description "..."]
+camox pages update --id 12 [--path-segment ...] [--parent-page-id ...]
+camox pages set-layout --id 12 --layout-id 3
+camox pages set-meta-title --id 12 --meta-title "..."
+camox pages set-meta-description --id 12 --meta-description "..."
+camox pages delete --id 12
+
+camox blocks types                                  # = listBlockTypes
+camox blocks create --page-id 12 --type hero --content '<json>' [--settings '<json>'] [--after-position ...]
+camox blocks edit --id 87 [--content '<json>'] [--settings '<json>']
+camox blocks move --id 87 [--after-position ...]
+camox blocks delete --id 87
+
+camox layouts list
+```
+
+**Generation strategy** — subcommands are derived from the registry's Zod input schemas at CLI build time (a codegen step that runs against a snapshot of `resolveTools(toolProviders, fakeCtx)` for static tools, and a hand-written shim for dynamic ones whose flags don't map to fixed fields). Nested object inputs (block `content` / `settings`) take JSON via `--content '<json>'`; scalar fields become real flags. Naming: `camelCase` registry names map to `kebab-case` command paths (`createPage` → `pages create`, `setPageLayout` → `pages set-layout`); the underlying registry name stays canonical so MCP and CLI invoke the same handler.
+
+**Project resolution** — auto-resolved from `cwd` (read `camox.config.ts` / `.env` from the scaffolded project), overridable with `--project <slug>` or `CAMOX_PROJECT` env var. Coding agents are already `cd`'d into the project, so zero-config is the right default.
+
+**Output contract** — pretty-printed for TTY, JSON when stdout isn't a TTY or `--json` is passed. Errors go to stderr as JSON `{ code, message, details }` so the validation-error self-correction loop works for the dynamic block tools.
 
 **API** — new procedure `agent.callTool` in `routes/agent.ts`:
 
-- Same dispatch logic as MCP adapter (resolve + validate + invoke)
-- Separate from `agent.chat` — CLI path bypasses the LLM entirely, the coding agent is the LLM
+- Same dispatch logic the MCP adapter will use (resolve registry + validate input via Zod + invoke handler)
+- Separate from `agent.chat` — CLI path bypasses the LLM entirely; the coding agent is the LLM
+- Returns the tool's structured result, or a structured validation error the agent can read
 
-**Skill** — the coding-agent skill (outside this repo, likely shipped as a `.claude/skills/camox.md` template) prompts the agent to run `camox tools list` once per task to discover capabilities, then `camox tools call` to execute. Skill authoring is a follow-up ticket.
+**Skill** — the coding-agent skill (`.claude/skills/camox.md` template, shipped via `camox init` or a follow-up command) tells the agent to run `camox --help` and `camox <group> --help` for discovery, then call the verb commands directly. With Option B the skill is shorter than with a generic dispatch — the agent uses normal CLI conventions instead of hand-building JSON payloads. Skill authoring is a follow-up ticket.
 
 #### Phase 6 (deferred): Slack bot
 
