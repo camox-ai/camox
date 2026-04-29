@@ -157,7 +157,7 @@ const BlockActionsPopover = ({
       <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverTrigger render={children as React.ReactElement} />
         {block && (
-          <PopoverContent className="w-[300px] p-0" align={align}>
+          <PopoverContent className="w-75 p-0" align={align}>
             <Command>
               <CommandInput placeholder="Search actions..." />
               <CommandList className="max-h-[350px]">

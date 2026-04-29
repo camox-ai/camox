@@ -15,8 +15,9 @@ Expose Camox content-editing capabilities (create pages, create/edit blocks, etc
 - AI executor functions (`executeBlockSummary`, `executePageSeo`, `executeFileMetadata`, `executeRepeatableItemSummary`) are already split from their oRPC route wrappers — a pattern worth extending.
 - oRPC router exposes fine-grained CRUD over `projects`, `pages`, `blocks`, `layouts`, `files`, `block-definitions`, `repeatable-items` — too granular and shape-specific to expose directly to an LLM.
 - Block property schemas are stored as JSON Schema in the `blockDefinitions` table — projects define their own block types at runtime, so tool input shapes depend on the current project's config.
-- Auth is BetterAuth (session cookie, bearer token, one-time token, MCP plugin available but not mounted).
+- Auth is BetterAuth (session cookie, bearer token, one-time token). The `mcp` plugin is an export of `better-auth/plugins` (no extra package), not yet mounted.
 - CLI (`@camox/cli`) already has `init`, `login`, `logout` and stores credentials via `lib/auth.ts`. Uses `@optique/core` for parsing.
+- **Phase 1 is complete** (commits `68a957b`, `a0cf5b2`, `5c9a1b9`, `3972048`). The repo uses a domain layout — `apps/api/src/domains/<domain>/{routes,schema,service}.ts` — instead of the originally-planned flat `services/`. `domains/_shared/service-context.ts` defines the shared `ServiceContext = { db, user, env, waitUntil, environmentName }`. Each domain's `service.ts` exports Zod input schemas (commented "Exported so adapters (oRPC, MCP, CLI) share the same canonical contract"); routes are thin pass-throughs.
 
 ### Architecture Decision: Shared Tool Package + Thin Adapters
 
@@ -39,18 +40,18 @@ adapters:
 All tools are **providers** — functions of context. Static tools ignore context; dynamic tools read project config.
 
 ```ts
-type ToolContext = {
-  db: Database;
-  user: User;
-  project: Project; // resolved from session/scope at adapter entry
-  env: Bindings;
+// Wraps the api-side ServiceContext and adds the session-scoped projectId.
+// The adapter (MCP / agent / CLI) resolves projectId at session entry and
+// injects it here so individual tools don't take it as input.
+type ToolContext = ServiceContext & {
+  projectId: number;
 };
 
 type ToolDefinition = {
   name: string;
   description: string;
-  inputSchema: JSONSchema; // always emitted as JSON Schema, not Zod
-  outputSchema?: JSONSchema;
+  inputSchema: ZodType; // Zod, converted to JSON Schema at the adapter boundary via z.toJSONSchema()
+  outputSchema?: ZodType;
   handler: (input: unknown, ctx: ToolContext) => Promise<unknown>;
 };
 
@@ -58,6 +59,8 @@ type ToolProvider = (ctx: ToolContext) => ToolDefinition[] | Promise<ToolDefinit
 ```
 
 The registry is `ToolProvider[]`. Every adapter resolves the registry against a `ToolContext` at session start.
+
+**Schemas are Zod natively, JSON Schema at the boundary.** Services already export Zod input schemas (e.g. `createBlockInput`, `updatePageInput`). Tool providers reuse those Zod schemas directly. Adapters that need raw JSON Schema (MCP `tools/list`, CLI `tools list`) call `z.toJSONSchema(schema)` at emit time. This keeps the registry in lockstep with the service contract — no second source of truth — while still letting MCP clients consume vanilla JSON Schema.
 
 ### Dynamic Schemas Without Unions
 
@@ -77,47 +80,56 @@ This is the only pattern that works identically in MCP (where we don't control t
 
 ### Tool Catalog (v1)
 
+Tool inputs reuse the Zod schemas already exported from `apps/api/src/domains/<domain>/service.ts`. `projectId` is injected by the adapter from `ToolContext` and removed from per-tool inputs where the underlying service takes it.
+
 Static:
 
-- `listPages({ parentPath? })`
-- `getPage({ id })` — returns page + its blocks
-- `createPage({ parentId?, title, path })`
-- `renamePage({ id, title })`
-- `updatePagePath({ id, path })`
+- `listPages()` — wraps `listPages` (projectId from ctx)
+- `getPage({ id })` — wraps `getPage`; returns page + its blocks
+- `createPage({ parentPageId?, pathSegment, layoutId, contentDescription? })` — wraps `createPage`. `layoutId` is mandatory (see `listLayouts` for discovery).
+- `updatePage({ id, pathSegment?, parentPageId? })` — wraps `updatePage`. (Pages have no separate title field; display content lives in blocks.)
+- `setPageLayout({ id, layoutId })` — wraps `setPageLayout`
+- `setPageMetaTitle({ id, metaTitle })`, `setPageMetaDescription({ id, metaDescription })` — wraps `setPageMeta*`
 - `deletePage({ id })`
 - `deleteBlock({ id })`
-- `moveBlock({ id, beforeId? | afterId? })`
+- `moveBlock({ id, afterPosition? })` — fractional-indexing position string, matching the existing service signature
+- `listLayouts()` — needed because layout selection is mandatory at page creation
 
 Dynamic (provider reads project config):
 
-- `listBlockTypes()` — output includes schemas
-- `createBlock({ type, pageId, props, beforeId? | afterId? })`
-- `editBlock({ id, props })`
+- `listBlockTypes()` — output includes JSON Schemas for each block type's `content` and `settings`
+- `createBlock({ pageId, type, content, settings?, afterPosition? })` — wraps `createBlock`. `content`/`settings` are `z.unknown()` at the tool boundary; the service validates against the per-type JSON Schema and returns structured errors for LLM self-correction.
+- `editBlock({ id, content?, settings? })` — wraps the corresponding update service
 
-Out of scope for v1: file upload, layout management, repeatable-item surgery (too shape-specific — revisit after v1 usage data).
+Out of scope for v1: file upload, deeper layout authoring (creating/editing layout definitions), repeatable-item surgery (too shape-specific — revisit after v1 usage data). `listLayouts` and `setPageLayout` are in v1 because they're prerequisites for `createPage`; full layout CRUD is not.
 
 ### Implementation Plan
 
-#### Phase 1: Extract Service Layer
+#### Phase 1: Extract Service Layer ✅ DONE
 
 **Goal**: tool handlers and oRPC routes share the same underlying functions.
 
-- New dir `apps/api/src/services/` with `pages.ts`, `blocks.ts`, `block-definitions.ts`
-- Move write logic out of `routes/pages.ts`, `routes/blocks.ts` into service functions with signature `fn(db, ctx, input)` (no oRPC dependencies)
-- oRPC routes become thin: parse + authorize + call service + broadcast invalidation
-- Service functions handle authorization themselves (accept a `user` in ctx, reuse `authorization.ts` helpers) so tool handlers don't reimplement access checks
+Shipped in commits `68a957b` (domain restructure), `a0cf5b2` (pages), `5c9a1b9` (blocks), `3972048` (remaining domains).
+
+What ended up shipping (vs. the original sketch):
+
+- Domain layout `apps/api/src/domains/<domain>/{routes,schema,service}.ts` instead of a flat `services/` dir. Each domain owns its routes, drizzle schema slice, and service functions side-by-side.
+- Service signature is `fn(ctx, input)` with `db`, `user`, `env`, `waitUntil`, `environmentName` all on ctx (`domains/_shared/service-context.ts`). Inputs are Zod schemas exported alongside the functions and `.parse()`d on entry — service is the trust boundary.
+- oRPC routes are thin pass-throughs (`domains/<domain>/routes.ts`) that just hand `context` and `input` to the service.
+- Authorization helpers (`assertPageAccess`, `assertBlockAccess`, `getAuthorizedProject`) are called from inside services using `ctx.user`, so tool handlers will inherit access checks for free.
 
 #### Phase 2: `@camox/ai-tools` Package
 
 **New package**: `packages/ai-tools/`
 
-- `src/types.ts` — `ToolContext`, `ToolDefinition`, `ToolProvider`
-- `src/providers/` — one file per tool or logical group (e.g. `pages.ts`, `blocks.ts`)
+- `src/types.ts` — `ToolContext` (extends api `ServiceContext` with `projectId`), `ToolDefinition`, `ToolProvider`
+- `src/providers/` — one file per tool or logical group (e.g. `pages.ts`, `blocks.ts`, `layouts.ts`, `block-types.ts`). Providers import the Zod input schemas + service functions from `apps/api/src/domains/<domain>/service.ts` (workspace import) and wrap them, removing `projectId` from inputs and pulling it from `ctx`.
 - `src/registry.ts` — exports `toolProviders: ToolProvider[]`
 - `src/resolve.ts` — `resolveTools(providers, ctx) → ToolDefinition[]`
-- `src/validate.ts` — JSON Schema validation helper (ajv) + structured error formatter for LLM self-correction
+- `src/to-json-schema.ts` — adapter helper that emits a tool definition with `inputSchema` converted via `z.toJSONSchema(def.inputSchema)` for MCP/CLI surfaces
+- `src/errors.ts` — structured error formatter so failed validations come back to the LLM as readable JSON for self-correction
 
-No adapter code lives here. No runtime dependencies on Hono, oRPC, MCP, or `@tanstack/ai`. Depends only on `@camox/api-contract` for shared types and a JSON Schema validator.
+No adapter code lives here. No runtime dependencies on Hono, oRPC, MCP, or `@tanstack/ai`. Depends on `@camox/api-contract`, the api workspace (for service functions and ServiceContext), and `zod`. No separate JSON Schema validator needed — services already validate via Zod.
 
 #### Phase 3: MCP Server Adapter
 
@@ -125,7 +137,7 @@ Shipped first because it has no client UI surface — external MCP clients (Clau
 
 **Stateless, not per-session.** No Durable Objects, no `McpAgent`, no session state to persist. The project scope is re-resolved from the bearer token on every request (free via the existing BetterAuth middleware). Tool list is re-computed per `tools/list` call — one cheap D1 query against `blockDefinitions`. What we give up by going stateless: server-push `notifications/tools/list_changed` (clients re-list on next user action — acceptable for v1) and elicitation (not planned for v1).
 
-**Transport: official MCP SDK's Hono middleware.** Use `@modelcontextprotocol/hono`'s `WebStandardStreamableHTTPServerTransport` — purpose-built for Fetch API `Request`/`Response`, no Node-compat shim, portable off Workers later. Stay inside the official SDK family, no Cloudflare-specific wrapper.
+**Transport: official MCP SDK's Hono middleware.** Use `@modelcontextprotocol/hono`'s `WebStandardStreamableHTTPServerTransport` — purpose-built for Fetch API `Request`/`Response`, no Node-compat shim, portable off Workers later. Stay inside the official SDK family, no Cloudflare-specific wrapper. (Verified available on npm — no fallback needed.)
 
 **Server** — new file `apps/api/src/routes/mcp.ts`:
 
@@ -138,10 +150,17 @@ app.all("/mcp", async (c) => {
   // Fresh server + transport per request — SDK forbids reusing a connected Server
   const server = new Server({ name: "camox", version: "0.1.0" }, { capabilities: { tools: {} } });
 
-  const ctx = buildToolContext(c.var.user, c.var.db, c.env);
+  // projectId comes from the OAuth scope chosen at consent time
+  const ctx = buildToolContext(c, projectId);
   const tools = await resolveTools(toolProviders, ctx);
 
-  server.setRequestHandler(ListToolsRequestSchema, () => ({ tools }));
+  server.setRequestHandler(ListToolsRequestSchema, () => ({
+    tools: tools.map((t) => ({
+      name: t.name,
+      description: t.description,
+      inputSchema: z.toJSONSchema(t.inputSchema),
+    })),
+  }));
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     const tool = tools.find((t) => t.name === req.params.name);
     if (!tool) throw new Error(`Unknown tool: ${req.params.name}`);
@@ -157,11 +176,9 @@ app.all("/mcp", async (c) => {
 
 **Key design choices**:
 
-- **Lower-level `Server`, not `McpServer`.** The high-level `McpServer.registerTool` wrapper requires Standard Schema (Zod/Valibot) for `inputSchema`. Our registry emits JSON Schema natively (from `blockDefinitions` in D1). `Server.setRequestHandler` accepts raw JSON Schema in the tools list, matching our registry 1:1 with no conversion step.
-- **Auth via BetterAuth's `mcp` server plugin** (the `better-auth/plugins/mcp/client` dep is already installed — add the server-side entrypoint). OAuth 2.1 flow; access tokens resolve to the normal BetterAuth session. The existing studio-authorize consent page (commit `48176ee`) is the MCP consent UI — verify it's compatible or generalize it.
-- **CORS**: already configured globally on the Hono app. Ensure `Mcp-Session-Id` and `Last-Event-ID` are in `allowHeaders` (currently they're not).
-
-**Fallback option**: if `@modelcontextprotocol/hono` turns out to be prerelease / not yet on npm when we start Phase 3, fall back to `createMcpHandler` from `agents/mcp`. Same stateless shape, Cloudflare-specific but battle-tested. Swap is ~15 lines.
+- **Lower-level `Server`, not `McpServer`.** The registry holds Zod schemas; we convert to JSON Schema with `z.toJSONSchema()` at emit time, which `Server.setRequestHandler(ListTools…)` accepts directly. Going through `McpServer.registerTool`'s Standard Schema path would require it to round-trip the Zod schema itself, which is unnecessary indirection given we're already at the boundary.
+- **Auth via BetterAuth's `mcp` plugin** — `import { mcp } from "better-auth/plugins"` (already shipped in the installed `better-auth` versions; no separate package). Mount it on the existing `auth` instance. OAuth 2.1 flow; access tokens resolve to the normal BetterAuth session. The existing studio-authorize consent page (commit `48176ee`, route `apps/web/src/routes/_app._auth/_authorize.studio-authorize.tsx`) is the MCP consent UI — verify it's compatible or generalize it. Project selection happens here.
+- **CORS**: already configured globally on the Hono app. Ensure `Mcp-Session-Id` and `Last-Event-ID` are in `allowHeaders` (currently they're not — `index.ts` lists `Content-Type, Authorization, Better-Auth-Cookie, x-environment-name`).
 
 #### Phase 4: TanStack AI Agent + SDK Chat UI
 
@@ -209,9 +226,9 @@ Sketched only. Reuses the Phase 4 agent loop with a different message transport.
 ### New Dependencies
 
 - `@modelcontextprotocol/sdk` — core `Server` class and request-schema zod defs
-- `@modelcontextprotocol/hono` — `WebStandardStreamableHTTPServerTransport` for the Phase 3 transport (fallback: `agents` package for `createMcpHandler` if this package isn't GA yet)
-- `better-auth/plugins/mcp` (server-side entrypoint) — already available in the installed BetterAuth version
-- `ajv` + `ajv-formats` — JSON Schema validation in `@camox/ai-tools`
+- `@modelcontextprotocol/hono` — `WebStandardStreamableHTTPServerTransport` for the Phase 3 transport (verified available on npm)
+- No new auth package — the `mcp` plugin is `import { mcp } from "better-auth/plugins"` from the already-installed `better-auth`
+- No JSON Schema validator — services validate via Zod; adapters emit JSON Schema with `z.toJSONSchema()` for outbound tool listings only
 - Nothing new for the TanStack agent loop — `@tanstack/ai` and `@tanstack/ai-openrouter` already installed
 
 ### Open Questions

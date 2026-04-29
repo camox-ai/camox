@@ -265,7 +265,7 @@ const AddBlockSheet = () => {
                       <TooltipTrigger className="hidden group-focus-within:flex group-hover:flex">
                         <InfoIcon />
                       </TooltipTrigger>
-                      <TooltipContent className="max-w-[300px]" side="right">
+                      <TooltipContent className="max-w-75" side="right">
                         {block._internal.description}
                       </TooltipContent>
                     </Tooltip>

@@ -65,8 +65,9 @@ export const FieldToolbar = () => {
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 pointer-events-none translate-y-2",
       )}
     >
-      <Button variant="ghost" size="sm" onClick={handleEditInForm}>
-        Edit in form <Kbd className="ml-2">{formatShortcut({ key: "j", withAlt: true })}</Kbd>
+      <Button variant="outline" onClick={handleEditInForm}>
+        Edit in form
+        {formatShortcut({ key: "j", withAlt: true })}
       </Button>
       {hasSelection && (
         <ButtonGroup>

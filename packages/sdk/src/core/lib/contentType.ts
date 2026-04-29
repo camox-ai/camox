@@ -211,12 +211,12 @@ export type FileValue = {
  * Image / File type builders (overloaded for single vs multiple)
  * -----------------------------------------------------------------------------------------------*/
 
+function _imageType(options: { title?: string; multiple?: false }): TUnsafe<ImageValue>;
 function _imageType(options: {
   title?: string;
   multiple: true;
   defaultItems: number;
 }): TArray<TObject<{ image: TUnsafe<ImageValue> }>>;
-function _imageType(options: { title?: string; multiple?: false }): TUnsafe<ImageValue>;
 function _imageType(options: {
   title?: string;
   multiple?: boolean;
@@ -263,14 +263,14 @@ function _imageType(options: {
 function _fileType(options: {
   accept: string[];
   title?: string;
-  multiple: true;
-  defaultItems: number;
-}): TArray<TObject<{ file: TUnsafe<FileValue> }>>;
+  multiple?: false;
+}): TUnsafe<FileValue>;
 function _fileType(options: {
   accept: string[];
   title?: string;
-  multiple?: false;
-}): TUnsafe<FileValue>;
+  multiple: true;
+  defaultItems: number;
+}): TArray<TObject<{ file: TUnsafe<FileValue> }>>;
 function _fileType(options: {
   accept: string[];
   title?: string;

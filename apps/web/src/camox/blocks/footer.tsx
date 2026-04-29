@@ -57,7 +57,7 @@ function FooterComponent() {
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 md:flex md:justify-end md:gap-16">
             <footer.Repeater name="columns">
               {(column) => (
-                <div className="flex flex-col gap-2 md:w-[10rem]">
+                <div className="flex flex-col gap-2 md:w-40">
                   <column.Field name="title">
                     {(props) => <h3 {...props} className="text-foreground text-sm font-medium" />}
                   </column.Field>

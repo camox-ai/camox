@@ -310,7 +310,7 @@ const BlockTreeItemHeader = ({
       "flex flex-row justify-between items-center gap-1 px-1 max-w-full rounded-lg text-foreground transition-all hover:transition-none",
       shouldShowHover && "hover:bg-accent/75",
       shouldShowActive && "bg-accent text-accent-foreground",
-      "data-[open]:rounded-b-none",
+      "data-open:rounded-b-none",
       className,
     )}
     {...props}
