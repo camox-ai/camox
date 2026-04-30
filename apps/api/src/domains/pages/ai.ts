@@ -1,3 +1,4 @@
+import { rewriteAssetSchema } from "@camox/ai-tools";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { eq, inArray } from "drizzle-orm";
@@ -115,8 +116,8 @@ export async function generatePageDraftFromAi(
     blockId: def.blockId,
     title: def.title,
     description: def.description,
-    contentSchema: def.contentSchema,
-    ...(def.settingsSchema ? { settingsSchema: def.settingsSchema } : {}),
+    contentSchema: rewriteAssetSchema(def.contentSchema),
+    ...(def.settingsSchema ? { settingsSchema: rewriteAssetSchema(def.settingsSchema) } : {}),
   }));
 
   const text = await chat({
@@ -148,6 +149,7 @@ export async function generatePageDraftFromAi(
             For RepeatableItems fields (arrays), provide an array of objects matching the nested schema.
             For settings, pick values from the enum options or boolean values defined in the settingsSchema.
             For String fields, you may use markdown formatting: **bold** and *italic*.
+            For Image/File fields, return either { "_fileId": <integer> } matching an existing file id or null — never invent URLs.
 
             IMPORTANT: Return ONLY the raw JSON array. Do NOT wrap it in markdown code fences or any other formatting. The response must be valid JSON that can be parsed directly.
           </output_format>

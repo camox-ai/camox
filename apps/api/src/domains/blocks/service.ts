@@ -25,7 +25,7 @@ import {
 } from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
 import { collectFileIds } from "../pages/ai";
-import { normalizeBlockContent, type BlockItemSeed } from "./normalize-content";
+import { normalizeBlockContent, sanitizeAssetValue, type BlockItemSeed } from "./normalize-content";
 
 // --- Input Schemas ---
 // Exported so adapters (oRPC, MCP, CLI) share the same canonical contract.
@@ -322,7 +322,11 @@ async function applyContentPatch(
   for (const [key, value] of Object.entries(patch)) {
     const fieldSchema = props?.[key];
     if (fieldSchema?.fieldType !== "RepeatableItem") {
-      merged[key] = value;
+      if (fieldSchema?.fieldType === "Image" || fieldSchema?.fieldType === "File") {
+        merged[key] = sanitizeAssetValue(value);
+      } else {
+        merged[key] = value;
+      }
       continue;
     }
     if (allItems === null) allItems = await fetchBlockItems(ctx, block.id);

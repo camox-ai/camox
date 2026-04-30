@@ -10,6 +10,7 @@ import { resolveEnvironment } from "../../lib/resolve-environment";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
 import { blockDefinitions, blocks, layouts, pages, projects, repeatableItems } from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
+import { normalizeBlockContent } from "../blocks/normalize-content";
 import {
   buildFileMap,
   collectFileIds,
@@ -282,6 +283,11 @@ export async function createPage(ctx: ServiceContext, rawInput: z.input<typeof c
     content: Record<string, unknown>;
     settings?: Record<string, unknown>;
   }[] = [DEFAULT_HERO_BLOCK];
+  // Lookup used by the seed-insertion loop below to normalize each generated
+  // block's content (extract RepeatableItem arrays into seeds, sanitize asset
+  // leaks). Empty when contentDescription is unset — the default hero block
+  // has no asset fields, so a no-op normalization is fine.
+  const schemaByType = new Map<string, unknown>();
 
   if (contentDescription) {
     try {
@@ -289,6 +295,7 @@ export async function createPage(ctx: ServiceContext, rawInput: z.input<typeof c
         .select()
         .from(blockDefinitions)
         .where(eq(blockDefinitions.projectId, projectId));
+      for (const d of allDefs) schemaByType.set(d.blockId, d.contentSchema);
       const defs = allDefs.filter((d) => !d.layoutOnly);
 
       if (defs.length > 0) {
@@ -338,22 +345,17 @@ export async function createPage(ctx: ServiceContext, rawInput: z.input<typeof c
     const position = generateKeyBetween(prevPosition, null);
     prevPosition = position;
 
-    const scalarContent: Record<string, unknown> = {};
-    const arrayFields: Record<string, unknown[]> = {};
-    for (const [key, value] of Object.entries(genBlock.content)) {
-      if (Array.isArray(value)) {
-        arrayFields[key] = value;
-      } else {
-        scalarContent[key] = value;
-      }
-    }
+    const { content: normalizedContent, seeds } = normalizeBlockContent(
+      genBlock.content,
+      schemaByType.get(genBlock.type) ?? null,
+    );
 
     const block = await ctx.db
       .insert(blocks)
       .values({
         pageId: page.id,
         type: genBlock.type,
-        content: scalarContent,
+        content: normalizedContent,
         settings: genBlock.settings ?? null,
         summary: "",
         position,
@@ -363,20 +365,27 @@ export async function createPage(ctx: ServiceContext, rawInput: z.input<typeof c
       .returning()
       .get();
 
-    for (const [fieldName, items] of Object.entries(arrayFields)) {
-      let itemPrevPos: string | null = null;
-      for (const itemContent of items) {
-        const itemPos = generateKeyBetween(itemPrevPos, null);
-        itemPrevPos = itemPos;
-        await ctx.db.insert(repeatableItems).values({
-          blockId: block.id,
-          fieldName,
-          content: itemContent,
-          summary: "",
-          position: itemPos,
-          createdAt: now,
-          updatedAt: now,
-        });
+    if (seeds.length > 0) {
+      const tempIdToRealId = new Map<string, number>();
+      for (const seed of seeds) {
+        const parentItemId = seed.parentTempId
+          ? (tempIdToRealId.get(seed.parentTempId) ?? null)
+          : null;
+        const inserted = await ctx.db
+          .insert(repeatableItems)
+          .values({
+            blockId: block.id,
+            parentItemId,
+            fieldName: seed.fieldName,
+            content: seed.content,
+            summary: "",
+            position: seed.position,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning()
+          .get();
+        tempIdToRealId.set(seed.tempId, inserted.id);
       }
     }
 

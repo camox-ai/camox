@@ -1,5 +1,6 @@
 export { formatToolError } from "./errors";
 export type { ToolError } from "./errors";
+export { rewriteAssetSchema } from "./lib/rewrite-asset-schema";
 export { blockTypesProvider } from "./providers/block-types";
 export { blocksProvider } from "./providers/blocks";
 export { layoutsProvider } from "./providers/layouts";

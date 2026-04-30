@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { listBlockDefinitions } from "../../../../apps/api/src/domains/block-definitions/service";
+import { rewriteAssetSchema } from "../lib/rewrite-asset-schema";
 import type { ToolDefinition, ToolProvider } from "../types";
 
 const listBlockTypesToolInput = z.object({});
@@ -46,8 +47,8 @@ export const blockTypesProvider: ToolProvider = (ctx): ToolDefinition[] => [
           type: d.blockId,
           title: d.title,
           description: d.description,
-          contentSchema: d.contentSchema,
-          settingsSchema: d.settingsSchema,
+          contentSchema: rewriteAssetSchema(d.contentSchema),
+          settingsSchema: rewriteAssetSchema(d.settingsSchema),
           layoutOnly: d.layoutOnly ?? false,
         }));
       const foundIds = new Set(found.map((d) => d.type));

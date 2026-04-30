@@ -61,9 +61,23 @@ pnpm camox blocks edit --id <ID> --production
 
 Only use `--production` when the user has explicitly asked to operate on live content. For everything else — exploration, tentative edits, anything you'd want to be able to throw away — stay on the default dev environment.
 
+## Don't write slop — build understanding first
+
+Anything you create with this CLI ends up on a real website read by real people. **Never invent generic filler copy** ("Welcome to our amazing platform", "Lorem ipsum"-grade headlines, plausible-sounding-but-fabricated stats, made-up testimonials, fake company names). That kind of content is worse than nothing — it ships, it gets indexed, and the user has to clean it up.
+
+Before writing any block content:
+
+1. **Read what already exists.** Use the CLI to list pages and inspect existing blocks (`pnpm camox pages list`, `pnpm camox pages get …`, `pnpm camox blocks describe …`, etc. — discover the exact commands via `--help`). The site's voice, product positioning, naming, and recurring claims are usually already established somewhere; mirror them. A new "About" block on a site that already has hero/feature copy should sound like a continuation of that copy, not a fresh marketing draft.
+2. **Pull real facts from the right source.** If the user gave you the content, use it verbatim. If the content describes something external (a person, company, product, paper, event, library), use web search or whatever fetch tools you have to look up actual details before writing. If you genuinely can't get a fact, ask the user — don't paper over it with a guess.
+3. **For `File` and `Embed` fields, do not guess URLs.** These point at real assets (PDFs, videos, embeds). A hallucinated URL produces a broken link or, worse, a link to someone else's content. Leave the URL field blank and tell the user the asset still needs to be supplied — the CMS will treat the empty value correctly, and `toMarkdown` will skip the line.
+4. **Same for `Image`.** Don't fabricate filenames. If you don't have a real uploaded asset to reference, leave it empty and flag it.
+
+Short version: if you're tempted to "make something up that sounds about right", stop and either go find the real thing or hand the gap back to the user.
+
 ## Workflow
 
 1. Run `pnpm camox --help` to find the right command group.
 2. Drill in with `pnpm camox <group> --help` and `pnpm camox <group> <command> --help` to learn the exact flags.
-3. Run the command against dev first (no `--production`).
-4. Add `--production` only when the user has asked to touch live content.
+3. Before writing content, read existing pages/blocks and gather any external facts you need (see above).
+4. Run the command against dev first (no `--production`).
+5. Add `--production` only when the user has asked to touch live content.

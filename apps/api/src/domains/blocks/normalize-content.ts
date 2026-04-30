@@ -9,7 +9,7 @@ export type BlockItemSeed = {
   position: string;
 };
 
-type SchemaProps = Record<string, FieldSchema>;
+export type SchemaProps = Record<string, FieldSchema>;
 type FieldSchema = {
   fieldType?: string;
   items?: { properties?: SchemaProps };
@@ -17,6 +17,22 @@ type FieldSchema = {
 
 function badRequest(message: string, field: string): never {
   throw new ORPCError("BAD_REQUEST", { message, data: { field } });
+}
+
+/**
+ * Canonicalize an Image/File field value: keep `{ _fileId: number }` markers
+ * (dropping any sibling props like `url`/`alt` the AI may have invented),
+ * coerce string ids to number, and reduce anything else to `null`. The
+ * frontend renders its own placeholder for null, so we never persist
+ * AI-fabricated URLs.
+ */
+export function sanitizeAssetValue(value: unknown): { _fileId: number } | null {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) return null;
+  const raw = (value as Record<string, unknown>)._fileId;
+  if (raw == null) return null;
+  const id = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(id)) return null;
+  return { _fileId: id };
 }
 
 /**
@@ -83,6 +99,36 @@ function walk(
         seed.content = walk(element, itemSchemaProps, tempId, ctx);
         prevPos = position;
       }
+      continue;
+    }
+    if (fieldSchema?.fieldType === "Image" || fieldSchema?.fieldType === "File") {
+      out[key] = sanitizeAssetValue(value);
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
+/**
+ * Slim variant of `walk` for repeatable-item content writes. Item content
+ * lives in its own DB row, so nested `RepeatableItem` arrays we encounter
+ * here belong to grandchild rows that already exist independently — drop
+ * them silently rather than re-seeding. Image/File leaks are sanitized.
+ */
+export function sanitizeItemContent(
+  rawContent: unknown,
+  itemSchemaProps: SchemaProps | undefined,
+): Record<string, unknown> {
+  if (rawContent == null || typeof rawContent !== "object" || Array.isArray(rawContent)) {
+    return {};
+  }
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(rawContent as Record<string, unknown>)) {
+    const fieldSchema = itemSchemaProps?.[key];
+    if (fieldSchema?.fieldType === "RepeatableItem") continue;
+    if (fieldSchema?.fieldType === "Image" || fieldSchema?.fieldType === "File") {
+      out[key] = sanitizeAssetValue(value);
       continue;
     }
     out[key] = value;

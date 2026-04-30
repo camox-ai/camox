@@ -11,8 +11,9 @@ import { assertBlockAccess, assertRepeatableItemAccess } from "../../authorizati
 import type { Database } from "../../db";
 import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
-import { blocks, files, repeatableItems } from "../../schema";
+import { blockDefinitions, blocks, files, repeatableItems } from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
+import { sanitizeItemContent, type SchemaProps } from "../blocks/normalize-content";
 import { collectFileIds } from "../pages/ai";
 
 // --- Input Schemas ---
@@ -58,6 +59,68 @@ export const deleteRepeatableItemInput = z.object({ id: z.number() });
 function assertUser(ctx: ServiceContext) {
   if (!ctx.user) throw new ORPCError("UNAUTHORIZED");
   return ctx.user;
+}
+
+// --- Schema resolution for item content normalization ---
+
+async function loadBlockDefSchema(
+  db: Database,
+  projectId: number,
+  blockId: number,
+): Promise<{ properties?: SchemaProps } | null> {
+  const block = await db.select().from(blocks).where(eq(blocks.id, blockId)).get();
+  if (!block) return null;
+  const def = await db
+    .select()
+    .from(blockDefinitions)
+    .where(and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, block.type)))
+    .get();
+  return (def?.contentSchema as { properties?: SchemaProps } | null) ?? null;
+}
+
+/** Walk `rootProps` descending into `[fieldName].items.properties` for each path entry. */
+function descendItemsProperties(
+  rootProps: SchemaProps | undefined,
+  fieldNamePath: string[],
+): SchemaProps | undefined {
+  let props = rootProps;
+  for (const fieldName of fieldNamePath) {
+    if (!props) return undefined;
+    props = props[fieldName]?.items?.properties;
+  }
+  return props;
+}
+
+/**
+ * Build the contentSchema field-name path that leads to this item's
+ * `items.properties` — i.e. the schema describing the item's own content.
+ * Walks the parentItemId chain in the DB to compose the ancestor list.
+ */
+async function resolveItemFieldNamePath(
+  db: Database,
+  blockId: number,
+  parentItemId: number | null,
+  fieldName: string,
+): Promise<string[]> {
+  if (parentItemId == null) return [fieldName];
+  const all = await db
+    .select({
+      id: repeatableItems.id,
+      parentItemId: repeatableItems.parentItemId,
+      fieldName: repeatableItems.fieldName,
+    })
+    .from(repeatableItems)
+    .where(eq(repeatableItems.blockId, blockId));
+  const byId = new Map(all.map((i) => [i.id, i]));
+  const ancestors: string[] = [];
+  let cur: number | null = parentItemId;
+  while (cur != null) {
+    const item = byId.get(cur);
+    if (!item) break;
+    ancestors.unshift(item.fieldName);
+    cur = item.parentItemId;
+  }
+  return [...ancestors, fieldName];
 }
 
 function comparePositions(a: string, b: string): number {
@@ -219,6 +282,13 @@ export async function createRepeatableItem(
 
   const now = Date.now();
 
+  // Resolve schema for sanitization. The root item's content is described by
+  // `descendItemsProperties(schema.properties, [...ancestors, fieldName])`.
+  const schema = await loadBlockDefSchema(ctx.db, access.projectId, blockId);
+  const rootPath = await resolveItemFieldNamePath(ctx.db, blockId, parentItemId ?? null, fieldName);
+  const rootItemProps = descendItemsProperties(schema?.properties, rootPath);
+  const sanitizedContent = sanitizeItemContent(content, rootItemProps);
+
   // Get siblings to determine correct position
   const siblings = (
     await ctx.db
@@ -249,7 +319,7 @@ export async function createRepeatableItem(
       blockId,
       parentItemId: parentItemId ?? null,
       fieldName,
-      content,
+      content: sanitizedContent,
       settings: (settings as Record<string, unknown> | undefined) ?? null,
       summary: "",
       position,
@@ -262,19 +332,37 @@ export async function createRepeatableItem(
   // Insert client-provided nested item seeds
   if (nestedItems && nestedItems.length > 0) {
     const tempIdToRealId = new Map<string, number>();
+    const seedById = new Map(nestedItems.map((s) => [s.tempId, s]));
+
+    // Build the path of fieldNames from the root contentSchema down to a seed's
+    // own items.properties. Walks the seed's parentTempId chain in-memory and
+    // prepends the just-created root item's path.
+    const seedPath = (seed: (typeof nestedItems)[number]): string[] => {
+      const chain: string[] = [];
+      let cur: string | null = seed.tempId;
+      while (cur != null) {
+        const s = seedById.get(cur);
+        if (!s) break;
+        chain.unshift(s.fieldName);
+        cur = s.parentTempId;
+      }
+      return [...rootPath, ...chain];
+    };
 
     for (const seed of nestedItems) {
       // null parentTempId means child of the item being created
       const seedParentId = seed.parentTempId
         ? (tempIdToRealId.get(seed.parentTempId) ?? result.id)
         : result.id;
+      const seedItemProps = descendItemsProperties(schema?.properties, seedPath(seed));
+      const sanitizedSeedContent = sanitizeItemContent(seed.content, seedItemProps);
       const inserted = await ctx.db
         .insert(repeatableItems)
         .values({
           blockId,
           parentItemId: seedParentId,
           fieldName: seed.fieldName,
-          content: seed.content,
+          content: sanitizedSeedContent,
           settings: (seed.settings as Record<string, unknown> | undefined) ?? null,
           summary: "",
           position: seed.position,
@@ -315,10 +403,21 @@ export async function updateRepeatableItemContent(
   const access = await assertRepeatableItemAccess(ctx.db, id, user.id);
   if (!access) throw new ORPCError("NOT_FOUND");
 
+  // Resolve schema for the patch and sanitize asset leaks before merging.
+  const schema = await loadBlockDefSchema(ctx.db, access.projectId, access.item.blockId);
+  const itemPath = await resolveItemFieldNamePath(
+    ctx.db,
+    access.item.blockId,
+    access.item.parentItemId,
+    access.item.fieldName,
+  );
+  const itemProps = descendItemsProperties(schema?.properties, itemPath);
+  const sanitizedPatch = sanitizeItemContent(content, itemProps);
+
   // Merge partial content into existing content (frontend sends single-field patches)
   const merged = {
     ...(access.item.content as Record<string, unknown>),
-    ...(content as Record<string, unknown>),
+    ...sanitizedPatch,
   };
   const result = await ctx.db
     .update(repeatableItems)
