@@ -1,5 +1,5 @@
 import { object, or } from "@optique/core/constructs";
-import { optional } from "@optique/core/modifiers";
+import { multiple, optional } from "@optique/core/modifiers";
 import { command, constant, option } from "@optique/core/primitives";
 import { integer, string } from "@optique/core/valueparser";
 
@@ -14,6 +14,17 @@ const types = command(
   "types",
   object({
     command: constant("blocks.types" as const),
+    project: projectFlag,
+    production: productionFlag,
+    json: jsonFlag,
+  }),
+);
+
+const describe = command(
+  "describe",
+  object({
+    command: constant("blocks.describe" as const),
+    type: multiple(option("--type", string({ metavar: "TYPE" })), { min: 1 }),
     project: projectFlag,
     production: productionFlag,
     json: jsonFlag,
@@ -71,12 +82,13 @@ const del = command(
   }),
 );
 
-export const parser = command("blocks", or(types, create, edit, move, del));
+export const parser = command("blocks", or(types, describe, create, edit, move, del));
 
 type CommonFlags = { project?: string; production: boolean; json: boolean };
 
 type Args =
   | ({ command: "blocks.types" } & CommonFlags)
+  | ({ command: "blocks.describe"; type: readonly string[] } & CommonFlags)
   | ({
       command: "blocks.create";
       pageId: number;
@@ -109,6 +121,14 @@ export async function handler(args: Args): Promise<never> {
         return dispatch({
           toolName: "listBlockTypes",
           args: {},
+          projectFlag,
+          production,
+          outputMode,
+        });
+      case "blocks.describe":
+        return dispatch({
+          toolName: "describeBlockTypes",
+          args: { types: [...args.type] },
           projectFlag,
           production,
           outputMode,

@@ -67,6 +67,7 @@ switch (result.command) {
     await pages.handler(result);
     break;
   case "blocks.types":
+  case "blocks.describe":
   case "blocks.create":
   case "blocks.edit":
   case "blocks.move":
