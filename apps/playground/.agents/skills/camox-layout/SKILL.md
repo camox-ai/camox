@@ -11,6 +11,10 @@ description: "How to create and edit Camox layout definition files. Use this ski
 
 A layout wraps pages in shared structure — a navbar at the top, a footer at the bottom, consistent styling. Each page in the CMS is assigned a layout. This skill covers creating layout **definitions** — the template that describes which blocks surround page content and how to render them.
 
+## After defining the layout: load `camox-cli`
+
+A definition only adds a new layout to the catalog — it doesn't apply it to any page, and existing pages keep whatever layout they were already assigned. If the user wanted "the about page to use the new marketing layout" or "all docs pages to use this layout", the second half of that work is reassigning pages, which happens through the CLI. Once the layout is defined and the dev server has picked it up, **load the `camox-cli` skill** to update the relevant pages' layout assignments. Don't stop after the definition unless the user explicitly only wanted to set up the layout for future pages.
+
 ## Quick Start
 
 A layout file lives in the app's `src/camox/layouts/` folder, is a `.tsx` file, and exports `layout`:

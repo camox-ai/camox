@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -22,21 +23,69 @@ Any manual edits will be automatically reverted by the dev server. -->
 
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
+type PackageManager = "pnpm" | "yarn" | "bun" | "npm";
+
+const camoxCmdByPm: Record<PackageManager, string> = {
+  pnpm: "pnpm camox",
+  yarn: "yarn camox",
+  bun: "bunx camox",
+  npm: "npx camox",
+};
+
+function detectPackageManagerInDir(dir: string): PackageManager | undefined {
+  const packageJsonPath = resolve(dir, "package.json");
+  if (existsSync(packageJsonPath)) {
+    try {
+      const pkg = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+      const declared = typeof pkg.packageManager === "string" ? pkg.packageManager : "";
+      const name = declared.split("@", 1)[0];
+      if (name === "pnpm" || name === "yarn" || name === "bun" || name === "npm") return name;
+    } catch {
+      // fall through to lockfile detection
+    }
+  }
+
+  if (existsSync(resolve(dir, "pnpm-lock.yaml"))) return "pnpm";
+  if (existsSync(resolve(dir, "bun.lock")) || existsSync(resolve(dir, "bun.lockb"))) return "bun";
+  if (existsSync(resolve(dir, "yarn.lock"))) return "yarn";
+  if (existsSync(resolve(dir, "package-lock.json"))) return "npm";
+
+  return undefined;
+}
+
+function detectPackageManager(appRoot: string): PackageManager {
+  // Walk up from the app root toward the filesystem root. In monorepos the
+  // lockfile / `packageManager` field typically lives at the workspace root,
+  // not next to each app's package.json.
+  let dir = resolve(appRoot);
+  while (true) {
+    const found = detectPackageManagerInDir(dir);
+    if (found) return found;
+    const parent = dirname(dir);
+    if (parent === dir) return "npm";
+    dir = parent;
+  }
+}
+
 function getSkillNames(): string[] {
   const skillsDir = resolve(sdkRoot, "skills");
   return readdirSync(skillsDir).filter((name) => lstatSync(resolve(skillsDir, name)).isDirectory());
 }
 
-function generateSkillContent(skillName: string): string {
+function generateSkillContent(skillName: string, appRoot: string): string {
   const skillPath = resolve(sdkRoot, `skills/${skillName}/SKILL.md`);
-  const content = readFileSync(skillPath, "utf-8");
-  return HEADER + content;
+  const raw = readFileSync(skillPath, "utf-8");
+  const pm = detectPackageManager(appRoot);
+  const substituted = raw
+    .replaceAll("{{PM_NAME}}", pm)
+    .replaceAll("{{CAMOX_CMD}}", camoxCmdByPm[pm]);
+  return HEADER + substituted;
 }
 
 function getSkillFileEntries(appRoot: string) {
   return getSkillNames().map((name) => ({
     path: resolve(appRoot, `.agents/skills/${name}/SKILL.md`),
-    content: generateSkillContent(name),
+    content: generateSkillContent(name, appRoot),
   }));
 }
 

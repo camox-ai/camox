@@ -7,6 +7,10 @@ description: "How to create Camox block definition files. Use this skill wheneve
 
 A block is a reusable page section (hero, testimonial, gallery, footer...). Users compose pages by assembling blocks. This skill covers creating block **definitions** — the template that describes a block's schema and rendering. Not the content (an instance of a block).
 
+## After defining the block: load `camox-cli`
+
+A definition only adds a new _type_ of block to the catalog — it doesn't put one on any page. Users almost never just want "a definition"; they want a section that actually shows up on the site. Once the block is defined and the dev server has picked it up, **load the `camox-cli` skill** to create an instance on the relevant page (or to wire it into a layout's `before`/`after` slot via `camox-layout` if it's chrome). If the user asks for "a hero on the homepage", the work is: define the block here, then create a hero block on the home page via the CLI. Don't stop after the definition — that leaves a dangling block type the user has to place by hand.
+
 ## Quick Start
 
 A block file lives in the app's `src/camox/blocks/` folder, is a `.tsx` file, and exports `block`:
