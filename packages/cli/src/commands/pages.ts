@@ -71,30 +71,6 @@ const setLayout = command(
   }),
 );
 
-const setMetaTitle = command(
-  "set-meta-title",
-  object({
-    command: constant("pages.set-meta-title" as const),
-    id: option("--id", integer({ metavar: "ID" })),
-    metaTitle: option("--meta-title", string({ metavar: "TITLE" })),
-    project: projectFlag,
-    production: productionFlag,
-    json: jsonFlag,
-  }),
-);
-
-const setMetaDescription = command(
-  "set-meta-description",
-  object({
-    command: constant("pages.set-meta-description" as const),
-    id: option("--id", integer({ metavar: "ID" })),
-    metaDescription: option("--meta-description", string({ metavar: "TEXT" })),
-    project: projectFlag,
-    production: productionFlag,
-    json: jsonFlag,
-  }),
-);
-
 const del = command(
   "delete",
   object({
@@ -106,10 +82,7 @@ const del = command(
   }),
 );
 
-export const parser = command(
-  "pages",
-  or(list, get, create, update, setLayout, setMetaTitle, setMetaDescription, del),
-);
+export const parser = command("pages", or(list, get, create, update, setLayout, del));
 
 type CommonFlags = { project?: string; production: boolean; json: boolean };
 
@@ -130,8 +103,6 @@ type Args =
       parentPageId?: number;
     } & CommonFlags)
   | ({ command: "pages.set-layout"; id: number; layoutId: number } & CommonFlags)
-  | ({ command: "pages.set-meta-title"; id: number; metaTitle: string } & CommonFlags)
-  | ({ command: "pages.set-meta-description"; id: number; metaDescription: string } & CommonFlags)
   | ({ command: "pages.delete"; id: number } & CommonFlags);
 
 export async function handler(args: Args): Promise<never> {
@@ -188,22 +159,6 @@ export async function handler(args: Args): Promise<never> {
       return dispatch({
         toolName: "setPageLayout",
         args: { id: args.id, layoutId: args.layoutId },
-        projectFlag,
-        production,
-        outputMode,
-      });
-    case "pages.set-meta-title":
-      return dispatch({
-        toolName: "setPageMetaTitle",
-        args: { id: args.id, metaTitle: args.metaTitle },
-        projectFlag,
-        production,
-        outputMode,
-      });
-    case "pages.set-meta-description":
-      return dispatch({
-        toolName: "setPageMetaDescription",
-        args: { id: args.id, metaDescription: args.metaDescription },
         projectFlag,
         production,
         outputMode,

@@ -61,8 +61,6 @@ switch (result.command) {
   case "pages.create":
   case "pages.update":
   case "pages.set-layout":
-  case "pages.set-meta-title":
-  case "pages.set-meta-description":
   case "pages.delete":
     await pages.handler(result);
     break;

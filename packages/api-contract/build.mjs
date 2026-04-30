@@ -8,7 +8,7 @@ execSync("pnpm exec tsc -p tsconfig.build.json", { stdio: "inherit" });
 
 // Bundle Router .d.ts (inlines all transitive types from the api app)
 execSync(
-  "pnpm exec dts-bundle-generator --no-check --project tsconfig.json src/index.ts -o dist/index.d.ts",
+  "pnpm exec dts-bundle-generator --no-check --project tsconfig.dts.json src/index.ts -o dist/index.d.ts",
   { stdio: "inherit" },
 );
 
