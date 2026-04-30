@@ -33,7 +33,7 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
   {
     name: "getPage",
     description:
-      "Fetch a single page by id or by full path (e.g. `/about`). Returns the page row and the rendered Markdown of its blocks (and any layout-scoped blocks above/below).",
+      "Fetch a single page by id or by full path (e.g. `/about`). Returns the page row and an ordered array of its blocks, each with `id`, `position`, and rendered `markdown`. Layout-scoped blocks are not included — use the layouts tools to inspect those.",
     inputSchema: getPageToolInput,
     handler: async (input) => {
       const parsed = getPageToolInput.parse(input);
@@ -41,8 +41,8 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
         "id" in parsed
           ? await getPage(ctx, { id: parsed.id })
           : await getPage(ctx, { projectId: ctx.projectId, path: parsed.path });
-      const { markdown } = await getPageMarkdown(ctx, { pageId: page.id });
-      return { page, markdown };
+      const { blocks } = await getPageMarkdown(ctx, { pageId: page.id });
+      return { page, blocks };
     },
   },
   {

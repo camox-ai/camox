@@ -455,9 +455,11 @@ export async function getPageMarkdown(
   }
 
   // Convert page blocks to markdown
-  const pageParts = sorted.map((block) => {
+  const blockMarkdowns = sorted.map((block) => {
     const schema = schemaByType.get(block.type);
-    if (!schema?.toMarkdown) return JSON.stringify(block.content);
+    if (!schema?.toMarkdown) {
+      return { id: block.id, position: block.position, markdown: JSON.stringify(block.content) };
+    }
     const content = { ...(block.content as Record<string, unknown>) };
     const items = itemsByBlock.get(block.id) ?? [];
     for (const fieldName of new Set(items.map((i) => i.fieldName))) {
@@ -466,11 +468,13 @@ export async function getPageMarkdown(
     const md = contentToMarkdown(schema.toMarkdown, schema.properties, content, {
       settings: block.settings as Record<string, unknown> | null | undefined,
     });
-    return `<!-- ${schema.title} -->\n${md}`;
+    return { id: block.id, position: block.position, markdown: `<!-- ${schema.title} -->\n${md}` };
   });
 
-  const parts = [beforeMarkdown, ...pageParts, afterMarkdown].filter(Boolean);
-  return { markdown: parts.join("\n\n") };
+  const parts = [beforeMarkdown, ...blockMarkdowns.map((b) => b.markdown), afterMarkdown].filter(
+    Boolean,
+  );
+  return { markdown: parts.join("\n\n"), blocks: blockMarkdowns };
 }
 
 export async function getBlocksUsageCounts(
