@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.15.1](https://github.com/camox-ai/camox/compare/camox-v0.15.0...camox-v0.15.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* remove metadata cli commands ([f63eaca](https://github.com/camox-ai/camox/commit/f63eacaf71464730e9d97e258eba6d4670a2cdfd))
+
+
+### Miscellaneous
+
+* promote the cli in-app ([7deb631](https://github.com/camox-ai/camox/commit/7deb631f7903fff7f30e42d03c6886df9292b683))
+
 ## [0.15.0](https://github.com/camox-ai/camox/compare/camox-v0.14.2...camox-v0.15.0) (2026-04-30)
 
 
