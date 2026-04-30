@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.2](https://github.com/camox-ai/camox/compare/camox-v0.15.1...camox-sdk-v0.15.2) (2026-04-30)
+
+
+### Bug Fixes
+
+* fewer tool calls needed to edit content ([60b9c2f](https://github.com/camox-ai/camox/commit/60b9c2fbaa5fe3987c78c63b2d926c4ed4f6bef3))
+
 ## [0.15.1](https://github.com/camox-ai/camox/compare/camox-v0.15.0...camox-sdk-v0.15.1) (2026-04-30)
 
 
