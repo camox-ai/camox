@@ -1,4 +1,4 @@
-import { type CallToolResponse, callTool, getProjectBySlug } from "./api";
+import { type CallToolParams, type CallToolResponse, callTool, getProjectBySlug } from "./api";
 import { readAuthTokenForUrl } from "./auth";
 import { type CliError, type OutputMode, asCliError, printError, printResult } from "./output";
 import { RuntimeMalformedError, RuntimeNotFoundError, loadRuntime } from "./runtime";
@@ -21,6 +21,13 @@ export type DispatchOptions = {
   args: Record<string, unknown>;
   /** Slug from `--project` flag if user passed one. Overrides the sidecar. */
   projectFlag?: string;
+  /**
+   * When `true` (from `--production`), force `environmentName` to "production"
+   * regardless of what the sidecar says. The sidecar's env (typically
+   * `dev:<email>` during `pnpm dev`) is the default — this is the explicit
+   * opt-in to write to the prod environment from a dev workspace.
+   */
+  production?: boolean;
   outputMode: OutputMode;
 };
 
@@ -45,15 +52,9 @@ async function resolveProjectId(token: string, slug: string, apiUrl: string): Pr
   }
 }
 
-async function callRemote(
-  token: string,
-  apiUrl: string,
-  projectId: number,
-  name: string,
-  args: Record<string, unknown>,
-): Promise<CallToolResponse> {
+async function callRemote(params: CallToolParams): Promise<CallToolResponse> {
   try {
-    return await callTool(token, apiUrl, projectId, name, args);
+    return await callTool(params);
   } catch (err) {
     return fail(asCliError(err), 1);
   }
@@ -92,14 +93,17 @@ export async function dispatch(opts: DispatchOptions): Promise<never> {
     );
   }
 
+  const environmentName = opts.production ? "production" : runtime.environmentName;
+
   const projectId = await resolveProjectId(token.token, slug, runtime.apiUrl);
-  const response = await callRemote(
-    token.token,
-    runtime.apiUrl,
+  const response = await callRemote({
+    token: token.token,
+    apiUrl: runtime.apiUrl,
+    environmentName,
     projectId,
-    opts.toolName,
-    compact(opts.args),
-  );
+    name: opts.toolName,
+    args: compact(opts.args),
+  });
 
   if (!response.ok) {
     printError(response.error);

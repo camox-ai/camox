@@ -9,6 +9,7 @@ import * as layouts from "./commands/layouts";
 import * as login from "./commands/login";
 import * as logout from "./commands/logout";
 import * as pages from "./commands/pages";
+import * as status from "./commands/status";
 
 // With 6 top-level parsers and many subcommands, optique's variadic `or`
 // overload + recursive command inference exceeds what TypeScript can resolve,
@@ -19,12 +20,21 @@ type Result =
   | { command: "init" }
   | { command: "login" }
   | { command: "logout" }
+  | Parameters<typeof status.handler>[0]
   | Parameters<typeof pages.handler>[0]
   | Parameters<typeof blocks.handler>[0]
   | Parameters<typeof layouts.handler>[0];
 
 const program = defineProgram({
-  parser: or(init.parser, login.parser, logout.parser, pages.parser, blocks.parser, layouts.parser),
+  parser: or(
+    init.parser,
+    login.parser,
+    logout.parser,
+    status.parser,
+    pages.parser,
+    blocks.parser,
+    layouts.parser,
+  ),
   metadata: {
     name: "camox",
     brief: message`Camox CLI`,
@@ -42,6 +52,9 @@ switch (result.command) {
     break;
   case "logout":
     await logout.handler();
+    break;
+  case "status":
+    await status.handler(result);
     break;
   case "pages.list":
   case "pages.get":

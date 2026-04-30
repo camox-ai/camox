@@ -12,11 +12,10 @@ function authHeaders(token: string) {
   };
 }
 
-function createRpcClient(token: string, apiUrl: string = CAMOX_API_URL) {
-  const link = new RPCLink({
-    url: `${apiUrl}/rpc`,
-    headers: { Authorization: `Bearer ${token}` },
-  });
+function createRpcClient(token: string, apiUrl: string = CAMOX_API_URL, environmentName?: string) {
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (environmentName) headers["x-environment-name"] = environmentName;
+  const link = new RPCLink({ url: `${apiUrl}/rpc`, headers });
   return createORPCClient<RouterClient<Router>>(link);
 }
 
@@ -111,17 +110,20 @@ export type CallToolResponse =
   | { ok: true; result: unknown }
   | { ok: false; error: { code: string; message: string; details?: unknown } };
 
-export async function callTool(
-  token: string,
-  apiUrl: string,
-  projectId: number,
-  name: string,
-  args: unknown,
-): Promise<CallToolResponse> {
-  const client = createRpcClient(token, apiUrl);
+export type CallToolParams = {
+  token: string;
+  apiUrl: string;
+  environmentName: string;
+  projectId: number;
+  name: string;
+  args: unknown;
+};
+
+export async function callTool(params: CallToolParams): Promise<CallToolResponse> {
+  const client = createRpcClient(params.token, params.apiUrl, params.environmentName);
   return (await client.agent.callTool({
-    projectId,
-    name,
-    arguments: args,
+    projectId: params.projectId,
+    name: params.name,
+    arguments: params.args,
   })) as CallToolResponse;
 }

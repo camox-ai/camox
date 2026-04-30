@@ -8,25 +8,39 @@ import type { OutputMode } from "../lib/output";
 
 const projectFlag = optional(option("--project", string({ metavar: "SLUG" })));
 const jsonFlag = option("--json");
+const productionFlag = option("--production");
 
 const list = command(
   "list",
   object({
     command: constant("layouts.list" as const),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
 
 export const parser = command("layouts", or(list));
 
-type Args = { command: "layouts.list"; project?: string; json: boolean };
+type Args = {
+  command: "layouts.list";
+  project?: string;
+  production: boolean;
+  json: boolean;
+};
 
 export async function handler(args: Args): Promise<never> {
   const outputMode: OutputMode = args.json ? "json" : "auto";
   const projectFlag = args.project;
+  const production = args.production;
   switch (args.command) {
     case "layouts.list":
-      return dispatch({ toolName: "listLayouts", args: {}, projectFlag, outputMode });
+      return dispatch({
+        toolName: "listLayouts",
+        args: {},
+        projectFlag,
+        production,
+        outputMode,
+      });
   }
 }

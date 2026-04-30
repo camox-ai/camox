@@ -8,12 +8,14 @@ import type { OutputMode } from "../lib/output";
 
 const projectFlag = optional(option("--project", string({ metavar: "SLUG" })));
 const jsonFlag = option("--json");
+const productionFlag = option("--production");
 
 const list = command(
   "list",
   object({
     command: constant("pages.list" as const),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -24,6 +26,7 @@ const get = command(
     command: constant("pages.get" as const),
     id: option("--id", integer({ metavar: "ID" })),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -37,6 +40,7 @@ const create = command(
     parentPageId: optional(option("--parent-page-id", integer({ metavar: "ID" }))),
     contentDescription: optional(option("--content-description", string({ metavar: "TEXT" }))),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -49,6 +53,7 @@ const update = command(
     pathSegment: optional(option("--path-segment", string({ metavar: "SEGMENT" }))),
     parentPageId: optional(option("--parent-page-id", integer({ metavar: "ID" }))),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -60,6 +65,7 @@ const setLayout = command(
     id: option("--id", integer({ metavar: "ID" })),
     layoutId: option("--layout-id", integer({ metavar: "ID" })),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -71,6 +77,7 @@ const setMetaTitle = command(
     id: option("--id", integer({ metavar: "ID" })),
     metaTitle: option("--meta-title", string({ metavar: "TITLE" })),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -82,6 +89,7 @@ const setMetaDescription = command(
     id: option("--id", integer({ metavar: "ID" })),
     metaDescription: option("--meta-description", string({ metavar: "TEXT" })),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -92,6 +100,7 @@ const del = command(
     command: constant("pages.delete" as const),
     id: option("--id", integer({ metavar: "ID" })),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -101,58 +110,45 @@ export const parser = command(
   or(list, get, create, update, setLayout, setMetaTitle, setMetaDescription, del),
 );
 
+type CommonFlags = { project?: string; production: boolean; json: boolean };
+
 type Args =
-  | { command: "pages.list"; project?: string; json: boolean }
-  | { command: "pages.get"; id: number; project?: string; json: boolean }
-  | {
+  | ({ command: "pages.list" } & CommonFlags)
+  | ({ command: "pages.get"; id: number } & CommonFlags)
+  | ({
       command: "pages.create";
       pathSegment: string;
       layoutId: number;
       parentPageId?: number;
       contentDescription?: string;
-      project?: string;
-      json: boolean;
-    }
-  | {
+    } & CommonFlags)
+  | ({
       command: "pages.update";
       id: number;
       pathSegment?: string;
       parentPageId?: number;
-      project?: string;
-      json: boolean;
-    }
-  | {
-      command: "pages.set-layout";
-      id: number;
-      layoutId: number;
-      project?: string;
-      json: boolean;
-    }
-  | {
-      command: "pages.set-meta-title";
-      id: number;
-      metaTitle: string;
-      project?: string;
-      json: boolean;
-    }
-  | {
-      command: "pages.set-meta-description";
-      id: number;
-      metaDescription: string;
-      project?: string;
-      json: boolean;
-    }
-  | { command: "pages.delete"; id: number; project?: string; json: boolean };
+    } & CommonFlags)
+  | ({ command: "pages.set-layout"; id: number; layoutId: number } & CommonFlags)
+  | ({ command: "pages.set-meta-title"; id: number; metaTitle: string } & CommonFlags)
+  | ({ command: "pages.set-meta-description"; id: number; metaDescription: string } & CommonFlags)
+  | ({ command: "pages.delete"; id: number } & CommonFlags);
 
 export async function handler(args: Args): Promise<never> {
   const outputMode: OutputMode = args.json ? "json" : "auto";
   const projectFlag = args.project;
+  const production = args.production;
 
   switch (args.command) {
     case "pages.list":
-      return dispatch({ toolName: "listPages", args: {}, projectFlag, outputMode });
+      return dispatch({ toolName: "listPages", args: {}, projectFlag, production, outputMode });
     case "pages.get":
-      return dispatch({ toolName: "getPage", args: { id: args.id }, projectFlag, outputMode });
+      return dispatch({
+        toolName: "getPage",
+        args: { id: args.id },
+        projectFlag,
+        production,
+        outputMode,
+      });
     case "pages.create":
       return dispatch({
         toolName: "createPage",
@@ -163,6 +159,7 @@ export async function handler(args: Args): Promise<never> {
           contentDescription: args.contentDescription,
         },
         projectFlag,
+        production,
         outputMode,
       });
     case "pages.update":
@@ -174,6 +171,7 @@ export async function handler(args: Args): Promise<never> {
           parentPageId: args.parentPageId,
         },
         projectFlag,
+        production,
         outputMode,
       });
     case "pages.set-layout":
@@ -181,6 +179,7 @@ export async function handler(args: Args): Promise<never> {
         toolName: "setPageLayout",
         args: { id: args.id, layoutId: args.layoutId },
         projectFlag,
+        production,
         outputMode,
       });
     case "pages.set-meta-title":
@@ -188,6 +187,7 @@ export async function handler(args: Args): Promise<never> {
         toolName: "setPageMetaTitle",
         args: { id: args.id, metaTitle: args.metaTitle },
         projectFlag,
+        production,
         outputMode,
       });
     case "pages.set-meta-description":
@@ -195,9 +195,16 @@ export async function handler(args: Args): Promise<never> {
         toolName: "setPageMetaDescription",
         args: { id: args.id, metaDescription: args.metaDescription },
         projectFlag,
+        production,
         outputMode,
       });
     case "pages.delete":
-      return dispatch({ toolName: "deletePage", args: { id: args.id }, projectFlag, outputMode });
+      return dispatch({
+        toolName: "deletePage",
+        args: { id: args.id },
+        projectFlag,
+        production,
+        outputMode,
+      });
   }
 }

@@ -8,12 +8,14 @@ import { type OutputMode, asCliError, parseJsonFlag, printError } from "../lib/o
 
 const projectFlag = optional(option("--project", string({ metavar: "SLUG" })));
 const jsonFlag = option("--json");
+const productionFlag = option("--production");
 
 const types = command(
   "types",
   object({
     command: constant("blocks.types" as const),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -28,6 +30,7 @@ const create = command(
     settings: optional(option("--settings", string({ metavar: "JSON" }))),
     afterPosition: optional(option("--after-position", string({ metavar: "POS" }))),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -40,6 +43,7 @@ const edit = command(
     content: optional(option("--content", string({ metavar: "JSON" }))),
     settings: optional(option("--settings", string({ metavar: "JSON" }))),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -51,6 +55,7 @@ const move = command(
     id: option("--id", integer({ metavar: "ID" })),
     afterPosition: optional(option("--after-position", string({ metavar: "POS" }))),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
@@ -61,49 +66,53 @@ const del = command(
     command: constant("blocks.delete" as const),
     id: option("--id", integer({ metavar: "ID" })),
     project: projectFlag,
+    production: productionFlag,
     json: jsonFlag,
   }),
 );
 
 export const parser = command("blocks", or(types, create, edit, move, del));
 
+type CommonFlags = { project?: string; production: boolean; json: boolean };
+
 type Args =
-  | { command: "blocks.types"; project?: string; json: boolean }
-  | {
+  | ({ command: "blocks.types" } & CommonFlags)
+  | ({
       command: "blocks.create";
       pageId: number;
       type: string;
       content: string;
       settings?: string;
       afterPosition?: string;
-      project?: string;
-      json: boolean;
-    }
-  | {
+    } & CommonFlags)
+  | ({
       command: "blocks.edit";
       id: number;
       content?: string;
       settings?: string;
-      project?: string;
-      json: boolean;
-    }
-  | {
+    } & CommonFlags)
+  | ({
       command: "blocks.move";
       id: number;
       afterPosition?: string;
-      project?: string;
-      json: boolean;
-    }
-  | { command: "blocks.delete"; id: number; project?: string; json: boolean };
+    } & CommonFlags)
+  | ({ command: "blocks.delete"; id: number } & CommonFlags);
 
 export async function handler(args: Args): Promise<never> {
   const outputMode: OutputMode = args.json ? "json" : "auto";
   const projectFlag = args.project;
+  const production = args.production;
 
   try {
     switch (args.command) {
       case "blocks.types":
-        return dispatch({ toolName: "listBlockTypes", args: {}, projectFlag, outputMode });
+        return dispatch({
+          toolName: "listBlockTypes",
+          args: {},
+          projectFlag,
+          production,
+          outputMode,
+        });
       case "blocks.create": {
         const content = parseJsonFlag("--content", args.content);
         const settings =
@@ -118,6 +127,7 @@ export async function handler(args: Args): Promise<never> {
             afterPosition: args.afterPosition,
           },
           projectFlag,
+          production,
           outputMode,
         });
       }
@@ -130,6 +140,7 @@ export async function handler(args: Args): Promise<never> {
           toolName: "editBlock",
           args: { id: args.id, content, settings },
           projectFlag,
+          production,
           outputMode,
         });
       }
@@ -138,6 +149,7 @@ export async function handler(args: Args): Promise<never> {
           toolName: "moveBlock",
           args: { id: args.id, afterPosition: args.afterPosition },
           projectFlag,
+          production,
           outputMode,
         });
       case "blocks.delete":
@@ -145,6 +157,7 @@ export async function handler(args: Args): Promise<never> {
           toolName: "deleteBlock",
           args: { id: args.id },
           projectFlag,
+          production,
           outputMode,
         });
     }
