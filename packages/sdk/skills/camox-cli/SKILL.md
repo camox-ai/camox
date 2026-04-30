@@ -44,6 +44,69 @@ The CLI surface evolves. **Don't guess command names or flags from memory — as
 
 The CLI is organised into command groups around the resource types (pages, blocks, layouts, …). Use `--help` to discover what each group supports — the exact set of subcommands and flags is the CLI's responsibility, not this skill's.
 
+## Common recipes
+
+Most content tasks fit into a small number of shapes. Use these as the entry-point template, then verify exact flags with `--help`. Always look up the page (`pages get`) before you create or move blocks — you'll need its `id` and the `id` / `type` of any sibling block you're positioning relative to.
+
+### Add a new block at a specific spot on a page
+
+```sh
+# 1) Find the page and the sibling you'll position relative to.
+{{CAMOX_CMD}} pages get --path /
+# read the response to grab pageId and the id of the existing first block
+
+# 2) See what fields the block type accepts.
+{{CAMOX_CMD}} blocks describe --type hero
+
+# 3) Create the new block at the desired position.
+# At the very top of the page:
+{{CAMOX_CMD}} blocks create --page-id 25 --type hero --content '{...}' --position first
+# Or right before / after a known sibling:
+{{CAMOX_CMD}} blocks create --page-id 25 --type hero --content '{...}' --before-id 174
+{{CAMOX_CMD}} blocks create --page-id 25 --type hero --content '{...}' --after-id 174
+# Or appended to the end (default):
+{{CAMOX_CMD}} blocks create --page-id 25 --type hero --content '{...}'
+```
+
+See **Block positioning** below for the full set of options.
+
+### Update copy in an existing block
+
+```sh
+# 1) Locate the block on the page.
+{{CAMOX_CMD}} pages get --path /pricing
+# note the block id you want to edit
+
+# 2) Patch only the fields you want to change — content is merged.
+{{CAMOX_CMD}} blocks edit --id 314 --content '{"headline": "New headline"}'
+```
+
+### Create a new page using an existing layout
+
+```sh
+# 1) List layouts and pick one.
+{{CAMOX_CMD}} layouts list
+
+# 2) Create the page under that layout.
+{{CAMOX_CMD}} pages create --path-segment about --layout-id 39
+# Use --parent-page-id <ID> to nest the page under another route.
+```
+
+## Block positioning
+
+`blocks create` and `blocks move` accept the same set of positioning flags. **Pass at most one** — combining them is rejected. `move` requires one (use `--position last` to send a block to the end); `create` defaults to appending at the end if you pass none.
+
+| Flag                      | Meaning                                                              |
+| ------------------------- | -------------------------------------------------------------------- |
+| `--position first`        | Place at the very top of the page.                                   |
+| `--position last`         | Place at the very bottom of the page (also the create-time default). |
+| `--after-id <ID>`         | Place immediately after the sibling block with that id.              |
+| `--before-id <ID>`        | Place immediately before the sibling block with that id.             |
+| `--after-position <KEY>`  | Low-level: insert after a known fractional-index key.                |
+| `--before-position <KEY>` | Low-level: insert before a known fractional-index key.               |
+
+Prefer the high-level flags (`--position`, `--after-id`, `--before-id`) — they read naturally and don't require you to know the fractional-index format. The `--after-position` / `--before-position` flags exist for cases where you already have a key in hand (e.g. piping output between commands).
+
 ## The `--production` flag
 
 By default, every command runs against the **dev environment** — a per-user, isolated copy of the CMS that the dev server reads from. Changes you make here do not affect the live site, so dev is the safe place to experiment.
@@ -72,8 +135,8 @@ Short version: if you're tempted to "make something up that sounds about right",
 
 ## Workflow
 
-1. Run `{{CAMOX_CMD}} --help` to find the right command group.
-2. Drill in with `{{CAMOX_CMD}} <group> --help` and `{{CAMOX_CMD}} <group> <command> --help` to learn the exact flags.
+1. If the task matches one of the **Common recipes** above, start from that template — it's almost always the right shape.
+2. Otherwise, run `{{CAMOX_CMD}} --help` to find the right command group, then `{{CAMOX_CMD}} <group> --help` and `{{CAMOX_CMD}} <group> <command> --help` to confirm the exact flags.
 3. Before writing content, read existing pages/blocks and gather any external facts you need (see above).
 4. Run the command against dev first (no `--production`).
 5. Add `--production` only when the user has asked to touch live content.

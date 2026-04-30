@@ -1,7 +1,7 @@
 import { object, or } from "@optique/core/constructs";
 import { multiple, optional } from "@optique/core/modifiers";
 import { command, constant, option } from "@optique/core/primitives";
-import { integer, string } from "@optique/core/valueparser";
+import { choice, integer, string } from "@optique/core/valueparser";
 
 import { dispatch } from "../lib/dispatch";
 import { type OutputMode, asCliError, parseJsonFlag, printError } from "../lib/output";
@@ -39,7 +39,13 @@ const create = command(
     type: option("--type", string({ metavar: "TYPE" })),
     content: option("--content", string({ metavar: "JSON" })),
     settings: optional(option("--settings", string({ metavar: "JSON" }))),
+    position: optional(
+      option("--position", choice(["first", "last"] as const, { metavar: "WHERE" })),
+    ),
+    afterId: optional(option("--after-id", integer({ metavar: "ID" }))),
+    beforeId: optional(option("--before-id", integer({ metavar: "ID" }))),
     afterPosition: optional(option("--after-position", string({ metavar: "POS" }))),
+    beforePosition: optional(option("--before-position", string({ metavar: "POS" }))),
     project: projectFlag,
     production: productionFlag,
     json: jsonFlag,
@@ -64,7 +70,13 @@ const move = command(
   object({
     command: constant("blocks.move" as const),
     id: option("--id", integer({ metavar: "ID" })),
+    position: optional(
+      option("--position", choice(["first", "last"] as const, { metavar: "WHERE" })),
+    ),
+    afterId: optional(option("--after-id", integer({ metavar: "ID" }))),
+    beforeId: optional(option("--before-id", integer({ metavar: "ID" }))),
     afterPosition: optional(option("--after-position", string({ metavar: "POS" }))),
+    beforePosition: optional(option("--before-position", string({ metavar: "POS" }))),
     project: projectFlag,
     production: productionFlag,
     json: jsonFlag,
@@ -86,6 +98,14 @@ export const parser = command("blocks", or(types, describe, create, edit, move, 
 
 type CommonFlags = { project?: string; production: boolean; json: boolean };
 
+type PositioningFlags = {
+  position?: "first" | "last";
+  afterId?: number;
+  beforeId?: number;
+  afterPosition?: string;
+  beforePosition?: string;
+};
+
 type Args =
   | ({ command: "blocks.types" } & CommonFlags)
   | ({ command: "blocks.describe"; type: readonly string[] } & CommonFlags)
@@ -95,20 +115,44 @@ type Args =
       type: string;
       content: string;
       settings?: string;
-      afterPosition?: string;
-    } & CommonFlags)
+    } & PositioningFlags &
+      CommonFlags)
   | ({
       command: "blocks.edit";
       id: number;
       content?: string;
       settings?: string;
     } & CommonFlags)
-  | ({
-      command: "blocks.move";
-      id: number;
-      afterPosition?: string;
-    } & CommonFlags)
+  | ({ command: "blocks.move"; id: number } & PositioningFlags & CommonFlags)
   | ({ command: "blocks.delete"; id: number } & CommonFlags);
+
+const POSITIONING_FLAGS = [
+  ["position", "--position"],
+  ["afterId", "--after-id"],
+  ["beforeId", "--before-id"],
+  ["afterPosition", "--after-position"],
+  ["beforePosition", "--before-position"],
+] as const;
+
+/**
+ * Both `create` and `move` accept multiple positioning inputs, but only one is
+ * meaningful per call. The server will reject conflicts, but we surface the
+ * mistake earlier (and with friendlier wording) by checking on the client.
+ */
+function collectPositioningArgs(args: PositioningFlags): {
+  used: string[];
+  toolArgs: PositioningFlags;
+} {
+  const used: string[] = [];
+  const toolArgs: PositioningFlags = {};
+  for (const [key, flag] of POSITIONING_FLAGS) {
+    const value = args[key];
+    if (value === undefined) continue;
+    used.push(flag);
+    Object.assign(toolArgs, { [key]: value });
+  }
+  return { used, toolArgs };
+}
 
 export async function handler(args: Args): Promise<never> {
   const outputMode: OutputMode = args.json ? "json" : "auto";
@@ -137,6 +181,14 @@ export async function handler(args: Args): Promise<never> {
         const content = parseJsonFlag("--content", args.content);
         const settings =
           args.settings !== undefined ? parseJsonFlag("--settings", args.settings) : undefined;
+        const { used, toolArgs } = collectPositioningArgs(args);
+        if (used.length > 1) {
+          printError({
+            code: "INVALID_ARGS",
+            message: `Pass at most one positioning flag — got: ${used.join(", ")}.`,
+          });
+          process.exit(2);
+        }
         return dispatch({
           toolName: "createBlock",
           args: {
@@ -144,7 +196,7 @@ export async function handler(args: Args): Promise<never> {
             type: args.type,
             content,
             settings,
-            afterPosition: args.afterPosition,
+            ...toolArgs,
           },
           projectFlag,
           production,
@@ -164,14 +216,31 @@ export async function handler(args: Args): Promise<never> {
           outputMode,
         });
       }
-      case "blocks.move":
+      case "blocks.move": {
+        const { used, toolArgs } = collectPositioningArgs(args);
+        if (used.length === 0) {
+          printError({
+            code: "INVALID_ARGS",
+            message:
+              "Pass a positioning flag — one of --position, --after-id, --before-id, --after-position, --before-position. Use `--position last` to move a block to the end of the page.",
+          });
+          process.exit(2);
+        }
+        if (used.length > 1) {
+          printError({
+            code: "INVALID_ARGS",
+            message: `Pass at most one positioning flag — got: ${used.join(", ")}.`,
+          });
+          process.exit(2);
+        }
         return dispatch({
           toolName: "moveBlock",
-          args: { id: args.id, afterPosition: args.afterPosition },
+          args: { id: args.id, ...toolArgs },
           projectFlag,
           production,
           outputMode,
         });
+      }
       case "blocks.delete":
         return dispatch({
           toolName: "deleteBlock",

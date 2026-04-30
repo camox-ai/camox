@@ -5,6 +5,7 @@ import {
   createBlockInput,
   deleteBlock,
   deleteBlockInput,
+  resolveBlockPosition,
   updateBlockContent,
   updateBlockPosition,
   updateBlockPositionInput,
@@ -12,8 +13,20 @@ import {
 } from "../../../../apps/api/src/domains/blocks/service";
 import type { ToolDefinition, ToolProvider } from "../types";
 
-const createBlockToolInput = createBlockInput.omit({ repeatableItems: true });
-const moveBlockToolInput = updateBlockPositionInput.omit({ beforePosition: true });
+const positionAliasSchema = z.enum(["first", "last"]).optional();
+
+const createBlockToolInput = createBlockInput.omit({ repeatableItems: true }).extend({
+  afterId: z.number().optional(),
+  beforeId: z.number().optional(),
+  position: positionAliasSchema,
+});
+
+const moveBlockToolInput = updateBlockPositionInput.extend({
+  afterId: z.number().optional(),
+  beforeId: z.number().optional(),
+  position: positionAliasSchema,
+});
+
 const editBlockToolInput = z.object({
   id: z.number(),
   content: z.unknown().optional(),
@@ -26,9 +39,31 @@ export const blocksProvider: ToolProvider = (ctx): ToolDefinition[] => [
     description:
       "Create a block on a page. `type` must be one of the block-definition ids returned by listBlockTypes. " +
       "`content` and `settings` are validated server-side against that block type's JSON Schema; on a validation failure you'll receive a structured error to retry from. " +
-      "Use `afterPosition` (a fractional-index string from a sibling block) to control placement; omit to append at the end, or pass an empty string to insert at the start.",
+      "Positioning (pass at most one): `position: 'first' | 'last'`, `afterId: <block id>`, `beforeId: <block id>`, or the lower-level `afterPosition` / `beforePosition` (fractional-index strings). Omit all to append at the end.",
     inputSchema: createBlockToolInput,
-    handler: (input) => createBlock(ctx, createBlockToolInput.parse(input)),
+    handler: async (input) => {
+      const parsed = createBlockToolInput.parse(input);
+      const resolved = await resolveBlockPosition(
+        ctx,
+        {
+          pageId: parsed.pageId,
+          afterPosition: parsed.afterPosition,
+          beforePosition: parsed.beforePosition,
+          afterId: parsed.afterId,
+          beforeId: parsed.beforeId,
+          position: parsed.position,
+        },
+        { mode: "create" },
+      );
+      return createBlock(ctx, {
+        pageId: parsed.pageId,
+        type: parsed.type,
+        content: parsed.content,
+        settings: parsed.settings,
+        afterPosition: resolved.afterPosition,
+        beforePosition: resolved.beforePosition,
+      });
+    },
   },
   {
     name: "editBlock",
@@ -50,9 +85,28 @@ export const blocksProvider: ToolProvider = (ctx): ToolDefinition[] => [
   {
     name: "moveBlock",
     description:
-      "Move a block to a new position on its page. `afterPosition` is the fractional-index of the sibling to insert after; omit to move to the end.",
+      "Move a block to a new position on its page. Positioning (pass exactly one): `position: 'first' | 'last'`, `afterId: <block id>`, `beforeId: <block id>`, or the lower-level `afterPosition` / `beforePosition` (fractional-index strings).",
     inputSchema: moveBlockToolInput,
-    handler: (input) => updateBlockPosition(ctx, moveBlockToolInput.parse(input)),
+    handler: async (input) => {
+      const parsed = moveBlockToolInput.parse(input);
+      const resolved = await resolveBlockPosition(
+        ctx,
+        {
+          blockId: parsed.id,
+          afterPosition: parsed.afterPosition,
+          beforePosition: parsed.beforePosition,
+          afterId: parsed.afterId,
+          beforeId: parsed.beforeId,
+          position: parsed.position,
+        },
+        { mode: "move" },
+      );
+      return updateBlockPosition(ctx, {
+        id: parsed.id,
+        afterPosition: resolved.afterPosition,
+        beforePosition: resolved.beforePosition,
+      });
+    },
   },
   {
     name: "deleteBlock",

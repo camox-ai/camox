@@ -48,6 +48,7 @@ export const createBlockInput = z.object({
   content: z.unknown(),
   settings: z.unknown().optional(),
   afterPosition: z.string().nullable().optional(),
+  beforePosition: z.string().nullable().optional(),
   repeatableItems: z.array(repeatableItemSeedSchema).optional(),
 });
 export const updateBlockContentInput = z.object({ id: z.number(), content: z.unknown() });
@@ -58,6 +59,15 @@ export const updateBlockPositionInput = z.object({
   beforePosition: z.string().nullable().optional(),
 });
 export const deleteBlockInput = z.object({ id: z.number() });
+export const resolveBlockPositionInput = z.object({
+  pageId: z.number().optional(),
+  blockId: z.number().optional(),
+  afterPosition: z.string().nullable().optional(),
+  beforePosition: z.string().nullable().optional(),
+  afterId: z.number().optional(),
+  beforeId: z.number().optional(),
+  position: z.enum(["first", "last"]).optional(),
+});
 export const deleteBlocksInput = z.object({ blockIds: z.array(z.number()) });
 export const generateBlockSummaryInput = z.object({ id: z.number() });
 export const duplicateBlockInput = z.object({ id: z.number() });
@@ -77,6 +87,88 @@ function comparePositions(a: string, b: string): number {
 
 function sortByPosition<T extends { position: string }>(items: T[]): T[] {
   return items.sort((a, b) => comparePositions(a.position, b.position));
+}
+
+/**
+ * Reduce high-level positioning helpers (`afterId`, `beforeId`, `position`) to
+ * the fractional-index strings the create/move services consume. Exactly one
+ * positioning input is permitted; passing none returns `{}` (the caller's
+ * services treat that as "append to the end").
+ *
+ * `pageId` is used for `position: "first"` on a move (we need the current
+ * first sibling so the service can compute a key strictly before it). For
+ * create, "first" is encoded as `afterPosition: ""`, so no lookup is needed.
+ */
+export async function resolveBlockPosition(
+  ctx: ServiceContext,
+  rawInput: z.input<typeof resolveBlockPositionInput>,
+  opts: { mode: "create" | "move" },
+): Promise<{ afterPosition?: string | null; beforePosition?: string | null }> {
+  const input = resolveBlockPositionInput.parse(rawInput);
+  const passed = [
+    input.afterPosition !== undefined ? "afterPosition" : null,
+    input.beforePosition !== undefined ? "beforePosition" : null,
+    input.afterId !== undefined ? "afterId" : null,
+    input.beforeId !== undefined ? "beforeId" : null,
+    input.position !== undefined ? "position" : null,
+  ].filter((x): x is string => x != null);
+  if (passed.length > 1) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `Pass at most one positioning input — got: ${passed.join(", ")}.`,
+    });
+  }
+
+  if (input.afterPosition !== undefined || input.beforePosition !== undefined) {
+    return { afterPosition: input.afterPosition, beforePosition: input.beforePosition };
+  }
+
+  const lookupSibling = async (id: number) => {
+    const sibling = await ctx.db
+      .select({ position: blocks.position, pageId: blocks.pageId })
+      .from(blocks)
+      .where(eq(blocks.id, id))
+      .get();
+    if (!sibling) throw new ORPCError("NOT_FOUND", { message: `No block with id ${id}.` });
+    if (input.pageId != null && sibling.pageId !== input.pageId) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `Block ${id} is not on page ${input.pageId}.`,
+      });
+    }
+    return sibling;
+  };
+
+  if (input.afterId !== undefined) {
+    const sibling = await lookupSibling(input.afterId);
+    return { afterPosition: sibling.position };
+  }
+  if (input.beforeId !== undefined) {
+    const sibling = await lookupSibling(input.beforeId);
+    return { beforePosition: sibling.position };
+  }
+
+  if (input.position === "last") return {};
+  if (input.position === "first") {
+    if (opts.mode === "create") return { afterPosition: "" };
+    let pageId = input.pageId;
+    if (pageId == null && input.blockId != null) {
+      const target = await ctx.db
+        .select({ pageId: blocks.pageId })
+        .from(blocks)
+        .where(eq(blocks.id, input.blockId))
+        .get();
+      pageId = target?.pageId ?? undefined;
+    }
+    if (pageId == null) return {};
+    const first = await ctx.db
+      .select({ position: blocks.position })
+      .from(blocks)
+      .where(eq(blocks.pageId, pageId))
+      .orderBy(blocks.position)
+      .get();
+    return { beforePosition: first?.position ?? null };
+  }
+
+  return {};
 }
 
 /** Find the last index where item.position <= target in a sorted array. */
@@ -724,6 +816,7 @@ export async function createBlock(ctx: ServiceContext, rawInput: z.input<typeof 
     content,
     settings,
     afterPosition,
+    beforePosition,
     repeatableItems: itemSeeds,
   } = createBlockInput.parse(rawInput);
   const access = await assertPageAccess(ctx.db, pageId, user.id);
@@ -754,18 +847,31 @@ export async function createBlock(ctx: ServiceContext, rawInput: z.input<typeof 
     await ctx.db.select().from(blocks).where(eq(blocks.pageId, pageId)),
   );
 
+  if (afterPosition != null && beforePosition != null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Pass at most one of afterPosition or beforePosition.",
+    });
+  }
   let position: string;
-  if (afterPosition == null) {
-    // No afterPosition provided → insert at the end
+  if (afterPosition == null && beforePosition == null) {
+    // Nothing provided → insert at the end
     const lastBlock = pageBlocks[pageBlocks.length - 1];
     position = generateKeyBetween(lastBlock?.position ?? null, null);
-  } else if (afterPosition === "") {
-    // Empty string marker → insert at the beginning
-    const firstBlock = pageBlocks[0];
-    position = generateKeyBetween(null, firstBlock?.position ?? null);
+  } else if (afterPosition === "" || beforePosition != null) {
+    // Insert before the specified position (empty afterPosition is a synonym for "before the first block")
+    const target = beforePosition || null;
+    if (!target) {
+      const firstBlock = pageBlocks[0];
+      position = generateKeyBetween(null, firstBlock?.position ?? null);
+    } else {
+      const beforeIdx = pageBlocks.findIndex((b) => b.position >= target);
+      const nextBlock = beforeIdx >= 0 ? pageBlocks[beforeIdx] : null;
+      const prevBlock = beforeIdx > 0 ? pageBlocks[beforeIdx - 1] : null;
+      position = generateKeyBetween(prevBlock?.position ?? null, nextBlock?.position ?? null);
+    }
   } else {
     // Insert after the specified position
-    const afterIndex = findLastIndexLe(pageBlocks, afterPosition);
+    const afterIndex = findLastIndexLe(pageBlocks, afterPosition!);
     const nextBlock = afterIndex >= 0 ? pageBlocks[afterIndex + 1] : pageBlocks[0];
     position = generateKeyBetween(
       afterIndex >= 0 ? pageBlocks[afterIndex].position : null,
