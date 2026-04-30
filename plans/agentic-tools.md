@@ -118,7 +118,7 @@ What ended up shipping (vs. the original sketch):
 - oRPC routes are thin pass-throughs (`domains/<domain>/routes.ts`) that just hand `context` and `input` to the service.
 - Authorization helpers (`assertPageAccess`, `assertBlockAccess`, `getAuthorizedProject`) are called from inside services using `ctx.user`, so tool handlers will inherit access checks for free.
 
-#### Phase 2: `@camox/ai-tools` Package
+#### Phase 2: `@camox/ai-tools` Package ✅ DONE
 
 **New package**: `packages/ai-tools/`
 
@@ -197,9 +197,18 @@ app.all("/mcp", async (c) => {
 - Renders message stream, tool-call traces (collapsed by default), and input composer
 - On tool results that mutate content, relies on the existing PartyServer invalidation broadcast to refresh the preview — no client-side cache surgery needed
 
-#### Phase 5: CLI Dispatch
+#### Phase 5: CLI Dispatch ✅ DONE (skill deferred)
 
 Ships **before Phase 3 (MCP)** — coding agents are the only near-term consumer, the CLI already has auth (`packages/cli/lib/auth.ts` stores a bearer token), and going CLI-first lets us dogfood the `@camox/ai-tools` registry against a trivial adapter before paying the MCP transport / OAuth tax.
+
+What ended up shipping (vs. the original sketch):
+
+- `agent.callTool` lives in `apps/api/src/domains/agent/{service,routes}.ts`. It builds a `ToolContext` from the authed `ServiceContext`, resolves the registry, runs `tool.inputSchema.parse(args)` and `tool.handler(...)`, and returns either `{ ok: true, result }` or `{ ok: false, error: ToolError }` so validation failures travel back as structured data the LLM can self-correct from. A companion `agent.listTools` returns `toJsonSchemaTool(...)`-formatted tools for any future surface that wants the raw catalog.
+- CLI verb subcommands are **hand-rolled** in `packages/cli/src/commands/{pages,blocks,layouts}.ts` rather than codegen'd from the registry. The registry pulls in `apps/api` (drizzle, BetterAuth, Workers types) which doesn't bundle into a Node CLI, and a build-time snapshot adds tooling for thin payoff at this scale; revisit if v1 grows unwieldy. Registry tool names stay canonical (`createPage`, `setPageLayout`, …); CLI verbs map to kebab-case (`pages create`, `pages set-layout`).
+- Project resolution lives in `packages/cli/src/lib/project.ts` — `--project <slug>` > `CAMOX_PROJECT` env > nearest `package.json#name` walking up from cwd (which `camox init` overwrites with the project slug). The CLI looks the slug up via `projects.getBySlug` to translate to the numeric `projectId` that `agent.callTool` expects.
+- Output formatting + the structured error contract live in `packages/cli/src/lib/output.ts`; `dispatch.ts` is the shared "auth → resolve project → call tool → render" pipeline that all verb subcommands route through. Exit codes: `0` ok, `1` tool-side error, `2` auth/project resolution failure.
+- Optique's variadic `or` overload doesn't infer cleanly past 6 top-level parsers, so `runSync(program)` returns `unknown`; `src/index.ts` recovers the discriminated union with a hand-written `Result` type and casts at the boundary. Each handler still type-checks its own `Args` union internally.
+- Skill (`.claude/skills/camox.md`) is intentionally deferred — the verb surface is already discoverable via `camox --help` / `camox <group> --help`.
 
 **Surface shape: verb subcommands generated from the registry (Option B).** Each tool is exposed as a real `optique` subcommand with typed flags, not a generic `tools call <name>`. This makes `camox --help` discoverable, gives humans real flags, and lets the skill teach the agent to run e.g. `camox pages create --path-segment about --layout-id 3` directly.
 
@@ -234,7 +243,7 @@ camox layouts list
 - Separate from `agent.chat` — CLI path bypasses the LLM entirely; the coding agent is the LLM
 - Returns the tool's structured result, or a structured validation error the agent can read
 
-**Skill** — the coding-agent skill (`.claude/skills/camox.md` template, shipped via `camox init` or a follow-up command) tells the agent to run `camox --help` and `camox <group> --help` for discovery, then call the verb commands directly. With Option B the skill is shorter than with a generic dispatch — the agent uses normal CLI conventions instead of hand-building JSON payloads. Skill authoring is a follow-up ticket.
+**Skill** — the coding-agent skill (`.claude/skills/camox.md` template, shipped via `camox init` or a follow-up command) tells the agent to run `camox --help` and `camox <group> --help` for discovery, then call the verb commands directly.
 
 #### Phase 6 (deferred): Slack bot
 

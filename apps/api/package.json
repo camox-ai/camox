@@ -19,6 +19,7 @@
     "check": "tsgo --noEmit && oxlint --fix"
   },
   "dependencies": {
+    "@camox/ai-tools": "workspace:*",
     "@camox/api-contract": "workspace:*",
     "@hono/zod-validator": "^0.7.6",
     "@orpc/server": "^1.13.13",

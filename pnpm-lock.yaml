@@ -36,6 +36,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@camox/ai-tools':
+        specifier: workspace:*
+        version: link:../../packages/ai-tools
       '@camox/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
@@ -370,6 +373,9 @@ importers:
       slugify:
         specifier: ^1.6.9
         version: 1.6.9
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@camox/api-contract':
         specifier: workspace:*

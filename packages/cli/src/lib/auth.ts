@@ -43,8 +43,17 @@ function writeAllTokens(tokens: Record<string, AuthToken>): void {
 }
 
 export function readAuthToken(): AuthToken | null {
+  return readAuthTokenForUrl(CAMOX_URL);
+}
+
+/**
+ * Look up a stored token by an explicit auth URL. Used by the tool dispatch
+ * path, which sources the URL from the vite plugin sidecar rather than env
+ * vars so the right credential is selected per project.
+ */
+export function readAuthTokenForUrl(authenticationUrl: string): AuthToken | null {
   const tokens = readAllTokens();
-  const entry = tokens[normalizeUrl(CAMOX_URL)];
+  const entry = tokens[normalizeUrl(authenticationUrl)];
   if (entry?.token && entry?.name) return entry;
   return null;
 }

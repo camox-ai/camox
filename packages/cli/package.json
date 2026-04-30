@@ -25,7 +25,8 @@
     "@optique/run": "*",
     "@orpc/client": "^1.13.14",
     "@orpc/server": "^1.13.14",
-    "slugify": "^1.6.9"
+    "slugify": "^1.6.9",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@camox/api-contract": "workspace:*",

@@ -1,3 +1,4 @@
+import { agentProcedures } from "./domains/agent/routes";
 import { blockDefinitionProcedures } from "./domains/block-definitions/routes";
 import { blockProcedures } from "./domains/blocks/routes";
 import { fileProcedures } from "./domains/files/routes";
@@ -14,6 +15,7 @@ export const router = {
   files: fileProcedures,
   repeatableItems: repeatableItemProcedures,
   blockDefinitions: blockDefinitionProcedures,
+  agent: agentProcedures,
 };
 
 export type Router = typeof router;

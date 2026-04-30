@@ -12,9 +12,9 @@ function authHeaders(token: string) {
   };
 }
 
-function createRpcClient(token: string) {
+function createRpcClient(token: string, apiUrl: string = CAMOX_API_URL) {
   const link = new RPCLink({
-    url: `${CAMOX_API_URL}/rpc`,
+    url: `${apiUrl}/rpc`,
     headers: { Authorization: `Bearer ${token}` },
   });
   return createORPCClient<RouterClient<Router>>(link);
@@ -98,4 +98,30 @@ export async function createProject(
   const client = createRpcClient(token);
   const result = await client.projects.create({ name, slug, organizationId });
   return result;
+}
+
+export async function getProjectBySlug(token: string, slug: string, apiUrl?: string) {
+  const client = createRpcClient(token, apiUrl);
+  return client.projects.getBySlug({ slug });
+}
+
+// --- Agentic tools ---
+
+export type CallToolResponse =
+  | { ok: true; result: unknown }
+  | { ok: false; error: { code: string; message: string; details?: unknown } };
+
+export async function callTool(
+  token: string,
+  apiUrl: string,
+  projectId: number,
+  name: string,
+  args: unknown,
+): Promise<CallToolResponse> {
+  const client = createRpcClient(token, apiUrl);
+  return (await client.agent.callTool({
+    projectId,
+    name,
+    arguments: args,
+  })) as CallToolResponse;
 }

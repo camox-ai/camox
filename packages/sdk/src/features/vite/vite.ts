@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,6 +40,27 @@ function readAuthEmail(authenticationUrl: string): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Drop a sidecar at `<root>/node_modules/.camox/runtime.json` so the `camox`
+ * CLI can pick up the same projectSlug / apiUrl / authenticationUrl /
+ * environmentName the plugin actually used. The CLI treats the vite config
+ * as the source of truth — there is no other reliable way to recover these
+ * values from outside vite.
+ */
+function writeRuntimeSidecar(
+  root: string,
+  data: {
+    projectSlug: string;
+    apiUrl: string;
+    authenticationUrl: string;
+    environmentName: string;
+  },
+): void {
+  const dir = join(root, "node_modules", ".camox");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "runtime.json"), `${JSON.stringify(data, null, 2)}\n`);
 }
 
 function resolveEnvironmentName(command: "serve" | "build", authenticationUrl: string): string {
@@ -196,6 +217,14 @@ export function camox(options: CamoxPluginOptions): Plugin {
     configResolved(config) {
       resolvedConfig = config;
       const routesDir = resolve(config.root, "src/routes");
+
+      writeRuntimeSidecar(config.root, {
+        projectSlug: options.projectSlug,
+        apiUrl,
+        authenticationUrl,
+        environmentName,
+      });
+
       if (!disableCodeGen) {
         generateAppFile(config.root);
         generateRouteFiles({
