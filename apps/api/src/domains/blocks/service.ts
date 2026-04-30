@@ -25,6 +25,7 @@ import {
 } from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
 import { collectFileIds } from "../pages/ai";
+import { normalizeBlockContent, type BlockItemSeed } from "./normalize-content";
 
 // --- Input Schemas ---
 // Exported so adapters (oRPC, MCP, CLI) share the same canonical contract.
@@ -279,6 +280,220 @@ export async function executeBlockSummary(
   return null;
 }
 
+type FieldSchema = {
+  fieldType?: string;
+  items?: { properties?: Record<string, FieldSchema> };
+};
+
+/**
+ * Apply a partial content patch to a block, with replace-within-field semantics
+ * for any RepeatableItem fields present in the patch:
+ *   - `{ _itemId: N }` keeps existing item N (re-positioned in array order).
+ *   - `{ _itemId: N, ...overrides }` updates item N's content; nested repeatable
+ *     overrides recurse via this same diff logic.
+ *   - Plain inline objects insert new items (with nested children if present).
+ *   - Existing items at the same scope not referenced in the new array are deleted
+ *     (cascades to nested children via the parentItemId FK).
+ *
+ * RepeatableItem fields not present in the patch are untouched.
+ *
+ * Returns the new merged block.content with all RepeatableItem fields stripped —
+ * the items table is the source of truth and `getBlock` re-injects markers on read.
+ */
+async function applyContentPatch(
+  ctx: ServiceContext,
+  block: { id: number; content: unknown },
+  patch: Record<string, unknown>,
+  contentSchema: unknown,
+  now: number,
+): Promise<Record<string, unknown>> {
+  const props = (contentSchema as { properties?: Record<string, FieldSchema> } | null)?.properties;
+
+  // Start from existing content with all known repeatable fields stripped (items
+  // table is truth). This also clears any pre-existing ghost data.
+  const merged: Record<string, unknown> = { ...(block.content as Record<string, unknown>) };
+  if (props) {
+    for (const [key, fieldSchema] of Object.entries(props)) {
+      if (fieldSchema.fieldType === "RepeatableItem") delete merged[key];
+    }
+  }
+
+  let allItems: Awaited<ReturnType<typeof fetchBlockItems>> | null = null;
+  for (const [key, value] of Object.entries(patch)) {
+    const fieldSchema = props?.[key];
+    if (fieldSchema?.fieldType !== "RepeatableItem") {
+      merged[key] = value;
+      continue;
+    }
+    if (allItems === null) allItems = await fetchBlockItems(ctx, block.id);
+    await applyRepeatableFieldPatch(ctx, {
+      blockId: block.id,
+      parentItemId: null,
+      fieldName: key,
+      newArray: value,
+      allItems,
+      itemSchemaProps: fieldSchema.items?.properties,
+      now,
+    });
+  }
+  return merged;
+}
+
+async function fetchBlockItems(ctx: ServiceContext, blockId: number) {
+  return await ctx.db.select().from(repeatableItems).where(eq(repeatableItems.blockId, blockId));
+}
+
+async function applyRepeatableFieldPatch(
+  ctx: ServiceContext,
+  args: {
+    blockId: number;
+    parentItemId: number | null;
+    fieldName: string;
+    newArray: unknown;
+    allItems: Awaited<ReturnType<typeof fetchBlockItems>>;
+    itemSchemaProps: Record<string, FieldSchema> | undefined;
+    now: number;
+  },
+): Promise<void> {
+  const { blockId, parentItemId, fieldName, newArray, allItems, itemSchemaProps, now } = args;
+  if (newArray == null) return;
+  if (!Array.isArray(newArray)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `Field "${fieldName}" is repeatable; expected an array`,
+      data: { field: fieldName },
+    });
+  }
+
+  const scopeItems = allItems.filter(
+    (i) => i.parentItemId === parentItemId && i.fieldName === fieldName,
+  );
+  const existingById = new Map(scopeItems.map((i) => [i.id, i]));
+  const referenced = new Set<number>();
+
+  let prevPos: string | null = null;
+  for (const element of newArray) {
+    if (element == null || typeof element !== "object" || Array.isArray(element)) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `Field "${fieldName}" element must be an object`,
+        data: { field: fieldName },
+      });
+    }
+    const elementObj = element as Record<string, unknown>;
+    const rawItemId = elementObj._itemId;
+    const itemId = typeof rawItemId === "number" ? rawItemId : null;
+    const position = generateKeyBetween(prevPos, null);
+    prevPos = position;
+
+    if (itemId === null && rawItemId !== undefined) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `Field "${fieldName}" element has invalid _itemId`,
+        data: { field: fieldName },
+      });
+    }
+
+    if (itemId !== null) {
+      const existing = existingById.get(itemId);
+      if (!existing) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: `Field "${fieldName}" references item ${itemId} but no such item exists at this scope`,
+          data: { field: fieldName },
+        });
+      }
+      referenced.add(itemId);
+
+      // Build content overrides + recurse into any nested repeatable overrides.
+      const nonRepeatableOverrides: Record<string, unknown> = {};
+      let hasOverride = false;
+      for (const [k, v] of Object.entries(elementObj)) {
+        if (k === "_itemId") continue;
+        const subSchema = itemSchemaProps?.[k];
+        if (subSchema?.fieldType === "RepeatableItem") {
+          await applyRepeatableFieldPatch(ctx, {
+            blockId,
+            parentItemId: itemId,
+            fieldName: k,
+            newArray: v,
+            allItems,
+            itemSchemaProps: subSchema.items?.properties,
+            now,
+          });
+          continue;
+        }
+        nonRepeatableOverrides[k] = v;
+        hasOverride = true;
+      }
+
+      const existingContent = (existing.content as Record<string, unknown> | null) ?? {};
+      const newContent: Record<string, unknown> = hasOverride
+        ? { ...existingContent, ...nonRepeatableOverrides }
+        : { ...existingContent };
+      // Strip stale repeatable fields from item content (items table is truth).
+      if (itemSchemaProps) {
+        for (const [k, schema] of Object.entries(itemSchemaProps)) {
+          if (schema.fieldType === "RepeatableItem") delete newContent[k];
+        }
+      }
+
+      await ctx.db
+        .update(repeatableItems)
+        .set({ content: newContent, position, updatedAt: now })
+        .where(eq(repeatableItems.id, itemId));
+      continue;
+    }
+
+    // New inline item — normalize against the item schema, insert it, then insert
+    // any nested-repeatable seeds it produced as descendants of the new item.
+    const { content: itemContent, seeds: childSeeds } = normalizeBlockContent(elementObj, {
+      properties: itemSchemaProps,
+    });
+    const inserted = await ctx.db
+      .insert(repeatableItems)
+      .values({
+        blockId,
+        parentItemId,
+        fieldName,
+        content: itemContent,
+        summary: "",
+        position,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning()
+      .get();
+
+    if (childSeeds.length > 0) {
+      const tempIdToRealId = new Map<string, number>();
+      for (const seed of childSeeds) {
+        // parentTempId === null → child of the just-inserted item; otherwise resolve.
+        const seedParent = seed.parentTempId
+          ? (tempIdToRealId.get(seed.parentTempId) ?? inserted.id)
+          : inserted.id;
+        const sub = await ctx.db
+          .insert(repeatableItems)
+          .values({
+            blockId,
+            parentItemId: seedParent,
+            fieldName: seed.fieldName,
+            content: seed.content,
+            summary: "",
+            position: seed.position,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning()
+          .get();
+        tempIdToRealId.set(seed.tempId, sub.id);
+      }
+    }
+  }
+
+  // Delete unreferenced existing items (cascades to nested children via FK).
+  for (const item of scopeItems) {
+    if (referenced.has(item.id)) continue;
+    await ctx.db.delete(repeatableItems).where(eq(repeatableItems.id, item.id));
+  }
+}
+
 // --- Reads ---
 
 export async function getBlock(ctx: ServiceContext, rawInput: z.input<typeof getBlockInput>) {
@@ -512,6 +727,24 @@ export async function createBlock(ctx: ServiceContext, rawInput: z.input<typeof 
 
   const now = Date.now();
 
+  // Look up the block definition's content schema and normalize inline repeatable
+  // arrays into seeds, so the agent (and any caller) can produce a flat shape.
+  const def = await ctx.db
+    .select()
+    .from(blockDefinitions)
+    .where(
+      and(
+        eq(blockDefinitions.projectId, access.page.projectId),
+        eq(blockDefinitions.blockId, type),
+      ),
+    )
+    .get();
+  const { content: normalizedContent, seeds: autoSeeds } = normalizeBlockContent(
+    content,
+    def?.contentSchema ?? null,
+  );
+  const allSeeds: BlockItemSeed[] = [...(itemSeeds ?? []), ...autoSeeds];
+
   // Get all blocks for this page to determine correct position
   const pageBlocks = sortByPosition(
     await ctx.db.select().from(blocks).where(eq(blocks.pageId, pageId)),
@@ -540,7 +773,7 @@ export async function createBlock(ctx: ServiceContext, rawInput: z.input<typeof 
     .values({
       pageId,
       type,
-      content,
+      content: normalizedContent,
       settings: settings ?? null,
       position,
       summary: "",
@@ -550,11 +783,11 @@ export async function createBlock(ctx: ServiceContext, rawInput: z.input<typeof 
     .returning()
     .get();
 
-  // Insert client-provided repeatable item seeds in topological order (parents before children)
-  if (itemSeeds && itemSeeds.length > 0) {
+  // Insert repeatable item seeds in topological order (parents before children)
+  if (allSeeds.length > 0) {
     const tempIdToRealId = new Map<string, number>();
 
-    for (const seed of itemSeeds) {
+    for (const seed of allSeeds) {
       const parentItemId = seed.parentTempId
         ? (tempIdToRealId.get(seed.parentTempId) ?? null)
         : null;
@@ -607,14 +840,27 @@ export async function updateBlockContent(
   const access = await assertBlockAccess(ctx.db, id, user.id);
   if (!access) throw new ORPCError("NOT_FOUND");
 
-  // Merge partial content into existing content (frontend sends single-field patches)
-  const merged = {
-    ...(access.block.content as Record<string, unknown>),
-    ...(content as Record<string, unknown>),
-  };
+  const now = Date.now();
+
+  // Look up the block definition's content schema so the patch helper can detect
+  // RepeatableItem fields and apply replace-within-field semantics.
+  const def = await ctx.db
+    .select()
+    .from(blockDefinitions)
+    .where(
+      and(
+        eq(blockDefinitions.projectId, access.projectId),
+        eq(blockDefinitions.blockId, access.block.type),
+      ),
+    )
+    .get();
+
+  const patch = (content ?? {}) as Record<string, unknown>;
+  const merged = await applyContentPatch(ctx, access.block, patch, def?.contentSchema ?? null, now);
+
   const result = await ctx.db
     .update(blocks)
-    .set({ content: merged, updatedAt: Date.now() })
+    .set({ content: merged, updatedAt: now })
     .where(eq(blocks.id, id))
     .returning()
     .get();
