@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.15.0](https://github.com/camox-ai/camox/compare/camox-v0.14.2...camox-v0.15.0) (2026-04-30)
+
+
+### Features
+
+* add api tools to cli ([2d96fd1](https://github.com/camox-ai/camox/commit/2d96fd10ad02d1c326c1c7b338bf7b1ac6641149))
+* add camox-cli skill to camox apps ([039dcfe](https://github.com/camox-ai/camox/commit/039dcfe83b4ef4fc675f28886f49bcd3cd0287fe))
+* add path option to get page cli command ([e11ae86](https://github.com/camox-ai/camox/commit/e11ae864c9fecaf5cd213f2c84b95593a94622e4))
+* make cli environment aware ([98f1c40](https://github.com/camox-ai/camox/commit/98f1c407b4d4e87d91ea11d381832100d118a94a))
+* two-step cli block type discovery ([8af588d](https://github.com/camox-ai/camox/commit/8af588de61d2feb58347aa4121b6bb3c4805768b))
+
+
+### Bug Fixes
+
+* block-per-block get page cli command ([8a9433f](https://github.com/camox-ai/camox/commit/8a9433fcf5c87bf6ed4db7a05622d4fdf3fce79c))
+* image component not aware of repeater context ([b4743d7](https://github.com/camox-ai/camox/commit/b4743d7746b41e47a805c3afb1ac0a1073ff5a83))
+* page deletion ([7d232f2](https://github.com/camox-ai/camox/commit/7d232f219b5fbe98bcf9604abddb177272416c84))
+
+
+### Miscellaneous
+
+* add web favicon ([cc00036](https://github.com/camox-ai/camox/commit/cc00036003397a4a034ab562ce5d53df17d1a151))
+* **api:** extract service layer for pages ([a0cf5b2](https://github.com/camox-ai/camox/commit/a0cf5b20aba312148e99de6a1faa7e360172a36a))
+* extract blocks services ([5c9a1b9](https://github.com/camox-ai/camox/commit/5c9a1b9fe316131db40a801e91b9b7a67e53479a))
+* extract service file for all other api domains ([3972048](https://github.com/camox-ai/camox/commit/3972048fa0462739a7505749d166ec9bdffffe87))
+* misc improvements ([32306e6](https://github.com/camox-ai/camox/commit/32306e6e724b7974c3d0cd6a03dd993de6b67000))
+* set up agentic tools ([a641af4](https://github.com/camox-ai/camox/commit/a641af4fba7f5fd3b2320ced963b3e07fa74ac1f))
+
 ## [0.14.2](https://github.com/camox-ai/camox/compare/camox-v0.14.1...camox-v0.14.2) (2026-04-28)
 
 

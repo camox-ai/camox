@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.15.0](https://github.com/camox-ai/camox/compare/camox-v0.14.2...@camox/cli-v0.15.0) (2026-04-30)
+
+
+### Features
+
+* add api tools to cli ([2d96fd1](https://github.com/camox-ai/camox/commit/2d96fd10ad02d1c326c1c7b338bf7b1ac6641149))
+* add path option to get page cli command ([e11ae86](https://github.com/camox-ai/camox/commit/e11ae864c9fecaf5cd213f2c84b95593a94622e4))
+* make cli environment aware ([98f1c40](https://github.com/camox-ai/camox/commit/98f1c407b4d4e87d91ea11d381832100d118a94a))
+* two-step cli block type discovery ([8af588d](https://github.com/camox-ai/camox/commit/8af588de61d2feb58347aa4121b6bb3c4805768b))
+
+
+### Miscellaneous
+
+* add web favicon ([cc00036](https://github.com/camox-ai/camox/commit/cc00036003397a4a034ab562ce5d53df17d1a151))
+
 ## [0.14.2](https://github.com/camox-ai/camox/compare/camox-v0.14.1...@camox/cli-v0.14.2) (2026-04-28)
 
 
