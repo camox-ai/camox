@@ -4,7 +4,7 @@ import { command, constant, option } from "@optique/core/primitives";
 import { integer, string } from "@optique/core/valueparser";
 
 import { dispatch } from "../lib/dispatch";
-import type { OutputMode } from "../lib/output";
+import { type OutputMode, printError } from "../lib/output";
 
 const projectFlag = optional(option("--project", string({ metavar: "SLUG" })));
 const jsonFlag = option("--json");
@@ -24,7 +24,8 @@ const get = command(
   "get",
   object({
     command: constant("pages.get" as const),
-    id: option("--id", integer({ metavar: "ID" })),
+    id: optional(option("--id", integer({ metavar: "ID" }))),
+    path: optional(option("--path", string({ metavar: "PATH" }))),
     project: projectFlag,
     production: productionFlag,
     json: jsonFlag,
@@ -114,7 +115,7 @@ type CommonFlags = { project?: string; production: boolean; json: boolean };
 
 type Args =
   | ({ command: "pages.list" } & CommonFlags)
-  | ({ command: "pages.get"; id: number } & CommonFlags)
+  | ({ command: "pages.get"; id?: number; path?: string } & CommonFlags)
   | ({
       command: "pages.create";
       pathSegment: string;
@@ -141,14 +142,23 @@ export async function handler(args: Args): Promise<never> {
   switch (args.command) {
     case "pages.list":
       return dispatch({ toolName: "listPages", args: {}, projectFlag, production, outputMode });
-    case "pages.get":
+    case "pages.get": {
+      if ((args.id == null) === (args.path == null)) {
+        printError({
+          code: "INVALID_ARGS",
+          message: "Pass exactly one of --id or --path.",
+        });
+        process.exit(2);
+      }
+      const toolArgs = args.id != null ? { id: args.id } : { path: args.path };
       return dispatch({
         toolName: "getPage",
-        args: { id: args.id },
+        args: toolArgs,
         projectFlag,
         production,
         outputMode,
       });
+    }
     case "pages.create":
       return dispatch({
         toolName: "createPage",

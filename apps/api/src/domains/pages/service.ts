@@ -35,7 +35,10 @@ export const getPageByPathInput = z.object({ projectSlug: z.string(), path: z.st
 export const getPageStructureInput = z.object({ projectSlug: z.string(), path: z.string() });
 export const listPagesInput = z.object({ projectId: z.number() });
 export const listPagesBySlugInput = z.object({ projectSlug: z.string() });
-export const getPageInput = z.object({ id: z.number() });
+export const getPageInput = z.union([
+  z.object({ id: z.number() }),
+  z.object({ projectId: z.number(), path: z.string() }),
+]);
 
 export const createPageInput = z.object({
   projectId: z.number(),
@@ -242,8 +245,24 @@ export async function listPagesBySlug(
 }
 
 export async function getPage(ctx: ServiceContext, rawInput: z.input<typeof getPageInput>) {
-  const { id } = getPageInput.parse(rawInput);
-  const result = await ctx.db.select().from(pages).where(eq(pages.id, id)).get();
+  const parsed = getPageInput.parse(rawInput);
+  if ("id" in parsed) {
+    const result = await ctx.db.select().from(pages).where(eq(pages.id, parsed.id)).get();
+    if (!result) throw new ORPCError("NOT_FOUND");
+    return result;
+  }
+  const environment = await resolveEnvironment(ctx.db, parsed.projectId, ctx.environmentName);
+  const result = await ctx.db
+    .select()
+    .from(pages)
+    .where(
+      and(
+        eq(pages.projectId, parsed.projectId),
+        eq(pages.environmentId, environment.id),
+        eq(pages.fullPath, parsed.path),
+      ),
+    )
+    .get();
   if (!result) throw new ORPCError("NOT_FOUND");
   return result;
 }

@@ -7,7 +7,6 @@ import {
   deletePage,
   deletePageInput,
   getPage,
-  getPageInput,
   listPages,
   setPageLayout,
   setPageLayoutInput,
@@ -22,6 +21,7 @@ import type { ToolDefinition, ToolProvider } from "../types";
 
 const listPagesToolInput = z.object({});
 const createPageToolInput = createPageInput.omit({ projectId: true });
+const getPageToolInput = z.union([z.object({ id: z.number() }), z.object({ path: z.string() })]);
 
 export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
   {
@@ -33,12 +33,15 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
   {
     name: "getPage",
     description:
-      "Fetch a single page by id. Returns the page row and the rendered Markdown of its blocks (and any layout-scoped blocks above/below).",
-    inputSchema: getPageInput,
+      "Fetch a single page by id or by full path (e.g. `/about`). Returns the page row and the rendered Markdown of its blocks (and any layout-scoped blocks above/below).",
+    inputSchema: getPageToolInput,
     handler: async (input) => {
-      const { id } = getPageInput.parse(input);
-      const page = await getPage(ctx, { id });
-      const { markdown } = await getPageMarkdown(ctx, { pageId: id });
+      const parsed = getPageToolInput.parse(input);
+      const page =
+        "id" in parsed
+          ? await getPage(ctx, { id: parsed.id })
+          : await getPage(ctx, { projectId: ctx.projectId, path: parsed.path });
+      const { markdown } = await getPageMarkdown(ctx, { pageId: page.id });
       return { page, markdown };
     },
   },
