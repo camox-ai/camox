@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.15.0](https://github.com/camox-ai/camox/compare/camox-v0.14.2...camox-sdk-v0.15.0) (2026-04-30)
+
+
+### Features
+
+* add api tools to cli ([2d96fd1](https://github.com/camox-ai/camox/commit/2d96fd10ad02d1c326c1c7b338bf7b1ac6641149))
+* add camox-cli skill to camox apps ([039dcfe](https://github.com/camox-ai/camox/commit/039dcfe83b4ef4fc675f28886f49bcd3cd0287fe))
+
+
+### Bug Fixes
+
+* image component not aware of repeater context ([b4743d7](https://github.com/camox-ai/camox/commit/b4743d7746b41e47a805c3afb1ac0a1073ff5a83))
+
+
+### Miscellaneous
+
+* misc improvements ([32306e6](https://github.com/camox-ai/camox/commit/32306e6e724b7974c3d0cd6a03dd993de6b67000))
+
 ## [0.14.2](https://github.com/camox-ai/camox/compare/camox-v0.14.1...camox-sdk-v0.14.2) (2026-04-28)
 
 
