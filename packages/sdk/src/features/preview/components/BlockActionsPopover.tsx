@@ -287,7 +287,7 @@ const BlockActionsPopover = ({
                       <CommandItem
                         className="justify-between"
                         onSelect={() => {
-                          handleDuplicateBlock(block);
+                          void handleDuplicateBlock(block);
                           onOpenChange(false);
                         }}
                       >
@@ -304,7 +304,7 @@ const BlockActionsPopover = ({
                     <CommandGroup>
                       <CommandItem
                         onSelect={() => {
-                          handleDeleteBlocksAbove(block);
+                          void handleDeleteBlocksAbove(block);
                           onOpenChange(false);
                         }}
                         disabled={getBlocksAbove(block).length === 0}
@@ -314,7 +314,7 @@ const BlockActionsPopover = ({
                       </CommandItem>
                       <CommandItem
                         onSelect={() => {
-                          handleDeleteBlocksBelow(block);
+                          void handleDeleteBlocksBelow(block);
                           onOpenChange(false);
                         }}
                         disabled={getBlocksBelow(block).length === 0}
@@ -325,7 +325,7 @@ const BlockActionsPopover = ({
                       <CommandItem
                         className="justify-between"
                         onSelect={() => {
-                          handleDeleteBlock(block);
+                          void handleDeleteBlock(block);
                           onOpenChange(false);
                         }}
                       >

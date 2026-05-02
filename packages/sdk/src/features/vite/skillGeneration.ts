@@ -11,7 +11,7 @@ import {
 import { resolve, relative, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { ViteDevServer } from "vite";
+import type { ViteDevServer } from "vite-plus";
 
 import { writeIfChanged } from "./utils";
 

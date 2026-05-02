@@ -14,8 +14,8 @@
     }
   },
   "scripts": {
-    "lint": "oxlint",
-    "check": "tsgo --noEmit && oxlint --fix"
+    "lint": "vp lint",
+    "check": "tsgo --noEmit && vp lint --fix"
   },
   "dependencies": {
     "@camox/api-contract": "workspace:*",
@@ -25,7 +25,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260317.1",
     "@typescript/native-preview": "7.0.0-dev.20260412.1",
-    "oxlint": "^0.15.15"
+    "vite-plus": "catalog:"
   },
   "nx": {
     "tags": [

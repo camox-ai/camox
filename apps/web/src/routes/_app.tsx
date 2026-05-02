@@ -43,14 +43,14 @@ function AppLayout() {
 
   const navigate = useCallback(
     async (href: string) => {
-      router.navigate({ to: href });
+      await router.navigate({ to: href });
     },
     [router],
   );
 
   const replace = useCallback(
     async (href: string) => {
-      router.navigate({ to: href, replace: true });
+      await router.navigate({ to: href, replace: true });
     },
     [router],
   );

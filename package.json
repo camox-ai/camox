@@ -9,26 +9,18 @@
     "dev:servers": "nx run-many -t dev -p @camox/api web --parallel=10",
     "lint": "nx run-many -t lint --all",
     "test": "nx run-many -t test --all",
-    "fmt": "oxfmt .",
-    "check": "oxfmt . && nx run-many -t check --all --no-tui",
+    "format": "vp fmt .",
+    "check": "vp check",
     "seed": "nx run @camox/api:seed",
     "deploy": "nx run-many -t deploy --all",
-    "prepare": "husky"
+    "prepare": "vp config"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
     "@typescript/native-preview": "7.0.0-dev.20260412.1",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
     "nx": "^21.6.10",
-    "oxfmt": "^0.38.0"
-  },
-  "lint-staged": {
-    "*": [
-      "oxfmt",
-      "nx affected -t check"
-    ]
+    "vite-plus": "catalog:"
   },
   "packageManager": "pnpm@10.33.0",
   "pnpm": {

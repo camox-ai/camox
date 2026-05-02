@@ -55,7 +55,7 @@ function OrganizationPicker() {
   const activeOrg = organizations?.find((org) => org.slug === orgSlug);
 
   const handleSetActive = (newOrgSlug: string) => {
-    navigate({ to: "/dashboard/$orgSlug", params: { orgSlug: newOrgSlug } });
+    void navigate({ to: "/dashboard/$orgSlug", params: { orgSlug: newOrgSlug } });
   };
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -126,7 +126,7 @@ function CreateOrganizationDialog({
       await authClient.organization.create({ name: value.name, slug: value.slug });
       onOpenChange(false);
       form.reset();
-      navigate({ to: "/dashboard/$orgSlug", params: { orgSlug: value.slug } });
+      await navigate({ to: "/dashboard/$orgSlug", params: { orgSlug: value.slug } });
     },
   });
 
@@ -151,7 +151,7 @@ function CreateOrganizationDialog({
           onSubmit={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            form.handleSubmit();
+            void form.handleSubmit();
           }}
           className="grid gap-4 py-2"
         >

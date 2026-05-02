@@ -50,7 +50,7 @@ export type ConditionalChild = string | FieldToken | Conditional;
 export type ConditionalLines = ConditionalChild | ReadonlyArray<ConditionalChild>;
 
 export type ContentProxy<TShape extends Record<string, TSchema>> = {
-  [K in keyof TShape & string]: FieldToken;
+  [K in keyof TShape & string]: string & FieldToken;
 };
 
 /**

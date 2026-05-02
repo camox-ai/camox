@@ -51,7 +51,7 @@ switch (result.command) {
     await login.handler();
     break;
   case "logout":
-    await logout.handler();
+    logout.handler();
     break;
   case "status":
     await status.handler(result);

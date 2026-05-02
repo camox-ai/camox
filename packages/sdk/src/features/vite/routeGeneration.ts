@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, relative } from "node:path";
 
-import type { ViteDevServer } from "vite";
+import type { ViteDevServer } from "vite-plus";
 
 import { writeIfChanged } from "./utils";
 

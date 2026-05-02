@@ -100,7 +100,7 @@ const EditPageModalContent = ({ pageId }: { pageId: number | null }) => {
         previewStore.send({ type: "closeEditPageModal" });
         form.reset();
 
-        navigate({ to: fullPath });
+        await navigate({ to: fullPath });
       } catch (error) {
         console.error("Failed to update page:", error);
         toast.error("Could not update page");
@@ -161,7 +161,7 @@ const EditPageModalContent = ({ pageId }: { pageId: number | null }) => {
                   onSubmit={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    form.handleSubmit();
+                    void form.handleSubmit();
                   }}
                   className="-mx-1 space-y-4 px-1"
                 >

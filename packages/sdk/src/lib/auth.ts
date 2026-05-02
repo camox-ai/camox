@@ -254,12 +254,12 @@ export function useProcessOtt(authClient: CamoxAuthClient) {
     url.searchParams.delete("ott");
     window.history.replaceState({}, "", url);
 
-    (async () => {
+    void (async () => {
       try {
         await authClient.oneTimeToken.verify({ token: ott });
         // crossDomainClient's fetch plugin handles storing the session cookie
         // in localStorage automatically. Just notify the session store.
-        authClient.updateSession();
+        await authClient.updateSession();
       } catch {
         // OTT verification failed — continue unauthenticated
       }

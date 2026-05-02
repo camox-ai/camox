@@ -19,7 +19,7 @@ function OrgLayout() {
 
   useEffect(() => {
     if (!activeOrg) return;
-    authClient.organization.setActive({ organizationId: activeOrg.id });
+    void authClient.organization.setActive({ organizationId: activeOrg.id });
   }, [activeOrg]);
 
   const { projectSlug } = useParams({ strict: false });

@@ -74,7 +74,7 @@ function ProjectSettingsFormInner({ project }: { project: Project }) {
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        form.handleSubmit();
+        void form.handleSubmit();
       }}
       className="space-y-4"
     >
@@ -134,7 +134,7 @@ function ProjectCredentialsSection({ slug, secret }: { slug: string; secret: str
                   variant="outline"
                   size="icon"
                   onClick={() => {
-                    navigator.clipboard.writeText(slug);
+                    void navigator.clipboard.writeText(slug);
                     toast.success("Slug copied to clipboard");
                   }}
                 />
@@ -176,8 +176,8 @@ function ProjectCredentialsSection({ slug, secret }: { slug: string; secret: str
         type="button"
         variant="secondary"
         className="-mt-2"
-        onClick={() => {
-          navigator.clipboard.writeText(secret);
+        onClick={async () => {
+          await navigator.clipboard.writeText(secret);
           toast.success("Secret copied to clipboard");
         }}
       >
@@ -198,9 +198,9 @@ function DeleteProjectSection({ project }: { project: Project }) {
   const deleteProject = useMutation({
     mutationFn: () => api.projects.delete({ id: project.id }),
     onSuccess: () => {
-      queryClient.invalidateQueries(projectQueries.list(project.organizationId));
+      void queryClient.invalidateQueries(projectQueries.list(project.organizationId));
       toast.success("Project deleted");
-      navigate({ to: "/dashboard/$orgSlug", params: { orgSlug } });
+      void navigate({ to: "/dashboard/$orgSlug", params: { orgSlug } });
     },
     onError: (error) => {
       console.error("Failed to delete project:", error);

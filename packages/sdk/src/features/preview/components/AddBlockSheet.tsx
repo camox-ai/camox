@@ -112,7 +112,7 @@ const AddBlockSheet = () => {
         page: { ...previousPage.page, blockIds: newBlockIds },
       });
 
-      queryClient.cancelQueries({ queryKey: pageQueryKey });
+      void queryClient.cancelQueries({ queryKey: pageQueryKey });
       return { previousPage, optimisticId };
     },
     onError: (_error, _variables, context) => {
@@ -124,7 +124,7 @@ const AddBlockSheet = () => {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.pages.getByPath(pagePathname) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.pages.getByPath(pagePathname) });
     },
   });
 
@@ -251,7 +251,7 @@ const AddBlockSheet = () => {
                     key={block._internal.id}
                     value={block._internal.title}
                     onSelect={() => {
-                      handleAddBlock(block);
+                      void handleAddBlock(block);
                     }}
                     className="group flex items-center justify-between gap-2"
                   >

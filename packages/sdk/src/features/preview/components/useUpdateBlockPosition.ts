@@ -57,7 +57,7 @@ export function useUpdateBlockPosition() {
         page: { ...previousPage.page, blockIds: sortedIds },
       });
 
-      queryClient.cancelQueries({ queryKey: pageQueryKey });
+      void queryClient.cancelQueries({ queryKey: pageQueryKey });
       return { previousPage, prevBundle };
     },
     onError: (_error, variables, context) => {
@@ -69,7 +69,7 @@ export function useUpdateBlockPosition() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.pages.getByPath(pagePathname) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.pages.getByPath(pagePathname) });
     },
   });
 }

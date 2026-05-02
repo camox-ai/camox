@@ -67,7 +67,7 @@ const PagePicker = () => {
       toast.success(`Deleted ${displayName} page`);
 
       if (pathname === page.fullPath) {
-        navigate({ to: "/" });
+        await navigate({ to: "/" });
       }
     } catch (error) {
       console.error("Failed to delete page:", error);
@@ -142,7 +142,7 @@ const PagePicker = () => {
                     className="group/item justify-between"
                     hideCheck
                     onSelect={() => {
-                      navigate({ to: page.fullPath });
+                      void navigate({ to: page.fullPath });
                       closePopover();
                     }}
                   >

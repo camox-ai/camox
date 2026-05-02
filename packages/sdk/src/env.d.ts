@@ -1,5 +1,5 @@
-/// <reference types="vite/client" />
-/// <reference types="vite/types/importMeta.d.ts" />
+/// <reference types="vite-plus/client" />
+/// <reference types="vite-plus/types/importMeta.d.ts" />
 
 declare module "virtual:camox-studio-css" {
   const url: string;

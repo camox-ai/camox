@@ -380,7 +380,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 className="hidden"
                 accept={isImage ? "image/*" : "*/*"}
                 onChange={(e) => {
-                  if (e.target.files) handleReplaceDrop(e.target.files);
+                  if (e.target.files) void handleReplaceDrop(e.target.files);
                   e.target.value = "";
                 }}
               />

@@ -123,7 +123,7 @@ function useNavbarActions() {
       groupLabel: "Navigation",
       checkIfAvailable: () => true,
       execute: () => {
-        navigate({ to: link.to });
+        void navigate({ to: link.to });
       },
       shortcut: { key: String(index + 1) },
       icon: link.icon,

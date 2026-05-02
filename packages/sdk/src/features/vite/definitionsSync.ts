@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { type Logger, type ViteDevServer, createServer, isRunnableDevEnvironment } from "vite";
+import { type Logger, type ViteDevServer, createServer, isRunnableDevEnvironment } from "vite-plus";
 
 import type { CamoxApp } from "@/core/createApp";
 import type { Block } from "@/core/createBlock";
@@ -358,7 +358,7 @@ export async function syncDefinitions(
   try {
     await performInitialSync();
   } catch (error) {
-    server.config.logger.error(`[camox] Failed to sync block definitions: ${error}`, {
+    server.config.logger.error(`[camox] Failed to sync block definitions: ${String(error)}`, {
       timestamp: true,
     });
   }
@@ -391,7 +391,9 @@ export async function syncDefinitions(
         try {
           await upsertBlock(filePath);
         } catch (error) {
-          server.config.logger.error(`[camox] Failed to sync block: ${error}`, { timestamp: true });
+          server.config.logger.error(`[camox] Failed to sync block: ${String(error)}`, {
+            timestamp: true,
+          });
         }
       }, SYNC_DEBOUNCE_DELAY_MS),
     );
@@ -411,7 +413,9 @@ export async function syncDefinitions(
       try {
         await deleteBlock(filePath);
       } catch (error) {
-        server.config.logger.error(`[camox] Failed to delete block: ${error}`, { timestamp: true });
+        server.config.logger.error(`[camox] Failed to delete block: ${String(error)}`, {
+          timestamp: true,
+        });
       }
     }, SYNC_DEBOUNCE_DELAY_MS);
   };
@@ -432,7 +436,9 @@ export async function syncDefinitions(
       try {
         await performInitialSync();
       } catch (error) {
-        server.config.logger.error(`[camox] Failed to sync layouts: ${error}`, { timestamp: true });
+        server.config.logger.error(`[camox] Failed to sync layouts: ${String(error)}`, {
+          timestamp: true,
+        });
       }
     }, SYNC_DEBOUNCE_DELAY_MS);
   };

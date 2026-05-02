@@ -15,8 +15,8 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "db:studio": "drizzle-kit studio",
     "seed": "tsx scripts/dev-seed.ts",
-    "lint": "oxlint",
-    "check": "tsgo --noEmit && oxlint --fix"
+    "lint": "vp lint",
+    "check": "vp check"
   },
   "dependencies": {
     "@camox/ai-tools": "workspace:*",
@@ -40,8 +40,8 @@
     "@libsql/client": "^0.17.2",
     "@types/node": "^22.15.0",
     "drizzle-kit": "^0.31.10",
-    "oxlint": "^0.15.15",
     "tsx": "^4.21.0",
+    "vite-plus": "catalog:",
     "wrangler": "^4.4.0"
   },
   "nx": {

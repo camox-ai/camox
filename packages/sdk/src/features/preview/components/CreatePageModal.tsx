@@ -85,7 +85,7 @@ const CreatePageModal = () => {
 
         // Small delay to allow database to sync before navigation
         await new Promise((resolve) => setTimeout(resolve, 50));
-        navigate({ to: fullPath });
+        await navigate({ to: fullPath });
       } catch (error) {
         console.error("Failed to create page:", error);
         toast.error("Could not create page");
@@ -117,7 +117,7 @@ const CreatePageModal = () => {
           onSubmit={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            form.handleSubmit();
+            void form.handleSubmit();
           }}
           className="-mx-1 space-y-4 overflow-y-auto px-1 py-2"
         >

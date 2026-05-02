@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 
-import type { ViteDevServer } from "vite";
+import type { ViteDevServer } from "vite-plus";
 
 const MAX_EMPTY_BLOCK_CHARACTER_COUNT = 50;
 

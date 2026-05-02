@@ -53,7 +53,7 @@ export function useProjectRoom(apiUrl: string, projectId: number | undefined) {
         pendingRef.current = [];
 
         for (const queryKey of targets) {
-          queryClient.invalidateQueries({ queryKey });
+          void queryClient.invalidateQueries({ queryKey });
         }
       }, DEBOUNCE_MS);
     },

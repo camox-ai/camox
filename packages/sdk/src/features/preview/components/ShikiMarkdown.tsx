@@ -14,7 +14,7 @@ export const ShikiMarkdown = ({ code }: { code: string }) => {
 
   React.useEffect(() => {
     let cancelled = false;
-    codeToHtml(code, {
+    void codeToHtml(code, {
       lang: "markdown",
       themes: { light: "github-light", dark: "github-dark-high-contrast" },
       defaultColor: false,

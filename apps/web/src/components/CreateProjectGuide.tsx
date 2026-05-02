@@ -7,10 +7,9 @@ import { useCallback } from "react";
 const CLI_COMMAND = "npm create camox@latest";
 
 export function CreateProjectGuide() {
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(CLI_COMMAND).then(() => {
-      toast.success("Command copied to clipboard");
-    });
+  const handleCopy = useCallback(async () => {
+    await navigator.clipboard.writeText(CLI_COMMAND);
+    toast.success("Command copied to clipboard");
   }, []);
 
   return (

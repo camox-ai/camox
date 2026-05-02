@@ -22,7 +22,7 @@ function ProfilePage() {
 
   useEffect(() => {
     if (!tab) {
-      navigate({ to: "/dashboard/profile", search: { tab: "account" }, replace: true });
+      void navigate({ to: "/dashboard/profile", search: { tab: "account" }, replace: true });
     }
   }, [tab, navigate]);
 

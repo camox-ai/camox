@@ -72,7 +72,7 @@ export function createMarkdownMiddleware(
         const page = await api.pages.getByPath({ path: url.pathname, projectSlug });
         const { markdown } = await api.blocks.getPageMarkdown({ pageId: page.page.id });
         if (markdown) {
-          trackEvent("markdown_served", {
+          void trackEvent("markdown_served", {
             pathname: url.pathname,
             projectId: page.page.projectId,
             projectName: page.projectName,

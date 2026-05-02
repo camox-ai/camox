@@ -112,7 +112,7 @@ export function useFileUpload(options?: UseFileUploadOptions) {
       setUploads((prev) => [...prev, ...newItems]);
 
       // Upload all in parallel
-      Promise.all(
+      void Promise.all(
         Array.from(files).map((file, i) =>
           uploadSingleFile(file, newItems[i].id).catch((err) => {
             const message = err instanceof Error ? err.message : "Upload failed";

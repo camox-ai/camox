@@ -4,11 +4,22 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { camox } from "camox/vite";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv } from "vite-plus";
 
 const env = loadEnv(process.env.NODE_ENV!, process.cwd(), "CAMOX_");
 
 const config = defineConfig({
+  lint: {
+    plugins: ["react"],
+    rules: {
+      "no-nested-ternary": "error",
+    },
+    ignorePatterns: ["src/routeTree.gen.ts"],
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
+  },
   resolve: {
     tsconfigPaths: true,
   },

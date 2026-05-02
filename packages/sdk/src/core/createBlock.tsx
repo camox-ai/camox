@@ -1531,7 +1531,7 @@ export function createBlock<
           } as TItem;
           const itemSettings: Record<string, unknown> = {
             ...settingsDefaultsForField,
-            ...((isDbItem ? (item.settings as Record<string, unknown> | null) : null) ?? {}),
+            ...(isDbItem ? (item.settings as Record<string, unknown> | null) : null),
           };
           const itemId: number | undefined = isDbItem ? item.id : undefined;
           const useItemSetting = (settingName: string) => itemSettings[settingName];

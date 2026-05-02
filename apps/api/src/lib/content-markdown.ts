@@ -78,40 +78,44 @@ function resolveLine(
   });
 }
 
+function asString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 function resolveField(schema: any, value: unknown, ctx: SettingsContext): string | undefined {
   if (value == null) return undefined;
   const fieldType: string | undefined = schema?.fieldType;
 
   if (fieldType === "String") {
-    const text = String(value);
+    const text = asString(value);
     if (!text) return undefined;
     return text;
   }
 
   if (fieldType === "Link") {
     const link = value as Record<string, unknown>;
-    const text = link.text ?? "";
-    const href = link.href ?? link.pageId ?? "";
+    const text = asString(link.text);
+    const href = asString(link.href) || asString(link.pageId);
     if (!text && !href) return undefined;
     return `[${text}](${href})`;
   }
 
   if (fieldType === "Image") {
     const img = value as Record<string, unknown>;
-    const alt = img.alt ?? "";
-    const filename = img.filename ?? "";
+    const alt = asString(img.alt);
+    const filename = asString(img.filename);
     return `![${alt}](${filename})`;
   }
 
   if (fieldType === "File") {
     const file = value as Record<string, unknown>;
-    const filename = file.filename ?? "";
-    const url = file.url ?? "";
+    const filename = asString(file.filename);
+    const url = asString(file.url);
     return `[${filename}](${url})`;
   }
 
   if (fieldType === "Embed") {
-    const url = String(value);
+    const url = asString(value);
     return url || undefined;
   }
 
@@ -161,7 +165,10 @@ function resolveField(schema: any, value: unknown, ctx: SettingsContext): string
   }
 
   if (fieldType === "Boolean" || fieldType === "Enum") {
-    return String(value);
+    if (typeof value === "boolean" || typeof value === "string" || typeof value === "number") {
+      return String(value);
+    }
+    return undefined;
   }
 
   return undefined;

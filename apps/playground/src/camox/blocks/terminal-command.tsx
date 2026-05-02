@@ -29,7 +29,7 @@ function CopyTerminalCommandComponent() {
 
   const handleCopy = () => {
     const text = commandRef.current?.textContent ?? "";
-    navigator.clipboard.writeText(text);
+    void navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

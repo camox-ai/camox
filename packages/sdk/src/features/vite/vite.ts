@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { type Plugin, type ResolvedConfig, type ViteDevServer, createServer } from "vite";
+import { type Plugin, type ResolvedConfig, type ViteDevServer, createServer } from "vite-plus";
 import { z } from "zod";
 
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -264,7 +264,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
       }
 
       server.httpServer?.once("listening", () => {
-        syncDefinitions(server, {
+        void syncDefinitions(server, {
           projectSlug: options.projectSlug,
           syncSecret: options.syncSecret,
           apiUrl,

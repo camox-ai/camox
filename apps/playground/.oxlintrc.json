@@ -1,8 +1,0 @@
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react"],
-  "rules": {
-    "no-nested-ternary": "error"
-  },
-  "ignorePatterns": ["src/routeTree.gen.ts", "**/convex/_generated/**"]
-}
