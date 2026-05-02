@@ -130,28 +130,35 @@ async function seed(db: ReturnType<typeof createDrizzle>) {
 
   const now = Date.now();
 
-  const project = await db
-    .insert(projects)
-    .values({
-      name: "Camox Playground",
-      slug: "camox-playground-01",
-      organizationId: orgId,
-      syncSecret: "camox-dev-sync-secret",
+  async function seedProject(name: string, slug: string) {
+    const project = await db
+      .insert(projects)
+      .values({
+        name,
+        slug,
+        organizationId: orgId,
+        syncSecret: "camox-dev-sync-secret",
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning()
+      .get();
+
+    await db.insert(environments).values({
+      projectId: project.id,
+      name: "production",
+      type: "production",
       createdAt: now,
       updatedAt: now,
-    })
-    .returning()
-    .get();
+    });
 
-  await db.insert(environments).values({
-    projectId: project.id,
-    name: "production",
-    type: "production",
-    createdAt: now,
-    updatedAt: now,
-  });
+    return project;
+  }
 
-  return { projectId: project.id };
+  const playground = await seedProject("Camox Playground", "camox-playground-01");
+  const templateDefault = await seedProject("Camox Template Default", "camox-template-default-01");
+
+  return { projectIds: [playground.id, templateDefault.id] };
 }
 
 // ---------------------------------------------------------------------------
@@ -168,11 +175,11 @@ async function main() {
   const db = createDrizzle(sqlitePath);
 
   await clearAll(db);
-  const { projectId } = await seed(db);
+  const { projectIds } = await seed(db);
 
   console.info("Seeded successfully!");
   console.info("Credentials: dev@camox.dev / camox-dev-123");
-  console.info("Project ID:", projectId);
+  console.info("Project IDs:", projectIds.join(", "));
   console.info("Site content will be initialized on first 'pnpm dev' via Vite plugin sync.");
 }
 

@@ -180,11 +180,26 @@ export async function init() {
   const s = p.spinner();
   s.start("Scaffolding project...");
 
-  const templateDir = path.resolve(__dirname, "..", "template");
+  const templateDir = path.resolve(__dirname, "..", "templates", "default");
   copyDir(templateDir, targetDir, {
     "{{projectName}}": name,
-    "{{projectSlug}}": project.slug,
   });
+
+  // Rewrite vite.config.ts: the template uses literal values (so it can run as
+  // a real app in the monorepo) marked with comments that the CLI processes.
+  const viteConfigPath = path.join(targetDir, "vite.config.ts");
+  let viteConfig = fs.readFileSync(viteConfigPath, "utf-8");
+  // Replace the placeholder slug with the user's project slug, dropping the marker comment.
+  viteConfig = viteConfig.replace(
+    /"[^"]*"(,?)[ \t]*\/\/[ \t]*camox-cli:replace-slug.*$/gm,
+    `"${project.slug}"$1`,
+  );
+  // Strip dev-only blocks (e.g. _internal apiUrl/authenticationUrl pointing at local services).
+  viteConfig = viteConfig.replace(
+    /^[ \t]*\/\/[ \t]*camox-cli:dev-only-start[ \t]*\r?\n[\s\S]*?^[ \t]*\/\/[ \t]*camox-cli:dev-only-end[ \t]*\r?\n/gm,
+    "",
+  );
+  fs.writeFileSync(viteConfigPath, viteConfig);
 
   // Rewrite package.json: the template ships with workspace placeholders
   // (so it can live in the monorepo) which need real values for users.

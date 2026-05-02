@@ -6,7 +6,7 @@
   },
   "files": [
     "dist",
-    "template"
+    "templates"
   ],
   "type": "module",
   "main": "./dist/index.mjs",
@@ -14,8 +14,8 @@
     ".": "./dist/index.mjs"
   },
   "scripts": {
-    "build": "vp pack",
-    "dev": "vp pack --watch",
+    "build": "node scripts/sync-templates.mjs && vp pack",
+    "dev": "node scripts/sync-templates.mjs --watch --build",
     "lint": "vp lint",
     "check": "tsgo --noEmit && vp lint --fix"
   },

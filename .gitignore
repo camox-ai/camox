@@ -5,6 +5,7 @@ node_modules/
 dist/
 build/
 .output/
+packages/cli/templates
 
 # Environment variables
 .env

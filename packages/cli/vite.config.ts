@@ -11,7 +11,7 @@ export default defineConfig({
     target: false,
   },
   lint: {
-    ignorePatterns: ["template/**"],
+    ignorePatterns: ["templates/**"],
     options: {
       typeAware: true,
       typeCheck: true,

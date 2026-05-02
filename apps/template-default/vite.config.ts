@@ -13,7 +13,16 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     nitro(),
-    camox({ projectSlug: "{{projectSlug}}", syncSecret: env.CAMOX_SYNC_SECRET }),
+    camox({
+      projectSlug: "camox-template-default-01", // camox-cli:replace-slug
+      syncSecret: env.CAMOX_SYNC_SECRET,
+      // camox-cli:dev-only-start
+      _internal: {
+        authenticationUrl: "http://localhost:3274",
+        apiUrl: "http://localhost:8787",
+      },
+      // camox-cli:dev-only-end
+    }),
     tanstackStart(),
     react(),
     babelPlugin({ presets: [reactCompilerPreset()] }),

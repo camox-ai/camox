@@ -17,7 +17,10 @@ export function copyDir(src: string, dest: string, replacements: Record<string, 
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
 
-    if (entry.isDirectory()) {
+    // Use statSync to follow symlinks — entry.isDirectory() is false for
+    // symlinks-to-dirs, which would otherwise fall through to readFileSync.
+    const stats = fs.statSync(srcPath);
+    if (stats.isDirectory()) {
       copyDir(srcPath, destPath, replacements);
       continue;
     }
