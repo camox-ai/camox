@@ -11,6 +11,7 @@
     "test": "nx run-many -t test --all",
     "format": "vp fmt .",
     "check": "vp check",
+    "check:fix": "vp check --fix",
     "seed": "nx run @camox/api:seed",
     "deploy": "nx run-many -t deploy --all",
     "prepare": "vp config"
