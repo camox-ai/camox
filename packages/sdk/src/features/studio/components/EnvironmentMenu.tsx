@@ -37,7 +37,7 @@ export const EnvironmentMenu = () => {
             <>
               <p className="text-sm">
                 This environment is your personal space to iterate on content and data structures.
-                It won't affect your teammates or production.
+                It doesn't affect production data.
               </p>
               <p className="text-muted-foreground text-xs">
                 You will be able to pull and push data to the production env from here.
