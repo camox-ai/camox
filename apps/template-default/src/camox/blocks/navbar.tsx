@@ -45,7 +45,7 @@ function NavbarComponent() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <navbar.Link name="title">
-            {(props) => <Link {...props} className="text-foreground text-xl font-bold" />}
+            {(props) => <Link {...props} className="text-foreground text-lg font-bold" />}
           </navbar.Link>
 
           <div className="flex items-center gap-6">

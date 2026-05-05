@@ -11,11 +11,11 @@ const footer = createBlock({
     links: Type.RepeatableItem({
       content: {
         link: Type.Link({
-          default: { text: "Link", href: "#", newTab: false },
+          default: { text: "Footer link", href: "#", newTab: false },
           title: "Link",
         }),
       },
-      minItems: 1,
+      minItems: 2,
       maxItems: 12,
       title: "Links",
       toMarkdown: (c) => [c.link],
@@ -27,14 +27,17 @@ const footer = createBlock({
 
 function FooterComponent() {
   return (
-    <footer className="dark bg-background py-12">
+    <footer className="dark bg-background py-4">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
-          <footer.Field name="title">
-            {(props) => <div {...props} className="text-foreground text-lg font-bold" />}
-          </footer.Field>
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+          <div className="flex items-center gap-2">
+            <footer.Field name="title">
+              {(props) => <div {...props} className="text-foreground text-sm font-bold" />}
+            </footer.Field>
+            <div className="text-muted-foreground text-sm">&copy; {new Date().getFullYear()}</div>
+          </div>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-4">
             <footer.Repeater name="links">
               {(linkItem) => (
                 <linkItem.Link name="link">
@@ -48,10 +51,6 @@ function FooterComponent() {
               )}
             </footer.Repeater>
           </div>
-        </div>
-
-        <div className="text-muted-foreground mt-8 text-center text-sm">
-          &copy; {new Date().getFullYear()} All rights reserved.
         </div>
       </div>
     </footer>

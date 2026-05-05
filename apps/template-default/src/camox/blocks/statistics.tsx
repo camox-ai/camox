@@ -45,50 +45,47 @@ const statistics = createBlock({
 function StatisticsComponent() {
   return (
     <section className="dark bg-background py-24">
-      <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-16">
-            <statistics.Field name="title">
-              {(props) => (
-                <div
-                  {...props}
-                  className="text-primary mb-4 text-sm font-semibold tracking-wider uppercase"
-                />
-              )}
-            </statistics.Field>
-            <statistics.Field name="subtitle">
-              {(props) => (
-                <h2 {...props} className="text-foreground mb-6 text-4xl font-bold sm:text-5xl" />
-              )}
-            </statistics.Field>
-            <statistics.Field name="description">
-              {(props) => (
-                <p {...props} className="text-muted-foreground max-w-3xl text-lg leading-relaxed" />
-              )}
-            </statistics.Field>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-            <statistics.Repeater name="statistics">
-              {(stat) => (
-                <div className="flex gap-3">
-                  <div className="w-0.5 bg-linear-to-b from-teal-400 to-blue-500" />
-                  <div className="flex flex-col">
-                    <stat.Field name="number">
-                      {(props) => (
-                        <div {...props} className="text-foreground mb-2 text-4xl font-bold" />
-                      )}
-                    </stat.Field>
-                    <stat.Field name="label">
-                      {(props) => (
-                        <p {...props} className="text-muted-foreground text-sm leading-relaxed" />
-                      )}
-                    </stat.Field>
-                  </div>
+      <div className="container mx-auto">
+        <div className="mb-16">
+          <statistics.Field name="title">
+            {(props) => (
+              <div
+                {...props}
+                className="text-accent-foreground mb-4 text-sm font-semibold tracking-wider uppercase"
+              />
+            )}
+          </statistics.Field>
+          <statistics.Field name="subtitle">
+            {(props) => (
+              <h2 {...props} className="text-foreground mb-6 text-4xl font-bold sm:text-5xl" />
+            )}
+          </statistics.Field>
+          <statistics.Field name="description">
+            {(props) => (
+              <p {...props} className="text-muted-foreground max-w-3xl text-lg leading-relaxed" />
+            )}
+          </statistics.Field>
+        </div>
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <statistics.Repeater name="statistics">
+            {(stat) => (
+              <div className="flex gap-3">
+                <div className="w-0.5 bg-linear-to-b from-teal-400 to-emerald-500" />
+                <div className="flex flex-col">
+                  <stat.Field name="number">
+                    {(props) => (
+                      <div {...props} className="text-foreground mb-2 text-4xl font-bold" />
+                    )}
+                  </stat.Field>
+                  <stat.Field name="label">
+                    {(props) => (
+                      <p {...props} className="text-muted-foreground text-sm leading-relaxed" />
+                    )}
+                  </stat.Field>
                 </div>
-              )}
-            </statistics.Repeater>
-          </div>
+              </div>
+            )}
+          </statistics.Repeater>
         </div>
       </div>
     </section>
