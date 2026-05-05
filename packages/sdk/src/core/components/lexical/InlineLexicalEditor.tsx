@@ -1,5 +1,6 @@
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import type { EditorState } from "lexical";
@@ -169,6 +170,7 @@ export function InlineLexicalEditor({
         ErrorBoundary={LexicalErrorBoundary}
       />
       <OnChangePlugin onChange={handleChange} />
+      <HistoryPlugin />
       <ExternalStateSync externalState={externalState} />
       <EscapeHandler />
       <EnterAsLineBreakHandler />

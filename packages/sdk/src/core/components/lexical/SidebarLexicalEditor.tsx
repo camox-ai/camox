@@ -1,6 +1,7 @@
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import type { EditorState } from "lexical";
@@ -119,6 +120,7 @@ export function SidebarLexicalEditor({
         ErrorBoundary={LexicalErrorBoundary}
       />
       <OnChangePlugin onChange={handleChange} />
+      <HistoryPlugin />
       <ExternalStateSync value={value} isSyncingRef={isSyncingRef} />
       <EnterAsLineBreakHandler />
     </LexicalComposer>
