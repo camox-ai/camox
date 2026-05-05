@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.16.0](https://github.com/camox-ai/camox/compare/camox-v0.15.1...@camox/cli-v0.16.0) (2026-05-05)
+
+
+### Bug Fixes
+
+* fewer tool calls needed to edit content ([60b9c2f](https://github.com/camox-ai/camox/commit/60b9c2fbaa5fe3987c78c63b2d926c4ed4f6bef3))
+
+
+### Miscellaneous
+
+* make template app runnable ([deeac4c](https://github.com/camox-ai/camox/commit/deeac4ccfe4b30dc989083ebe2e901cd2262762e))
+* set up vite plus ([bd1d4f1](https://github.com/camox-ai/camox/commit/bd1d4f1c5a938cf0dde44cb764583bf524aee1af))
+
 ## [0.15.1](https://github.com/camox-ai/camox/compare/camox-v0.15.0...@camox/cli-v0.15.1) (2026-04-30)
 
 
