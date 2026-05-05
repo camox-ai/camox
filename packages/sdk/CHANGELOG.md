@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.1](https://github.com/camox-ai/camox/compare/camox-v0.16.0...camox-sdk-v0.16.1) (2026-05-05)
+
+
+### Miscellaneous
+
+* upgrade to @xstate/store-react dep ([802fb44](https://github.com/camox-ai/camox/commit/802fb441882f4dc86308fc115e638af3dc14a807))
+
 ## [0.16.0](https://github.com/camox-ai/camox/compare/camox-v0.15.1...camox-sdk-v0.16.0) (2026-05-05)
 
 
