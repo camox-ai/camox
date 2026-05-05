@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.16.0](https://github.com/camox-ai/camox/compare/camox-v0.15.1...camox-sdk-v0.16.0) (2026-05-05)
+
+
+### Features
+
+* add repeatable item buttons to dedicated content sheet view ([b2130af](https://github.com/camox-ai/camox/commit/b2130af1d4911756e6fc98c3a8c0a473405ad19e))
+* add repeatable item buttons to FieldToolbar ([c3ee694](https://github.com/camox-ai/camox/commit/c3ee694816fdbb4d9581764a75e3dd0b26448741))
+
+
+### Bug Fixes
+
+* accidental dark theme ([251d139](https://github.com/camox-ai/camox/commit/251d139ba610bf31421efb10bb528ecd4f8befa2))
+* display loader when creating repeatable item ([98437e6](https://github.com/camox-ai/camox/commit/98437e68a2788ecaa4d84c9eb04bacd0a61bbd50))
+* fewer tool calls needed to edit content ([60b9c2f](https://github.com/camox-ai/camox/commit/60b9c2fbaa5fe3987c78c63b2d926c4ed4f6bef3))
+* skill formatting issues ([b0d31cf](https://github.com/camox-ai/camox/commit/b0d31cfa268eaef6bda9915de110c579560efa29))
+
+
+### Miscellaneous
+
+* add new web app blocks ([44c0b42](https://github.com/camox-ai/camox/commit/44c0b42d473b02c5ac614f324ef714fd21af72c5))
+* fix check script ([dc12bcb](https://github.com/camox-ai/camox/commit/dc12bcb6113345227032f41419ec57666e1e7862))
+* set up vite plus ([bd1d4f1](https://github.com/camox-ai/camox/commit/bd1d4f1c5a938cf0dde44cb764583bf524aee1af))
+
 ## [0.15.1](https://github.com/camox-ai/camox/compare/camox-v0.15.0...camox-sdk-v0.15.1) (2026-04-30)
 
 
