@@ -16,11 +16,11 @@ import { Check, LogOut, Monitor, Moon, Settings, Sun, User } from "lucide-react"
 
 import { useAuthContext, useAuthState } from "@/lib/auth";
 
-import { useTheme } from "../useTheme";
+import { useApplyTheme } from "../useTheme";
 
 export const UserButton = () => {
   const { isAuthenticated, isLoading } = useAuthState();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useApplyTheme();
 
   if (!isAuthenticated || isLoading) {
     return (

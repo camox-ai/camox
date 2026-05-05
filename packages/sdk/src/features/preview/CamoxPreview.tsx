@@ -295,7 +295,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       },
       {
         id: "exit-presentation-mode",
-        label: "",
+        label: "Show Camox Studio",
         groupLabel: "Preview",
         checkIfAvailable: () => isAuthenticated && isPresentationMode,
         execute: () => previewStore.send({ type: "exitPresentationMode" }),

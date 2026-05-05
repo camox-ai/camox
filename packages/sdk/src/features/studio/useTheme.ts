@@ -5,14 +5,30 @@ import { actionsStore } from "../provider/actionsStore";
 
 type Theme = "dark" | "light" | "system";
 
-export function useTheme() {
-  const [theme, setTheme] = React.useState<Theme>(() => {
-    if (typeof window !== "undefined") {
-      const storedTheme = localStorage.getItem("theme") as Theme | null;
-      return storedTheme || "system";
-    }
-    return "system";
-  });
+function readStoredTheme(): Theme {
+  if (typeof window === "undefined") return "system";
+  const storedTheme = localStorage.getItem("theme") as Theme | null;
+  return storedTheme || "system";
+}
+
+/**
+ * Read-only access to the studio theme. Does not mutate `<html>` or localStorage.
+ * Use this when you need the current theme value (e.g. to pass to a Toaster) but
+ * are not the owner of the studio chrome — applying the theme would bleed onto
+ * the host site.
+ */
+export function useThemeValue(): { theme: Theme } {
+  const [theme] = React.useState<Theme>(readStoredTheme);
+  return { theme };
+}
+
+/**
+ * Owns the studio theme: writes the active class onto `<html>` and persists
+ * changes to localStorage. Should only be mounted from the studio chrome —
+ * never from contexts that share `<html>` with the user's site.
+ */
+export function useApplyTheme() {
+  const [theme, setTheme] = React.useState<Theme>(readStoredTheme);
 
   const applyTheme = (themeToApply: "dark" | "light") => {
     const root = window.document.documentElement;
@@ -39,11 +55,19 @@ export function useTheme() {
       // Listen for changes to system theme preference
       mediaQuery.addEventListener("change", updateSystemTheme);
 
-      // Cleanup listener
-      return () => mediaQuery.removeEventListener("change", updateSystemTheme);
+      return () => {
+        mediaQuery.removeEventListener("change", updateSystemTheme);
+        root.classList.remove("light", "dark");
+      };
     }
 
     root.classList.add(theme);
+
+    // On unmount (e.g. user signs out → studio chrome unmounts), clear the
+    // class so the host page returns to its default (light) state.
+    return () => {
+      root.classList.remove("light", "dark");
+    };
   }, [theme]);
 
   React.useEffect(() => {
@@ -57,7 +81,7 @@ export function useTheme() {
 }
 
 export function useThemeActions() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useApplyTheme();
   // Register theme switching actions
   React.useEffect(() => {
     const pageId = "change-theme";

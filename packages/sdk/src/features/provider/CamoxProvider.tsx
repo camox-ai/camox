@@ -20,7 +20,7 @@ import { useProjectRoom } from "@/lib/use-project-room";
 
 import { usePreviewPagesActions } from "../preview/CamoxPreview";
 import { useNavbarActions } from "../studio/components/Navbar";
-import { useTheme, useThemeActions } from "../studio/useTheme";
+import { useApplyTheme, useThemeActions, useThemeValue } from "../studio/useTheme";
 import { CamoxAppProvider } from "./components/CamoxAppContext";
 import { CommandPalette, useCommandPaletteActions } from "./components/CommandPalette";
 import { useAdminShortcuts } from "./useAdminShortcuts";
@@ -45,7 +45,7 @@ const AuthenticatedCamoxProvider = ({ children }: AuthenticatedCamoxProviderProp
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   useProjectRoom(apiUrl, project?.id);
 
-  const { theme } = useTheme();
+  const { theme } = useApplyTheme();
 
   return (
     <>
@@ -89,7 +89,7 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
     return () => void toast.dismiss(toastId);
   }, [signInRedirect]);
 
-  const { theme } = useTheme();
+  const { theme } = useThemeValue();
 
   return (
     <>
