@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.16.1](https://github.com/camox-ai/camox/compare/camox-v0.16.0...camox-v0.16.1) (2026-05-05)
+
+
+### Miscellaneous
+
+* improve template-default ([ab38c73](https://github.com/camox-ai/camox/commit/ab38c731ba3e28ee639cf6a487252073f61b42ad))
+* upgrade to @xstate/store-react dep ([802fb44](https://github.com/camox-ai/camox/commit/802fb441882f4dc86308fc115e638af3dc14a807))
+
 ## [0.16.0](https://github.com/camox-ai/camox/compare/camox-v0.15.1...camox-v0.16.0) (2026-05-05)
 
 
