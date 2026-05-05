@@ -1,8 +1,11 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { generateKeyBetween } from "fractional-indexing";
+import * as React from "react";
 
-import { repeatableItemMutations } from "@/lib/queries";
+import type { NormalizedItem } from "@/lib/normalized-data";
+import { blockQueries, repeatableItemMutations } from "@/lib/queries";
 
+import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { previewStore } from "../previewStore";
 
 export type RepeatableItemFieldSchema = {
@@ -151,4 +154,76 @@ export const useRepeatableItemActions = ({
   };
 
   return { canAdd, addItem, canRemove, removeItem };
+};
+
+const getArraySchemaForItem = (
+  contentSchema: unknown,
+  itemId: number,
+  itemsMap: Map<number, NormalizedItem>,
+): RepeatableArraySchema | null => {
+  const path: string[] = [];
+  let current = itemsMap.get(itemId);
+  while (current) {
+    path.unshift(current.fieldName);
+    current = current.parentItemId ? itemsMap.get(current.parentItemId) : undefined;
+  }
+
+  let schema = contentSchema;
+  for (let i = 0; i < path.length; i++) {
+    const prop = (schema as { properties?: Record<string, RepeatableArraySchema> } | null)
+      ?.properties?.[path[i]];
+    if (!prop?.items) return null;
+    if (i === path.length - 1) return prop;
+    schema = prop.items;
+  }
+  return null;
+};
+
+/**
+ * Resolves the action surface for the currently-edited repeatable item by
+ * fetching the block bundle, locating the item's array-level schema, and
+ * counting siblings. Hook is safe to call when ids are null — it'll just
+ * return disabled actions.
+ */
+export const useCurrentItemActions = (blockId: number | null, itemId: number | null) => {
+  const camoxApp = useCamoxApp();
+  const { data: blockBundle } = useQuery({
+    ...blockQueries.get(blockId!),
+    enabled: blockId != null,
+  });
+
+  const itemsMap = React.useMemo(
+    () => new Map((blockBundle?.repeatableItems ?? []).map((i) => [i.id, i])),
+    [blockBundle?.repeatableItems],
+  );
+
+  const currentItem = itemId != null ? (itemsMap.get(itemId) ?? null) : null;
+  const block = blockBundle?.block ?? null;
+  const blockDef = block ? camoxApp.getBlockById(block.type) : null;
+
+  const arraySchema = React.useMemo(() => {
+    if (!blockDef || itemId == null) return null;
+    return getArraySchemaForItem(blockDef._internal.contentSchema, itemId, itemsMap);
+  }, [blockDef, itemId, itemsMap]);
+
+  const siblingCount = React.useMemo(() => {
+    if (!currentItem) return 0;
+    let count = 0;
+    for (const it of itemsMap.values()) {
+      if (it.fieldName === currentItem.fieldName && it.parentItemId === currentItem.parentItemId) {
+        count++;
+      }
+    }
+    return count;
+  }, [currentItem, itemsMap]);
+
+  const actions = useRepeatableItemActions({
+    blockId: block?.id ?? -1,
+    fieldName: currentItem?.fieldName ?? "",
+    parentItemId: currentItem?.parentItemId ?? null,
+    arraySchema,
+    siblingCount,
+  });
+
+  return { ...actions, currentItem };
 };

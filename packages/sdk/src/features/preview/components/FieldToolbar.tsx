@@ -5,7 +5,7 @@ import { Kbd } from "@camox/ui/kbd";
 import { Toggle } from "@camox/ui/toggle";
 import * as Tooltip from "@camox/ui/tooltip";
 import { useSelector } from "@xstate/store/react";
-import { Bold, Italic } from "lucide-react";
+import { Bold, CircleMinus, CirclePlus, Italic } from "lucide-react";
 import * as React from "react";
 
 import { cn, formatShortcut } from "@/lib/utils";
@@ -14,7 +14,9 @@ import { FORMAT_FLAGS } from "../../../core/lib/modifierFormats";
 import type { OverlayMessage } from "../overlayMessages";
 import { isOverlayMessage } from "../overlayMessages";
 import { previewStore } from "../previewStore";
+import { formatFieldName } from "./ItemFieldsEditor";
 import { useIsPreviewSheetOpen } from "./PreviewSideSheet";
+import { useCurrentItemActions } from "./useRepeatableItemActions";
 
 const FORMAT_BUTTONS = [
   { key: "bold", flag: FORMAT_FLAGS.bold, icon: Bold, label: "Bold", shortcut: "⌘ B" },
@@ -50,7 +52,15 @@ export const FieldToolbar = () => {
   };
 
   const isOnField = selection?.type === "block-field" || selection?.type === "item-field";
+  const isOnItemField = selection?.type === "item-field";
   const isVisible = isOnField && !isAnySideSheetOpen;
+
+  const itemBlockId = isOnItemField ? selection.blockId : null;
+  const itemId = isOnItemField ? selection.itemId : null;
+  const { canAdd, addItem, canRemove, removeItem, currentItem } = useCurrentItemActions(
+    itemBlockId,
+    itemId,
+  );
 
   const handleEditInForm = () => {
     if (!selection) return;
@@ -69,6 +79,52 @@ export const FieldToolbar = () => {
         Edit in form
         {formatShortcut({ key: "j", withAlt: true })}
       </Button>
+      {isOnItemField && currentItem && (canAdd || canRemove) && (
+        <Tooltip.TooltipProvider delay={0}>
+          <ButtonGroup>
+            {canAdd && (
+              <Tooltip.Tooltip>
+                <Tooltip.TooltipTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => addItem({ afterPosition: currentItem.position })}
+                    />
+                  }
+                >
+                  <CirclePlus />
+                </Tooltip.TooltipTrigger>
+                <Tooltip.TooltipContent>
+                  Add item to {formatFieldName(currentItem.fieldName)}
+                </Tooltip.TooltipContent>
+              </Tooltip.Tooltip>
+            )}
+            {canRemove && (
+              <Tooltip.Tooltip>
+                <Tooltip.TooltipTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        removeItem(currentItem.id, {
+                          onSuccess: () => previewStore.send({ type: "selectParent" }),
+                        })
+                      }
+                    />
+                  }
+                >
+                  <CircleMinus />
+                </Tooltip.TooltipTrigger>
+                <Tooltip.TooltipContent>
+                  Remove item from {formatFieldName(currentItem.fieldName)}
+                </Tooltip.TooltipContent>
+              </Tooltip.Tooltip>
+            )}
+          </ButtonGroup>
+        </Tooltip.TooltipProvider>
+      )}
       {hasSelection && (
         <ButtonGroup>
           {FORMAT_BUTTONS.map(({ key, flag, icon: Icon, label, shortcut }) => {
