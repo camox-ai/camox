@@ -4,7 +4,7 @@ import { FloatingToolbar } from "@camox/ui/floating-toolbar";
 import { Kbd } from "@camox/ui/kbd";
 import { Toggle } from "@camox/ui/toggle";
 import * as Tooltip from "@camox/ui/tooltip";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { Lock, MonitorPlay, PanelRight, TabletSmartphone } from "lucide-react";
 
 import { cn, getActionShortcut } from "@/lib/utils";

@@ -18,7 +18,7 @@ import { toast } from "@camox/ui/toaster";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { useEffect } from "react";
 
 import { trackClientEvent } from "@/lib/analytics-client";

@@ -93,7 +93,7 @@
     "@takumi-rs/image-response": "^0.70.4",
     "@tanstack/react-form": "^1.29.0",
     "@tanstack/react-query-devtools": "^5.99.0",
-    "@xstate/store": "^3.17.1",
+    "@xstate/store-react": "^1.0.1",
     "better-auth": "^1.6.2",
     "fractional-indexing": "^3.2.0",
     "hono": "^4.12.12",

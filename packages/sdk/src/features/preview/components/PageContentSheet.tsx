@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@camox/ui/spinner";
 import { Switch } from "@camox/ui/switch";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { CircleMinus, CirclePlus, CornerLeftUp } from "lucide-react";
 import * as React from "react";
 

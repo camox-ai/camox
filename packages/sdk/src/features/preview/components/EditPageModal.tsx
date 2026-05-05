@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { Globe, Info } from "lucide-react";
 import * as React from "react";
 

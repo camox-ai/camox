@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from "@camox/ui/alert";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { Info } from "lucide-react";
 
 import { previewStore } from "../previewStore";

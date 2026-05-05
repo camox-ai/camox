@@ -9,7 +9,7 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { Info } from "lucide-react";
 import * as React from "react";
 

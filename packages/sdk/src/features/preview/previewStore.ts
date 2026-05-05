@@ -1,5 +1,5 @@
 import { toast } from "@camox/ui/toaster";
-import { createStore } from "@xstate/store";
+import { createStore } from "@xstate/store-react";
 
 import { Block } from "@/core/createBlock";
 import type { FieldType } from "@/core/lib/fieldTypes";

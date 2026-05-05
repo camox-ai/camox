@@ -8,7 +8,7 @@ import {
   CommandList,
   CommandShortcut,
 } from "@camox/ui/command";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import * as React from "react";
 
 import { formatShortcut } from "@/lib/utils";

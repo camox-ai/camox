@@ -1,5 +1,5 @@
 import { PanelContent } from "@camox/ui/panel";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import * as React from "react";
 
 import { checkIfInputFocused } from "@/lib/utils";

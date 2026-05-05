@@ -23,7 +23,7 @@ import { Skeleton } from "@camox/ui/skeleton";
 import { toast } from "@camox/ui/toaster";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
 import * as React from "react";
 

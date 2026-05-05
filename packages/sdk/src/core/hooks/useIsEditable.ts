@@ -1,4 +1,4 @@
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 
 import { previewStore } from "@/features/preview/previewStore";
 import { useIsAuthenticated } from "@/lib/auth";

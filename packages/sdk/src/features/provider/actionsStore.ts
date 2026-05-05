@@ -1,4 +1,4 @@
-import { createStore } from "@xstate/store";
+import { createStore } from "@xstate/store-react";
 
 export type ActionGroupLabel = "Preview" | "Studio" | "Navigation" | "Invisible";
 

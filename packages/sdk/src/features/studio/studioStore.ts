@@ -1,4 +1,4 @@
-import { createStore } from "@xstate/store";
+import { createStore } from "@xstate/store-react";
 
 interface StudioContext {
   isCommandPaletteOpen: boolean;

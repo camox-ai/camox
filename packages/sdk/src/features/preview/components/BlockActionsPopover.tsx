@@ -20,7 +20,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { toast } from "@camox/ui/toaster";
 import { useMutation } from "@tanstack/react-query";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { Copy, Pen, Settings, Trash2 } from "lucide-react";
 import * as React from "react";
 

@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation } from "@tanstack/react-query";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { CircleMinus, CirclePlus, GripVertical } from "lucide-react";
 
 import { repeatableItemMutations } from "@/lib/queries";

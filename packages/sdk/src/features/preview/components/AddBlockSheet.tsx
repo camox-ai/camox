@@ -7,12 +7,10 @@ import {
   CommandItem,
   CommandList,
 } from "@camox/ui/command";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { generateKeyBetween } from "fractional-indexing";
-import { InfoIcon } from "lucide-react";
 import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
@@ -261,14 +259,6 @@ const AddBlockSheet = () => {
                         {displayCount(block._internal.id)}
                       </span>
                     </div>
-                    <Tooltip>
-                      <TooltipTrigger className="hidden group-focus-within:flex group-hover:flex">
-                        <InfoIcon />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-75" side="right">
-                        {block._internal.description}
-                      </TooltipContent>
-                    </Tooltip>
                   </CommandItem>
                 ))}
             </CommandGroup>

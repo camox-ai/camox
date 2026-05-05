@@ -6,7 +6,7 @@ import { toast } from "@camox/ui/toaster";
 import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { generateKeyBetween } from "fractional-indexing";
 import * as React from "react";
 import { createPortal } from "react-dom";

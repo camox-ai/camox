@@ -1,5 +1,5 @@
 import * as Sheet from "@camox/ui/sheet";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import * as React from "react";
 
 import { SHEET_WIDTH } from "../previewConstants";

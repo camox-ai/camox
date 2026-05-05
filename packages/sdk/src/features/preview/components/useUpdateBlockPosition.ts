@@ -1,7 +1,7 @@
 import { queryKeys } from "@camox/api-contract/query-keys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
-import { useSelector } from "@xstate/store/react";
+import { useSelector } from "@xstate/store-react";
 import { generateKeyBetween } from "fractional-indexing";
 
 import { type BlockBundle, type PageStructure, blockMutations } from "@/lib/queries";
