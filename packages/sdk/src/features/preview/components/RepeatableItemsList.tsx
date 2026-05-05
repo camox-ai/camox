@@ -19,7 +19,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
-import { generateKeyBetween } from "fractional-indexing";
 import { CircleMinus, CirclePlus, GripVertical } from "lucide-react";
 
 import { repeatableItemMutations } from "@/lib/queries";
@@ -27,6 +26,7 @@ import { cn } from "@/lib/utils";
 
 import type { OverlayMessage } from "../overlayMessages";
 import { previewStore, selectionItemId } from "../previewStore";
+import { useRepeatableItemActions, type RepeatableArraySchema } from "./useRepeatableItemActions";
 
 /* -------------------------------------------------------------------------------------------------
  * SortableRepeatableItem
@@ -170,118 +170,18 @@ interface RepeatableItemsListProps {
   items: RepeatableItem[];
   blockId: number;
   fieldName: string;
-  minItems?: number;
-  maxItems?: number;
   schema: unknown;
 }
 
-const RepeatableItemsList = ({
-  items,
-  blockId,
-  fieldName,
-  minItems,
-  maxItems,
-  schema,
-}: RepeatableItemsListProps) => {
-  const createRepeatableItem = useMutation(repeatableItemMutations.create());
-  const deleteRepeatableItem = useMutation(repeatableItemMutations.delete());
+const RepeatableItemsList = ({ items, blockId, fieldName, schema }: RepeatableItemsListProps) => {
   const updateRepeatablePosition = useMutation(repeatableItemMutations.updatePosition());
 
-  const canAdd = maxItems === undefined || items.length < maxItems;
-  const canRemove = minItems === undefined || items.length > minItems;
-
-  const handleAddItem = () => {
-    const defaultContent: Record<string, unknown> = {};
-    const itemsSchema = (schema as any)?.items;
-    if (itemsSchema?.properties) {
-      for (const [key, prop] of Object.entries(itemsSchema.properties)) {
-        const ft = (prop as any).fieldType;
-        if (ft === "Image" || ft === "File") continue;
-        // Skip nested repeatable fields — they are handled as nestedItems
-        if ((prop as any).type === "array" && (prop as any).items?.properties) continue;
-        if ("default" in (prop as any)) {
-          defaultContent[key] = (prop as { default: unknown }).default;
-        }
-      }
-    }
-
-    const defaultSettings = (schema as any)?.defaultItemSettings as
-      | Record<string, unknown>
-      | undefined;
-
-    // Build nested item seeds for any nested repeatable fields in this item's schema
-    const nestedItems: Array<{
-      tempId: string;
-      parentTempId: string | null;
-      fieldName: string;
-      content: Record<string, unknown>;
-      settings?: Record<string, unknown>;
-      position: string;
-    }> = [];
-
-    if (itemsSchema?.properties) {
-      let seedCounter = 0;
-      const buildNestedSeeds = (properties: Record<string, any>, parentTempId: string | null) => {
-        for (const [nestedFieldName, fieldSchemaDef] of Object.entries(properties)) {
-          const fs = fieldSchemaDef as any;
-          if (fs.type !== "array" || !fs.items?.properties) continue;
-          const defaultCount = fs.defaultItems ?? fs.minItems ?? 0;
-          if (defaultCount <= 0) continue;
-
-          const nestedItemProps = fs.items.properties as Record<string, any>;
-          const nestedContent: Record<string, unknown> = {};
-          for (const [propName, propSchema] of Object.entries(nestedItemProps)) {
-            const ps = propSchema as any;
-            if (ps.type === "array" && ps.items?.properties) continue;
-            if ("default" in ps) {
-              nestedContent[propName] = ps.default;
-            }
-          }
-
-          const nestedSettingsDefaults = fs.defaultItemSettings as
-            | Record<string, unknown>
-            | undefined;
-
-          let prevPos: string | null = null;
-          for (let i = 0; i < defaultCount; i++) {
-            const tempId = `nested_${++seedCounter}`;
-            const position = generateKeyBetween(prevPos, null);
-            prevPos = position;
-            nestedItems.push({
-              tempId,
-              parentTempId,
-              fieldName: nestedFieldName,
-              content: { ...nestedContent },
-              settings: nestedSettingsDefaults ? { ...nestedSettingsDefaults } : undefined,
-              position,
-            });
-            // Recurse for deeper nesting
-            buildNestedSeeds(nestedItemProps, tempId);
-          }
-        }
-      };
-      buildNestedSeeds(itemsSchema.properties, null);
-    }
-
-    createRepeatableItem.mutate(
-      {
-        blockId,
-        fieldName,
-        content: defaultContent,
-        settings: defaultSettings ? { ...defaultSettings } : undefined,
-        nestedItems: nestedItems.length > 0 ? nestedItems : undefined,
-      },
-      {
-        onSuccess: (created) => {
-          previewStore.send({ type: "selectItem", blockId, itemId: created.id });
-        },
-      },
-    );
-  };
-
-  const handleRemoveItem = (itemId: number) => {
-    deleteRepeatableItem.mutate({ id: itemId });
-  };
+  const { canAdd, addItem, canRemove, removeItem } = useRepeatableItemActions({
+    blockId,
+    fieldName,
+    arraySchema: schema as RepeatableArraySchema | null,
+    siblingCount: items.length,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -337,7 +237,7 @@ const RepeatableItemsList = ({
                   blockId={blockId}
                   fieldName={fieldName}
                   canRemove={canRemove}
-                  onRemove={handleRemoveItem}
+                  onRemove={removeItem}
                 />
               ))}
             </ul>
@@ -351,7 +251,7 @@ const RepeatableItemsList = ({
           variant="ghost"
           size="sm"
           className="text-muted-foreground justify-start self-start"
-          onClick={handleAddItem}
+          onClick={() => addItem()}
         >
           <CirclePlus className="h-4 w-4" />
           Add item

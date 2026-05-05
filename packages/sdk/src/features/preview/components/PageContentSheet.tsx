@@ -7,6 +7,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@camox/ui/breadcrumb";
+import { Button } from "@camox/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ import { Spinner } from "@camox/ui/spinner";
 import { Switch } from "@camox/ui/switch";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store/react";
+import { CircleMinus, CirclePlus, CornerLeftUp } from "lucide-react";
 import * as React from "react";
 
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
@@ -37,6 +39,7 @@ import { ItemFieldsEditor } from "./ItemFieldsEditor";
 import { LinkFieldEditor } from "./LinkFieldEditor";
 import { MultipleAssetFieldEditor } from "./MultipleAssetFieldEditor";
 import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
+import { type RepeatableArraySchema, useRepeatableItemActions } from "./useRepeatableItemActions";
 
 /* -------------------------------------------------------------------------------------------------
  * Helper: Get settings fields from schema
@@ -215,6 +218,30 @@ const PageContentSheet = () => {
 
   const currentItem = currentItemId != null ? itemsMap.get(currentItemId) : null;
   const isItemLoading = currentItemId != null && !currentItem;
+
+  const siblingCount = React.useMemo(() => {
+    if (!currentItem) return 0;
+    let count = 0;
+    for (const it of itemsMap.values()) {
+      if (it.fieldName === currentItem.fieldName && it.parentItemId === currentItem.parentItemId) {
+        count++;
+      }
+    }
+    return count;
+  }, [currentItem, itemsMap]);
+
+  const {
+    canAdd: canAddSibling,
+    addItem: addSibling,
+    canRemove: canRemoveCurrent,
+    removeItem: removeCurrent,
+  } = useRepeatableItemActions({
+    blockId: block?.id ?? -1,
+    fieldName: currentItem?.fieldName ?? "",
+    parentItemId: currentItem?.parentItemId ?? null,
+    arraySchema: itemArraySchema as RepeatableArraySchema | null,
+    siblingCount,
+  });
 
   const rawCurrentData: Record<string, unknown> = currentItem
     ? (currentItem.content as Record<string, unknown>)
@@ -683,6 +710,48 @@ const PageContentSheet = () => {
                 fieldIdPrefix={fieldIdPrefix}
                 autoFocusFieldName={autoFocusFieldName}
               />
+            )}
+            {!isViewingAsset && !isViewingLink && currentItemId != null && currentItem && (
+              <div className="border-border flex items-center gap-1 border-t px-4 py-4">
+                {canAddSibling && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground justify-start"
+                    onClick={() => addSibling({ afterPosition: currentItem.position })}
+                  >
+                    <CirclePlus className="h-4 w-4" />
+                    Add item
+                  </Button>
+                )}
+                {canRemoveCurrent && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground justify-start"
+                    onClick={() =>
+                      removeCurrent(currentItemId, {
+                        onSuccess: () => previewStore.send({ type: "selectParent" }),
+                      })
+                    }
+                  >
+                    <CircleMinus className="h-4 w-4" />
+                    Remove item
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground justify-start"
+                  onClick={() => previewStore.send({ type: "selectParent" })}
+                >
+                  <CornerLeftUp className="h-4 w-4" />
+                  Select parent
+                </Button>
+              </div>
             )}
           </>
         )}

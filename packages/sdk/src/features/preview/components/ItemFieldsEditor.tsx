@@ -501,8 +501,6 @@ const ItemFieldsEditor = ({
                 items={items}
                 blockId={blockId}
                 fieldName={field.name}
-                minItems={field.minItems}
-                maxItems={field.maxItems}
                 schema={fieldSchema}
               />
             </div>
