@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { assertOrgMembership, assertSyncSecret, getAuthorizedProject } from "../../authorization";
 import { resolveEnvironment } from "../../lib/resolve-environment";
+import { scheduleAiJob } from "../../lib/schedule-ai-job";
 import {
   aiJobs,
   blockDefinitions,
@@ -412,6 +413,15 @@ export async function initializeProjectContent(
       .returning()
       .get();
 
+    ctx.waitUntil(
+      scheduleAiJob(ctx.env.AI_JOB_SCHEDULER, {
+        entityTable: "blocks",
+        entityId: block.id,
+        type: "summary",
+        delayMs: 0,
+      }),
+    );
+
     const itemSeeds = blockDef.repeatableItems;
     if (itemSeeds && itemSeeds.length > 0) {
       const tempIdToRealId = new Map<string, number>();
@@ -434,6 +444,14 @@ export async function initializeProjectContent(
           .returning()
           .get();
         tempIdToRealId.set(seed.tempId, inserted.id);
+        ctx.waitUntil(
+          scheduleAiJob(ctx.env.AI_JOB_SCHEDULER, {
+            entityTable: "repeatableItems",
+            entityId: inserted.id,
+            type: "summary",
+            delayMs: 0,
+          }),
+        );
       }
     }
 
