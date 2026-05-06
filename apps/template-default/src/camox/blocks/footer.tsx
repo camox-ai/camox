@@ -27,9 +27,9 @@ const footer = createBlock({
 
 function FooterComponent() {
   return (
-    <footer className="dark bg-background py-4">
+    <footer className="dark bg-background border-border border-t py-4">
       <div className="container mx-auto px-4">
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-6 sm:gap-y-2">
           <div className="flex items-center gap-2">
             <footer.Field name="title">
               {(props) => <div {...props} className="text-foreground text-sm font-bold" />}
@@ -37,7 +37,7 @@ function FooterComponent() {
             <div className="text-muted-foreground text-sm">&copy; {new Date().getFullYear()}</div>
           </div>
 
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-4">
+          <div className="flex flex-col items-start gap-4 sm:ml-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <footer.Repeater name="links">
               {(linkItem) => (
                 <linkItem.Link name="link">

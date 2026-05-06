@@ -23,14 +23,14 @@ const terminalCommand = createBlock({
 
 function TerminalCommandComponent() {
   return (
-    <section className="py-16 sm:py-24">
+    <section className="py-12 sm:py-16 md:py-24">
       <div className="container">
         <div className="mx-auto max-w-xl">
           <terminalCommand.Field name="label">
             {(props) => (
               <p
                 {...props}
-                className="text-muted-foreground mb-4 text-center text-sm font-medium sm:text-base"
+                className="text-muted-foreground mb-4 text-center text-base font-medium"
               />
             )}
           </terminalCommand.Field>
@@ -39,7 +39,7 @@ function TerminalCommandComponent() {
               {(props) => (
                 <code
                   {...props}
-                  className="text-foreground block text-sm font-medium whitespace-nowrap sm:text-lg"
+                  className="text-foreground block text-lg font-medium whitespace-nowrap"
                 />
               )}
             </terminalCommand.Field>

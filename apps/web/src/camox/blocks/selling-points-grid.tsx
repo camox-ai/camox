@@ -51,11 +51,11 @@ const sellingPointsGrid = createBlock({
 
 function SellingPointsGridComponent() {
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-10 sm:py-12 md:py-16">
       <div className="container">
-        <div className="mb-8 max-w-4xl sm:mb-12">
+        <div className="mb-12 max-w-4xl">
           <sellingPointsGrid.Field name="pill">
-            {(props) => <Pill {...props} className="mb-4 sm:mb-6" />}
+            {(props) => <Pill {...props} className="mb-6" />}
           </sellingPointsGrid.Field>
           <InlineHeading
             lead={
@@ -74,7 +74,7 @@ function SellingPointsGridComponent() {
           <div className="bg-border grid grid-cols-1 gap-px sm:grid-cols-2 md:grid-cols-3">
             <sellingPointsGrid.Repeater name="items">
               {(item) => (
-                <div className="bg-background flex h-full flex-col p-4 sm:p-5">
+                <div className="bg-background flex h-full flex-col p-5">
                   <div className="mb-2 flex flex-row items-center gap-2">
                     <item.Repeater name="icons">
                       {(iconItem) => (

@@ -57,11 +57,11 @@ const illustratedFeatures = createBlock({
 function IllustratedFeaturesComponent() {
   const columns = illustratedFeatures.useSetting("columns");
   return (
-    <section className="py-12 sm:py-20">
+    <section className="py-12 sm:py-16 md:py-20">
       <div className="container">
-        <div className="mb-12 max-w-4xl sm:mb-16">
+        <div className="mb-16 max-w-4xl">
           <illustratedFeatures.Field name="pill">
-            {(props) => <Pill {...props} className="mb-4 sm:mb-6" />}
+            {(props) => <Pill {...props} className="mb-6" />}
           </illustratedFeatures.Field>
           <InlineHeading
             lead={
@@ -82,13 +82,13 @@ function IllustratedFeaturesComponent() {
           >
             <illustratedFeatures.Repeater name="items">
               {(item) => (
-                <div className="bg-background flex h-full flex-col justify-between gap-4 px-4 pt-4 sm:gap-6 sm:px-6 sm:pt-6">
+                <div className="bg-background flex h-full flex-col justify-between gap-6 px-6 pt-6">
                   <div className="flex flex-col gap-2">
                     <item.Field name="title">
                       {(props) => (
                         <h3
                           {...props}
-                          className="text-foreground text-lg font-semibold tracking-tight sm:text-xl"
+                          className="text-foreground text-xl font-semibold tracking-tight"
                         />
                       )}
                     </item.Field>

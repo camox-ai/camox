@@ -52,17 +52,17 @@ const keyPrinciples = createBlock({
 
 function KeyPrinciplesComponent() {
   return (
-    <section className="py-12 sm:py-20">
+    <section className="py-12 sm:py-16 md:py-20">
       <div className="container">
-        <div className="mb-8 max-w-4xl sm:mb-12">
+        <div className="mb-12 max-w-4xl">
           <keyPrinciples.Field name="pill">
-            {(props) => <Pill {...props} className="mb-4 sm:mb-6" />}
+            {(props) => <Pill {...props} className="mb-6" />}
           </keyPrinciples.Field>
           <keyPrinciples.Field name="title">
             {(props) => (
               <h2
                 {...props}
-                className="text-foreground text-xl leading-tight font-semibold tracking-tight sm:text-3xl md:text-4xl"
+                className="text-foreground text-3xl leading-tight font-semibold tracking-tight sm:text-4xl"
               />
             )}
           </keyPrinciples.Field>
@@ -75,12 +75,11 @@ function KeyPrinciplesComponent() {
                 return (
                   <div className="bg-popover flex h-full flex-col gap-4 p-6 sm:p-8">
                     <CircleCheck aria-hidden className="text-muted-foreground size-5" />
-
                     <item.Field name="title">
                       {(props) => (
                         <h3
                           {...props}
-                          className="text-foreground text-2xl font-semibold tracking-tight sm:text-3xl"
+                          className="text-foreground text-xl font-semibold tracking-tight"
                         />
                       )}
                     </item.Field>

@@ -30,7 +30,7 @@ const hero = createBlock({
 function HeroComponent() {
   return (
     <>
-      <section className="bg-background dark relative flex flex-col items-center justify-center overflow-hidden pt-36 pb-20 sm:pt-48 sm:pb-32">
+      <section className="bg-background dark relative flex flex-col items-center justify-center overflow-hidden pt-24 pb-16 sm:pt-32 sm:pb-24 md:pt-48 md:pb-32">
         <PulsingBorder
           colors={["#047857", "#065f46", "#064e3b", "#3b0764", "#4c1d95"]}
           colorBack="#09090b"
@@ -63,12 +63,12 @@ function HeroComponent() {
               )}
             </hero.Field>
             <hero.Field name="description">
-              {(props) => <p {...props} className="mb-10 text-lg opacity-75 sm:text-xl" />}
+              {(props) => <p {...props} className="mb-10 text-xl opacity-75" />}
             </hero.Field>
           </div>
         </div>
       </section>
-      <div className="bg-background pb-8 sm:pb-4">
+      <div className="bg-background pb-4">
         <div className="container">
           <div className="relative z-10 mx-auto max-w-xl -translate-y-1/2">
             <TerminalCard>
@@ -76,7 +76,7 @@ function HeroComponent() {
                 {(props) => (
                   <code
                     {...props}
-                    className="text-foreground block text-sm font-medium whitespace-nowrap sm:text-lg"
+                    className="text-foreground block text-lg font-medium whitespace-nowrap"
                   />
                 )}
               </hero.Field>

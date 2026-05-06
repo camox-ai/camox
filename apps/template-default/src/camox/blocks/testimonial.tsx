@@ -11,9 +11,9 @@ const testimonial = createBlock({
         "This platform has transformed how we build and manage our website. The developer experience is exceptional.",
       title: "Quote",
     }),
-    author: Type.String({ default: "Sarah Chen", title: "Author" }),
+    author: Type.String({ default: "Kai Doe", title: "Author" }),
     title: Type.String({ default: "Senior Developer", title: "Title" }),
-    company: Type.String({ default: "TechCorp", title: "Company" }),
+    company: Type.String({ default: "E Corp", title: "Company" }),
   },
   component: TestimonialComponent,
   toMarkdown: (c) => [`> ${c.quote}`, `— ${c.author}, ${c.title}, ${c.company}`],
@@ -21,14 +21,14 @@ const testimonial = createBlock({
 
 function TestimonialComponent() {
   return (
-    <section className="bg-background py-24">
+    <section className="bg-background py-12 sm:py-16 md:py-24">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
           <testimonial.Field name="quote">
             {(props) => (
               <blockquote
                 {...props}
-                className="text-foreground mb-8 text-2xl leading-relaxed font-medium sm:text-3xl"
+                className="text-foreground mb-8 text-xl leading-relaxed font-medium sm:text-3xl"
               >
                 "{props.children}"
               </blockquote>

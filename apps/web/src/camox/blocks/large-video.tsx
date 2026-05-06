@@ -35,10 +35,10 @@ function LargeVideoComponent() {
   const autoplay = largeVideo.useSetting("autoplay");
   const hideControls = largeVideo.useSetting("hideControls");
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-10 sm:py-12 md:py-16">
       <div className="container">
         <largeVideo.Field name="pill">
-          {(props) => <Pill {...props} className="mb-4 sm:mb-6" />}
+          {(props) => <Pill {...props} className="mb-6" />}
         </largeVideo.Field>
         <div className="bg-accent/30 border-accent overflow-hidden rounded-xl border">
           <largeVideo.File name="video">

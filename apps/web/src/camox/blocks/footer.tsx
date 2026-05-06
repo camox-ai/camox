@@ -40,9 +40,9 @@ const footer = createBlock({
 
 function FooterComponent() {
   return (
-    <footer className="dark bg-background py-16">
+    <footer className="dark bg-background py-10 sm:py-12 md:py-16">
       <div className="container">
-        <div className="flex flex-col gap-12 md:flex-row md:justify-between md:gap-16">
+        <div className="flex flex-col gap-16 md:flex-row md:justify-between">
           {/* Left side: Logo + copyright */}
           <div className="shrink-0 md:w-1/4">
             <footer.Image name="logo">
@@ -54,7 +54,7 @@ function FooterComponent() {
           </div>
 
           {/* Right side: Link columns */}
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 md:flex md:justify-end md:gap-16">
+          <div className="grid grid-cols-2 gap-16 sm:grid-cols-4 md:flex md:justify-end">
             <footer.Repeater name="columns">
               {(column) => (
                 <div className="flex flex-col gap-2 md:w-40">

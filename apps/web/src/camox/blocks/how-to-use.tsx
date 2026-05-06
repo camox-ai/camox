@@ -51,22 +51,22 @@ const howToUse = createBlock({
 
 function HowToUseComponent() {
   return (
-    <section className="py-12 sm:py-20">
+    <section className="py-12 sm:py-16 md:py-20">
       <div className="container">
-        <div className="mb-8 max-w-4xl sm:mb-12">
+        <div className="mb-12 max-w-4xl">
           <howToUse.Field name="pill">{(props) => <Pill {...props} />}</howToUse.Field>
         </div>
-        <div className="flex flex-col gap-12 sm:gap-20">
+        <div className="flex flex-col gap-20">
           <howToUse.Repeater name="steps">
             {(item, index) => {
               const showLink = item.useSetting("showLink");
               return (
-                <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-2 md:gap-12 lg:gap-16">
-                  <div className="flex items-baseline gap-6 sm:gap-8">
-                    <div className="text-muted-foreground font-mono text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">
+                <div className="grid grid-cols-1 items-start gap-16 md:grid-cols-2">
+                  <div className="flex items-baseline gap-8">
+                    <div className="text-muted-foreground font-mono text-2xl font-semibold tracking-tight tabular-nums">
                       {String(index + 1).padStart(2, "0")}
                     </div>
-                    <div className="flex flex-col gap-3 sm:gap-4">
+                    <div className="flex flex-col gap-4">
                       <item.Field name="title">
                         {(props) => (
                           <h3
@@ -76,9 +76,7 @@ function HowToUseComponent() {
                         )}
                       </item.Field>
                       <item.Field name="description">
-                        {(props) => (
-                          <p {...props} className="text-muted-foreground text-base sm:text-lg" />
-                        )}
+                        {(props) => <p {...props} className="text-muted-foreground text-lg" />}
                       </item.Field>
                       {showLink && (
                         <div>

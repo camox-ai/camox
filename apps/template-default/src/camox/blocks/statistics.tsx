@@ -44,7 +44,7 @@ const statistics = createBlock({
 
 function StatisticsComponent() {
   return (
-    <section className="dark bg-background py-24">
+    <section className="dark bg-background py-12 sm:py-16 md:py-20">
       <div className="container mx-auto">
         <div className="mb-16">
           <statistics.Field name="title">
@@ -57,7 +57,7 @@ function StatisticsComponent() {
           </statistics.Field>
           <statistics.Field name="subtitle">
             {(props) => (
-              <h2 {...props} className="text-foreground mb-6 text-4xl font-bold sm:text-5xl" />
+              <h2 {...props} className="text-foreground mb-6 text-3xl font-bold sm:text-5xl" />
             )}
           </statistics.Field>
           <statistics.Field name="description">
@@ -70,11 +70,14 @@ function StatisticsComponent() {
           <statistics.Repeater name="statistics">
             {(stat) => (
               <div className="flex gap-3">
-                <div className="w-0.5 bg-linear-to-b from-teal-400 to-emerald-500" />
+                <div className="from-chart-1 to-chart-2 w-0.5 bg-linear-to-b" />
                 <div className="flex flex-col">
                   <stat.Field name="number">
                     {(props) => (
-                      <div {...props} className="text-foreground mb-2 text-4xl font-bold" />
+                      <div
+                        {...props}
+                        className="text-foreground mb-2 text-3xl font-bold sm:text-4xl"
+                      />
                     )}
                   </stat.Field>
                   <stat.Field name="label">

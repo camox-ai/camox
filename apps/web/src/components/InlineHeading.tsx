@@ -12,7 +12,7 @@ export function InlineHeading({ lead, continuation, className, ...props }: Inlin
     <p
       {...props}
       className={cn(
-        "text-foreground text-xl leading-tight font-semibold tracking-tight sm:text-3xl md:text-4xl",
+        "text-foreground text-3xl leading-tight font-semibold tracking-tight sm:text-4xl",
         className,
       )}
     >
