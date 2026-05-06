@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.17.0](https://github.com/camox-ai/camox/compare/camox-v0.16.1...camox-v0.17.0) (2026-05-06)
+
+
+### Features
+
+* add lexical history plugin ([40cf4f9](https://github.com/camox-ai/camox/commit/40cf4f9629a0a4ea6aba0ed8964c6cf7a4ca790b))
+
+
+### Miscellaneous
+
+* refine default template design ([9f219b4](https://github.com/camox-ai/camox/commit/9f219b4f9b8250207978d01674d0a4c78c004570))
+
 ## [0.16.1](https://github.com/camox-ai/camox/compare/camox-v0.16.0...camox-v0.16.1) (2026-05-05)
 
 

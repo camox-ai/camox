@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/camox-ai/camox/compare/camox-v0.16.1...camox-sdk-v0.17.0) (2026-05-06)
+
+
+### Features
+
+* add lexical history plugin ([40cf4f9](https://github.com/camox-ai/camox/commit/40cf4f9629a0a4ea6aba0ed8964c6cf7a4ca790b))
+
 ## [0.16.1](https://github.com/camox-ai/camox/compare/camox-v0.16.0...camox-sdk-v0.16.1) (2026-05-05)
 
 
