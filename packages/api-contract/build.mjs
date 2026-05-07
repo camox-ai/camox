@@ -12,5 +12,8 @@ execSync(
   { stdio: "inherit" },
 );
 
-// index.js is empty — Router is a type-only export
-writeFileSync("dist/index.js", "// type-only module\n");
+// Emit index.js — esbuild strips the type-only Router re-export and keeps
+// runtime values (POSTHOG_PUBLIC_KEY) in sync with source automatically.
+execSync("pnpm exec esbuild src/index.ts --outdir=dist --format=esm --platform=neutral", {
+  stdio: "inherit",
+});
