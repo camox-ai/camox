@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.3](https://github.com/camox-ai/camox/compare/camox-v0.17.2...camox-v0.17.3) (2026-05-07)
+
+
+### Bug Fixes
+
+* add esbuild to api-contract ([dd53c4c](https://github.com/camox-ai/camox/commit/dd53c4cff7dd7b0e2c25b017e4ec07d88d6bff29))
+
 ## [0.17.2](https://github.com/camox-ai/camox/compare/camox-v0.17.1...camox-v0.17.2) (2026-05-07)
 
 
