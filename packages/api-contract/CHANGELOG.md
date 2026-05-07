@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.1](https://github.com/camox-ai/camox/compare/camox-v0.17.0...@camox/api-contract-v0.17.1) (2026-05-07)
+
+
+### Miscellaneous
+
+* more tracking events ([69c81ab](https://github.com/camox-ai/camox/commit/69c81ab36ec65f1f181fe2aeb7203697f3fe28d6))
+
 ## [0.17.0](https://github.com/camox-ai/camox/compare/camox-v0.16.1...@camox/api-contract-v0.17.0) (2026-05-06)
 
 

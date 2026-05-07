@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.17.1](https://github.com/camox-ai/camox/compare/camox-v0.17.0...camox-v0.17.1) (2026-05-07)
+
+
+### Bug Fixes
+
+* generate block summaries on initial content ([0b5d6c0](https://github.com/camox-ai/camox/commit/0b5d6c0e988320bf01dd16f0b71f71bcc07da07d))
+
+
+### Miscellaneous
+
+* more tracking events ([69c81ab](https://github.com/camox-ai/camox/commit/69c81ab36ec65f1f181fe2aeb7203697f3fe28d6))
+* rename analytics to telemetry ([cdc7f9d](https://github.com/camox-ai/camox/commit/cdc7f9d359a9dd979b2f64d1e564717f6429fddb))
+
 ## [0.17.0](https://github.com/camox-ai/camox/compare/camox-v0.16.1...camox-v0.17.0) (2026-05-06)
 
 
