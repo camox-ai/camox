@@ -1,6 +1,6 @@
 {
   "name": "camox",
-  "version": "0.17.6",
+  "version": "0.17.7",
   "bin": {
     "camox": "./bin/camox.mjs"
   },
