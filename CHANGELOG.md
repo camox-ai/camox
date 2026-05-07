@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.2](https://github.com/camox-ai/camox/compare/camox-v0.17.1...camox-v0.17.2) (2026-05-07)
+
+
+### Bug Fixes
+
+* posthog public key not in build ([05353c1](https://github.com/camox-ai/camox/commit/05353c184d1887e344216610e8ece36ebfb7e348))
+
 ## [0.17.1](https://github.com/camox-ai/camox/compare/camox-v0.17.0...camox-v0.17.1) (2026-05-07)
 
 
