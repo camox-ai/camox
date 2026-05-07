@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.5](https://github.com/camox-ai/camox/compare/camox-v0.17.4...@camox/cli-v0.17.5) (2026-05-07)
+
+
+### Bug Fixes
+
+* dropping into created dir ([088fffd](https://github.com/camox-ai/camox/commit/088fffdba25b6fcaa4f9813671c758fb00ff81c4))
+
 ## [0.17.4](https://github.com/camox-ai/camox/compare/camox-v0.17.3...@camox/cli-v0.17.4) (2026-05-07)
 
 
