@@ -558,6 +558,9 @@ importers:
       '@tanstack/react-start':
         specifier: ^1.166.2
         version: 1.167.32(@voidzero-dev/vite-plus-core@0.1.20(@types/node@24.12.2)(esbuild@0.27.4)(jiti@2.6.1)(terser@5.44.0)(tsx@4.21.0)(typescript@5.9.2)(yaml@2.8.3))(crossws@0.4.5(srvx@0.11.15))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@xstate/store':
+        specifier: 3.17.1
+        version: 3.17.1(react@19.2.5)(solid-js@1.9.9)
       '@xstate/store-react':
         specifier: ^1.0.1
         version: 1.0.1(react@19.2.5)(solid-js@1.9.9)
