@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.5](https://github.com/camox-ai/camox/compare/camox-v0.17.4...camox-sdk-v0.17.5) (2026-05-07)
+
+
+### Miscellaneous
+
+* **camox-sdk:** Synchronize camox versions
+
 ## [0.17.4](https://github.com/camox-ai/camox/compare/camox-v0.17.3...camox-sdk-v0.17.4) (2026-05-07)
 
 
