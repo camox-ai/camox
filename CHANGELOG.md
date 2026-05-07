@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.4](https://github.com/camox-ai/camox/compare/camox-v0.17.3...camox-v0.17.4) (2026-05-07)
+
+
+### Bug Fixes
+
+* process not closing on startup ([23df11e](https://github.com/camox-ai/camox/commit/23df11e3f2bb5072a83a5e2912a8a795374a76e2))
+
 ## [0.17.3](https://github.com/camox-ai/camox/compare/camox-v0.17.2...camox-v0.17.3) (2026-05-07)
 
 
