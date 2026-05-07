@@ -75,7 +75,6 @@ function NavbarComponent(): ReactElement {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-foreground"
                 nativeButton={false}
                 render={<Link {...props} />}
               />
