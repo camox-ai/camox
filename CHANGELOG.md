@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.6](https://github.com/camox-ai/camox/compare/camox-v0.17.5...camox-v0.17.6) (2026-05-07)
+
+
+### Bug Fixes
+
+* pin xstate store dep ([ae4daa0](https://github.com/camox-ai/camox/commit/ae4daa00fb9eb18bf0703d480efd634f41fdb701))
+
 ## [0.17.5](https://github.com/camox-ai/camox/compare/camox-v0.17.4...camox-v0.17.5) (2026-05-07)
 
 
