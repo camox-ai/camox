@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.6](https://github.com/camox-ai/camox/compare/camox-v0.17.5...create-camox-v0.17.6) (2026-05-07)
+
+
+### Miscellaneous
+
+* **create-camox:** Synchronize camox versions
+
 ## [0.17.5](https://github.com/camox-ai/camox/compare/camox-v0.17.4...create-camox-v0.17.5) (2026-05-07)
 
 
