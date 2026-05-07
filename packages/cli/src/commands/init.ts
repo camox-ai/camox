@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -241,13 +241,6 @@ src/routeTree.gen.ts
 
   s.stop("Project scaffolded!");
 
-  function dropIntoProject(): never {
-    const shell = process.env.SHELL || "/bin/bash";
-    p.log.info(`Dropping you into ${resolvedPath}`);
-    spawnSync(shell, [], { cwd: targetDir, stdio: "inherit" });
-    process.exit(0);
-  }
-
   // Install dependencies
   const { install: installCmd, dev: devCmd } = pmCommands[pm];
   const [installBin, ...installArgs] = installCmd.split(" ");
@@ -268,12 +261,13 @@ src/routeTree.gen.ts
     s2.stop("Dependencies installed!");
   } catch {
     s2.stop("Install failed.");
-    p.log.error(`Failed to install dependencies. Run "${installCmd}" manually.`);
-    dropIntoProject();
+    p.log.error(`Failed to install dependencies.`);
+    p.outro(`To finish setup:\n  cd ${resolvedPath}\n  ${installCmd}\n  ${devCmd}`);
+    process.exit(1);
   }
 
   // Start dev server
-  p.outro(`Starting dev server...`);
+  p.log.info(`Starting dev server... (Ctrl+C to stop)`);
 
   const [cmd, ...args] = devCmd.split(" ");
 
@@ -286,8 +280,7 @@ src/routeTree.gen.ts
   });
 
   // Intercept Ctrl+C: send SIGTERM to the child's entire process group
-  // for a clean shutdown (kills pnpm + vite + all children), then let
-  // the `close` handler drop the user into the project directory.
+  // for a clean shutdown (kills pnpm + vite + all children).
   const sigintHandler = () => {
     if (child.pid) {
       try {
@@ -303,6 +296,7 @@ src/routeTree.gen.ts
   child.on("close", () => {
     process.removeListener("SIGINT", sigintHandler);
     process.removeListener("exit", sigintHandler);
-    dropIntoProject();
+    p.outro(`To restart the dev server:\n  cd ${resolvedPath}\n  ${devCmd}`);
+    process.exit(0);
   });
 }

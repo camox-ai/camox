@@ -1,0 +1,9 @@
+{
+  "name": "camox",
+  "docker_image": "warpdotdev/dev-base:latest",
+  "repos": ["camox-ai/camox"],
+  "setup_commands": [
+    "cd camox && corepack enable && corepack prepare pnpm@10.33.3 --activate",
+    "cd camox && pnpm install --frozen-lockfile"
+  ]
+}
