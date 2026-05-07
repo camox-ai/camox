@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.17.7](https://github.com/camox-ai/camox/compare/camox-v0.17.6...camox-v0.17.7) (2026-05-07)
+
+
+### Bug Fixes
+
+* template-default outline button style ([e2deb52](https://github.com/camox-ai/camox/commit/e2deb52b548cdbb310bde3517c33094136ddf503))
+
+
+### Miscellaneous
+
+* add warp environemnt ([fa50199](https://github.com/camox-ai/camox/commit/fa50199d7be2f95b3d6891682fb0221adddf39cd))
+
 ## [0.17.6](https://github.com/camox-ai/camox/compare/camox-v0.17.5...camox-v0.17.6) (2026-05-07)
 
 
