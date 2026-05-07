@@ -651,6 +651,7 @@ const PageTree = () => {
         onClick={() =>
           previewStore.send({
             type: "openAddBlockSheet",
+            via: "page-tree",
           })
         }
       >

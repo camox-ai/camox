@@ -152,6 +152,7 @@ const AddBlockSheet = () => {
     previewStore,
     (state) => state.context.peekedBlockPosition,
   );
+  const addBlockSource = useSelector(previewStore, (state) => state.context.addBlockSource);
 
   const handleAddBlock = async (block: Block) => {
     if (!page) return;
@@ -171,8 +172,8 @@ const AddBlockSheet = () => {
       repeatableItems: bundle.repeatableItems,
     });
     trackClientEvent("block_added", {
-      projectId: page.page.projectId,
       blockType: block._internal.id,
+      via: addBlockSource ?? "unknown",
     });
     previewStore.send({ type: "focusCreatedBlock", blockId });
     previewStore.send({ type: "exitPeekedBlock" });

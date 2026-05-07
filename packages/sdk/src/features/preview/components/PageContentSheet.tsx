@@ -30,7 +30,6 @@ import { isFileMarker, type NormalizedItem } from "@/lib/normalized-data";
 import { blockMutations, blockQueries, fileQueries, repeatableItemMutations } from "@/lib/queries";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
-import { usePreviewedPage } from "../CamoxPreview";
 import type { OverlayMessage } from "../overlayMessages";
 import { previewStore, selectionBlockId, selectionField, selectionItemId } from "../previewStore";
 import { SingleAssetFieldEditor } from "./AssetFieldEditor";
@@ -165,7 +164,6 @@ const PageContentSheet = () => {
   const fieldInfo = selectionField(selection);
 
   // Look up the actual block data from individual block cache (granular caching)
-  const page = usePreviewedPage();
   const { data: blockBundle } = useQuery({
     ...blockQueries.get(blockId!),
     enabled: blockId != null,
@@ -303,15 +301,20 @@ const PageContentSheet = () => {
     return prop?.arrayItemType === "Image" || prop?.arrayItemType === "File";
   }, [isViewingAsset, assetFieldName, currentSchema]);
 
-  // Track content sheet open
+  // Track open (once per session) + reset dirty flag for block_edited
+  const sessionDirtyRef = React.useRef(false);
+  const trackedOpenRef = React.useRef(false);
   React.useEffect(() => {
-    if (isOpen && block) {
-      trackClientEvent("content_sheet_opened", {
-        projectId: page?.page.projectId,
-        blockType: block.type,
-      });
+    if (!isOpen) {
+      trackedOpenRef.current = false;
+      return;
     }
-  }, [isOpen, block, page?.page.projectId]);
+    if (trackedOpenRef.current) return;
+    if (!block) return;
+    trackedOpenRef.current = true;
+    sessionDirtyRef.current = false;
+    trackClientEvent("content_sheet_opened", { blockType: block.type });
+  }, [isOpen, block]);
 
   // Scope field DOM ids with useId so label-input pairs and imperative focus
   // lookups don't collide if this sheet is ever rendered more than once.
@@ -360,6 +363,7 @@ const PageContentSheet = () => {
   const handleBlockFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
       if (!block) return;
+      sessionDirtyRef.current = true;
       updateContent.mutate({ id: block.id, content: { [fieldName]: value } });
     },
     [block, updateContent],
@@ -368,6 +372,7 @@ const PageContentSheet = () => {
   const handleItemFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
       if (currentItemId == null) return;
+      sessionDirtyRef.current = true;
       updateRepeatableContent.mutate({
         id: currentItemId,
         content: { [fieldName]: value },
@@ -381,6 +386,13 @@ const PageContentSheet = () => {
 
   const handleOpenChange = (open: boolean) => {
     if (open) return;
+    if (block && sessionDirtyRef.current) {
+      trackClientEvent("block_edited", {
+        via: "content-sheet",
+        blockType: block.type,
+      });
+    }
+    sessionDirtyRef.current = false;
     if (block && autoFocusFieldName) {
       const fieldId =
         currentItemId != null
@@ -540,6 +552,7 @@ const PageContentSheet = () => {
                         <Select
                           value={value}
                           onValueChange={(newValue) => {
+                            sessionDirtyRef.current = true;
                             updateSettings.mutate({
                               id: block.id,
                               settings: { [field.name]: newValue },
@@ -575,6 +588,7 @@ const PageContentSheet = () => {
                           id={`setting-${field.name}`}
                           checked={checked}
                           onCheckedChange={(newValue) => {
+                            sessionDirtyRef.current = true;
                             updateSettings.mutate({
                               id: block.id,
                               settings: { [field.name]: newValue },
@@ -613,6 +627,7 @@ const PageContentSheet = () => {
                         <Select
                           value={value}
                           onValueChange={(newValue) => {
+                            sessionDirtyRef.current = true;
                             updateRepeatableSettings.mutate({
                               id: currentItemId,
                               settings: { [field.name]: newValue },
@@ -647,6 +662,7 @@ const PageContentSheet = () => {
                           id={`item-setting-${field.name}`}
                           checked={checked}
                           onCheckedChange={(newValue) => {
+                            sessionDirtyRef.current = true;
                             updateRepeatableSettings.mutate({
                               id: currentItemId,
                               settings: { [field.name]: newValue },

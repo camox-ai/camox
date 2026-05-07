@@ -10,6 +10,7 @@ import { Check, Download, FileIcon, Link, Loader2, Trash2, X } from "lucide-reac
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
+import { trackClientEvent } from "@/lib/analytics-client";
 import { getApiUrl, getEnvironmentName } from "@/lib/api-client";
 import { getAuthCookieHeader } from "@/lib/auth";
 import { fileMutations, fileQueries } from "@/lib/queries";
@@ -336,9 +337,15 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 <Switch
                   id="ai-metadata"
                   checked={file.aiMetadataEnabled !== false}
-                  onCheckedChange={(checked) =>
-                    setAiMetadata.mutate({ id: fileId, enabled: checked })
-                  }
+                  onCheckedChange={(checked) => {
+                    setAiMetadata.mutate({ id: fileId, enabled: checked });
+                    trackClientEvent("ai_metadata_toggled", {
+                      target: "file",
+                      enabled: checked,
+                      fileId,
+                      mimeType: file.mimeType,
+                    });
+                  }}
                 />
                 <Label htmlFor="ai-metadata">AI metadata</Label>
               </div>

@@ -23,5 +23,7 @@ export type AppEnv = {
     user: Auth["$Infer"]["Session"]["user"] | null;
     session: Auth["$Infer"]["Session"]["session"] | null;
     environmentName: string;
+    client: string;
+    analyticsDisabled: boolean;
   };
 };

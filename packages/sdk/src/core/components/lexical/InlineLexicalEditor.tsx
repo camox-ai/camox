@@ -23,7 +23,8 @@ interface InlineLexicalEditorProps {
   externalState: string | Record<string, unknown>;
   onChange: (markdown: string) => void;
   onFocus: () => void;
-  onBlur: () => void;
+  /** `wasEdited` is true if the editor's content changed during the focus session that's now ending. */
+  onBlur: (wasEdited: boolean) => void;
 }
 
 function ExternalStateSync({ externalState }: { externalState: string | Record<string, unknown> }) {
@@ -125,7 +126,8 @@ export function InlineLexicalEditor({
 }: InlineLexicalEditorProps) {
   const { window: iframeWindow } = useFrame();
   const timerRef = React.useRef<number | null>(null);
-  const isDirtyRef = React.useRef(false);
+  const isFocusedRef = React.useRef(false);
+  const editedDuringFocusRef = React.useRef(false);
 
   const config = React.useMemo(
     () => createEditorConfig(initialState),
@@ -136,7 +138,8 @@ export function InlineLexicalEditor({
 
   const handleChange = React.useCallback(
     (editorState: EditorState) => {
-      if (!isDirtyRef.current) return;
+      if (!isFocusedRef.current) return;
+      editedDuringFocusRef.current = true;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = window.setTimeout(() => {
         onChange(
@@ -148,13 +151,16 @@ export function InlineLexicalEditor({
   );
 
   const handleFocus = React.useCallback(() => {
-    isDirtyRef.current = true;
+    isFocusedRef.current = true;
+    editedDuringFocusRef.current = false;
     onFocus();
   }, [onFocus]);
 
   const handleBlur = React.useCallback(() => {
-    isDirtyRef.current = false;
-    onBlur();
+    isFocusedRef.current = false;
+    const wasEdited = editedDuringFocusRef.current;
+    editedDuringFocusRef.current = false;
+    onBlur(wasEdited);
   }, [onBlur]);
 
   React.useEffect(() => {

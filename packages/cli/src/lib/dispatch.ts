@@ -103,6 +103,7 @@ export async function dispatch(opts: DispatchOptions): Promise<never> {
     projectId,
     name: opts.toolName,
     args: compact(opts.args),
+    disableAnalytics: runtime.disableAnalytics,
   });
 
   if (!response.ok) {

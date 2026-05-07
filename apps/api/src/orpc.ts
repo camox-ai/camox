@@ -13,6 +13,8 @@ export type BaseContext = {
   env: Bindings;
   headers: Headers;
   environmentName: string;
+  client: string;
+  analyticsDisabled: boolean;
   waitUntil: (promise: Promise<unknown>) => void;
 };
 

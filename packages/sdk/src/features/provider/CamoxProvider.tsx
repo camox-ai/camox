@@ -6,6 +6,7 @@ import studioCssUrl from "virtual:camox-studio-css";
 
 import { AuthGate } from "@/components/AuthGate";
 import type { CamoxApp } from "@/core/createApp";
+import { identifyProject, identifyUser } from "@/lib/analytics-client";
 import { initApiClient } from "@/lib/api-client";
 import {
   AuthContext,
@@ -41,9 +42,26 @@ const AuthenticatedCamoxProvider = ({ children }: AuthenticatedCamoxProviderProp
   usePreviewPagesActions();
 
   // Real-time invalidation via WebSocket
-  const { apiUrl, projectSlug } = React.useContext(AuthContext)!;
+  const { authClient, apiUrl, projectSlug, environmentName } = React.useContext(AuthContext)!;
+  const { data: session } = authClient.useSession();
+  const user = session?.user;
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   useProjectRoom(apiUrl, project?.id);
+
+  React.useEffect(() => {
+    if (!user) return;
+    identifyUser({ userId: user.id, email: user.email, name: user.name });
+  }, [user]);
+
+  React.useEffect(() => {
+    if (!project) return;
+    identifyProject({
+      projectId: project.id,
+      projectSlug,
+      projectName: project.name,
+      environmentName,
+    });
+  }, [project, projectSlug, environmentName]);
 
   const { theme } = useApplyTheme();
 

@@ -17,6 +17,7 @@ export const runtimeSchema = z.object({
   apiUrl: z.string().url(),
   authenticationUrl: z.string().url(),
   environmentName: z.string().min(1),
+  disableAnalytics: z.boolean().optional().default(false),
 });
 
 export type Runtime = z.infer<typeof runtimeSchema>;

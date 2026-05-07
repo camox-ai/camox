@@ -3,6 +3,7 @@ import { createStore } from "@xstate/store-react";
 
 import { Block } from "@/core/createBlock";
 import type { FieldType } from "@/core/lib/fieldTypes";
+import { trackClientEvent } from "@/lib/analytics-client";
 
 /* -------------------------------------------------------------------------------------------------
  * Selection — normalized, flat pointer to the currently selected entity
@@ -51,6 +52,8 @@ interface PreviewContext {
   isSidebarOpen: boolean;
   isPageContentSheetOpen: boolean;
   isAddBlockSheetOpen: boolean;
+  /** Source label for the in-progress add-block flow (popover, shortcut, page-tree, overlay). */
+  addBlockSource: string | null;
   isAgentChatSheetOpen: boolean;
   isCreatePageModalOpen: boolean;
   editingPageId: number | null;
@@ -70,6 +73,7 @@ export const previewStore = createStore({
     isSidebarOpen: true,
     isPageContentSheetOpen: false,
     isAddBlockSheetOpen: false,
+    addBlockSource: null,
     isAgentChatSheetOpen: false,
     isCreatePageModalOpen: false,
     editingPageId: null,
@@ -89,11 +93,15 @@ export const previewStore = createStore({
         toast("Press ⌘ + Enter to restore Camox Studio", {
           duration: 2500,
         });
+        trackClientEvent("presentation_mode_toggled", { enabled: true });
       });
       return { ...context, isPresentationMode: true };
     },
-    exitPresentationMode: (context) => {
+    exitPresentationMode: (context, _, enqueue) => {
       if (!context.isPresentationMode) return context;
+      enqueue.effect(() => {
+        trackClientEvent("presentation_mode_toggled", { enabled: false });
+      });
       return { ...context, isPresentationMode: false };
     },
     toggleSidebar: (context) => {
@@ -204,15 +212,17 @@ export const previewStore = createStore({
       ...context,
       peekedPagePathname: null,
     }),
-    openAddBlockSheet: (context, event: { afterPosition?: string | null }) => ({
+    openAddBlockSheet: (context, event: { afterPosition?: string | null; via?: string }) => ({
       ...context,
       isAddBlockSheetOpen: true,
+      addBlockSource: event.via ?? null,
       peekedBlock: null,
       peekedBlockPosition: event.afterPosition ?? null,
     }),
     closeAddBlockSheet: (context) => ({
       ...context,
       isAddBlockSheetOpen: false,
+      addBlockSource: null,
       peekedBlock: null,
       peekedBlockPosition: null,
     }),
@@ -246,10 +256,11 @@ export const previewStore = createStore({
       ...context,
       isPageContentSheetOpen: false,
     }),
-    openAgentChatSheet: (context) => ({
-      ...context,
-      isAgentChatSheetOpen: true,
-    }),
+    openAgentChatSheet: (context, _, enqueue) => {
+      if (context.isAgentChatSheetOpen) return context;
+      enqueue.effect(() => trackClientEvent("agent_chat_opened"));
+      return { ...context, isAgentChatSheetOpen: true };
+    },
     closeAgentChatSheet: (context) => ({
       ...context,
       isAgentChatSheetOpen: false,
@@ -262,10 +273,11 @@ export const previewStore = createStore({
       ...context,
       isCreatePageModalOpen: false,
     }),
-    openEditPageModal: (context, event: { pageId: number }) => ({
-      ...context,
-      editingPageId: event.pageId,
-    }),
+    openEditPageModal: (context, event: { pageId: number }, enqueue) => {
+      if (context.editingPageId === event.pageId) return context;
+      enqueue.effect(() => trackClientEvent("page_editor_opened", { pageId: event.pageId }));
+      return { ...context, editingPageId: event.pageId };
+    },
     closeEditPageModal: (context) => ({
       ...context,
       editingPageId: null,

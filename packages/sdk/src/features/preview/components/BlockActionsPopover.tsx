@@ -104,6 +104,7 @@ const BlockActionsPopover = ({
     previewStore.send({
       type: "openAddBlockSheet",
       afterPosition,
+      via: "popover-above",
     });
   };
 
@@ -111,6 +112,7 @@ const BlockActionsPopover = ({
     previewStore.send({
       type: "openAddBlockSheet",
       afterPosition: block.position,
+      via: "popover-below",
     });
   };
 
@@ -215,6 +217,7 @@ const BlockActionsPopover = ({
                           previewStore.send({
                             type: "openAddBlockSheet",
                             afterPosition: "",
+                            via: "layout-popover-below",
                           });
                           onOpenChange(false);
                         }}
@@ -237,6 +240,7 @@ const BlockActionsPopover = ({
                           previewStore.send({
                             type: "openAddBlockSheet",
                             afterPosition: lastPageBlock?.position,
+                            via: "layout-popover-above",
                           });
                           onOpenChange(false);
                         }}
@@ -557,6 +561,7 @@ function useBlockActionsShortcuts() {
           previewStore.send({
             type: "openAddBlockSheet",
             afterPosition: block.position,
+            via: "shortcut-below",
           });
         },
       },
@@ -581,6 +586,7 @@ function useBlockActionsShortcuts() {
           previewStore.send({
             type: "openAddBlockSheet",
             afterPosition,
+            via: "shortcut-above",
           });
         },
       },

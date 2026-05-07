@@ -12,9 +12,18 @@ function authHeaders(token: string) {
   };
 }
 
-function createRpcClient(token: string, apiUrl: string = CAMOX_API_URL, environmentName?: string) {
-  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+function createRpcClient(
+  token: string,
+  apiUrl: string = CAMOX_API_URL,
+  environmentName?: string,
+  disableAnalytics?: boolean,
+) {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "x-camox-client": "cli",
+  };
   if (environmentName) headers["x-environment-name"] = environmentName;
+  if (disableAnalytics) headers["x-camox-analytics-disabled"] = "1";
   const link = new RPCLink({ url: `${apiUrl}/rpc`, headers });
   return createORPCClient<RouterClient<Router>>(link);
 }
@@ -117,10 +126,16 @@ export type CallToolParams = {
   projectId: number;
   name: string;
   args: unknown;
+  disableAnalytics?: boolean;
 };
 
 export async function callTool(params: CallToolParams): Promise<CallToolResponse> {
-  const client = createRpcClient(params.token, params.apiUrl, params.environmentName);
+  const client = createRpcClient(
+    params.token,
+    params.apiUrl,
+    params.environmentName,
+    params.disableAnalytics,
+  );
   return (await client.agent.callTool({
     projectId: params.projectId,
     name: params.name,

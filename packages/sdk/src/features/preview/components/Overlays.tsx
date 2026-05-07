@@ -50,6 +50,7 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
         previewStore.send({
           type: "openAddBlockSheet",
           afterPosition,
+          via: "overlay",
         });
       }
     };

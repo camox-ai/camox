@@ -12,6 +12,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 
 import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet.tsx";
+import { trackClientEvent } from "@/lib/analytics-client";
 import { useProjectSlug } from "@/lib/auth";
 import {
   blockMutations,
@@ -740,9 +741,19 @@ export function createBlock<
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [blockId, name, repeaterContext?.itemId]);
 
-    const handleBlur = React.useCallback(() => {
-      setIsEditorFocused(false);
-    }, []);
+    const handleBlur = React.useCallback(
+      (wasEdited: boolean) => {
+        setIsEditorFocused(false);
+        if (wasEdited) {
+          trackClientEvent("block_edited", {
+            via: "inline-lexical",
+            blockType: options.id,
+            field: String(name),
+          });
+        }
+      },
+      [name],
+    );
 
     const handleMouseEnter = () => {
       if (isContentEditable) {

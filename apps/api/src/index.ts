@@ -28,7 +28,14 @@ app.use(
   "*",
   cors({
     origin: (origin) => origin,
-    allowHeaders: ["Content-Type", "Authorization", "Better-Auth-Cookie", "x-environment-name"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Better-Auth-Cookie",
+      "x-environment-name",
+      "x-camox-client",
+      "x-camox-analytics-disabled",
+    ],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Set-Better-Auth-Cookie"],
     maxAge: 600,
@@ -55,6 +62,8 @@ app.use("*", async (c, next) => {
 // Environment name middleware — reads x-environment-name header, defaults to "production"
 app.use("*", async (c, next) => {
   c.set("environmentName", c.req.header("x-environment-name") || "production");
+  c.set("client", c.req.header("x-camox-client") || "unknown");
+  c.set("analyticsDisabled", c.req.header("x-camox-analytics-disabled") === "1");
   await next();
 });
 
@@ -106,6 +115,8 @@ app.all("/rpc/*", async (c) => {
       env: c.env,
       headers: c.req.raw.headers,
       environmentName: c.var.environmentName,
+      client: c.var.client,
+      analyticsDisabled: c.var.analyticsDisabled,
       waitUntil: (promise) => c.executionCtx.waitUntil(promise),
     },
   });

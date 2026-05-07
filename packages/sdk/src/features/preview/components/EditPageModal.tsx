@@ -250,9 +250,14 @@ const EditPageModalContent = ({ pageId }: { pageId: number | null }) => {
                   <Switch
                     id="ai-seo"
                     checked={page.aiSeoEnabled !== false}
-                    onCheckedChange={(checked) =>
-                      setAiSeo.mutate({ id: page.id, enabled: checked })
-                    }
+                    onCheckedChange={(checked) => {
+                      setAiSeo.mutate({ id: page.id, enabled: checked });
+                      trackClientEvent("ai_metadata_toggled", {
+                        target: "page",
+                        enabled: checked,
+                        pageId: page.id,
+                      });
+                    }}
                   />
                   <Label htmlFor="ai-seo">AI metadata</Label>
                 </div>

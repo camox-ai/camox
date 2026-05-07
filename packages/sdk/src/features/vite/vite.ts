@@ -56,6 +56,7 @@ function writeRuntimeSidecar(
     apiUrl: string;
     authenticationUrl: string;
     environmentName: string;
+    disableAnalytics: boolean;
   },
 ): void {
   const dir = join(root, "node_modules", ".camox");
@@ -189,6 +190,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
             "camox > @lexical/react/LexicalComposer",
             "camox > @lexical/react/LexicalComposerContext",
             "camox > @lexical/react/LexicalContentEditable",
+            "camox > @lexical/react/LexicalHistoryPlugin",
             "camox > @lexical/react/LexicalOnChangePlugin",
             "camox > @lexical/react/LexicalRichTextPlugin",
             "camox > @orpc/client",
@@ -222,6 +224,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
         apiUrl,
         authenticationUrl,
         environmentName,
+        disableAnalytics: !!options.disableAnalytics,
       });
 
       if (!disableCodeGen) {
