@@ -9,9 +9,9 @@ import { createMiddleware, createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 
 import type { CamoxApp } from "../../core/createApp";
-import { trackEvent } from "../../lib/analytics";
 import { seedBlockCaches } from "../../lib/normalized-data";
 import type { PageStructure } from "../../lib/queries";
+import { trackEvent } from "../../lib/telemetry";
 import { CamoxPreview, PageContent } from "../preview/CamoxPreview";
 
 /* -------------------------------------------------------------------------------------------------

@@ -12,7 +12,6 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 
 import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet.tsx";
-import { trackClientEvent } from "@/lib/analytics-client";
 import { useProjectSlug } from "@/lib/auth";
 import {
   blockMutations,
@@ -21,6 +20,7 @@ import {
   pageQueries,
   projectQueries,
 } from "@/lib/queries";
+import { trackClientEvent } from "@/lib/telemetry-client";
 
 import { useFrame } from "../features/preview/components/Frame";
 import { postOverlayMessage } from "../features/preview/overlayMessages";

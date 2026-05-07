@@ -56,7 +56,7 @@ function writeRuntimeSidecar(
     apiUrl: string;
     authenticationUrl: string;
     environmentName: string;
-    disableAnalytics: boolean;
+    disableTelemetry: boolean;
   },
 ): void {
   const dir = join(root, "node_modules", ".camox");
@@ -91,8 +91,8 @@ export interface CamoxPluginOptions {
   projectSlug: string;
   /** Secret used to authenticate definition sync requests with the API */
   syncSecret: string;
-  /** Disable PostHog analytics collection (default: false) */
-  disableAnalytics?: boolean;
+  /** Disable PostHog telemetry collection (default: false) */
+  disableTelemetry?: boolean;
   /** Internal options (intended for Camox contributors in development, not for public use) */
   _internal?: {
     /** URL of the Camox API backend, used for data fetching */
@@ -144,7 +144,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
       environmentName = resolveEnvironmentName(env.command, authenticationUrl);
       return {
         define: {
-          __CAMOX_ANALYTICS_DISABLED__: JSON.stringify(!!options.disableAnalytics),
+          __CAMOX_TELEMETRY_DISABLED__: JSON.stringify(!!options.disableTelemetry),
           __ENABLE_TANSTACK_DEVTOOLS__: JSON.stringify(enableTanstackDevtools),
           __CAMOX_ENVIRONMENT_NAME__: JSON.stringify(environmentName),
           __CAMOX_API_URL__: JSON.stringify(apiUrl),
@@ -224,7 +224,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
         apiUrl,
         authenticationUrl,
         environmentName,
-        disableAnalytics: !!options.disableAnalytics,
+        disableTelemetry: !!options.disableTelemetry,
       });
 
       if (!disableCodeGen) {

@@ -1,12 +1,12 @@
 import { POSTHOG_PUBLIC_KEY } from "@camox/api-contract";
 import posthog from "posthog-js";
 
-declare const __CAMOX_ANALYTICS_DISABLED__: boolean;
+declare const __CAMOX_TELEMETRY_DISABLED__: boolean;
 
 let initialized = false;
 
 function ensureInitialized() {
-  if (__CAMOX_ANALYTICS_DISABLED__) return false;
+  if (__CAMOX_TELEMETRY_DISABLED__) return false;
   if (typeof window === "undefined") return false;
   if (initialized) return true;
   posthog.init(POSTHOG_PUBLIC_KEY, {

@@ -24,9 +24,9 @@ import { useSelector } from "@xstate/store-react";
 import { Copy, Pen, Settings, Trash2 } from "lucide-react";
 import * as React from "react";
 
-import { trackClientEvent } from "@/lib/analytics-client";
 import { type NormalizedBlock, usePageBlocks } from "@/lib/normalized-data";
 import { blockMutations, repeatableItemMutations } from "@/lib/queries";
+import { trackClientEvent } from "@/lib/telemetry-client";
 import { formatShortcut } from "@/lib/utils";
 
 import type { Action } from "../../provider/actionsStore";

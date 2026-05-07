@@ -2,9 +2,9 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import { trackClientEvent } from "@/lib/analytics-client";
 import { getApiUrl, getEnvironmentName } from "@/lib/api-client";
 import { getAuthCookieHeader } from "@/lib/auth";
+import { trackClientEvent } from "@/lib/telemetry-client";
 
 export interface UploadItem {
   id: string;

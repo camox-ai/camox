@@ -24,7 +24,6 @@ import { useSelector } from "@xstate/store-react";
 import { Globe, Info } from "lucide-react";
 import * as React from "react";
 
-import { trackClientEvent } from "@/lib/analytics-client";
 import { useProjectSlug } from "@/lib/auth";
 import type { Page } from "@/lib/queries";
 import {
@@ -34,6 +33,7 @@ import {
   pageQueries,
   projectQueries,
 } from "@/lib/queries";
+import { trackClientEvent } from "@/lib/telemetry-client";
 import { formatPathSegment } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";

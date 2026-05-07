@@ -6,7 +6,6 @@ import studioCssUrl from "virtual:camox-studio-css";
 
 import { AuthGate } from "@/components/AuthGate";
 import type { CamoxApp } from "@/core/createApp";
-import { identifyProject, identifyUser } from "@/lib/analytics-client";
 import { initApiClient } from "@/lib/api-client";
 import {
   AuthContext,
@@ -17,6 +16,7 @@ import {
   useSignInRedirect,
 } from "@/lib/auth";
 import { projectQueries } from "@/lib/queries";
+import { identifyProject, identifyUser } from "@/lib/telemetry-client";
 import { useProjectRoom } from "@/lib/use-project-room";
 
 import { usePreviewPagesActions } from "../preview/CamoxPreview";

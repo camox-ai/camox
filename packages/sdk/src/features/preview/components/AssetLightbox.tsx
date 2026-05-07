@@ -10,10 +10,10 @@ import { Check, Download, FileIcon, Link, Loader2, Trash2, X } from "lucide-reac
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
-import { trackClientEvent } from "@/lib/analytics-client";
 import { getApiUrl, getEnvironmentName } from "@/lib/api-client";
 import { getAuthCookieHeader } from "@/lib/auth";
 import { fileMutations, fileQueries } from "@/lib/queries";
+import { trackClientEvent } from "@/lib/telemetry-client";
 
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
 

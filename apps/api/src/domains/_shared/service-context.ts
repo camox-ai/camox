@@ -15,9 +15,9 @@ export type ServiceContext = {
    */
   client: string;
   /**
-   * Honors the user's `disableAnalytics` vite plugin option. When true, the
+   * Honors the user's `disableTelemetry` vite plugin option. When true, the
    * server skips emission for events triggered by this request. Forwarded
-   * through `X-Camox-Analytics-Disabled` from CLI and studio paths.
+   * through `X-Camox-Telemetry-Disabled` from CLI and studio paths.
    */
-  analyticsDisabled: boolean;
+  telemetryDisabled: boolean;
 };

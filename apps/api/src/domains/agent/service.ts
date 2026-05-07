@@ -10,7 +10,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { getAuthorizedProject } from "../../authorization";
-import { deriveSurface, trackEvent } from "../../lib/analytics";
+import { deriveSurface, trackEvent } from "../../lib/telemetry";
 import type { ServiceContext } from "../_shared/service-context";
 
 // --- Input Schemas ---
@@ -36,13 +36,13 @@ async function buildToolContext(ctx: ServiceContext, projectId: number): Promise
     waitUntil: ctx.waitUntil,
     environmentName: ctx.environmentName,
     client: ctx.client,
-    analyticsDisabled: ctx.analyticsDisabled,
+    telemetryDisabled: ctx.telemetryDisabled,
     projectId,
   };
 }
 
 /**
- * Maps tool names to analytics events. Keeps the mapping flat so extending to
+ * Maps tool names to telemetry events. Keeps the mapping flat so extending to
  * page/layout creation is a one-line change. `getProps` runs after the tool
  * succeeds and extracts event-specific properties from the parsed input.
  */
@@ -103,7 +103,7 @@ export async function callTool(ctx: ServiceContext, rawInput: z.input<typeof cal
     const result = await tool.handler(parsed, toolCtx);
 
     const mapping = TOOL_EVENT_MAP[name];
-    if (mapping && ctx.user && !ctx.analyticsDisabled) {
+    if (mapping && ctx.user && !ctx.telemetryDisabled) {
       ctx.waitUntil(
         trackEvent({
           event: mapping.event,

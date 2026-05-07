@@ -14,7 +14,7 @@ export type BaseContext = {
   headers: Headers;
   environmentName: string;
   client: string;
-  analyticsDisabled: boolean;
+  telemetryDisabled: boolean;
   waitUntil: (promise: Promise<unknown>) => void;
 };
 

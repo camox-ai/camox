@@ -16,14 +16,14 @@ function createRpcClient(
   token: string,
   apiUrl: string = CAMOX_API_URL,
   environmentName?: string,
-  disableAnalytics?: boolean,
+  disableTelemetry?: boolean,
 ) {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     "x-camox-client": "cli",
   };
   if (environmentName) headers["x-environment-name"] = environmentName;
-  if (disableAnalytics) headers["x-camox-analytics-disabled"] = "1";
+  if (disableTelemetry) headers["x-camox-telemetry-disabled"] = "1";
   const link = new RPCLink({ url: `${apiUrl}/rpc`, headers });
   return createORPCClient<RouterClient<Router>>(link);
 }
@@ -126,7 +126,7 @@ export type CallToolParams = {
   projectId: number;
   name: string;
   args: unknown;
-  disableAnalytics?: boolean;
+  disableTelemetry?: boolean;
 };
 
 export async function callTool(params: CallToolParams): Promise<CallToolResponse> {
@@ -134,7 +134,7 @@ export async function callTool(params: CallToolParams): Promise<CallToolResponse
     params.token,
     params.apiUrl,
     params.environmentName,
-    params.disableAnalytics,
+    params.disableTelemetry,
   );
   return (await client.agent.callTool({
     projectId: params.projectId,

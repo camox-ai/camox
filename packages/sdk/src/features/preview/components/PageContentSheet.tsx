@@ -25,9 +25,9 @@ import * as React from "react";
 
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
 import { actionsStore, type Action } from "@/features/provider/actionsStore";
-import { trackClientEvent } from "@/lib/analytics-client";
 import { isFileMarker, type NormalizedItem } from "@/lib/normalized-data";
 import { blockMutations, blockQueries, fileQueries, repeatableItemMutations } from "@/lib/queries";
+import { trackClientEvent } from "@/lib/telemetry-client";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import type { OverlayMessage } from "../overlayMessages";

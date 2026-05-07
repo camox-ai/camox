@@ -1,11 +1,11 @@
 /**
- * Server-side PostHog tracking for the API.
+ * Server-side PostHog telemetry for the API.
  *
  * Runs on Cloudflare Workers, so we POST directly to the PostHog ingest
  * endpoint instead of using `posthog-node` (which expects a long-lived
  * Node process for batching/flushing).
  *
- * Always wrap calls in `ctx.waitUntil(...)` so analytics never blocks the
+ * Always wrap calls in `ctx.waitUntil(...)` so telemetry never blocks the
  * response and a slow ingest never delays user-facing latency.
  */
 
@@ -50,6 +50,6 @@ export async function trackEvent({
       }),
     });
   } catch {
-    // Analytics must never break the request path.
+    // Telemetry must never break the request path.
   }
 }

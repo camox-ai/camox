@@ -34,7 +34,7 @@ app.use(
       "Better-Auth-Cookie",
       "x-environment-name",
       "x-camox-client",
-      "x-camox-analytics-disabled",
+      "x-camox-telemetry-disabled",
     ],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Set-Better-Auth-Cookie"],
@@ -63,7 +63,7 @@ app.use("*", async (c, next) => {
 app.use("*", async (c, next) => {
   c.set("environmentName", c.req.header("x-environment-name") || "production");
   c.set("client", c.req.header("x-camox-client") || "unknown");
-  c.set("analyticsDisabled", c.req.header("x-camox-analytics-disabled") === "1");
+  c.set("telemetryDisabled", c.req.header("x-camox-telemetry-disabled") === "1");
   await next();
 });
 
@@ -116,7 +116,7 @@ app.all("/rpc/*", async (c) => {
       headers: c.req.raw.headers,
       environmentName: c.var.environmentName,
       client: c.var.client,
-      analyticsDisabled: c.var.analyticsDisabled,
+      telemetryDisabled: c.var.telemetryDisabled,
       waitUntil: (promise) => c.executionCtx.waitUntil(promise),
     },
   });

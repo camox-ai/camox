@@ -21,9 +21,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
 import { useEffect } from "react";
 
-import { trackClientEvent } from "@/lib/analytics-client";
 import { useProjectSlug } from "@/lib/auth";
 import { layoutQueries, pageMutations, pageQueries, projectQueries } from "@/lib/queries";
+import { trackClientEvent } from "@/lib/telemetry-client";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { previewStore } from "../previewStore";

@@ -14,7 +14,6 @@ import { generateKeyBetween } from "fractional-indexing";
 import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
-import { trackClientEvent } from "@/lib/analytics-client";
 import { useProjectSlug } from "@/lib/auth";
 import { usePageBlocks } from "@/lib/normalized-data";
 import {
@@ -24,6 +23,7 @@ import {
   blockQueries,
   projectQueries,
 } from "@/lib/queries";
+import { trackClientEvent } from "@/lib/telemetry-client";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";

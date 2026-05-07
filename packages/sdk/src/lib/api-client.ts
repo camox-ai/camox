@@ -6,7 +6,7 @@ import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 
 import { getAuthCookieHeader } from "./auth";
 
-declare const __CAMOX_ANALYTICS_DISABLED__: boolean;
+declare const __CAMOX_TELEMETRY_DISABLED__: boolean;
 
 export type ApiClient = RouterClient<Router>;
 
@@ -21,7 +21,7 @@ export function initApiClient(apiUrl: string, environmentName?: string): ApiClie
 
   const headers: Record<string, string> = { "x-camox-client": "studio" };
   if (environmentName) headers["x-environment-name"] = environmentName;
-  if (__CAMOX_ANALYTICS_DISABLED__) headers["x-camox-analytics-disabled"] = "1";
+  if (__CAMOX_TELEMETRY_DISABLED__) headers["x-camox-telemetry-disabled"] = "1";
 
   const link = new RPCLink({
     url: `${apiUrl}/rpc`,

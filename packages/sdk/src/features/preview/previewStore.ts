@@ -3,7 +3,7 @@ import { createStore } from "@xstate/store-react";
 
 import { Block } from "@/core/createBlock";
 import type { FieldType } from "@/core/lib/fieldTypes";
-import { trackClientEvent } from "@/lib/analytics-client";
+import { trackClientEvent } from "@/lib/telemetry-client";
 
 /* -------------------------------------------------------------------------------------------------
  * Selection — normalized, flat pointer to the currently selected entity

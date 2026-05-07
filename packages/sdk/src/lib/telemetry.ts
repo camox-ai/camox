@@ -1,12 +1,12 @@
 import { POSTHOG_PUBLIC_KEY } from "@camox/api-contract";
 import type { PostHog } from "posthog-node";
 
-declare const __CAMOX_ANALYTICS_DISABLED__: boolean;
+declare const __CAMOX_TELEMETRY_DISABLED__: boolean;
 
 let client: PostHog | null = null;
 
 async function getClient(): Promise<PostHog | null> {
-  if (__CAMOX_ANALYTICS_DISABLED__) return null;
+  if (__CAMOX_TELEMETRY_DISABLED__) return null;
   if (!client) {
     const { PostHog } = await import("posthog-node");
     client = new PostHog(POSTHOG_PUBLIC_KEY, {
