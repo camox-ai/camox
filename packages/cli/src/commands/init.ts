@@ -277,27 +277,32 @@ src/routeTree.gen.ts
 
   const [cmd, ...args] = devCmd.split(" ");
 
-  // Track Ctrl+C so we can exit cleanly instead of dropping into a shell.
-  // The handler itself is a no-op: if the parent also died from SIGINT, pnpm
-  // would report ELIFECYCLE — keeping the parent alive avoids that noise.
-  let interruptReceived = false;
-  process.on("SIGINT", () => {
-    interruptReceived = true;
-  });
-
+  // Spawn in its own process group so Ctrl+C (SIGINT) doesn't reach it
+  // directly — that would cause pnpm to print ELIFECYCLE noise.
   const child = spawn(cmd, args, {
     cwd: targetDir,
     stdio: "inherit",
+    detached: true,
   });
 
-  child.on("close", () => {
-    // When the user pressed Ctrl+C to stop the dev server they want the CLI
-    // to exit too — not to land in an interactive shell they can't escape with
-    // Ctrl+C (because the parent's SIGINT handler is still registered).
-    if (interruptReceived) {
-      process.exit(0);
-      return;
+  // Intercept Ctrl+C: send SIGTERM to the child's entire process group
+  // for a clean shutdown (kills pnpm + vite + all children), then let
+  // the `close` handler drop the user into the project directory.
+  const sigintHandler = () => {
+    if (child.pid) {
+      try {
+        process.kill(-child.pid, "SIGTERM");
+      } catch {}
     }
+  };
+  process.on("SIGINT", sigintHandler);
+
+  // If the parent exits unexpectedly, make sure the child tree doesn't linger.
+  process.on("exit", sigintHandler);
+
+  child.on("close", () => {
+    process.removeListener("SIGINT", sigintHandler);
+    process.removeListener("exit", sigintHandler);
     dropIntoProject();
   });
 }
