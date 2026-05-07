@@ -277,9 +277,13 @@ src/routeTree.gen.ts
 
   const [cmd, ...args] = devCmd.split(" ");
 
-  // Ignore SIGINT in the parent so only the dev server handles Ctrl+C.
-  // Without this, pnpm reports ELIFECYCLE when the parent dies from the signal.
-  process.on("SIGINT", () => {});
+  // Track Ctrl+C so we can exit cleanly instead of dropping into a shell.
+  // The handler itself is a no-op: if the parent also died from SIGINT, pnpm
+  // would report ELIFECYCLE — keeping the parent alive avoids that noise.
+  let interruptReceived = false;
+  process.on("SIGINT", () => {
+    interruptReceived = true;
+  });
 
   const child = spawn(cmd, args, {
     cwd: targetDir,
@@ -287,6 +291,13 @@ src/routeTree.gen.ts
   });
 
   child.on("close", () => {
+    // When the user pressed Ctrl+C to stop the dev server they want the CLI
+    // to exit too — not to land in an interactive shell they can't escape with
+    // Ctrl+C (because the parent's SIGINT handler is still registered).
+    if (interruptReceived) {
+      process.exit(0);
+      return;
+    }
     dropIntoProject();
   });
 }
