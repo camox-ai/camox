@@ -32,7 +32,8 @@
     "build": "node build.mjs"
   },
   "devDependencies": {
-    "dts-bundle-generator": "^9.5.1"
+    "dts-bundle-generator": "^9.5.1",
+    "esbuild": "^0.25.0"
   },
   "nx": {
     "tags": [

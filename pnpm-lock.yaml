@@ -446,6 +446,9 @@ importers:
       dts-bundle-generator:
         specifier: ^9.5.1
         version: 9.5.1
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.10
 
   packages/cli:
     dependencies:
