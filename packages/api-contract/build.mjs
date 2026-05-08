@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { rmSync, writeFileSync } from "node:fs";
+import { rmSync } from "node:fs";
 
 rmSync("dist", { recursive: true, force: true });
 
