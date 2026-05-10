@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.18.0](https://github.com/camox-ai/camox/compare/camox-v0.17.7...camox-v0.18.0) (2026-05-10)
+
+
+### Features
+
+* **web:** add youtube demo block ([9057270](https://github.com/camox-ai/camox/commit/90572704b998b1642a109903a5082305b8163d37))
+
+
+### Bug Fixes
+
+* hydrate nested repeatable items ([909f990](https://github.com/camox-ai/camox/commit/909f9905e767adb23207f2d179424e7e6e4eaeb2))
+* multiple assets bugs and api ([0815a17](https://github.com/camox-ai/camox/commit/0815a17f1fa6ca4efc7258ff4f6ca9af76a3ec6c))
+
+
+### Documentation
+
+* expand README with features and links ([3e1c2ef](https://github.com/camox-ai/camox/commit/3e1c2ef2ae174a3de23ea1024adc304bed9df13f))
+
+
+### Miscellaneous
+
+* add multiple assets to fieldTypes ([e94b28e](https://github.com/camox-ai/camox/commit/e94b28ee698b19be9a5140cbd3e8c5c963608958))
+
 ## [0.17.7](https://github.com/camox-ai/camox/compare/camox-v0.17.6...camox-v0.17.7) (2026-05-07)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/camox-ai/camox/compare/camox-v0.17.7...@camox/api-contract-v0.18.0) (2026-05-10)
+
+
+### Features
+
+* **web:** add youtube demo block ([9057270](https://github.com/camox-ai/camox/commit/90572704b998b1642a109903a5082305b8163d37))
+
 ## [0.17.7](https://github.com/camox-ai/camox/compare/camox-v0.17.6...@camox/api-contract-v0.17.7) (2026-05-07)
 
 
