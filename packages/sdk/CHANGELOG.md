@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.18.0](https://github.com/camox-ai/camox/compare/camox-v0.17.7...camox-sdk-v0.18.0) (2026-05-10)
+
+
+### Bug Fixes
+
+* multiple assets bugs and api ([0815a17](https://github.com/camox-ai/camox/commit/0815a17f1fa6ca4efc7258ff4f6ca9af76a3ec6c))
+
+
+### Miscellaneous
+
+* add multiple assets to fieldTypes ([e94b28e](https://github.com/camox-ai/camox/commit/e94b28ee698b19be9a5140cbd3e8c5c963608958))
+
 ## [0.17.7](https://github.com/camox-ai/camox/compare/camox-v0.17.6...camox-sdk-v0.17.7) (2026-05-07)
 
 
