@@ -148,6 +148,26 @@ const fieldTypesDictionary = {
       previewStore.send({ type: "openBlockContentSheet", blockId });
     },
   },
+  MultipleAssets: {
+    label: "Multiple assets",
+    isScalar: false,
+    isContentEditable: false,
+    hasOwnView: true,
+    getIcon: ({ arrayItemType }: SchemaFieldMeta) => {
+      if (arrayItemType === "File") return (props: LucideProps) => <FileIcon {...props} />;
+      return (props: LucideProps) => <ImagesIcon {...props} />;
+    },
+    getLabel: (_value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) =>
+      schemaTitle ?? fieldName,
+    onTreeDoubleClick: (
+      { blockId, fieldName }: TreeDoubleClickParams,
+      { arrayItemType }: SchemaFieldMeta,
+    ) => {
+      const fieldType = arrayItemType === "File" ? "File" : "Image";
+      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType });
+      previewStore.send({ type: "openBlockContentSheet", blockId });
+    },
+  },
 } satisfies Record<
   string,
   {
@@ -157,7 +177,7 @@ const fieldTypesDictionary = {
     hasOwnView: boolean;
     getIcon: (meta: SchemaFieldMeta) => (props: LucideProps) => React.ReactNode;
     getLabel: (value: unknown, meta: FieldLabelMeta) => string;
-    onTreeDoubleClick: (params: TreeDoubleClickParams) => void;
+    onTreeDoubleClick: (params: TreeDoubleClickParams, meta: SchemaFieldMeta) => void;
   }
 >;
 

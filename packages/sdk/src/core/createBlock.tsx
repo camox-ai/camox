@@ -1375,9 +1375,12 @@ export function createBlock<
     const source = parentRepeaterContext
       ? parentRepeaterContext.itemContent[fieldName]
       : (blockContext.content as Record<string, unknown>)[fieldName];
-    let arr = (Array.isArray(source) ? source : []) as unknown[];
 
-    // No stored items — synthesize defaultItems placeholders from the leaf default.
+    // No stored items — synthesize `defaultItems` preview placeholders from the
+    // leaf default. These are render-only (never persisted) and apply equally
+    // to peek and site modes so empty galleries don't render as blank in the
+    // editor preview.
+    let arr: unknown[] = Array.isArray(source) ? source : [];
     if (arr.length === 0) {
       const defaultCount = (fieldSchema.defaultItems ?? 0) as number;
       const itemDefault = fieldSchema.items?.default;

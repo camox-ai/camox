@@ -166,9 +166,13 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
     });
   };
 
-  const handleFieldDoubleClick = (fieldName: string, fieldType: string) => {
+  const handleFieldDoubleClick = (
+    fieldName: string,
+    fieldType: string,
+    arrayItemType: string | undefined,
+  ) => {
     const fieldDef = fieldTypesDictionary[fieldType as keyof typeof fieldTypesDictionary];
-    fieldDef.onTreeDoubleClick({ blockId: block.id, fieldName });
+    fieldDef.onTreeDoubleClick({ blockId: block.id, fieldName }, { arrayItemType });
   };
 
   const handleFieldMouseEnter = (fieldName: string, isRepeatable: boolean) => {
@@ -227,7 +231,9 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
             arrayItemType={fieldSchema?.arrayItemType}
             isSelected={selectedFieldName === fieldName}
             onFieldClick={() => handleFieldClick(fieldName, fieldType!)}
-            onFieldDoubleClick={() => handleFieldDoubleClick(fieldName, fieldType!)}
+            onFieldDoubleClick={() =>
+              handleFieldDoubleClick(fieldName, fieldType!, fieldSchema?.arrayItemType)
+            }
             onMouseEnter={() => handleFieldMouseEnter(fieldName, isRepeatable)}
             onMouseLeave={() => handleFieldMouseLeave(fieldName, isRepeatable)}
           />

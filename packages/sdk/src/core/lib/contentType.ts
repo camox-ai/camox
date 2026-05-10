@@ -513,4 +513,6 @@ export const Type = {
   Image: _imageType,
 
   File: _fileType,
-} satisfies Record<FieldType, unknown>;
+  // MultipleAssets has no dedicated builder — it's emitted by Type.Image / Type.File
+  // when called with `multiple: true` — so it's excluded from the satisfies constraint.
+} satisfies Record<Exclude<FieldType, "MultipleAssets">, unknown>;

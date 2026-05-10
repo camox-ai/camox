@@ -24,22 +24,12 @@ import { RepeatableItemsList } from "./RepeatableItemsList";
 
 export interface SchemaField {
   name: string;
-  fieldType:
-    | "String"
-    | "RepeatableItem"
-    | "MultipleAssets"
-    | "Enum"
-    | "Boolean"
-    | "Embed"
-    | "Link"
-    | "Image"
-    | "File";
+  fieldType: FieldType;
   label?: string;
   enumLabels?: Record<string, string>;
   enumValues?: string[];
   minItems?: number;
   maxItems?: number;
-  defaultItems?: number;
   arrayItemType?: "Image" | "File";
 }
 
@@ -63,10 +53,66 @@ const getSchemaFieldsInOrder = (schema: unknown): SchemaField[] => {
       label: prop.title as string | undefined,
       minItems: prop.minItems as number | undefined,
       maxItems: prop.maxItems as number | undefined,
-      defaultItems: prop.defaultItems as number | undefined,
       arrayItemType: prop.arrayItemType as "Image" | "File" | undefined,
     };
   });
+};
+
+/* -------------------------------------------------------------------------------------------------
+ * DrillRow — label + click-to-drill button shared by Link / Image / File / MultipleAssets
+ * -----------------------------------------------------------------------------------------------*/
+
+type DrillRowHover =
+  | { variant: "field"; fieldId: string }
+  | { variant: "repeater"; blockId: number; fieldName: string };
+
+interface DrillRowProps {
+  label: string;
+  preview: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  onClick: () => void;
+  hover: DrillRowHover;
+  postToIframe: (message: OverlayMessage) => void;
+}
+
+const DrillRow = ({ label, preview, Icon, onClick, hover, postToIframe }: DrillRowProps) => {
+  const handleMouseEnter = () => {
+    if (hover.variant === "field") {
+      postToIframe({ type: "CAMOX_HOVER_FIELD", fieldId: hover.fieldId });
+      return;
+    }
+    postToIframe({
+      type: "CAMOX_HOVER_REPEATER",
+      blockId: String(hover.blockId),
+      fieldName: hover.fieldName,
+    });
+  };
+
+  const handleMouseLeave = () => {
+    if (hover.variant === "field") {
+      postToIframe({ type: "CAMOX_HOVER_FIELD_END", fieldId: hover.fieldId });
+      return;
+    }
+    postToIframe({
+      type: "CAMOX_HOVER_REPEATER_END",
+      blockId: String(hover.blockId),
+      fieldName: hover.fieldName,
+    });
+  };
+
+  return (
+    <div className="space-y-2" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      <Label>{label}</Label>
+      <button
+        type="button"
+        className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
+        onClick={onClick}
+      >
+        <Icon className="text-muted-foreground h-4 w-4 shrink-0" />
+        <span className="truncate">{preview}</span>
+      </button>
+    </div>
+  );
 };
 
 /* -------------------------------------------------------------------------------------------------
@@ -245,7 +291,7 @@ const ItemFieldsEditor = ({
                     id={getFieldElementId(field.name)}
                     value={fieldApi.state.value as string | Record<string, unknown>}
                     onChange={(value) => handleScalarChange(field.name, value, fieldApi)}
-                    onFocus={() => handleFieldFocus(field.name, field.fieldType as FieldType)}
+                    onFocus={() => handleFieldFocus(field.name, field.fieldType)}
                     onBlur={() => handleFieldBlur(field.name)}
                   />
                 </div>
@@ -279,7 +325,7 @@ const ItemFieldsEditor = ({
                     type="url"
                     value={fieldApi.state.value as string}
                     onChange={(e) => handleScalarChange(field.name, e.target.value, fieldApi)}
-                    onFocus={() => handleFieldFocus(field.name, field.fieldType as FieldType)}
+                    onFocus={() => handleFieldFocus(field.name, field.fieldType)}
                     onBlur={() => handleFieldBlur(field.name)}
                   />
                 </div>
@@ -292,125 +338,47 @@ const ItemFieldsEditor = ({
           const linkValue = data[field.name] as
             | { text: string; href: string; newTab: boolean }
             | undefined;
-
           const preview = linkValue?.text || linkValue?.href || "Empty link";
 
           return (
-            <div
+            <DrillRow
               key={field.name}
-              className="space-y-2"
-              onMouseEnter={() =>
-                postToIframe({
-                  type: "CAMOX_HOVER_FIELD",
-                  fieldId,
-                })
-              }
-              onMouseLeave={() =>
-                postToIframe({
-                  type: "CAMOX_HOVER_FIELD_END",
-                  fieldId,
-                })
-              }
-            >
-              <Label>{label}</Label>
-              <button
-                type="button"
-                className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
-                onClick={() => drillIntoField(field.name, "Link")}
-              >
-                <Link2Icon className="text-muted-foreground h-4 w-4 shrink-0" />
-                <span className="truncate">{preview}</span>
-              </button>
-            </div>
+              label={label}
+              preview={preview}
+              Icon={Link2Icon}
+              onClick={() => drillIntoField(field.name, "Link")}
+              hover={{ variant: "field", fieldId }}
+              postToIframe={postToIframe}
+            />
           );
         }
 
-        if (field.fieldType === "MultipleAssets" && field.arrayItemType === "Image") {
-          const items = (data[field.name] ?? []) as unknown[];
-          // Mirror the runtime: empty arrays render `defaultItems` placeholders.
-          const count = items.length === 0 ? (field.defaultItems ?? 0) : items.length;
+        if (field.fieldType === "MultipleAssets") {
+          // The side editor always reflects real persisted data — `defaultItems`
+          // is a peek-only render affordance and never a real count.
+          const value = data[field.name];
+          const count = Array.isArray(value) ? value.length : 0;
+          const isImage = field.arrayItemType === "Image";
+          const noun = isImage ? "image" : "file";
           let preview: string;
           if (count === 0) {
-            preview = "No images";
+            preview = isImage ? "No images" : "No files";
           } else if (count === 1) {
-            preview = "1 image";
+            preview = `1 ${noun}`;
           } else {
-            preview = `${count} images`;
+            preview = `${count} ${noun}s`;
           }
 
           return (
-            <div
+            <DrillRow
               key={field.name}
-              className="space-y-2"
-              onMouseEnter={() =>
-                postToIframe({
-                  type: "CAMOX_HOVER_REPEATER",
-                  blockId: String(blockId),
-                  fieldName: field.name,
-                })
-              }
-              onMouseLeave={() =>
-                postToIframe({
-                  type: "CAMOX_HOVER_REPEATER_END",
-                  blockId: String(blockId),
-                  fieldName: field.name,
-                })
-              }
-            >
-              <Label>{label}</Label>
-              <button
-                type="button"
-                className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
-                onClick={() => drillIntoField(field.name, "Image")}
-              >
-                <ImagesIcon className="text-muted-foreground h-4 w-4 shrink-0" />
-                <span className="truncate">{preview}</span>
-              </button>
-            </div>
-          );
-        }
-
-        if (field.fieldType === "MultipleAssets" && field.arrayItemType === "File") {
-          const items = (data[field.name] ?? []) as unknown[];
-          const count = items.length === 0 ? (field.defaultItems ?? 0) : items.length;
-          let preview: string;
-          if (count === 0) {
-            preview = "No files";
-          } else if (count === 1) {
-            preview = "1 file";
-          } else {
-            preview = `${count} files`;
-          }
-
-          return (
-            <div
-              key={field.name}
-              className="space-y-2"
-              onMouseEnter={() =>
-                postToIframe({
-                  type: "CAMOX_HOVER_REPEATER",
-                  blockId: String(blockId),
-                  fieldName: field.name,
-                })
-              }
-              onMouseLeave={() =>
-                postToIframe({
-                  type: "CAMOX_HOVER_REPEATER_END",
-                  blockId: String(blockId),
-                  fieldName: field.name,
-                })
-              }
-            >
-              <Label>{label}</Label>
-              <button
-                type="button"
-                className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
-                onClick={() => drillIntoField(field.name, "File")}
-              >
-                <FileIcon className="text-muted-foreground h-4 w-4 shrink-0" />
-                <span className="truncate">{preview}</span>
-              </button>
-            </div>
+              label={label}
+              preview={preview}
+              Icon={isImage ? ImagesIcon : FileIcon}
+              onClick={() => drillIntoField(field.name, isImage ? "Image" : "File")}
+              hover={{ variant: "repeater", blockId, fieldName: field.name }}
+              postToIframe={postToIframe}
+            />
           );
         }
 
@@ -422,32 +390,15 @@ const ItemFieldsEditor = ({
           const preview = imageValue?.filename || "No image";
 
           return (
-            <div
+            <DrillRow
               key={field.name}
-              className="space-y-2"
-              onMouseEnter={() =>
-                postToIframe({
-                  type: "CAMOX_HOVER_FIELD",
-                  fieldId,
-                })
-              }
-              onMouseLeave={() =>
-                postToIframe({
-                  type: "CAMOX_HOVER_FIELD_END",
-                  fieldId,
-                })
-              }
-            >
-              <Label>{label}</Label>
-              <button
-                type="button"
-                className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
-                onClick={() => drillIntoField(field.name, "Image")}
-              >
-                <ImageIcon className="text-muted-foreground h-4 w-4 shrink-0" />
-                <span className="truncate">{preview}</span>
-              </button>
-            </div>
+              label={label}
+              preview={preview}
+              Icon={ImageIcon}
+              onClick={() => drillIntoField(field.name, "Image")}
+              hover={{ variant: "field", fieldId }}
+              postToIframe={postToIframe}
+            />
           );
         }
 
@@ -459,32 +410,15 @@ const ItemFieldsEditor = ({
           const preview = fileValue?.filename || "No file";
 
           return (
-            <div
+            <DrillRow
               key={field.name}
-              className="space-y-2"
-              onMouseEnter={() =>
-                postToIframe({
-                  type: "CAMOX_HOVER_FIELD",
-                  fieldId,
-                })
-              }
-              onMouseLeave={() =>
-                postToIframe({
-                  type: "CAMOX_HOVER_FIELD_END",
-                  fieldId,
-                })
-              }
-            >
-              <Label>{label}</Label>
-              <button
-                type="button"
-                className="hover:bg-accent/75 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors"
-                onClick={() => drillIntoField(field.name, "File")}
-              >
-                <FileIcon className="text-muted-foreground h-4 w-4 shrink-0" />
-                <span className="truncate">{preview}</span>
-              </button>
-            </div>
+              label={label}
+              preview={preview}
+              Icon={FileIcon}
+              onClick={() => drillIntoField(field.name, "File")}
+              hover={{ variant: "field", fieldId }}
+              postToIframe={postToIframe}
+            />
           );
         }
 
