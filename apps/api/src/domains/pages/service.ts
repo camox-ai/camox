@@ -77,6 +77,51 @@ function invalidatePage(ctx: ServiceContext, projectId: number, pageId: number) 
   });
 }
 
+function injectRepeatableItemMarkers<TBlock extends { id: number; content: unknown }>(
+  block: TBlock,
+  blockItems: (typeof repeatableItems.$inferSelect)[],
+) {
+  const childrenByParent = new Map<number | null, Map<string, typeof blockItems>>();
+  for (const item of blockItems) {
+    let fieldMap = childrenByParent.get(item.parentItemId);
+    if (!fieldMap) {
+      fieldMap = new Map();
+      childrenByParent.set(item.parentItemId, fieldMap);
+    }
+    const list = fieldMap.get(item.fieldName) ?? [];
+    list.push(item);
+    fieldMap.set(item.fieldName, list);
+  }
+
+  const hasInlineArray = (content: Record<string, unknown>, key: string) => {
+    const value = content[key];
+    return Array.isArray(value) && value.length > 0;
+  };
+
+  const content = { ...(block.content as Record<string, unknown>) };
+  const topLevelFields = childrenByParent.get(null);
+  if (topLevelFields) {
+    for (const [fieldName, fieldItems] of topLevelFields) {
+      if (hasInlineArray(content, fieldName)) continue;
+      content[fieldName] = fieldItems.map((item) => ({ _itemId: item.id }));
+    }
+  }
+
+  const items = blockItems.map((item) => {
+    const nestedFields = childrenByParent.get(item.id);
+    if (!nestedFields) return item;
+
+    const itemContent = { ...(item.content as Record<string, unknown>) };
+    for (const [fieldName, fieldItems] of nestedFields) {
+      if (hasInlineArray(itemContent, fieldName)) continue;
+      itemContent[fieldName] = fieldItems.map((child) => ({ _itemId: child.id }));
+    }
+    return { ...item, content: itemContent };
+  });
+
+  return { block: { ...block, content }, items };
+}
+
 // --- Reads ---
 
 export async function getPageByPath(
@@ -123,33 +168,24 @@ export async function getPageByPath(
         )
       : [];
 
-  const topLevelItemsByBlockField = new Map<string, typeof allItems>();
+  const itemsByBlock = new Map<number, typeof allItems>();
   for (const item of allItems) {
-    if (item.parentItemId !== null) continue;
-    const key = `${item.blockId}:${item.fieldName}`;
-    const list = topLevelItemsByBlockField.get(key) ?? [];
+    const list = itemsByBlock.get(item.blockId) ?? [];
     list.push(item);
-    topLevelItemsByBlockField.set(key, list);
+    itemsByBlock.set(item.blockId, list);
   }
 
-  const blocksWithMarkers = allBlocks.map((block) => {
-    const content = { ...(block.content as Record<string, unknown>) };
-    for (const [key, items] of topLevelItemsByBlockField) {
-      if (!key.startsWith(`${block.id}:`)) continue;
-      const fieldName = key.slice(String(block.id).length + 1);
-      // Skip fields whose inline array (e.g. multi-asset markers) already holds data.
-      const existing = content[fieldName];
-      if (Array.isArray(existing) && existing.length > 0) continue;
-      content[fieldName] = items.map((item) => ({ _itemId: item.id }));
-    }
-    return { ...block, content };
-  });
+  const normalizedBlocks = allBlocks.map((block) =>
+    injectRepeatableItemMarkers(block, itemsByBlock.get(block.id) ?? []),
+  );
+  const blocksWithMarkers = normalizedBlocks.map(({ block }) => block);
+  const itemsWithMarkers = normalizedBlocks.flatMap(({ items }) => items);
 
   const fileIds = new Set<number>();
   for (const block of blocksWithMarkers) {
     collectFileIds(block.content as Record<string, unknown>, fileIds);
   }
-  for (const item of allItems) {
+  for (const item of itemsWithMarkers) {
     collectFileIds(item.content as Record<string, unknown>, fileIds);
   }
 
@@ -166,7 +202,7 @@ export async function getPageByPath(
       ? { id: layout.id, layoutId: layout.layoutId, beforeBlockIds, afterBlockIds }
       : null,
     blocks: blocksWithMarkers,
-    repeatableItems: allItems,
+    repeatableItems: itemsWithMarkers,
     files: [...fileRows.values()],
   };
 }
