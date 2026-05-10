@@ -76,13 +76,9 @@ function SellingPointsGridComponent() {
               {(item) => (
                 <div className="bg-background flex h-full flex-col p-5">
                   <div className="mb-2 flex flex-row items-center gap-2">
-                    <item.Repeater name="icons">
-                      {(iconItem) => (
-                        <iconItem.Image name="image">
-                          {(props) => <img {...props} className="size-8 object-contain" />}
-                        </iconItem.Image>
-                      )}
-                    </item.Repeater>
+                    <item.MultipleAssets name="icons">
+                      {(props) => <img {...props} className="size-8 object-contain" />}
+                    </item.MultipleAssets>
                   </div>
                   <item.Field name="title">
                     {(props) => (

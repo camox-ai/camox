@@ -119,6 +119,18 @@ function resolveField(schema: any, value: unknown, ctx: SettingsContext): string
     return url || undefined;
   }
 
+  if (fieldType === "MultipleAssets") {
+    if (!Array.isArray(value)) return undefined;
+    const leafSchema = schema?.items;
+    if (!leafSchema) return undefined;
+    const itemParts: string[] = [];
+    for (const v of value) {
+      const md = resolveField(leafSchema, v, { settings: ctx.settings, itemSettings: null });
+      if (md) itemParts.push(`- ${md}`);
+    }
+    return itemParts.length > 0 ? itemParts.join("\n") : undefined;
+  }
+
   if (fieldType === "RepeatableItem") {
     if (!Array.isArray(value)) return undefined;
     const itemSchema = schema?.items?.properties;

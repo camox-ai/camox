@@ -63,6 +63,9 @@ const buildNestedItemSeeds = (
   ) => {
     for (const [fieldName, fieldSchema] of Object.entries(properties)) {
       if (fieldSchema.type !== "array" || !fieldSchema.items?.properties) continue;
+      // Multi-asset arrays are stored inline as _fileId markers, not as nested
+      // DB items. The runtime synthesizes default placeholders when empty.
+      if (fieldSchema.fieldType === "MultipleAssets") continue;
       const defaultCount = fieldSchema.defaultItems ?? fieldSchema.minItems ?? 0;
       if (defaultCount <= 0) continue;
 

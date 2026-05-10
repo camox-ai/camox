@@ -197,13 +197,13 @@ Type.Link({
 
 ### Type.Image
 
-A single image, or a repeatable array of images.
+A single image, or a flat array of images.
 
 ```tsx
-// Single image
+// Single image — render with block.Image
 Type.Image({ title: "Cover photo" });
 
-// Multiple images (creates a repeatable list)
+// Multiple images — render with block.MultipleAssets (NOT block.Repeater)
 Type.Image({ multiple: true, defaultItems: 6, title: "Gallery images" });
 ```
 
@@ -212,12 +212,13 @@ Type.Image({ multiple: true, defaultItems: 6, title: "Gallery images" });
 A file upload, with MIME type filtering.
 
 ```tsx
+// Single file — render with block.File
 Type.File({
   accept: ["application/pdf"],
   title: "PDF Document",
 });
 
-// Multiple files
+// Multiple files — render with block.MultipleAssets (NOT block.Repeater)
 Type.File({
   accept: ["application/pdf"],
   multiple: true,
@@ -371,7 +372,7 @@ The optional second argument `data` exposes raw values `{ text, href, newTab }` 
 </myBlock.Repeater>
 ```
 
-Inside a Repeater, the `item` callback argument exposes the same `.Field`, `.Link`, `.Image`, `.File`, `.Embed`, and `.Repeater` methods — scoped to that item. This is how nested repeaters work too:
+Inside a Repeater, the `item` callback argument exposes the same `.Field`, `.Link`, `.Image`, `.File`, `.Embed`, `.MultipleAssets`, and `.Repeater` methods — scoped to that item. This is how nested repeaters work too:
 
 ```tsx
 <footer.Repeater name="columns">
@@ -383,13 +384,27 @@ Inside a Repeater, the `item` callback argument exposes the same `.Field`, `.Lin
 </footer.Repeater>
 ```
 
-For `Type.Image({ multiple: true })`, the repeater item has a single `image` key:
+### Multiple images / files — `block.MultipleAssets`
+
+For `Type.Image({ multiple: true })` or `Type.File({ multiple: true })`, use `MultipleAssets` (NOT `Repeater`). The render-prop is the same shape as `block.Image` / `block.File` — `(props, data) => …` — invoked once per asset:
 
 ```tsx
-<gallery.Repeater name="images">
-  {(item) => <item.Image name="image">{(props) => <img {...props} />}</item.Image>}
-</gallery.Repeater>
+// Top-level
+<gallery.MultipleAssets name="images">
+  {(props) => <img {...props} className="rounded-lg" />}
+</gallery.MultipleAssets>
+
+// Nested inside a Type.RepeatableItem
+<paragraphGrid.Repeater name="paragraphs">
+  {(item) => (
+    <item.MultipleAssets name="logos">
+      {(props) => <img {...props} className="size-10 object-contain" />}
+    </item.MultipleAssets>
+  )}
+</paragraphGrid.Repeater>
 ```
+
+`Repeater` is only for `Type.RepeatableItem` arrays. Trying to use `Repeater` on a `Type.Image`/`File` with `multiple: true` is a TypeScript error.
 
 ### Reading settings — `block.useSetting`
 

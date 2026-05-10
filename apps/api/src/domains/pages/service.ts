@@ -137,6 +137,9 @@ export async function getPageByPath(
     for (const [key, items] of topLevelItemsByBlockField) {
       if (!key.startsWith(`${block.id}:`)) continue;
       const fieldName = key.slice(String(block.id).length + 1);
+      // Skip fields whose inline array (e.g. multi-asset markers) already holds data.
+      const existing = content[fieldName];
+      if (Array.isArray(existing) && existing.length > 0) continue;
       content[fieldName] = items.map((item) => ({ _itemId: item.id }));
     }
     return { ...block, content };

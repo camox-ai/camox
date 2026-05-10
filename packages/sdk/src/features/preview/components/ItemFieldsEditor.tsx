@@ -24,12 +24,22 @@ import { RepeatableItemsList } from "./RepeatableItemsList";
 
 export interface SchemaField {
   name: string;
-  fieldType: "String" | "RepeatableItem" | "Enum" | "Boolean" | "Embed" | "Link" | "Image" | "File";
+  fieldType:
+    | "String"
+    | "RepeatableItem"
+    | "MultipleAssets"
+    | "Enum"
+    | "Boolean"
+    | "Embed"
+    | "Link"
+    | "Image"
+    | "File";
   label?: string;
   enumLabels?: Record<string, string>;
   enumValues?: string[];
   minItems?: number;
   maxItems?: number;
+  defaultItems?: number;
   arrayItemType?: "Image" | "File";
 }
 
@@ -53,6 +63,7 @@ const getSchemaFieldsInOrder = (schema: unknown): SchemaField[] => {
       label: prop.title as string | undefined,
       minItems: prop.minItems as number | undefined,
       maxItems: prop.maxItems as number | undefined,
+      defaultItems: prop.defaultItems as number | undefined,
       arrayItemType: prop.arrayItemType as "Image" | "File" | undefined,
     };
   });
@@ -314,9 +325,10 @@ const ItemFieldsEditor = ({
           );
         }
 
-        if (field.fieldType === "RepeatableItem" && field.arrayItemType === "Image") {
+        if (field.fieldType === "MultipleAssets" && field.arrayItemType === "Image") {
           const items = (data[field.name] ?? []) as unknown[];
-          const count = items.length;
+          // Mirror the runtime: empty arrays render `defaultItems` placeholders.
+          const count = items.length === 0 ? (field.defaultItems ?? 0) : items.length;
           let preview: string;
           if (count === 0) {
             preview = "No images";
@@ -358,9 +370,9 @@ const ItemFieldsEditor = ({
           );
         }
 
-        if (field.fieldType === "RepeatableItem" && field.arrayItemType === "File") {
+        if (field.fieldType === "MultipleAssets" && field.arrayItemType === "File") {
           const items = (data[field.name] ?? []) as unknown[];
-          const count = items.length;
+          const count = items.length === 0 ? (field.defaultItems ?? 0) : items.length;
           let preview: string;
           if (count === 0) {
             preview = "No files";

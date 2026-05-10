@@ -216,12 +216,12 @@ function _imageType(options: {
   title?: string;
   multiple: true;
   defaultItems: number;
-}): TArray<TObject<{ image: TUnsafe<ImageValue> }>>;
+}): TArray<TUnsafe<ImageValue>>;
 function _imageType(options: {
   title?: string;
   multiple?: boolean;
   defaultItems?: number;
-}): TArray<TObject<{ image: TUnsafe<ImageValue> }>> | TUnsafe<ImageValue> {
+}): TArray<TUnsafe<ImageValue>> | TUnsafe<ImageValue> {
   const imageDefault = {
     url: `https://placehold.co/1200x800/f4f4f5/a1a1aa.png?text=${options?.title || "image"}`,
     alt: "",
@@ -248,14 +248,13 @@ function _imageType(options: {
   }
 
   const defaultItems = options.defaultItems ?? 0;
-  const itemSchema = TypeBoxType.Object({ image: singleSchema });
-  return TypeBoxType.Array(itemSchema, {
+  return TypeBoxType.Array(singleSchema, {
     minItems: 0,
     maxItems: 100,
     default: [],
     defaultItems,
     title: options.title,
-    fieldType: "RepeatableItem" as const,
+    fieldType: "MultipleAssets" as const,
     arrayItemType: "Image" as const,
   });
 }
@@ -270,13 +269,13 @@ function _fileType(options: {
   title?: string;
   multiple: true;
   defaultItems: number;
-}): TArray<TObject<{ file: TUnsafe<FileValue> }>>;
+}): TArray<TUnsafe<FileValue>>;
 function _fileType(options: {
   accept: string[];
   title?: string;
   multiple?: boolean;
   defaultItems?: number;
-}): TArray<TObject<{ file: TUnsafe<FileValue> }>> | TUnsafe<FileValue> {
+}): TArray<TUnsafe<FileValue>> | TUnsafe<FileValue> {
   const fileDefault = {
     url: "https://placehold.co/file-placeholder",
     alt: "",
@@ -303,14 +302,13 @@ function _fileType(options: {
   }
 
   const defaultItems = options.defaultItems ?? 0;
-  const itemSchema = TypeBoxType.Object({ file: singleSchema });
-  return TypeBoxType.Array(itemSchema, {
+  return TypeBoxType.Array(singleSchema, {
     minItems: 0,
     maxItems: 100,
     default: [],
     defaultItems,
     title: options.title,
-    fieldType: "RepeatableItem" as const,
+    fieldType: "MultipleAssets" as const,
     arrayItemType: "File" as const,
   });
 }

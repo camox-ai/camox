@@ -281,6 +281,9 @@ function buildPeekItems(
 ) {
   for (const [fieldName, fieldSchema] of Object.entries(properties)) {
     if (fieldSchema.type !== "array" || !fieldSchema.items?.properties) continue;
+    // Multi-asset arrays are inline _fileId markers, not nested DB items.
+    // MultipleAssets synthesizes default placeholders at render time.
+    if (fieldSchema.fieldType === "MultipleAssets") continue;
     const defaultCount = fieldSchema.defaultItems ?? fieldSchema.minItems ?? 0;
     if (defaultCount <= 0) continue;
 
@@ -508,9 +511,39 @@ export function createBlock<
       : never]: TContent[K];
   };
 
-  // Only allow array fields (from RepeatableItem)
+  // Top-level Type.Image({ multiple: true }) fields
+  type MultipleImageFields = {
+    [K in keyof TContent as TContent[K] extends Array<infer U>
+      ? ImageValue extends U
+        ? U extends ImageValue
+          ? K
+          : never
+        : never
+      : never]: TContent[K];
+  };
+
+  // Top-level Type.File({ multiple: true }) fields
+  type MultipleFileFields = {
+    [K in keyof TContent as TContent[K] extends Array<infer U>
+      ? FileValue extends U
+        ? U extends FileValue
+          ? K
+          : never
+        : never
+      : never]: TContent[K];
+  };
+
+  // Only allow array fields from Type.RepeatableItem (excludes multi-asset arrays —
+  // those are handled by MultipleAssets and intentionally rejected here so
+  // <block.Repeater name="gallery"> on a Type.Image({multiple:true}) is a TS error).
   type RepeatableFields = {
-    [K in keyof TContent as TContent[K] extends Array<any> ? K : never]: TContent[K];
+    [K in keyof TContent as TContent[K] extends Array<infer U>
+      ? ImageValue extends U
+        ? never
+        : FileValue extends U
+          ? never
+          : K
+      : never]: TContent[K];
   };
 
   // Extract the element type from a repeatable array field
@@ -556,10 +589,36 @@ export function createBlock<
       : never]: RepeatableItemType<K>[F];
   };
 
-  // Extract repeatable array fields from a repeatable item type
+  // Extract Type.Image({ multiple: true }) fields nested inside a RepeatableItem
+  type ItemMultipleImageFields<K extends keyof RepeatableFields> = {
+    [F in keyof RepeatableItemType<K> as RepeatableItemType<K>[F] extends Array<infer U>
+      ? ImageValue extends U
+        ? U extends ImageValue
+          ? F
+          : never
+        : never
+      : never]: RepeatableItemType<K>[F];
+  };
+
+  // Extract Type.File({ multiple: true }) fields nested inside a RepeatableItem
+  type ItemMultipleFileFields<K extends keyof RepeatableFields> = {
+    [F in keyof RepeatableItemType<K> as RepeatableItemType<K>[F] extends Array<infer U>
+      ? FileValue extends U
+        ? U extends FileValue
+          ? F
+          : never
+        : never
+      : never]: RepeatableItemType<K>[F];
+  };
+
+  // Extract nested Type.RepeatableItem array fields (excludes multi-asset arrays)
   type ItemRepeatableFields<K extends keyof RepeatableFields> = {
-    [F in keyof RepeatableItemType<K> as RepeatableItemType<K>[F] extends Array<any>
-      ? F
+    [F in keyof RepeatableItemType<K> as RepeatableItemType<K>[F] extends Array<infer U>
+      ? ImageValue extends U
+        ? never
+        : FileValue extends U
+          ? never
+          : F
       : never]: RepeatableItemType<K>[F];
   };
 
@@ -1173,9 +1232,9 @@ export function createBlock<
       : contentDefaults[String(name)];
     const fieldValue = rawValue ?? (defaultValue as ImageValue);
 
-    // Inline gallery images (multi-asset) attribute hover/focus/selection to
-    // the enclosing array field on the nearest DB item, not to the per-item
-    // `image` field — that property doesn't exist on any reachable schema.
+    // When wrapped by MultipleAssets, attribute hover/focus/selection to the
+    // enclosing array field on the nearest DB item — the inner `name` here is
+    // a synthetic sentinel and not addressable via the schema.
     const isInlineArrayItem = repeaterContext != null && repeaterContext.itemId == null;
     const overlayFieldName = isInlineArrayItem ? repeaterContext.arrayFieldName : String(name);
     const overlayItemId = isInlineArrayItem
@@ -1283,6 +1342,96 @@ export function createBlock<
     );
   };
 
+  // Sentinel key used by MultipleAssets to surface the iterated asset value to
+  // the inner Image/File component via a synthesized RepeaterItemContext. Not
+  // a valid TypeBox property name, so it can't collide with a real field.
+  const MULTIPLE_ASSETS_SELF_KEY = "__camox_asset_self__";
+
+  const _MultipleAssets = ({
+    name,
+    children,
+  }: {
+    name: string;
+    children: (props: any, data: any) => React.ReactNode;
+  }): React.ReactNode => {
+    const blockContext = React.use(Context);
+    if (!blockContext) {
+      throw new Error("MultipleAssets must be used within a Block Component");
+    }
+
+    const parentRepeaterContext = React.use(RepeaterItemContext);
+    const { filesMap } = useNormalizedData();
+    const fieldName = String(name);
+
+    const fieldSchema = parentRepeaterContext
+      ? (typeboxSchema.properties as any)[parentRepeaterContext.arrayFieldName]?.items
+          ?.properties?.[fieldName]
+      : (typeboxSchema.properties as any)[fieldName];
+    const ait = fieldSchema?.arrayItemType as "Image" | "File" | undefined;
+    if (ait !== "Image" && ait !== "File") {
+      throw new Error(`MultipleAssets: "${fieldName}" is not Type.Image/File({ multiple: true })`);
+    }
+
+    const source = parentRepeaterContext
+      ? parentRepeaterContext.itemContent[fieldName]
+      : (blockContext.content as Record<string, unknown>)[fieldName];
+    let arr = (Array.isArray(source) ? source : []) as unknown[];
+
+    // No stored items — synthesize defaultItems placeholders from the leaf default.
+    if (arr.length === 0) {
+      const defaultCount = (fieldSchema.defaultItems ?? 0) as number;
+      const itemDefault = fieldSchema.items?.default;
+      if (defaultCount > 0 && itemDefault) {
+        arr = Array.from({ length: defaultCount }, () => itemDefault);
+      }
+    }
+
+    // Resolve _fileId markers and skip nullish (e.g. markers pointing to deleted files).
+    const resolved = arr
+      .map((v) => (isFileMarker(v) ? resolveFileMarker(v, filesMap) : v))
+      .filter(
+        (v): v is ImageValue | FileValue =>
+          v != null && typeof v === "object" && "url" in (v as object),
+      );
+
+    const Single = (ait === "Image" ? Image : File) as (props: {
+      name: any;
+      children: (props: any, data: any) => React.ReactNode;
+    }) => React.ReactNode;
+
+    return (
+      <RepeaterHoverProvider blockId={blockContext.blockId} fieldName={fieldName}>
+        {resolved.map((value, index) => (
+          <RepeaterItemContext.Provider
+            key={index}
+            value={{
+              arrayFieldName: fieldName,
+              itemIndex: index,
+              itemContent: { [MULTIPLE_ASSETS_SELF_KEY]: value },
+              itemSettings: {},
+              itemId: undefined,
+              containerItemId:
+                parentRepeaterContext?.itemId ?? parentRepeaterContext?.containerItemId,
+            }}
+          >
+            <Single name={MULTIPLE_ASSETS_SELF_KEY}>{children}</Single>
+          </RepeaterItemContext.Provider>
+        ))}
+      </RepeaterHoverProvider>
+    );
+  };
+
+  const MultipleAssets = _MultipleAssets as <
+    K extends keyof (MultipleImageFields & MultipleFileFields),
+  >(props: {
+    name: K;
+    children: K extends keyof MultipleImageFields
+      ? (props: ImageRenderProps, data: ImageValue) => React.ReactNode
+      : K extends keyof MultipleFileFields
+        ? (props: FileRenderProps, data: FileValue) => React.ReactNode
+        : never;
+  }) => React.ReactNode;
+
   // RepeaterItemWrapper - wraps each repeater item with overlay support
   const RepeaterItemWrapper = ({
     itemId,
@@ -1375,6 +1524,16 @@ export function createBlock<
           name: F;
           children: (props: FileRenderProps, data: FileValue) => React.ReactNode;
         }) => React.ReactNode;
+        MultipleAssets: <
+          F extends keyof (ItemMultipleImageFields<K> & ItemMultipleFileFields<K>),
+        >(props: {
+          name: F;
+          children: F extends keyof ItemMultipleImageFields<K>
+            ? (props: ImageRenderProps, data: ImageValue) => React.ReactNode
+            : F extends keyof ItemMultipleFileFields<K>
+              ? (props: FileRenderProps, data: FileValue) => React.ReactNode
+              : never;
+        }) => React.ReactNode;
         Repeater: <F extends keyof ItemRepeatableFields<K>>(props: {
           name: F;
           children: (
@@ -1398,6 +1557,10 @@ export function createBlock<
               File: (props: {
                 name: string;
                 children: (props: FileRenderProps, data: FileValue) => React.ReactNode;
+              }) => React.ReactNode;
+              MultipleAssets: (props: {
+                name: string;
+                children: (props: any, data: any) => React.ReactNode;
               }) => React.ReactNode;
               Repeater: (props: {
                 name: string;
@@ -1446,6 +1609,17 @@ export function createBlock<
       children: (props: ImageRenderProps, data: ImageValue) => React.ReactNode;
     }) => React.ReactNode;
 
+    const ItemMultipleAssets = _MultipleAssets as <
+      F extends keyof (ItemMultipleImageFields<K> & ItemMultipleFileFields<K>),
+    >(props: {
+      name: F;
+      children: F extends keyof ItemMultipleImageFields<K>
+        ? (props: ImageRenderProps, data: ImageValue) => React.ReactNode
+        : F extends keyof ItemMultipleFileFields<K>
+          ? (props: FileRenderProps, data: FileValue) => React.ReactNode
+          : never;
+    }) => React.ReactNode;
+
     const ItemFile = File as <F extends keyof ItemFileFields<K>>(props: {
       name: F;
       children: (props: FileRenderProps, data: FileValue) => React.ReactNode;
@@ -1474,6 +1648,10 @@ export function createBlock<
           File: (props: {
             name: string;
             children: (props: FileRenderProps, data: FileValue) => React.ReactNode;
+          }) => React.ReactNode;
+          MultipleAssets: (props: {
+            name: string;
+            children: (props: any, data: any) => React.ReactNode;
           }) => React.ReactNode;
           Repeater: (props: {
             name: string;
@@ -1504,29 +1682,6 @@ export function createBlock<
       })
       .filter(Boolean);
 
-    // For multi-asset fields (Image/File) with no items yet, generate inline
-    // placeholder items so the component renders a visual preview
-    if (arrayValue.length === 0) {
-      const fieldSchema = parentRepeaterContext
-        ? (typeboxSchema.properties as any)[parentRepeaterContext.arrayFieldName]?.items
-            ?.properties?.[fieldName]
-        : (typeboxSchema.properties as any)[fieldName];
-      const ait = fieldSchema?.arrayItemType;
-      if (ait === "Image" || ait === "File") {
-        const defaultCount = fieldSchema.defaultItems ?? 0;
-        const itemProps = fieldSchema.items?.properties as Record<string, any> | undefined;
-        if (defaultCount > 0 && itemProps) {
-          const itemContent: Record<string, unknown> = {};
-          for (const [propName, propSchema] of Object.entries(itemProps)) {
-            if (propSchema && typeof propSchema === "object" && "default" in propSchema) {
-              itemContent[propName] = (propSchema as any).default;
-            }
-          }
-          arrayValue = Array.from({ length: defaultCount }, () => ({ ...itemContent }));
-        }
-      }
-    }
-
     type TItem = RepeatableItemType<K>;
 
     const settingsDefaultsForField = repeatableItemSettingsDefaults[fieldName];
@@ -1553,6 +1708,7 @@ export function createBlock<
             Embed: ItemEmbed,
             Image: ItemImage,
             File: ItemFile,
+            MultipleAssets: ItemMultipleAssets,
             Repeater: ItemRepeater,
             useSetting: useItemSetting as <F extends keyof ItemSettingsStatic<K>>(
               name: F,
@@ -1906,6 +2062,7 @@ export function createBlock<
     Link,
     Image,
     File,
+    MultipleAssets,
     Repeater,
     useSetting,
     _internal: {

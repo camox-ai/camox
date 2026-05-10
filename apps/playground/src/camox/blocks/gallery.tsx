@@ -52,15 +52,9 @@ function GalleryComponent() {
             columns === "4" && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
           )}
         >
-          <gallery.Repeater name="images">
-            {(item) => (
-              <item.Image name="image">
-                {(props) => (
-                  <img {...props} className="aspect-square w-full rounded-lg object-cover" />
-                )}
-              </item.Image>
-            )}
-          </gallery.Repeater>
+          <gallery.MultipleAssets name="images">
+            {(props) => <img {...props} className="aspect-square w-full rounded-lg object-cover" />}
+          </gallery.MultipleAssets>
         </div>
       </div>
     </section>

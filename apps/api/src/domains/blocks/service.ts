@@ -617,21 +617,30 @@ export async function getBlock(ctx: ServiceContext, rawInput: z.input<typeof get
     fieldMap.set(item.fieldName, list);
   }
 
-  // Add _itemId markers to block content for top-level items
+  // Inject _itemId markers only for RepeatableItem fields — i.e., where content
+  // doesn't already hold the field's data. Multi-asset arrays keep their inline
+  // _fileId markers stored on the parent; any stray child rows for those fields
+  // (e.g. legacy data from before the MultipleAssets refactor) are ignored.
+  const hasInlineArray = (c: Record<string, unknown>, key: string) => {
+    const v = c[key];
+    return Array.isArray(v) && v.length > 0;
+  };
+
   const content = { ...(block.content as Record<string, unknown>) };
   const topLevelFields = childrenByParent.get(null);
   if (topLevelFields) {
     for (const [fieldName, fieldItems] of topLevelFields) {
+      if (hasInlineArray(content, fieldName)) continue;
       content[fieldName] = fieldItems.map((i) => ({ _itemId: i.id }));
     }
   }
 
-  // Add _itemId markers to each item's content for its nested children
   for (const item of sorted) {
     const nestedFields = childrenByParent.get(item.id);
     if (!nestedFields) continue;
     const itemContent = { ...(item.content as Record<string, unknown>) };
     for (const [fieldName, fieldItems] of nestedFields) {
+      if (hasInlineArray(itemContent, fieldName)) continue;
       itemContent[fieldName] = fieldItems.map((i) => ({ _itemId: i.id }));
     }
     (item as any).content = itemContent;

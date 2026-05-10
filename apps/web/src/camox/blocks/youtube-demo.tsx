@@ -171,12 +171,6 @@ function YoutubeDemoComponent() {
                       />
                     </div>
                     <div className="group-hover/chapter:bg-accent/40 flex flex-col gap-1 rounded-md py-4 pr-3 pl-8 transition-colors">
-                      <item.Field name="timestamp">
-                        {(_props, { text }) => {
-                          timestampText = text;
-                          return null;
-                        }}
-                      </item.Field>
                       <div className="flex items-center gap-2">
                         <item.Field name="title">
                           {(props) => (
@@ -186,10 +180,20 @@ function YoutubeDemoComponent() {
                             />
                           )}
                         </item.Field>
-                        <SkipForward
-                          aria-hidden="true"
-                          className="text-muted-foreground size-3.5 shrink-0 opacity-0 transition-opacity group-hover/chapter:opacity-100"
-                        />
+                        <div className="border-muted-foreground/40 text-muted-foreground flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 opacity-0 transition-opacity group-hover/chapter:opacity-100">
+                          <SkipForward aria-hidden="true" className="size-3.5 shrink-0" />
+                          <item.Field name="timestamp">
+                            {(props, { text }) => {
+                              timestampText = text;
+                              return (
+                                <span
+                                  {...props}
+                                  className="text-xs leading-none font-medium tabular-nums"
+                                />
+                              );
+                            }}
+                          </item.Field>
+                        </div>
                       </div>
                       <item.Field name="description">
                         {(props) => <p {...props} className="text-muted-foreground text-sm" />}

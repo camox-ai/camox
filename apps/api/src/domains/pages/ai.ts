@@ -255,24 +255,29 @@ export function sortByPosition<T extends { position: string }>(items: T[]): T[] 
   return items.sort((a, b) => comparePositions(a.position, b.position));
 }
 
+function visitForFileIds(value: unknown, fileIds: Set<number>) {
+  if (value == null || typeof value !== "object") return;
+  if ("_fileId" in value && (value as { _fileId: unknown })._fileId != null) {
+    fileIds.add(Number((value as { _fileId: unknown })._fileId));
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) visitForFileIds(item, fileIds);
+    return;
+  }
+  // Repeatable items arrive as { content, settings, ... } — recurse into `content`
+  // when present, otherwise fall back to walking all object values.
+  const obj = value as Record<string, unknown>;
+  if ("content" in obj && obj.content && typeof obj.content === "object") {
+    visitForFileIds(obj.content, fileIds);
+    return;
+  }
+  for (const child of Object.values(obj)) visitForFileIds(child, fileIds);
+}
+
 export function collectFileIds(content: Record<string, unknown>, fileIds: Set<number>) {
   for (const value of Object.values(content)) {
-    if (value && typeof value === "object" && !Array.isArray(value)) {
-      const obj = value as Record<string, unknown>;
-      if ("_fileId" in obj && obj._fileId != null) {
-        fileIds.add(Number(obj._fileId));
-      } else {
-        collectFileIds(obj, fileIds);
-      }
-    } else if (Array.isArray(value)) {
-      for (const item of value) {
-        if (item && typeof item === "object" && "content" in item) {
-          collectFileIds((item as { content: Record<string, unknown> }).content, fileIds);
-        } else if (item && typeof item === "object" && !Array.isArray(item)) {
-          collectFileIds(item as Record<string, unknown>, fileIds);
-        }
-      }
-    }
+    visitForFileIds(value, fileIds);
   }
 }
 

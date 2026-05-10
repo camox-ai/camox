@@ -138,21 +138,24 @@ export function isItemMarker(value: unknown): value is { _itemId: number } {
  * This enables granular invalidation — content edits refetch only the affected block.
  * -----------------------------------------------------------------------------------------------*/
 
+function visitForFileIds(value: unknown, ids: Set<number>) {
+  if (value == null || typeof value !== "object") return;
+  if ("_fileId" in value && typeof (value as { _fileId: unknown })._fileId === "number") {
+    ids.add((value as { _fileId: number })._fileId);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) visitForFileIds(item, ids);
+    return;
+  }
+  for (const child of Object.values(value as Record<string, unknown>)) {
+    visitForFileIds(child, ids);
+  }
+}
+
 function collectFileIdsFromContent(content: Record<string, unknown>, ids: Set<number>) {
   for (const value of Object.values(content)) {
-    if (value != null && typeof value === "object") {
-      if ("_fileId" in value && typeof (value as any)._fileId === "number") {
-        ids.add((value as any)._fileId);
-      } else if (Array.isArray(value)) {
-        for (const item of value) {
-          if (item != null && typeof item === "object") {
-            collectFileIdsFromContent(item as Record<string, unknown>, ids);
-          }
-        }
-      } else {
-        collectFileIdsFromContent(value as Record<string, unknown>, ids);
-      }
-    }
+    visitForFileIds(value, ids);
   }
 }
 

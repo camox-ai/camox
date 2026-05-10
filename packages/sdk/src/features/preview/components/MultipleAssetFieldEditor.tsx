@@ -137,24 +137,21 @@ const MultipleAssetFieldEditor = ({
   currentData,
   onFieldChange,
 }: MultipleAssetFieldEditorProps) => {
-  const contentKey = assetType === "Image" ? "image" : "file";
   const isImage = assetType === "Image";
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const projectSlug = useProjectSlug();
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
 
-  // Resolved array: [{ image: { url, alt, ..., _fileId } }, ...] or [{ file: { ... } }, ...]
-  const rawItems = (currentData[fieldName] ?? []) as Record<string, ResolvedAsset>[];
-  const items = rawItems
-    .map((item) => item[contentKey])
-    .filter((a): a is ResolvedAsset => !!a?.url);
+  // Resolved array: [{ url, alt, ..., _fileId }, ...] — flat ImageValue/FileValue
+  const items = ((currentData[fieldName] ?? []) as ResolvedAsset[]).filter(
+    (a): a is ResolvedAsset => !!a && !!a.url,
+  );
 
-  // Write { contentKey: { _fileId } } wrappers — the read path resolves _fileId markers
-  const toStorageFormat = (assets: ResolvedAsset[]) =>
-    assets.map((a) => ({ [contentKey]: { _fileId: a._fileId } }));
+  // Persist as bare _fileId markers; the read path resolves them to full assets.
+  const toStorageFormat = (assets: ResolvedAsset[]) => assets.map((a) => ({ _fileId: a._fileId }));
 
   const addFileId = (fileId: number) => {
-    onFieldChange(fieldName, [...toStorageFormat(items), { [contentKey]: { _fileId: fileId } }]);
+    onFieldChange(fieldName, [...toStorageFormat(items), { _fileId: fileId }]);
   };
 
   const { uploads, uploadFiles } = useFileUpload({
@@ -195,10 +192,7 @@ const MultipleAssetFieldEditor = ({
   };
 
   const handleSelectMultiple = (files: File[]) => {
-    onFieldChange(fieldName, [
-      ...toStorageFormat(items),
-      ...files.map((f) => ({ [contentKey]: { _fileId: f.id } })),
-    ]);
+    onFieldChange(fieldName, [...toStorageFormat(items), ...files.map((f) => ({ _fileId: f.id }))]);
     setPickerOpen(false);
   };
 
