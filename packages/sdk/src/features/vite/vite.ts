@@ -151,6 +151,9 @@ export function camox(options: CamoxPluginOptions): Plugin {
           __CAMOX_PROJECT_SLUG__: JSON.stringify(options.projectSlug),
         },
         optimizeDeps: {
+          // If Vite still discovers a dependency late, don't fail the in-flight
+          // client bootstrap request with 504 "Outdated Optimize Dep".
+          ignoreOutdatedRequests: true,
           // When the Studio UI, loads dynamically at runtime, Vite discovers these dependencies in 3 batches,
           // each causing a page reload if they weren't included in either include or exclude.
           // All entries are prefixed with `camox >` because these packages are transitive
