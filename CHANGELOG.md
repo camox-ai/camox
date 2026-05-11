@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.1](https://github.com/camox-ai/camox/compare/camox-v0.18.0...camox-v0.18.1) (2026-05-11)
+
+
+### Bug Fixes
+
+* posthog telemetry url ([bc77c75](https://github.com/camox-ai/camox/commit/bc77c75761f6aed55a7d7b4c659362b034e8a8cc))
+* vite optimizeDeps 504 breaking hydration ([0befc68](https://github.com/camox-ai/camox/commit/0befc68fd908a0a7654f3dd5e425f53c52cfef2a))
+
 ## [0.18.0](https://github.com/camox-ai/camox/compare/camox-v0.17.7...camox-v0.18.0) (2026-05-10)
 
 
