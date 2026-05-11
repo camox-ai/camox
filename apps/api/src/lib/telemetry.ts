@@ -11,7 +11,7 @@
 
 import { POSTHOG_PUBLIC_KEY } from "@camox/api-contract";
 
-const POSTHOG_INGEST_URL = "https://us.i.posthog.com/capture/";
+const POSTHOG_INGEST_URL = "https://eu.i.posthog.com/capture/";
 
 interface TrackEventOptions {
   event: string;
