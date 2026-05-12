@@ -227,6 +227,10 @@ async function ssrLoadModule(
   const tempServer = await createServer({
     configFile: false,
     root: server.config.root,
+    // Keep the temporary SSR loader from sharing Vite's dep optimizer cache
+    // with the active app server. Otherwise its empty client optimizer can
+    // replace node_modules/.vite/deps during dev-server startup.
+    cacheDir: path.join(server.config.root, "node_modules", ".vite-camox-temp"),
     resolve: server.config.resolve,
     server: { middlewareMode: true },
     logLevel: "silent",

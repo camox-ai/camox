@@ -284,6 +284,9 @@ export function camox(options: CamoxPluginOptions): Plugin {
       const tempServer = await createServer({
         configFile: false,
         root: resolvedConfig.root,
+        // Use a separate optimizer cache for this short-lived server so it
+        // cannot invalidate the app server's node_modules/.vite/deps cache.
+        cacheDir: resolve(resolvedConfig.root, "node_modules", ".vite-camox-temp"),
         resolve: resolvedConfig.resolve,
         server: { middlewareMode: true },
         logLevel: "silent",
