@@ -1,6 +1,7 @@
 import { Type, createBlock } from "camox/createBlock";
 import { CircleCheck } from "lucide-react";
 
+import { BlockContainer } from "@/components/BlockContainer";
 import { CaretLink } from "@/components/CaretLink";
 import { Pill } from "@/components/Pill";
 
@@ -52,53 +53,51 @@ const keyPrinciples = createBlock({
 
 function KeyPrinciplesComponent() {
   return (
-    <section className="py-12 sm:py-16 md:py-20">
-      <div className="container">
-        <div className="mb-12 max-w-4xl">
-          <keyPrinciples.Field name="pill">
-            {(props) => <Pill {...props} className="mb-6" />}
-          </keyPrinciples.Field>
-          <keyPrinciples.Field name="title">
-            {(props) => (
-              <h2
-                {...props}
-                className="text-foreground text-3xl leading-tight font-semibold tracking-tight sm:text-4xl"
-              />
-            )}
-          </keyPrinciples.Field>
-        </div>
-        <div className="border-border w-full overflow-hidden rounded-2xl border">
-          <div className="bg-border grid grid-cols-1 gap-px md:grid-cols-3">
-            <keyPrinciples.Repeater name="items">
-              {(item) => {
-                const showLink = item.useSetting("showLink");
-                return (
-                  <div className="bg-popover flex h-full flex-col gap-4 p-6 sm:p-8">
-                    <CircleCheck aria-hidden className="text-muted-foreground size-5" />
-                    <item.Field name="title">
-                      {(props) => (
-                        <h3
-                          {...props}
-                          className="text-foreground text-xl font-semibold tracking-tight"
-                        />
-                      )}
-                    </item.Field>
-                    <item.Field name="description">
-                      {(props) => <p {...props} className="text-muted-foreground text-base" />}
-                    </item.Field>
-                    {showLink && (
-                      <div className="mt-auto pt-4">
-                        <item.Link name="link">{(props) => <CaretLink {...props} />}</item.Link>
-                      </div>
+    <BlockContainer>
+      <div className="mb-12 max-w-4xl">
+        <keyPrinciples.Field name="pill">
+          {(props) => <Pill {...props} className="mb-6" />}
+        </keyPrinciples.Field>
+        <keyPrinciples.Field name="title">
+          {(props) => (
+            <h2
+              {...props}
+              className="text-foreground text-3xl leading-tight font-semibold tracking-tight sm:text-4xl"
+            />
+          )}
+        </keyPrinciples.Field>
+      </div>
+      <div className="border-border w-full overflow-hidden rounded-2xl border">
+        <div className="bg-border grid grid-cols-1 gap-px md:grid-cols-3">
+          <keyPrinciples.Repeater name="items">
+            {(item) => {
+              const showLink = item.useSetting("showLink");
+              return (
+                <div className="bg-popover flex h-full flex-col gap-4 p-6 sm:p-8">
+                  <CircleCheck aria-hidden className="text-muted-foreground size-5" />
+                  <item.Field name="title">
+                    {(props) => (
+                      <h3
+                        {...props}
+                        className="text-foreground text-xl font-semibold tracking-tight"
+                      />
                     )}
-                  </div>
-                );
-              }}
-            </keyPrinciples.Repeater>
-          </div>
+                  </item.Field>
+                  <item.Field name="description">
+                    {(props) => <p {...props} className="text-muted-foreground text-base" />}
+                  </item.Field>
+                  {showLink && (
+                    <div className="mt-auto pt-4">
+                      <item.Link name="link">{(props) => <CaretLink {...props} />}</item.Link>
+                    </div>
+                  )}
+                </div>
+              );
+            }}
+          </keyPrinciples.Repeater>
         </div>
       </div>
-    </section>
+    </BlockContainer>
   );
 }
 

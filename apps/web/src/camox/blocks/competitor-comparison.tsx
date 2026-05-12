@@ -1,6 +1,7 @@
 import { Type, createBlock } from "camox/createBlock";
 import { Check, X } from "lucide-react";
 
+import { BlockContainer } from "@/components/BlockContainer";
 import { Pill } from "@/components/Pill";
 
 const competitorComparison = createBlock({
@@ -84,102 +85,100 @@ const competitorComparison = createBlock({
 
 function CompetitorComparisonComponent() {
   return (
-    <section className="py-12 sm:py-16 md:py-20">
-      <div className="container">
-        <div className="mb-12 max-w-4xl">
-          <competitorComparison.Field name="pill">
-            {(props) => <Pill {...props} className="mb-6" />}
-          </competitorComparison.Field>
-          <competitorComparison.Field name="title">
-            {(props) => (
-              <h2
-                {...props}
-                className="text-foreground text-3xl leading-tight font-semibold tracking-tight sm:text-4xl"
-              />
-            )}
-          </competitorComparison.Field>
-        </div>
+    <BlockContainer>
+      <div className="mb-12 max-w-4xl">
+        <competitorComparison.Field name="pill">
+          {(props) => <Pill {...props} className="mb-6" />}
+        </competitorComparison.Field>
+        <competitorComparison.Field name="title">
+          {(props) => (
+            <h2
+              {...props}
+              className="text-foreground text-3xl leading-tight font-semibold tracking-tight sm:text-4xl"
+            />
+          )}
+        </competitorComparison.Field>
+      </div>
 
-        <div className="border-border mb-4 w-full overflow-hidden rounded-2xl border">
-          <div className="bg-border grid grid-cols-1 gap-px md:grid-cols-2">
-            <competitorComparison.Repeater name="competitors">
-              {(item) => (
-                <div className="bg-background flex h-full flex-col gap-5 p-6 sm:p-8">
-                  <div className="flex flex-row flex-wrap items-center gap-3">
-                    <item.MultipleAssets name="logos">
-                      {(props) => <img {...props} className="size-9 object-contain" />}
-                    </item.MultipleAssets>
+      <div className="border-border mb-4 w-full overflow-hidden rounded-2xl border">
+        <div className="bg-border grid grid-cols-1 gap-px md:grid-cols-2">
+          <competitorComparison.Repeater name="competitors">
+            {(item) => (
+              <div className="bg-background flex h-full flex-col gap-5 p-6 sm:p-8">
+                <div className="flex flex-row flex-wrap items-center gap-3">
+                  <item.MultipleAssets name="logos">
+                    {(props) => <img {...props} className="size-9 object-contain" />}
+                  </item.MultipleAssets>
+                </div>
+                <item.Field name="category">
+                  {(props) => (
+                    <h3
+                      {...props}
+                      className="text-foreground text-xl font-semibold tracking-tight"
+                    />
+                  )}
+                </item.Field>
+                <div className="border-border mt-auto flex flex-col gap-3 border-t border-dashed pt-5">
+                  <div className="flex flex-row items-start gap-2.5">
+                    <Check
+                      aria-hidden
+                      className="text-primary mt-0.5 size-4 shrink-0"
+                      strokeWidth={2.5}
+                    />
+                    <item.Field name="upside">
+                      {(props) => <p {...props} className="text-muted-foreground text-base" />}
+                    </item.Field>
                   </div>
-                  <item.Field name="category">
-                    {(props) => (
-                      <h3
-                        {...props}
-                        className="text-foreground text-xl font-semibold tracking-tight"
-                      />
-                    )}
-                  </item.Field>
-                  <div className="border-border mt-auto flex flex-col gap-3 border-t border-dashed pt-5">
-                    <div className="flex flex-row items-start gap-2.5">
-                      <Check
-                        aria-hidden
-                        className="text-primary mt-0.5 size-4 shrink-0"
-                        strokeWidth={2.5}
-                      />
-                      <item.Field name="upside">
-                        {(props) => <p {...props} className="text-muted-foreground text-base" />}
-                      </item.Field>
-                    </div>
-                    <div className="flex flex-row items-start gap-2.5">
-                      <X
-                        aria-hidden
-                        className="text-destructive mt-0.5 size-4 shrink-0"
-                        strokeWidth={2.5}
-                      />
-                      <item.Field name="downside">
-                        {(props) => (
-                          <p {...props} className="text-foreground text-base font-semibold" />
-                        )}
-                      </item.Field>
-                    </div>
+                  <div className="flex flex-row items-start gap-2.5">
+                    <X
+                      aria-hidden
+                      className="text-destructive mt-0.5 size-4 shrink-0"
+                      strokeWidth={2.5}
+                    />
+                    <item.Field name="downside">
+                      {(props) => (
+                        <p {...props} className="text-foreground text-base font-semibold" />
+                      )}
+                    </item.Field>
                   </div>
                 </div>
-              )}
-            </competitorComparison.Repeater>
-          </div>
-        </div>
-
-        <div className="bg-primary text-primary-foreground rounded-2xl p-6 sm:p-10">
-          <competitorComparison.Field name="camoxLabel">
-            {(props) => (
-              <p
-                {...props}
-                className="mb-6 text-sm font-semibold tracking-wider uppercase opacity-80"
-              />
+              </div>
             )}
-          </competitorComparison.Field>
-          <div className="mb-8 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
-            <competitorComparison.Repeater name="keptFromOthers">
-              {(item) => (
-                <div className="flex flex-row items-center gap-2.5">
-                  <Check aria-hidden className="size-4 shrink-0" strokeWidth={2.5} />
-                  <item.Field name="text">
-                    {(props) => <p {...props} className="text-base" />}
-                  </item.Field>
-                </div>
-              )}
-            </competitorComparison.Repeater>
-          </div>
-          <p className="text-2xl leading-tight font-semibold tracking-tight sm:text-3xl">
-            <competitorComparison.Field name="camoxHeadline">
-              {(props) => <span {...props} />}
-            </competitorComparison.Field>{" "}
-            <competitorComparison.Field name="camoxTagline">
-              {(props) => <span {...props} className="opacity-75" />}
-            </competitorComparison.Field>
-          </p>
+          </competitorComparison.Repeater>
         </div>
       </div>
-    </section>
+
+      <div className="bg-primary text-primary-foreground rounded-2xl p-6 sm:p-10">
+        <competitorComparison.Field name="camoxLabel">
+          {(props) => (
+            <p
+              {...props}
+              className="mb-6 text-sm font-semibold tracking-wider uppercase opacity-80"
+            />
+          )}
+        </competitorComparison.Field>
+        <div className="mb-8 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+          <competitorComparison.Repeater name="keptFromOthers">
+            {(item) => (
+              <div className="flex flex-row items-center gap-2.5">
+                <Check aria-hidden className="size-4 shrink-0" strokeWidth={2.5} />
+                <item.Field name="text">
+                  {(props) => <p {...props} className="text-base" />}
+                </item.Field>
+              </div>
+            )}
+          </competitorComparison.Repeater>
+        </div>
+        <p className="text-2xl leading-tight font-semibold tracking-tight sm:text-3xl">
+          <competitorComparison.Field name="camoxHeadline">
+            {(props) => <span {...props} />}
+          </competitorComparison.Field>{" "}
+          <competitorComparison.Field name="camoxTagline">
+            {(props) => <span {...props} className="opacity-75" />}
+          </competitorComparison.Field>
+        </p>
+      </div>
+    </BlockContainer>
   );
 }
 

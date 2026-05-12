@@ -1,5 +1,6 @@
 import { Type, createBlock } from "camox/createBlock";
 
+import { BlockContainer } from "@/components/BlockContainer";
 import { InlineHeading } from "@/components/InlineHeading";
 import { Pill } from "@/components/Pill";
 
@@ -37,7 +38,7 @@ const largeParagraphsGroup = createBlock({
 
 function LargeParagraphsGroupComponent() {
   return (
-    <section className="container py-10 sm:py-12 md:py-16">
+    <BlockContainer>
       <div className="flex flex-col gap-12 sm:flex-row">
         <div className="sm:mt-3 sm:w-3/12 sm:shrink-0">
           <largeParagraphsGroup.Field name="title">
@@ -57,7 +58,7 @@ function LargeParagraphsGroupComponent() {
           </largeParagraphsGroup.Repeater>
         </div>
       </div>
-    </section>
+    </BlockContainer>
   );
 }
 

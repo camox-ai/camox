@@ -96,7 +96,10 @@ function NavbarComponent() {
         {(props) => (
           <nav
             {...props}
-            className={cn("fixed inset-x-0 top-0 z-50 transition-colors", isScrolled && "bg-black")}
+            className={cn(
+              "fixed inset-x-0 top-0 z-50 transition-colors",
+              isScrolled && "border-border border-b bg-black",
+            )}
           >
             <NavbarContent />
           </nav>

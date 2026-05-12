@@ -1,5 +1,6 @@
 import { Type, createBlock } from "camox/createBlock";
 
+import { BlockContainer } from "@/components/BlockContainer";
 import {
   Accordion,
   AccordionContent,
@@ -37,7 +38,7 @@ const faq = createBlock({
 
 function FaqComponent() {
   return (
-    <section className="py-10 sm:py-12 md:py-16">
+    <BlockContainer>
       <div className="mx-auto max-w-2xl px-4">
         <Accordion>
           <faq.Repeater name="items">
@@ -56,7 +57,7 @@ function FaqComponent() {
           </faq.Repeater>
         </Accordion>
       </div>
-    </section>
+    </BlockContainer>
   );
 }
 

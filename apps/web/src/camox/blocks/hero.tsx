@@ -1,7 +1,9 @@
 import { PulsingBorder } from "@paper-design/shaders-react";
 import { Type, createBlock } from "camox/createBlock";
 
+import { blockSideBorder } from "@/components/BlockContainer";
 import { TerminalCard } from "@/components/TerminalCard";
+import { cn } from "@/lib/utils";
 
 const hero = createBlock({
   id: "hero",
@@ -30,7 +32,7 @@ const hero = createBlock({
 function HeroComponent() {
   return (
     <>
-      <section className="bg-background dark relative flex flex-col items-center justify-center overflow-hidden pt-24 pb-16 sm:pt-32 sm:pb-24 md:pt-48 md:pb-32">
+      <section className="bg-background dark border-border relative flex flex-col items-center justify-center overflow-hidden border-b">
         <PulsingBorder
           colors={["#047857", "#065f46", "#064e3b", "#3b0764", "#4c1d95"]}
           colorBack="#09090b"
@@ -52,7 +54,7 @@ function HeroComponent() {
           marginBottom={0}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
         />
-        <div className="relative container">
+        <div className="relative container pt-24 pb-16 sm:pt-32 sm:pb-24 md:pt-48 md:pb-32">
           <div className="mx-auto max-w-3xl text-center">
             <hero.Field name="title">
               {(props) => (
@@ -68,8 +70,8 @@ function HeroComponent() {
           </div>
         </div>
       </section>
-      <div className="bg-background pb-4">
-        <div className="container">
+      <div className="bg-background">
+        <div className={cn("container pb-4", blockSideBorder)}>
           <div className="relative z-10 mx-auto max-w-xl -translate-y-1/2">
             <TerminalCard>
               <hero.Field name="command">

@@ -1,5 +1,6 @@
 import { Type, createBlock } from "camox/createBlock";
 
+import { BlockContainer } from "@/components/BlockContainer";
 import { Pill } from "@/components/Pill";
 
 const largeVideo = createBlock({
@@ -35,28 +36,26 @@ function LargeVideoComponent() {
   const autoplay = largeVideo.useSetting("autoplay");
   const hideControls = largeVideo.useSetting("hideControls");
   return (
-    <section className="py-10 sm:py-12 md:py-16">
-      <div className="container">
-        <largeVideo.Field name="pill">
-          {(props) => <Pill {...props} className="mb-6" />}
-        </largeVideo.Field>
-        <div className="bg-accent/30 border-accent overflow-hidden rounded-xl border">
-          <largeVideo.File name="video">
-            {(_props, { url }) => (
-              <video
-                src={url}
-                controls={!hideControls}
-                autoPlay={autoplay}
-                muted={autoplay}
-                loop={autoplay}
-                playsInline
-                className="h-full w-full"
-              />
-            )}
-          </largeVideo.File>
-        </div>
+    <BlockContainer>
+      <largeVideo.Field name="pill">
+        {(props) => <Pill {...props} className="mb-6" />}
+      </largeVideo.Field>
+      <div className="bg-accent/30 border-accent overflow-hidden rounded-xl border">
+        <largeVideo.File name="video">
+          {(_props, { url }) => (
+            <video
+              src={url}
+              controls={!hideControls}
+              autoPlay={autoplay}
+              muted={autoplay}
+              loop={autoplay}
+              playsInline
+              className="h-full w-full"
+            />
+          )}
+        </largeVideo.File>
       </div>
-    </section>
+    </BlockContainer>
   );
 }
 

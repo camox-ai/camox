@@ -1,5 +1,6 @@
 import { Type, createBlock } from "camox/createBlock";
 
+import { BlockContainer } from "@/components/BlockContainer";
 import { TerminalCard } from "@/components/TerminalCard";
 
 const terminalCommand = createBlock({
@@ -23,30 +24,28 @@ const terminalCommand = createBlock({
 
 function TerminalCommandComponent() {
   return (
-    <section className="py-12 sm:py-16 md:py-24">
-      <div className="container">
-        <div className="mx-auto max-w-xl">
-          <terminalCommand.Field name="label">
+    <BlockContainer>
+      <div className="mx-auto max-w-xl">
+        <terminalCommand.Field name="label">
+          {(props) => (
+            <p
+              {...props}
+              className="text-muted-foreground mb-4 text-center text-base font-medium"
+            />
+          )}
+        </terminalCommand.Field>
+        <TerminalCard>
+          <terminalCommand.Field name="command">
             {(props) => (
-              <p
+              <code
                 {...props}
-                className="text-muted-foreground mb-4 text-center text-base font-medium"
+                className="text-foreground block text-lg font-medium whitespace-nowrap"
               />
             )}
           </terminalCommand.Field>
-          <TerminalCard>
-            <terminalCommand.Field name="command">
-              {(props) => (
-                <code
-                  {...props}
-                  className="text-foreground block text-lg font-medium whitespace-nowrap"
-                />
-              )}
-            </terminalCommand.Field>
-          </TerminalCard>
-        </div>
+        </TerminalCard>
       </div>
-    </section>
+    </BlockContainer>
   );
 }
 

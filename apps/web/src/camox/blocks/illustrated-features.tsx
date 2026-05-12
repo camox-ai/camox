@@ -1,5 +1,6 @@
 import { Type, createBlock } from "camox/createBlock";
 
+import { BlockContainer } from "@/components/BlockContainer";
 import { InlineHeading } from "@/components/InlineHeading";
 import { Pill } from "@/components/Pill";
 
@@ -57,60 +58,58 @@ const illustratedFeatures = createBlock({
 function IllustratedFeaturesComponent() {
   const columns = illustratedFeatures.useSetting("columns");
   return (
-    <section className="py-12 sm:py-16 md:py-20">
-      <div className="container">
-        <div className="mb-16 max-w-4xl">
-          <illustratedFeatures.Field name="pill">
-            {(props) => <Pill {...props} className="mb-6" />}
-          </illustratedFeatures.Field>
-          <InlineHeading
-            lead={
-              <illustratedFeatures.Field name="title">
-                {(props) => <span {...props} />}
-              </illustratedFeatures.Field>
-            }
-            continuation={
-              <illustratedFeatures.Field name="description">
-                {(props) => <span {...props} />}
-              </illustratedFeatures.Field>
-            }
-          />
-        </div>
-        <div className="border-border overflow-hidden rounded-2xl border">
-          <div
-            className={`bg-border grid grid-cols-1 gap-px ${columns === "3" ? "md:grid-cols-3" : "md:grid-cols-2"}`}
-          >
-            <illustratedFeatures.Repeater name="items">
-              {(item) => (
-                <div className="bg-background flex h-full flex-col justify-between gap-6 px-6 pt-6">
-                  <div className="flex flex-col gap-2">
-                    <item.Field name="title">
-                      {(props) => (
-                        <h3
-                          {...props}
-                          className="text-foreground text-xl font-semibold tracking-tight"
-                        />
-                      )}
-                    </item.Field>
-                    <item.Field name="description">
-                      {(props) => <p {...props} className="text-muted-foreground text-base" />}
-                    </item.Field>
-                  </div>
-                  <item.Image name="illustration">
+    <BlockContainer>
+      <div className="mb-16 max-w-4xl">
+        <illustratedFeatures.Field name="pill">
+          {(props) => <Pill {...props} className="mb-6" />}
+        </illustratedFeatures.Field>
+        <InlineHeading
+          lead={
+            <illustratedFeatures.Field name="title">
+              {(props) => <span {...props} />}
+            </illustratedFeatures.Field>
+          }
+          continuation={
+            <illustratedFeatures.Field name="description">
+              {(props) => <span {...props} />}
+            </illustratedFeatures.Field>
+          }
+        />
+      </div>
+      <div className="border-border overflow-hidden rounded-2xl border">
+        <div
+          className={`bg-border grid grid-cols-1 gap-px ${columns === "3" ? "md:grid-cols-3" : "md:grid-cols-2"}`}
+        >
+          <illustratedFeatures.Repeater name="items">
+            {(item) => (
+              <div className="bg-background flex h-full flex-col justify-between gap-6 px-6 pt-6">
+                <div className="flex flex-col gap-2">
+                  <item.Field name="title">
                     {(props) => (
-                      <img
+                      <h3
                         {...props}
-                        // className="w-full object-cover object-top"
+                        className="text-foreground text-xl font-semibold tracking-tight"
                       />
                     )}
-                  </item.Image>
+                  </item.Field>
+                  <item.Field name="description">
+                    {(props) => <p {...props} className="text-muted-foreground text-base" />}
+                  </item.Field>
                 </div>
-              )}
-            </illustratedFeatures.Repeater>
-          </div>
+                <item.Image name="illustration">
+                  {(props) => (
+                    <img
+                      {...props}
+                      // className="w-full object-cover object-top"
+                    />
+                  )}
+                </item.Image>
+              </div>
+            )}
+          </illustratedFeatures.Repeater>
         </div>
       </div>
-    </section>
+    </BlockContainer>
   );
 }
 

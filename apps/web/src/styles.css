@@ -17,6 +17,31 @@
   }
 }
 
+/* Two hairline vertical rules with a wider gutter than `border-style: double`
+   would allow (which would also thicken the lines). Only shown once the
+   viewport is wide enough that the container isn't flush to the edges. */
+@utility block-side-border {
+  @media (width >= theme(--breakpoint-xl)) {
+    position: relative;
+    border-inline: 1px solid var(--border);
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      width: 1px;
+      background: var(--border);
+      pointer-events: none;
+    }
+    &::before {
+      left: 4px;
+    }
+    &::after {
+      right: 4px;
+    }
+  }
+}
+
 @layer base {
   html {
     font-size: 14px;

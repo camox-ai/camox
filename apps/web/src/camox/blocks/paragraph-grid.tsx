@@ -1,5 +1,7 @@
 import { Type, createBlock } from "camox/createBlock";
 
+import { BlockContainer } from "@/components/BlockContainer";
+
 const paragraphGrid = createBlock({
   id: "paragraph-grid",
   title: "Paragraph Grid",
@@ -46,49 +48,47 @@ const paragraphGrid = createBlock({
 
 function ParagraphGridComponent() {
   return (
-    <section className="py-16 sm:py-24 md:py-32">
-      <div className="container">
-        <paragraphGrid.Field name="title">
-          {(props) => (
-            <h2
-              {...props}
-              className="text-foreground mb-16 max-w-4xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl"
-            />
-          )}
-        </paragraphGrid.Field>
+    <BlockContainer>
+      <paragraphGrid.Field name="title">
+        {(props) => (
+          <h2
+            {...props}
+            className="text-foreground mb-16 max-w-4xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl"
+          />
+        )}
+      </paragraphGrid.Field>
 
-        <div className="mb-12 grid grid-cols-1 gap-x-16 gap-y-32 md:grid-cols-2">
-          <paragraphGrid.Repeater name="paragraphs">
-            {(item) => (
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-row flex-wrap items-center gap-3">
-                  <item.MultipleAssets name="logos">
-                    {(props) => <img {...props} className="size-10 object-contain" />}
-                  </item.MultipleAssets>
-                </div>
-                <p className="text-foreground text-lg leading-snug font-semibold tracking-tight sm:text-xl">
-                  <item.Field name="title">{(props) => <span {...props} />}</item.Field>{" "}
-                  <item.Field name="description">
-                    {(props) => <span {...props} className="text-muted-foreground font-normal" />}
-                  </item.Field>
-                </p>
+      <div className="mb-12 grid grid-cols-1 gap-x-16 gap-y-32 md:grid-cols-2">
+        <paragraphGrid.Repeater name="paragraphs">
+          {(item) => (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-row flex-wrap items-center gap-3">
+                <item.MultipleAssets name="logos">
+                  {(props) => <img {...props} className="size-10 object-contain" />}
+                </item.MultipleAssets>
               </div>
-            )}
-          </paragraphGrid.Repeater>
-        </div>
-
-        <div className="bg-primary text-primary-foreground rounded-2xl p-8 sm:p-12">
-          <p className="text-2xl leading-tight font-semibold tracking-tight sm:text-3xl">
-            <paragraphGrid.Field name="bannerHeadline">
-              {(props) => <span {...props} />}
-            </paragraphGrid.Field>{" "}
-            <paragraphGrid.Field name="bannerSubtext">
-              {(props) => <span {...props} className="opacity-75" />}
-            </paragraphGrid.Field>
-          </p>
-        </div>
+              <p className="text-foreground text-lg leading-snug font-semibold tracking-tight sm:text-xl">
+                <item.Field name="title">{(props) => <span {...props} />}</item.Field>{" "}
+                <item.Field name="description">
+                  {(props) => <span {...props} className="text-muted-foreground font-normal" />}
+                </item.Field>
+              </p>
+            </div>
+          )}
+        </paragraphGrid.Repeater>
       </div>
-    </section>
+
+      <div className="bg-primary text-primary-foreground rounded-2xl p-8 sm:p-12">
+        <p className="text-2xl leading-tight font-semibold tracking-tight sm:text-3xl">
+          <paragraphGrid.Field name="bannerHeadline">
+            {(props) => <span {...props} />}
+          </paragraphGrid.Field>{" "}
+          <paragraphGrid.Field name="bannerSubtext">
+            {(props) => <span {...props} className="opacity-75" />}
+          </paragraphGrid.Field>
+        </p>
+      </div>
+    </BlockContainer>
   );
 }
 

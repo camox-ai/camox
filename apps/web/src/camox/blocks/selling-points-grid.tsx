@@ -1,5 +1,6 @@
 import { Type, createBlock } from "camox/createBlock";
 
+import { BlockContainer } from "@/components/BlockContainer";
 import { InlineHeading } from "@/components/InlineHeading";
 import { Pill } from "@/components/Pill";
 
@@ -51,50 +52,48 @@ const sellingPointsGrid = createBlock({
 
 function SellingPointsGridComponent() {
   return (
-    <section className="py-10 sm:py-12 md:py-16">
-      <div className="container">
-        <div className="mb-12 max-w-4xl">
-          <sellingPointsGrid.Field name="pill">
-            {(props) => <Pill {...props} className="mb-6" />}
-          </sellingPointsGrid.Field>
-          <InlineHeading
-            lead={
-              <sellingPointsGrid.Field name="title">
-                {(props) => <span {...props} />}
-              </sellingPointsGrid.Field>
-            }
-            continuation={
-              <sellingPointsGrid.Field name="description">
-                {(props) => <span {...props} />}
-              </sellingPointsGrid.Field>
-            }
-          />
-        </div>
-        <div className="border-border w-full overflow-hidden rounded-xl border">
-          <div className="bg-border grid grid-cols-1 gap-px sm:grid-cols-2 md:grid-cols-3">
-            <sellingPointsGrid.Repeater name="items">
-              {(item) => (
-                <div className="bg-background flex h-full flex-col p-5">
-                  <div className="mb-2 flex flex-row items-center gap-2">
-                    <item.MultipleAssets name="icons">
-                      {(props) => <img {...props} className="size-8 object-contain" />}
-                    </item.MultipleAssets>
-                  </div>
-                  <item.Field name="title">
-                    {(props) => (
-                      <h3 {...props} className="text-foreground mb-1.5 text-base font-semibold" />
-                    )}
-                  </item.Field>
-                  <item.Field name="description">
-                    {(props) => <p {...props} className="text-muted-foreground text-sm" />}
-                  </item.Field>
+    <BlockContainer>
+      <div className="mb-12 max-w-4xl">
+        <sellingPointsGrid.Field name="pill">
+          {(props) => <Pill {...props} className="mb-6" />}
+        </sellingPointsGrid.Field>
+        <InlineHeading
+          lead={
+            <sellingPointsGrid.Field name="title">
+              {(props) => <span {...props} />}
+            </sellingPointsGrid.Field>
+          }
+          continuation={
+            <sellingPointsGrid.Field name="description">
+              {(props) => <span {...props} />}
+            </sellingPointsGrid.Field>
+          }
+        />
+      </div>
+      <div className="border-border w-full overflow-hidden rounded-xl border">
+        <div className="bg-border grid grid-cols-1 gap-px sm:grid-cols-2 md:grid-cols-3">
+          <sellingPointsGrid.Repeater name="items">
+            {(item) => (
+              <div className="bg-background flex h-full flex-col p-5">
+                <div className="mb-2 flex flex-row items-center gap-2">
+                  <item.MultipleAssets name="icons">
+                    {(props) => <img {...props} className="size-8 object-contain" />}
+                  </item.MultipleAssets>
                 </div>
-              )}
-            </sellingPointsGrid.Repeater>
-          </div>
+                <item.Field name="title">
+                  {(props) => (
+                    <h3 {...props} className="text-foreground mb-1.5 text-base font-semibold" />
+                  )}
+                </item.Field>
+                <item.Field name="description">
+                  {(props) => <p {...props} className="text-muted-foreground text-sm" />}
+                </item.Field>
+              </div>
+            )}
+          </sellingPointsGrid.Repeater>
         </div>
       </div>
-    </section>
+    </BlockContainer>
   );
 }
 
