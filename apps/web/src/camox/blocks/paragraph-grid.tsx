@@ -33,17 +33,13 @@ const paragraphGrid = createBlock({
       title: "Paragraphs",
       toMarkdown: (c) => [`**${c.title}** ${c.description}`, c.logos],
     }),
-    bannerHeadline: Type.String({
-      default: "Camox sites don't hold you back.",
-      title: "Banner headline",
-    }),
-    bannerSubtext: Type.String({
-      default: "Agent productivity, CMS maintainability. No slop.",
-      title: "Banner subtext",
+    bannerText: Type.String({
+      default: "Camox sites don't hold you back. Agent productivity, CMS maintainability. No slop.",
+      title: "Banner text",
     }),
   },
   component: ParagraphGridComponent,
-  toMarkdown: (c) => [`# ${c.title}`, c.paragraphs, `**${c.bannerHeadline}** ${c.bannerSubtext}`],
+  toMarkdown: (c) => [`# ${c.title}`, c.paragraphs, `**${c.bannerText}**`],
 });
 
 function ParagraphGridComponent() {
@@ -53,7 +49,7 @@ function ParagraphGridComponent() {
         {(props) => (
           <h2
             {...props}
-            className="text-foreground mb-16 max-w-4xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl"
+            className="text-foreground mb-16 max-w-4xl text-3xl leading-tight font-semibold tracking-tight sm:text-4xl"
           />
         )}
       </paragraphGrid.Field>
@@ -68,25 +64,25 @@ function ParagraphGridComponent() {
                 </item.MultipleAssets>
               </div>
               <p className="text-foreground text-lg leading-snug font-semibold tracking-tight sm:text-xl">
-                <item.Field name="title">{(props) => <span {...props} />}</item.Field>{" "}
-                <item.Field name="description">
-                  {(props) => <span {...props} className="text-muted-foreground font-normal" />}
-                </item.Field>
+                <item.Field name="title">{(props) => <span {...props} />}</item.Field>
               </p>
+              <item.Field name="description">
+                {(props) => <p {...props} className="text-muted-foreground text-sm leading-snug" />}
+              </item.Field>
             </div>
           )}
         </paragraphGrid.Repeater>
       </div>
 
       <div className="bg-primary text-primary-foreground rounded-2xl p-8 sm:p-12">
-        <p className="text-2xl leading-tight font-semibold tracking-tight sm:text-3xl">
-          <paragraphGrid.Field name="bannerHeadline">
-            {(props) => <span {...props} />}
-          </paragraphGrid.Field>{" "}
-          <paragraphGrid.Field name="bannerSubtext">
-            {(props) => <span {...props} className="opacity-75" />}
-          </paragraphGrid.Field>
-        </p>
+        <paragraphGrid.Field name="bannerText">
+          {(props) => (
+            <p
+              {...props}
+              className="text-2xl leading-tight font-semibold tracking-tight sm:text-3xl"
+            />
+          )}
+        </paragraphGrid.Field>
       </div>
     </BlockContainer>
   );
