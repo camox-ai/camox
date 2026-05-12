@@ -60,6 +60,23 @@ export function useNormalizedData() {
 
 const EMPTY_IDS: number[] = [];
 
+/**
+ * Returns the previously-returned array when `next` is element-wise identical to
+ * it. `useQueries` hands back a fresh `results` array whenever *any* subscribed
+ * block refetches, which otherwise produces new `pageBlocks` / `beforeBlocks` /
+ * `afterBlocks` / layout-data references on every keystroke-triggered refetch and
+ * re-renders unrelated blocks (e.g. the layout's navbar/footer) — even with
+ * React Compiler, since its memoization keys on input identity.
+ */
+function useStableArray<T>(next: T[]): T[] {
+  const ref = React.useRef<T[]>(next);
+  const prev = ref.current;
+  if (prev !== next && (prev.length !== next.length || prev.some((v, i) => v !== next[i]))) {
+    ref.current = next;
+  }
+  return ref.current;
+}
+
 export function usePageBlocks(pageStructure: PageStructure) {
   const blockIds = pageStructure.page.blockIds;
   const beforeIds = pageStructure.layout?.beforeBlockIds ?? EMPTY_IDS;
@@ -74,38 +91,33 @@ export function usePageBlocks(pageStructure: PageStructure) {
     queries: allIds.map((id) => blockQueries.get(id)),
   });
 
-  return React.useMemo(() => {
-    const bundleMap = new Map<number, BlockBundle>();
+  const bundleMap = React.useMemo(() => {
+    const map = new Map<number, BlockBundle>();
     for (let i = 0; i < allIds.length; i++) {
       const data = results[i]?.data;
-      if (data) bundleMap.set(allIds[i], data);
+      if (data) map.set(allIds[i], data);
     }
+    return map;
+  }, [results, allIds]);
 
-    // Merge files and items from layout block bundles for NormalizedDataProvider
-    const layoutFiles: NormalizedFile[] = [];
-    const layoutItems: NormalizedItem[] = [];
-    for (const id of [...beforeIds, ...afterIds]) {
-      const bundle = bundleMap.get(id);
-      if (bundle) {
-        layoutFiles.push(...bundle.files);
-        layoutItems.push(...bundle.repeatableItems);
-      }
-    }
+  const layoutIds = React.useMemo(() => [...beforeIds, ...afterIds], [beforeIds, afterIds]);
 
-    return {
-      pageBlocks: blockIds
-        .map((id) => bundleMap.get(id)?.block)
-        .filter((b): b is NormalizedBlock => b != null),
-      beforeBlocks: beforeIds
-        .map((id) => bundleMap.get(id)?.block)
-        .filter((b): b is NormalizedBlock => b != null),
-      afterBlocks: afterIds
-        .map((id) => bundleMap.get(id)?.block)
-        .filter((b): b is NormalizedBlock => b != null),
-      layoutFiles,
-      layoutItems,
-    };
-  }, [results, allIds, blockIds, beforeIds, afterIds]);
+  const resolveBlocks = (ids: readonly number[]) =>
+    ids.map((id) => bundleMap.get(id)?.block).filter((b): b is NormalizedBlock => b != null);
+
+  const pageBlocks = useStableArray(resolveBlocks(blockIds));
+  const beforeBlocks = useStableArray(resolveBlocks(beforeIds));
+  const afterBlocks = useStableArray(resolveBlocks(afterIds));
+  // Merge files and items from layout block bundles for NormalizedDataProvider
+  const layoutFiles = useStableArray(layoutIds.flatMap((id) => bundleMap.get(id)?.files ?? []));
+  const layoutItems = useStableArray(
+    layoutIds.flatMap((id) => bundleMap.get(id)?.repeatableItems ?? []),
+  );
+
+  return React.useMemo(
+    () => ({ pageBlocks, beforeBlocks, afterBlocks, layoutFiles, layoutItems }),
+    [pageBlocks, beforeBlocks, afterBlocks, layoutFiles, layoutItems],
+  );
 }
 
 /* -------------------------------------------------------------------------------------------------
