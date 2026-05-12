@@ -54,7 +54,7 @@ function HeroComponent() {
           marginBottom={0}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
         />
-        <div className="relative container pt-24 pb-16 sm:pt-32 sm:pb-24 md:pt-48 md:pb-32">
+        <div className="relative container pt-32 pb-24 md:pt-48 md:pb-32">
           <div className="mx-auto max-w-3xl text-center">
             <hero.Field name="title">
               {(props) => (
@@ -71,14 +71,14 @@ function HeroComponent() {
         </div>
       </section>
       <div className="bg-background">
-        <div className={cn("container pb-4", blockSideBorder)}>
+        <div className={cn("container h-12 px-4", blockSideBorder)}>
           <div className="relative z-10 mx-auto max-w-xl -translate-y-1/2">
             <TerminalCard>
               <hero.Field name="command">
                 {(props) => (
                   <code
                     {...props}
-                    className="text-foreground block text-lg font-medium whitespace-nowrap"
+                    className="text-foreground block text-base font-medium whitespace-nowrap"
                   />
                 )}
               </hero.Field>

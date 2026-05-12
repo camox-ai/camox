@@ -1,14 +1,13 @@
 import { Type, createBlock } from "camox/createBlock";
 
 import { BlockContainer } from "@/components/BlockContainer";
-import { InlineHeading } from "@/components/InlineHeading";
 import { Pill } from "@/components/Pill";
 
 const sellingPointsGrid = createBlock({
   id: "selling-points-grid",
   title: "Selling Points Grid",
   description:
-    "Use this block to promote a list of aspects, benefits, or features of a product or service in a compact grid. The section opens with a pill label, a large headline and supporting description, then lists selling points in a grid where each has a short title and a supporting description. Good fit for feature roundups, value propositions, or 'why choose us' sections. Works best with a multiple of 3 items so rows are complete.",
+    "Use this block to promote a list of aspects, benefits, or features of a product or service in a compact grid. The section opens with a pill label and a large headline, then lists selling points in a grid where each has a short title and a supporting description. Good fit for feature roundups, value propositions, or 'why choose us' sections. Works best with a multiple of 3 items so rows are complete.",
   content: {
     pill: Type.String({
       default: "Why us",
@@ -17,11 +16,6 @@ const sellingPointsGrid = createBlock({
     title: Type.String({
       default: "Why choose us.",
       title: "Title",
-    }),
-    description: Type.String({
-      default:
-        "A focused set of benefits that make the difference, from first impression to long-term value.",
-      title: "Description",
     }),
     items: Type.RepeatableItem({
       content: {
@@ -47,7 +41,7 @@ const sellingPointsGrid = createBlock({
     }),
   },
   component: SellingPointsGridComponent,
-  toMarkdown: (c) => [c.pill, `## ${c.title}`, c.description, c.items],
+  toMarkdown: (c) => [c.pill, `## ${c.title}`, c.items],
 });
 
 function SellingPointsGridComponent() {
@@ -57,18 +51,14 @@ function SellingPointsGridComponent() {
         <sellingPointsGrid.Field name="pill">
           {(props) => <Pill {...props} className="mb-6" />}
         </sellingPointsGrid.Field>
-        <InlineHeading
-          lead={
-            <sellingPointsGrid.Field name="title">
-              {(props) => <span {...props} />}
-            </sellingPointsGrid.Field>
-          }
-          continuation={
-            <sellingPointsGrid.Field name="description">
-              {(props) => <span {...props} />}
-            </sellingPointsGrid.Field>
-          }
-        />
+        <sellingPointsGrid.Field name="title">
+          {(props) => (
+            <h2
+              {...props}
+              className="text-foreground text-3xl leading-tight font-semibold tracking-tight sm:text-4xl"
+            />
+          )}
+        </sellingPointsGrid.Field>
       </div>
       <div className="border-border w-full overflow-hidden rounded-xl border">
         <div className="bg-border grid grid-cols-1 gap-px sm:grid-cols-2 md:grid-cols-3">
