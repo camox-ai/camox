@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.18.2](https://github.com/camox-ai/camox/compare/camox-v0.18.1...camox-v0.18.2) (2026-05-12)
+
+
+### Bug Fixes
+
+* create separate tmp vite cache dir during definitions sync ([185d444](https://github.com/camox-ai/camox/commit/185d44410bafabd8b0227889d0268dcb1e78cd42))
+
+
+### Miscellaneous
+
+* remove nitro from apps to prevent vite 504 ([fd3cb82](https://github.com/camox-ai/camox/commit/fd3cb82773fcd4484a8509aab7dfb1b5c0735a8b))
+* restore nitro plugin ([48bc894](https://github.com/camox-ai/camox/commit/48bc894938f78bbc3a8f16e9c1f787d0ea26381e))
+
 ## [0.18.1](https://github.com/camox-ai/camox/compare/camox-v0.18.0...camox-v0.18.1) (2026-05-11)
 
 
