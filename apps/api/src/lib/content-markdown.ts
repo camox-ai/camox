@@ -1,6 +1,9 @@
+type ResolvedFile = { url: string; alt: string; filename: string; mimeType: string };
+
 type SettingsContext = {
   settings?: Record<string, unknown> | null;
   itemSettings?: Record<string, unknown> | null;
+  files?: Map<number, ResolvedFile> | null;
 };
 
 export function contentToMarkdown(
@@ -9,15 +12,16 @@ export function contentToMarkdown(
   content: Record<string, unknown>,
   options: { insideList?: boolean } & SettingsContext = {},
 ): string {
-  const { insideList = false, settings, itemSettings } = options;
+  const { insideList = false, settings, itemSettings, files } = options;
   const parts: string[] = [];
 
   for (const line of toMarkdown) {
-    const withoutConds = evaluateConditionals(line, { settings, itemSettings });
+    const withoutConds = evaluateConditionals(line, { settings, itemSettings, files });
     if (withoutConds === null) continue;
     const resolved = resolveLine(withoutConds, schemaProperties, content, {
       settings,
       itemSettings,
+      files,
     });
     if (resolved !== null) parts.push(resolved);
   }
@@ -82,6 +86,27 @@ function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+/**
+ * Asset fields are stored as `{ _fileId }` markers; resolve them against the
+ * files map. Falls back to whatever inline shape the value already has.
+ */
+function resolveAsset(value: unknown, files: SettingsContext["files"]): ResolvedFile {
+  if (value && typeof value === "object" && "_fileId" in value) {
+    const id = (value as { _fileId: unknown })._fileId;
+    if (typeof id === "number") {
+      const file = files?.get(id);
+      if (file) return file;
+    }
+  }
+  const v = (value ?? {}) as Record<string, unknown>;
+  return {
+    url: asString(v.url),
+    alt: asString(v.alt),
+    filename: asString(v.filename),
+    mimeType: asString(v.mimeType),
+  };
+}
+
 function resolveField(schema: any, value: unknown, ctx: SettingsContext): string | undefined {
   if (value == null) return undefined;
   const fieldType: string | undefined = schema?.fieldType;
@@ -101,16 +126,14 @@ function resolveField(schema: any, value: unknown, ctx: SettingsContext): string
   }
 
   if (fieldType === "Image") {
-    const img = value as Record<string, unknown>;
-    const alt = asString(img.alt);
-    const filename = asString(img.filename);
-    return `![${alt}](${filename})`;
+    const { url, alt } = resolveAsset(value, ctx.files);
+    if (!url) return undefined;
+    return `![${alt}](${url})`;
   }
 
   if (fieldType === "File") {
-    const file = value as Record<string, unknown>;
-    const filename = asString(file.filename);
-    const url = asString(file.url);
+    const { url, filename } = resolveAsset(value, ctx.files);
+    if (!url && !filename) return undefined;
     return `[${filename}](${url})`;
   }
 
@@ -125,7 +148,11 @@ function resolveField(schema: any, value: unknown, ctx: SettingsContext): string
     if (!leafSchema) return undefined;
     const itemParts: string[] = [];
     for (const v of value) {
-      const md = resolveField(leafSchema, v, { settings: ctx.settings, itemSettings: null });
+      const md = resolveField(leafSchema, v, {
+        settings: ctx.settings,
+        itemSettings: null,
+        files: ctx.files,
+      });
       if (md) itemParts.push(`- ${md}`);
     }
     return itemParts.length > 0 ? itemParts.join("\n") : undefined;
@@ -154,6 +181,7 @@ function resolveField(schema: any, value: unknown, ctx: SettingsContext): string
           insideList: true,
           settings: ctx.settings,
           itemSettings,
+          files: ctx.files,
         });
       } else {
         const fieldParts: string[] = [];
@@ -161,7 +189,7 @@ function resolveField(schema: any, value: unknown, ctx: SettingsContext): string
           const resolved = resolveField(
             itemSchema[key],
             (itemContent as Record<string, unknown>)[key],
-            { settings: ctx.settings, itemSettings },
+            { settings: ctx.settings, itemSettings, files: ctx.files },
           );
           if (resolved) fieldParts.push(resolved);
         }

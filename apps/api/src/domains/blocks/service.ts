@@ -24,7 +24,7 @@ import {
   repeatableItems,
 } from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
-import { collectFileIds } from "../pages/ai";
+import { buildFileMap, collectFileIds } from "../pages/ai";
 import { normalizeBlockContent, sanitizeAssetValue, type BlockItemSeed } from "./normalize-content";
 
 // --- Input Schemas ---
@@ -722,14 +722,14 @@ export async function getPageMarkdown(
   }
 
   // Also fetch layout blocks if page has a layout
-  let beforeMarkdown = "";
-  let afterMarkdown = "";
+  let sortedLayout: typeof pageBlocks = [];
+  let layoutItemsByBlock = new Map<number, typeof allItems>();
   if (page.layoutId) {
     const layoutBlocks = await ctx.db
       .select()
       .from(blocks)
       .where(eq(blocks.layoutId, page.layoutId));
-    const sortedLayout = layoutBlocks.sort((a, b) => comparePositions(a.position, b.position));
+    sortedLayout = layoutBlocks.sort((a, b) => comparePositions(a.position, b.position));
     const layoutBlockIds = sortedLayout.map((b) => b.id);
     const layoutItems =
       layoutBlockIds.length > 0
@@ -741,55 +741,57 @@ export async function getPageMarkdown(
           )
         : [];
     nestChildItems(layoutItems);
-    const layoutItemsByBlock = new Map<number, typeof layoutItems>();
     for (const item of layoutItems) {
       if (item.parentItemId !== null) continue;
       const list = layoutItemsByBlock.get(item.blockId) ?? [];
       list.push(item);
       layoutItemsByBlock.set(item.blockId, list);
     }
-
-    const beforeParts: string[] = [];
-    const afterParts: string[] = [];
-    for (const block of sortedLayout) {
-      const schema = schemaByType.get(block.type);
-      if (!schema?.toMarkdown) continue;
-      const content = { ...(block.content as Record<string, unknown>) };
-      const items = layoutItemsByBlock.get(block.id) ?? [];
-      for (const fieldName of new Set(items.map((i) => i.fieldName))) {
-        content[fieldName] = items.filter((i) => i.fieldName === fieldName);
-      }
-      const md = `<!-- ${schema.title} -->\n${contentToMarkdown(
-        schema.toMarkdown,
-        schema.properties,
-        content,
-        {
-          settings: block.settings as Record<string, unknown> | null | undefined,
-        },
-      )}`;
-      if (block.placement === "before") beforeParts.push(md);
-      else afterParts.push(md);
-    }
-    beforeMarkdown = beforeParts.join("\n\n");
-    afterMarkdown = afterParts.join("\n\n");
   }
 
-  // Convert page blocks to markdown
-  const blockMarkdowns = sorted.map((block) => {
+  // Collect every referenced file so {{image}} / {{file}} placeholders resolve to real URLs
+  const fileIds = new Set<number>();
+  for (const block of [...sorted, ...sortedLayout]) {
+    collectFileIds(block.content as Record<string, unknown>, fileIds);
+  }
+  for (const list of [...itemsByBlock.values(), ...layoutItemsByBlock.values()]) {
+    for (const item of list) collectFileIds(item.content as Record<string, unknown>, fileIds);
+  }
+  const fileMap = await buildFileMap(ctx.db, fileIds);
+
+  const renderBlock = (block: (typeof pageBlocks)[number], items: typeof allItems) => {
     const schema = schemaByType.get(block.type);
-    if (!schema?.toMarkdown) {
-      return { id: block.id, position: block.position, markdown: JSON.stringify(block.content) };
-    }
+    if (!schema?.toMarkdown) return JSON.stringify(block.content);
     const content = { ...(block.content as Record<string, unknown>) };
-    const items = itemsByBlock.get(block.id) ?? [];
     for (const fieldName of new Set(items.map((i) => i.fieldName))) {
       content[fieldName] = items.filter((i) => i.fieldName === fieldName);
     }
-    const md = contentToMarkdown(schema.toMarkdown, schema.properties, content, {
-      settings: block.settings as Record<string, unknown> | null | undefined,
-    });
-    return { id: block.id, position: block.position, markdown: `<!-- ${schema.title} -->\n${md}` };
-  });
+    return `<!-- ${schema.title} -->\n${contentToMarkdown(
+      schema.toMarkdown,
+      schema.properties,
+      content,
+      { settings: block.settings as Record<string, unknown> | null | undefined, files: fileMap },
+    )}`;
+  };
+
+  const beforeParts: string[] = [];
+  const afterParts: string[] = [];
+  for (const block of sortedLayout) {
+    const schema = schemaByType.get(block.type);
+    if (!schema?.toMarkdown) continue;
+    const md = renderBlock(block, layoutItemsByBlock.get(block.id) ?? []);
+    if (block.placement === "before") beforeParts.push(md);
+    else afterParts.push(md);
+  }
+  const beforeMarkdown = beforeParts.join("\n\n");
+  const afterMarkdown = afterParts.join("\n\n");
+
+  // Convert page blocks to markdown
+  const blockMarkdowns = sorted.map((block) => ({
+    id: block.id,
+    position: block.position,
+    markdown: renderBlock(block, itemsByBlock.get(block.id) ?? []),
+  }));
 
   const parts = [beforeMarkdown, ...blockMarkdowns.map((b) => b.markdown), afterMarkdown].filter(
     Boolean,
