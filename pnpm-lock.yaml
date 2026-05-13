@@ -534,6 +534,18 @@ importers:
       '@orpc/tanstack-query':
         specifier: ^1.13.14
         version: 1.13.14(@opentelemetry/api@1.9.0)(@orpc/client@1.13.14(@opentelemetry/api@1.9.0))(@tanstack/query-core@5.99.0)
+      '@shikijs/core':
+        specifier: ^4.0.2
+        version: 4.0.2
+      '@shikijs/engine-javascript':
+        specifier: ^4.0.2
+        version: 4.0.2
+      '@shikijs/langs':
+        specifier: ^4.0.2
+        version: 4.0.2
+      '@shikijs/themes':
+        specifier: ^4.0.2
+        version: 4.0.2
       '@sinclair/typebox':
         specifier: ^0.34.49
         version: 0.34.49
@@ -4911,6 +4923,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@vimeo/player@2.29.0':
     resolution: {integrity: sha512-9JjvjeqUndb9otCCFd0/+2ESsLk7VkDE6sxOBy9iy2ukezuQbplVRi+g9g59yAurKofbmTi/KcKxBGO/22zWRw==}

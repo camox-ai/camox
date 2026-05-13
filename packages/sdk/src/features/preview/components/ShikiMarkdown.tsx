@@ -1,5 +1,6 @@
+import { createHighlighterCore, type HighlighterCore } from "@shikijs/core";
+import { createJavaScriptRegexEngine } from "@shikijs/engine-javascript";
 import * as React from "react";
-import { codeToHtml } from "shiki";
 
 const css = `
 .dark .shiki,
@@ -9,17 +10,38 @@ const css = `
 }
 `;
 
+// Fine-grained shiki bundle: only the markdown grammar and the two themes we use,
+// with the pure-JS regex engine so we don't need to load onig.wasm (which breaks
+// SSR builds via rolldown's vite-wasm-fallback plugin).
+let highlighterPromise: Promise<HighlighterCore> | null = null;
+const getHighlighter = () => {
+  if (!highlighterPromise) {
+    highlighterPromise = createHighlighterCore({
+      themes: [
+        import("@shikijs/themes/github-light"),
+        import("@shikijs/themes/github-dark-high-contrast"),
+      ],
+      langs: [import("@shikijs/langs/markdown")],
+      engine: createJavaScriptRegexEngine(),
+    });
+  }
+  return highlighterPromise;
+};
+
 export const ShikiMarkdown = ({ code }: { code: string }) => {
   const [html, setHtml] = React.useState("");
 
   React.useEffect(() => {
     let cancelled = false;
-    void codeToHtml(code, {
-      lang: "markdown",
-      themes: { light: "github-light", dark: "github-dark-high-contrast" },
-      defaultColor: false,
-    }).then((result) => {
-      if (!cancelled) setHtml(result);
+    void getHighlighter().then((highlighter) => {
+      if (cancelled) return;
+      setHtml(
+        highlighter.codeToHtml(code, {
+          lang: "markdown",
+          themes: { light: "github-light", dark: "github-dark-high-contrast" },
+          defaultColor: false,
+        }),
+      );
     });
     return () => {
       cancelled = true;
