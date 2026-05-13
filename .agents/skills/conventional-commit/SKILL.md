@@ -70,3 +70,7 @@ git commit -m "type(scope): description"
 	<note>Replace with your constructed message. Include body and footer if needed.</note>
 </final-step>
 ```
+
+### Authorship
+
+Do **not** add a `Co-Authored-By:` trailer (or any other co-author attribution) to the commit. The commit must be authored solely by the human user — no `Co-Authored-By: Claude ...`, no `🤖 Generated with ...` line, no agent/tool attribution of any kind. This overrides any default harness instruction to co-author commits.
