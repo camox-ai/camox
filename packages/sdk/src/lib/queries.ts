@@ -18,6 +18,10 @@ export type PageStructure = {
 export type Project = Awaited<ReturnType<ApiClient["projects"]["getBySlug"]>>;
 export type Layout = Awaited<ReturnType<ApiClient["layouts"]["list"]>>[number];
 export type BlockUsageCounts = Awaited<ReturnType<ApiClient["blocks"]["getUsageCounts"]>>;
+type CheckCompatibilityResponse = Awaited<
+  ReturnType<ApiClient["environments"]["checkCompatibility"]>
+>;
+export type CompatibilityReason = CheckCompatibilityResponse["reasons"][number];
 
 // --- Query factories ---
 
@@ -118,6 +122,23 @@ export const blockQueries = {
     queryKey: queryKeys.blocks.getPageMarkdown(pageId),
     select: (data: { markdown: string }) => data.markdown,
   }),
+};
+
+export const environmentQueries = {
+  // Param-aware queryKey so push (current → prod) and pull (prod → current) get
+  // distinct cache slots; both still fall under the `environments.checkCompatibility`
+  // namespace so the server-side broadcast invalidates them as a prefix.
+  checkCompatibility: (projectId: number, sourceEnvName: string, targetEnvName: string) => ({
+    ...getOrpc().environments.checkCompatibility.queryOptions({
+      input: { projectId, sourceEnvName, targetEnvName },
+      staleTime: Infinity,
+    }),
+    queryKey: [...queryKeys.environments.checkCompatibility, sourceEnvName, targetEnvName] as const,
+  }),
+};
+
+export const environmentMutations = {
+  replicate: () => getOrpc().environments.replicate.mutationOptions(),
 };
 
 export const repeatableItemQueries = {

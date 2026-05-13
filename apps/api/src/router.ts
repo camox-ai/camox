@@ -1,6 +1,7 @@
 import { agentProcedures } from "./domains/agent/routes";
 import { blockDefinitionProcedures } from "./domains/block-definitions/routes";
 import { blockProcedures } from "./domains/blocks/routes";
+import { environmentProcedures } from "./domains/environments/routes";
 import { fileProcedures } from "./domains/files/routes";
 import { layoutProcedures } from "./domains/layouts/routes";
 import { pageProcedures } from "./domains/pages/routes";
@@ -15,6 +16,7 @@ export const router = {
   files: fileProcedures,
   repeatableItems: repeatableItemProcedures,
   blockDefinitions: blockDefinitionProcedures,
+  environments: environmentProcedures,
   agent: agentProcedures,
 };
 

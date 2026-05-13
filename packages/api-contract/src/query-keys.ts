@@ -28,6 +28,10 @@ export const queryKeys = {
   layouts: {
     all: ["camox", "layouts"],
   },
+  environments: {
+    all: ["camox", "environments"],
+    checkCompatibility: ["camox", "environments", "checkCompatibility"],
+  },
 } satisfies Record<string, QueryKeyGroup>;
 
 export type InvalidationMessage = {
