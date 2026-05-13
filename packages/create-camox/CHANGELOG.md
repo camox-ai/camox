@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/camox-ai/camox/compare/camox-v0.18.2...create-camox-v0.19.0) (2026-05-13)
+
+
+### Miscellaneous
+
+* **create-camox:** Synchronize camox versions
+
 ## [0.18.2](https://github.com/camox-ai/camox/compare/camox-v0.18.1...create-camox-v0.18.2) (2026-05-12)
 
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.19.0](https://github.com/camox-ai/camox/compare/camox-v0.18.2...camox-v0.19.0) (2026-05-13)
+
+
+### Features
+
+* add borders to web blocks ([74379a3](https://github.com/camox-ai/camox/commit/74379a3218877a7c34c211727ce9173dd7f4e2e3))
+
+
+### Bug Fixes
+
+* asset lightbox and page metadata inputs debouncing ([cf385e6](https://github.com/camox-ai/camox/commit/cf385e68c1f7ce4a64a1a91aba21f39e833ae20b))
+* avoid refetching layout blocks on other block update ([6938832](https://github.com/camox-ai/camox/commit/69388327741abdac5f20c0ba4f8f69bbef57de75))
+* images markdown generation ([94ba7fe](https://github.com/camox-ai/camox/commit/94ba7fe4dd7ea926fc840c6412a71ad52df53b16))
+* make media lib scrollable ([e9754d9](https://github.com/camox-ai/camox/commit/e9754d94f5d6f346d33117653cc551d78c382623))
+
+
+### Miscellaneous
+
+* tweak competitor blocks ([0597b5a](https://github.com/camox-ai/camox/commit/0597b5aba1de76b4c25f86c1b68d0e806317a456))
+* tweak web app blocks ([35912a2](https://github.com/camox-ai/camox/commit/35912a23c1b7df4d2d5cd6fdf49deb72dacb4df8))
+
 ## [0.18.2](https://github.com/camox-ai/camox/compare/camox-v0.18.1...camox-v0.18.2) (2026-05-12)
 
 
