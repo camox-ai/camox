@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.19.0](https://github.com/camox-ai/camox/compare/camox-v0.18.2...camox-sdk-v0.19.0) (2026-05-13)
+
+
+### Bug Fixes
+
+* asset lightbox and page metadata inputs debouncing ([cf385e6](https://github.com/camox-ai/camox/commit/cf385e68c1f7ce4a64a1a91aba21f39e833ae20b))
+* avoid refetching layout blocks on other block update ([6938832](https://github.com/camox-ai/camox/commit/69388327741abdac5f20c0ba4f8f69bbef57de75))
+* make media lib scrollable ([e9754d9](https://github.com/camox-ai/camox/commit/e9754d94f5d6f346d33117653cc551d78c382623))
+
 ## [0.18.2](https://github.com/camox-ai/camox/compare/camox-v0.18.1...camox-sdk-v0.18.2) (2026-05-12)
 
 
