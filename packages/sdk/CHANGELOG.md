@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.21.0](https://github.com/camox-ai/camox/compare/camox-v0.20.0...camox-sdk-v0.21.0) (2026-05-13)
+
+
+### Features
+
+* **sync:** delete orphaned block definitions ([9db8bae](https://github.com/camox-ai/camox/commit/9db8baee4d506c8b87c93f1a1e11d0a2f7b64c5b))
+
+
+### Bug Fixes
+
+* takumi on workers using wasm everywhere ([63b915d](https://github.com/camox-ai/camox/commit/63b915d40ffe129da63171d669d4c8870f97c7f5))
+
 ## [0.20.0](https://github.com/camox-ai/camox/compare/camox-v0.19.0...camox-sdk-v0.20.0) (2026-05-13)
 
 
