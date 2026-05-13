@@ -17,6 +17,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import * as React from "react";
 
 import type { LinkValue } from "@/core/lib/contentType.ts";
+import { useDebouncedField } from "@/hooks/use-debounced-field";
 import { useProjectSlug } from "@/lib/auth";
 import { pageQueries, projectQueries } from "@/lib/queries";
 import { cn, formatPathSegment } from "@/lib/utils";
@@ -42,12 +43,19 @@ const normalizeLinkValue = (value: Record<string, unknown>): LinkValue => {
 const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFieldEditorProps) => {
   const linkValue = normalizeLinkValue(rawLinkValue);
 
-  const timerRef = React.useRef<number | null>(null);
-  const [text, setText] = React.useState(linkValue.text);
-  const [href, setHref] = React.useState(linkValue.type === "external" ? linkValue.href : "");
-  const [isTextFocused, setIsTextFocused] = React.useState(false);
-  const [isHrefFocused, setIsHrefFocused] = React.useState(false);
   const linkValueRef = React.useRef<LinkValue>(linkValue);
+  React.useEffect(() => {
+    linkValueRef.current = linkValue;
+  }, [linkValue]);
+
+  const textField = useDebouncedField(linkValue.text, (value: string) =>
+    onSave(fieldName, { ...linkValueRef.current, text: value }),
+  );
+  const hrefField = useDebouncedField(
+    linkValue.type === "external" ? linkValue.href : "",
+    (value: string) => onSave(fieldName, { ...linkValueRef.current, href: value }),
+  );
+
   const [pagePickerOpen, setPagePickerOpen] = React.useState(false);
 
   const projectSlug = useProjectSlug();
@@ -59,42 +67,6 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
 
   const selectedPage =
     linkValue.type === "page" ? pages?.find((p) => String(p.id) === linkValue.pageId) : null;
-
-  React.useEffect(() => {
-    linkValueRef.current = linkValue;
-  }, [linkValue]);
-
-  React.useEffect(() => {
-    if (!isTextFocused) {
-      setText(linkValue.text);
-    }
-  }, [linkValue.text, isTextFocused]);
-
-  React.useEffect(() => {
-    if (linkValue.type === "external" && !isHrefFocused) {
-      setHref(linkValue.href);
-    }
-  }, [linkValue, isHrefFocused]);
-
-  React.useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  const handleTextChange = (value: string) => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(() => {
-      onSave(fieldName, { ...linkValueRef.current, text: value });
-    }, 500);
-  };
-
-  const handleHrefChange = (value: string) => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(() => {
-      onSave(fieldName, { ...linkValueRef.current, href: value });
-    }, 500);
-  };
 
   const handleModeChange = (mode: string) => {
     if (mode === "page") {
@@ -130,13 +102,10 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
         <Label htmlFor={`${fieldName}-text`}>Text</Label>
         <Input
           id={`${fieldName}-text`}
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            handleTextChange(e.target.value);
-          }}
-          onFocus={() => setIsTextFocused(true)}
-          onBlur={() => setIsTextFocused(false)}
+          value={textField.value}
+          onChange={(e) => textField.setValue(e.target.value)}
+          onFocus={textField.onFocus}
+          onBlur={textField.onBlur}
           autoFocus
         />
       </div>
@@ -200,13 +169,10 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
             type="url"
             id={`${fieldName}-href`}
             placeholder="https://"
-            value={href}
-            onChange={(e) => {
-              setHref(e.target.value);
-              handleHrefChange(e.target.value);
-            }}
-            onFocus={() => setIsHrefFocused(true)}
-            onBlur={() => setIsHrefFocused(false)}
+            value={hrefField.value}
+            onChange={(e) => hrefField.setValue(e.target.value)}
+            onFocus={hrefField.onFocus}
+            onBlur={hrefField.onBlur}
           />
         )}
       </div>
