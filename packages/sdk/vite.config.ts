@@ -15,6 +15,12 @@ export default defineConfig({
       "features/metadata/sitemap": "src/features/metadata/sitemap.ts",
       "features/routes/pageRoute": "src/features/routes/pageRoute.tsx",
       "features/routes/ogRoute": "src/features/routes/ogRoute.ts",
+      // Runtime-conditional OG `ImageResponse` wrappers — package.json dispatches
+      // between these via the `workerd` / `worker` / `deno` exports conditions.
+      // Both files must be explicit pack entries; tsdown can't traverse the
+      // dynamic `await import("camox/_internal/imageResponse")` in createLayout.
+      "features/og/imageResponse.node": "src/features/og/imageResponse.node.ts",
+      "features/og/imageResponse.workerd": "src/features/og/imageResponse.workerd.ts",
     },
     format: "esm",
     outDir: "dist",
@@ -25,7 +31,14 @@ export default defineConfig({
     outExtensions: () => ({ js: ".js" }),
     deps: {
       skipNodeModulesBundle: true,
-      neverBundle: ["virtual:camox-studio-css", "virtual:camox-overlay-css"],
+      neverBundle: [
+        "virtual:camox-studio-css",
+        "virtual:camox-overlay-css",
+        // Self-import in `createLayout.tsx` — must stay as the bare specifier
+        // `camox/_internal/imageResponse` so the consuming app's bundler picks the
+        // workerd or node variant via this package's exports conditions.
+        "camox/_internal/imageResponse",
+      ],
     },
     plugins: [
       pluginBabel({

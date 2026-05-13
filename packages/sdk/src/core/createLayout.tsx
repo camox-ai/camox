@@ -205,7 +205,11 @@ export function createLayout<
 
   const buildOgImage = options.buildOgImage
     ? async (params: OgImageParams): Promise<Response> => {
-        const { ImageResponse } = await import("@takumi-rs/image-response");
+        // Resolves to the native `@takumi-rs/image-response` on Node/Bun/Nitro
+        // and to the wasm variant on workerd/worker/deno via the conditional
+        // exports in this package's `package.json`. Keeps takumi out of the
+        // bundle entirely when no layout defines `buildOgImage`.
+        const { ImageResponse } = await import("camox/_internal/imageResponse");
         const jsx = options.buildOgImage!(params);
         return new ImageResponse(jsx, { width: 1200, height: 630 });
       }

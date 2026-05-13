@@ -66,6 +66,28 @@
       "types": "./dist/features/routes/ogRoute.d.ts",
       "import": "./dist/features/routes/ogRoute.js"
     },
+    "./_internal/imageResponse": {
+      "workerd": {
+        "source": "./src/features/og/imageResponse.workerd.ts",
+        "types": "./dist/features/og/imageResponse.workerd.d.ts",
+        "import": "./dist/features/og/imageResponse.workerd.js"
+      },
+      "worker": {
+        "source": "./src/features/og/imageResponse.workerd.ts",
+        "types": "./dist/features/og/imageResponse.workerd.d.ts",
+        "import": "./dist/features/og/imageResponse.workerd.js"
+      },
+      "deno": {
+        "source": "./src/features/og/imageResponse.workerd.ts",
+        "types": "./dist/features/og/imageResponse.workerd.d.ts",
+        "import": "./dist/features/og/imageResponse.workerd.js"
+      },
+      "default": {
+        "source": "./src/features/og/imageResponse.node.ts",
+        "types": "./dist/features/og/imageResponse.node.d.ts",
+        "import": "./dist/features/og/imageResponse.node.js"
+      }
+    },
     "./studio.css": "./dist/studio.css"
   },
   "scripts": {
@@ -95,6 +117,7 @@
     "@shikijs/themes": "^4.0.2",
     "@sinclair/typebox": "^0.34.49",
     "@takumi-rs/image-response": "^0.70.4",
+    "@takumi-rs/wasm": "^0.70.4",
     "@tanstack/react-form": "^1.29.0",
     "@tanstack/react-query-devtools": "^5.99.0",
     "@xstate/store": "3.17.1",
