@@ -89,6 +89,8 @@ export async function syncDefinitionsToApi(options: {
     }));
 
   let environmentCreated = false;
+  let deletedDefinitionTypes: string[] = [];
+  let blockedDefinitionDeletions: Array<{ blockId: string; blockCount: number }> = [];
   try {
     const result = await client.blockDefinitions.sync({
       projectSlug,
@@ -97,6 +99,8 @@ export async function syncDefinitionsToApi(options: {
       definitions,
     });
     environmentCreated = result.environmentCreated;
+    deletedDefinitionTypes = result.deletedDefinitionTypes;
+    blockedDefinitionDeletions = result.blockedDefinitionDeletions;
   } catch (error) {
     throwIfSyncAuthError(error);
     if (!autoCreate && isNotFoundError(error)) throwUnknownEnvironmentError(environmentName);
@@ -111,6 +115,20 @@ export async function syncDefinitionsToApi(options: {
     `[camox] Synced ${definitions.length} block definition${definitions.length === 1 ? "" : "s"}`,
     { timestamp: true },
   );
+
+  if (deletedDefinitionTypes.length > 0) {
+    const blockList = deletedDefinitionTypes.map((t) => `"${t}"`).join(", ");
+    logger.info(
+      `[camox] Removed ${deletedDefinitionTypes.length} orphaned block definition${deletedDefinitionTypes.length === 1 ? "" : "s"} (no longer in code): ${blockList}`,
+      { timestamp: true },
+    );
+  }
+  for (const blocked of blockedDefinitionDeletions) {
+    logger.warn(
+      `[camox] Cannot delete block definition "${blocked.blockId}": still used by ${blocked.blockCount} block${blocked.blockCount === 1 ? "" : "s"}. Delete those blocks first.`,
+      { timestamp: true },
+    );
+  }
 
   // Sync layouts
   if (layoutDefinitions.length > 0) {

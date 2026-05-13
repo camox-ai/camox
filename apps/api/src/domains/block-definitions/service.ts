@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { assertSyncSecret } from "../../authorization";
 import { resolveEnvironment } from "../../lib/resolve-environment";
-import { blockDefinitions } from "../../schema";
+import { blockDefinitions, blocks, layouts, pages } from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
 
 // --- Input Schemas ---
@@ -131,7 +131,59 @@ export async function syncBlockDefinitions(
     results.push(created);
   }
 
-  return { results, environmentCreated: environment.created };
+  // Reconcile orphans: definitions still in the DB whose block files are gone
+  // from code. layoutOnly definitions are skipped here — syncLayouts owns them
+  // because it knows which types each layout currently references and prunes
+  // both the layout-scoped block rows and their definitions atomically.
+  const incomingIds = new Set(definitions.map((d) => d.blockId));
+  const existingDefs = await ctx.db
+    .select({
+      id: blockDefinitions.id,
+      blockId: blockDefinitions.blockId,
+      layoutOnly: blockDefinitions.layoutOnly,
+    })
+    .from(blockDefinitions)
+    .where(
+      and(
+        eq(blockDefinitions.projectId, projectId),
+        eq(blockDefinitions.environmentId, environment.id),
+      ),
+    );
+  const orphans = existingDefs.filter((d) => !incomingIds.has(d.blockId) && d.layoutOnly !== true);
+
+  const deletedDefinitionTypes: string[] = [];
+  const blockedDefinitionDeletions: Array<{ blockId: string; blockCount: number }> = [];
+
+  for (const orphan of orphans) {
+    // A block instance is attached to either a page or a layout (the column
+    // not in use is null), so usage is the union of both joins scoped to this
+    // environment.
+    const pageUses = await ctx.db
+      .select({ id: blocks.id })
+      .from(blocks)
+      .innerJoin(pages, eq(blocks.pageId, pages.id))
+      .where(and(eq(blocks.type, orphan.blockId), eq(pages.environmentId, environment.id)));
+    const layoutUses = await ctx.db
+      .select({ id: blocks.id })
+      .from(blocks)
+      .innerJoin(layouts, eq(blocks.layoutId, layouts.id))
+      .where(and(eq(blocks.type, orphan.blockId), eq(layouts.environmentId, environment.id)));
+    const usageCount = pageUses.length + layoutUses.length;
+
+    if (usageCount > 0) {
+      blockedDefinitionDeletions.push({ blockId: orphan.blockId, blockCount: usageCount });
+      continue;
+    }
+    await ctx.db.delete(blockDefinitions).where(eq(blockDefinitions.id, orphan.id));
+    deletedDefinitionTypes.push(orphan.blockId);
+  }
+
+  return {
+    results,
+    environmentCreated: environment.created,
+    deletedDefinitionTypes,
+    blockedDefinitionDeletions,
+  };
 }
 
 export async function upsertBlockDefinition(
