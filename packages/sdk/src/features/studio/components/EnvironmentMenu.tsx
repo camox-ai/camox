@@ -11,10 +11,11 @@ import {
 import { Badge } from "@camox/ui/badge";
 import { Button } from "@camox/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
+import { Separator } from "@camox/ui/separator";
 import { Spinner } from "@camox/ui/spinner";
 import { toast } from "@camox/ui/toaster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
+import { ChevronDown, Download, Upload } from "lucide-react";
 import * as React from "react";
 
 import { AuthContext } from "@/lib/auth";
@@ -124,6 +125,7 @@ export const EnvironmentMenu = () => {
     const checking = check.isLoading;
     const compatible = check.data?.compatible ?? false;
     const reason = check.data && !check.data.compatible ? check.data.reasons[0] : null;
+    const Icon = direction === "push" ? Upload : Download;
     const actionLabel = direction === "push" ? "Push to production" : "Pull from production";
 
     return (
@@ -131,21 +133,16 @@ export const EnvironmentMenu = () => {
         <Button
           variant="outline"
           size="sm"
-          className="justify-between"
+          className="w-full justify-start gap-2"
           disabled={checking || !compatible || replicate.isPending}
           onClick={() => setPendingDirection(direction)}
         >
-          {direction === "push" ? (
-            <>
-              <span>{actionLabel}</span>
-              {checking ? <Spinner /> : <ArrowRight className="size-4 opacity-70" />}
-            </>
+          {checking ? (
+            <Spinner className="text-muted-foreground" />
           ) : (
-            <>
-              {checking ? <Spinner /> : <ArrowLeft className="size-4 opacity-70" />}
-              <span>{actionLabel}</span>
-            </>
+            <Icon className="text-muted-foreground size-4" />
           )}
+          <span>{actionLabel}</span>
         </Button>
         {reason ? (
           <p className="text-destructive text-xs leading-tight">
@@ -165,17 +162,21 @@ export const EnvironmentMenu = () => {
           </Badge>
           <ChevronDown className="shrink-0 opacity-50" />
         </PopoverTrigger>
-        <PopoverContent className="w-96 p-4" align="start" side="bottom">
-          <div className="flex flex-col gap-3">
+        <PopoverContent className="w-96 p-0" align="start" side="bottom">
+          <div className="flex flex-col gap-3 py-4">
             {isProduction ? (
-              <p className="text-sm">You are viewing the production environment.</p>
+              <p className="px-4 text-sm">You are viewing the production environment.</p>
             ) : (
               <>
-                <p className="text-sm">
+                <p className="px-4 text-sm">
                   This environment is your personal space to iterate on content and data structures.
                   It doesn't affect production data.
                 </p>
-                <div className="flex flex-col gap-2 pt-1">
+                <Separator />
+                <p className="text-muted-foreground px-4 text-xs font-medium">
+                  Transfer data across environments
+                </p>
+                <div className="flex flex-col gap-2 px-4">
                   {renderActionButton("push")}
                   {renderActionButton("pull")}
                 </div>
@@ -197,9 +198,21 @@ export const EnvironmentMenu = () => {
               {pendingDirection === "push" ? "Push to production?" : "Pull from production?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingDirection === "push"
-                ? `This will replace all content in production with the current ${environmentName} environment. This action cannot be undone.`
-                : `This will replace all content in your ${environmentName} environment with production. This action cannot be undone.`}
+              {pendingDirection === "push" ? (
+                <>
+                  This will replace all content in{" "}
+                  <span className="font-mono font-semibold">production</span> with the current{" "}
+                  <span className="font-mono font-semibold">{environmentName}</span> environment.
+                  This action cannot be undone.
+                </>
+              ) : (
+                <>
+                  This will replace all content in your{" "}
+                  <span className="font-mono font-semibold">{environmentName}</span> environment
+                  with <span className="font-mono font-semibold">production</span>. This action
+                  cannot be undone.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
