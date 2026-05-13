@@ -2,13 +2,14 @@ import { Button } from "@camox/ui/button";
 import { FloatingToolbar } from "@camox/ui/floating-toolbar";
 import { PanelContent } from "@camox/ui/panel";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AssetLightbox } from "@/features/preview/components/AssetLightbox";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
 import { useProjectSlug } from "@/lib/auth";
 import { fileMutations, fileQueries, projectQueries } from "@/lib/queries";
+import { checkIfInputFocused } from "@/lib/utils";
 
 import { AssetCard } from "./components/AssetCard";
 import { AssetCardSkeleton } from "./components/AssetCardSkeleton";
@@ -36,11 +37,23 @@ export const CamoxContent = () => {
     useCallback((ids: Set<string>) => setSelectedIds(ids), []),
   );
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      // Let the lightbox handle its own Escape close.
+      if (lightboxFileId !== null) return;
+      if (checkIfInputFocused()) return;
+      setSelectedIds((prev) => (prev.size === 0 ? prev : new Set()));
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxFileId]);
+
   return (
     <div className="flex flex-1 flex-row">
       <ContentSidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <UploadDropZone onDrop={uploadFiles} className="flex flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <UploadDropZone onDrop={uploadFiles} className="flex min-h-0 flex-1 flex-col">
           <PanelContent
             ref={containerRef}
             className="relative p-4 select-none"
