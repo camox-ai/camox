@@ -2,7 +2,7 @@ import { queryKeys } from "@camox/api-contract/query-keys";
 import { ORPCError } from "@orpc/server";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { outdent } from "outdent";
 import { z } from "zod";
 
@@ -277,7 +277,17 @@ export async function deleteFile(ctx: ServiceContext, rawInput: z.input<typeof d
 
   const { blockIds, blockPageIds, itemIds } = await removeFileReferences(ctx.db, id);
 
-  await ctx.env.FILES_BUCKET.delete(access.file.blobId);
+  // Other envs may point at the same R2 blob via push/pull replication. Only
+  // drop the blob when this row is the last reference.
+  const sibling = await ctx.db
+    .select({ id: files.id })
+    .from(files)
+    .where(and(eq(files.blobId, access.file.blobId), sql`${files.id} != ${id}`))
+    .limit(1)
+    .get();
+  if (!sibling) {
+    await ctx.env.FILES_BUCKET.delete(access.file.blobId);
+  }
   const result = await ctx.db.delete(files).where(eq(files.id, id)).returning().get();
   invalidateFile(ctx, access.file.projectId!, [
     queryKeys.files.list,
@@ -321,7 +331,16 @@ export async function deleteFiles(ctx: ServiceContext, rawInput: z.input<typeof 
     allItemIds.push(...itemIds);
   }
 
-  await Promise.all(authorizedFiles.map((f) => ctx.env.FILES_BUCKET.delete(f.blobId)));
+  // Only delete R2 blobs whose last reference is in this batch — other envs
+  // may share the same blobId via push/pull replication.
+  const blobIds = [...new Set(authorizedFiles.map((f) => f.blobId))];
+  const survivors = await ctx.db
+    .select({ blobId: files.blobId })
+    .from(files)
+    .where(and(inArray(files.blobId, blobIds), notInArray(files.id, ids)));
+  const survivingBlobs = new Set(survivors.map((s) => s.blobId));
+  const blobsToDelete = blobIds.filter((b) => !survivingBlobs.has(b));
+  await Promise.all(blobsToDelete.map((b) => ctx.env.FILES_BUCKET.delete(b)));
   await ctx.db.delete(files).where(inArray(files.id, ids));
 
   const projectId = authorizedFiles[0]!.projectId!;
@@ -419,8 +438,20 @@ export async function replaceFile(ctx: ServiceContext, rawInput: z.input<typeof 
     ]),
   ];
 
-  // Drop the old R2 blob now that nothing references it.
-  await ctx.env.FILES_BUCKET.delete(oldBlobId);
+  // Drop the old R2 blob now that nothing references it — unless another env
+  // still points at the same blobId via push/pull replication. At this point
+  // the row at `id` already points at the new blob and the `newFileId` row is
+  // gone, so any remaining row pointing at `oldBlobId` is a sibling we must
+  // preserve.
+  const oldBlobSibling = await ctx.db
+    .select({ id: files.id })
+    .from(files)
+    .where(eq(files.blobId, oldBlobId))
+    .limit(1)
+    .get();
+  if (!oldBlobSibling) {
+    await ctx.env.FILES_BUCKET.delete(oldBlobId);
+  }
 
   // Re-run AI metadata if it was enabled — the asset is different.
   if (oldAccess.file.aiMetadataEnabled !== false) {
