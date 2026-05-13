@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.20.0](https://github.com/camox-ai/camox/compare/camox-v0.19.0...camox-v0.20.0) (2026-05-13)
+
+
+### Features
+
+* **environments:** add push/pull replication between dev and production ([c9a9de3](https://github.com/camox-ai/camox/commit/c9a9de30b889b1ac523e61257d6828c1d25a3490))
+
+
+### Bug Fixes
+
+* **sdk:** alias tslib to its ESM build for SSR ([aeaf963](https://github.com/camox-ai/camox/commit/aeaf9631cfde8328208ca0d56e681bd74c1f9f8e))
+* **sdk:** avoid shiki onig.wasm load in SSR builds ([d6a8063](https://github.com/camox-ai/camox/commit/d6a80635ac72d5ccd2f1219a39ba63c2b0e0c16c))
+
+
+### Refactoring
+
+* **files:** skip R2 blob delete when a sibling row remains ([690c444](https://github.com/camox-ai/camox/commit/690c444988c1e5f96cf22ad18e4a4f7e39a9d8d8))
+
+
+### Miscellaneous
+
+* ui tweaks ([1cb638a](https://github.com/camox-ai/camox/commit/1cb638a3d481b50086395a8e4e0d442cf97b4e5f))
+
 ## [0.19.0](https://github.com/camox-ai/camox/compare/camox-v0.18.2...camox-v0.19.0) (2026-05-13)
 
 

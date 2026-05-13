@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0](https://github.com/camox-ai/camox/compare/camox-v0.19.0...@camox/ui-v0.20.0) (2026-05-13)
+
+
+### Miscellaneous
+
+* ui tweaks ([1cb638a](https://github.com/camox-ai/camox/commit/1cb638a3d481b50086395a8e4e0d442cf97b4e5f))
+
 ## [0.19.0](https://github.com/camox-ai/camox/compare/camox-v0.18.2...@camox/ui-v0.19.0) (2026-05-13)
 
 
