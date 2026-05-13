@@ -150,6 +150,16 @@ export function camox(options: CamoxPluginOptions): Plugin {
           __CAMOX_API_URL__: JSON.stringify(apiUrl),
           __CAMOX_PROJECT_SLUG__: JSON.stringify(options.projectSlug),
         },
+        resolve: {
+          // `react-remove-scroll` (transitive dep of @base-ui/react and radix dialog)
+          // imports tslib for `__assign`, `__rest`, etc. Tslib's `exports.default` is
+          // its UMD factory (`./tslib.js`), which rolldown's CJS-side resolver picks
+          // when bundling for SSR — but the factory writes onto `module.exports`
+          // directly with no `default` property. Rolldown's `__toESM` interop then
+          // produces an undefined `.default`, and destructuring `__extends` off it
+          // throws at SSR startup. Force-resolve `tslib` to its clean ESM build.
+          alias: [{ find: /^tslib$/, replacement: "tslib/tslib.es6.mjs" }],
+        },
         optimizeDeps: {
           // When the Studio UI, loads dynamically at runtime, Vite discovers these dependencies in 3 batches,
           // each causing a page reload if they weren't included in either include or exclude.
