@@ -17,11 +17,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CopyIcon, EyeIcon, EyeOffIcon } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { CopyIcon, EyeIcon, EyeOffIcon, ImageIcon } from "lucide-react";
+import { type ReactNode, useRef, useState } from "react";
 
-import { api, type Project } from "@/lib/api";
+import { api, deleteFavicon, type Project, uploadFavicon } from "@/lib/api";
 import { projectQueries } from "@/lib/queries";
+
+const FAVICON_ACCEPT = "image/png,image/svg+xml,image/x-icon,.ico";
+const FAVICON_MAX_BYTES = 500 * 1024;
 
 function Section({
   title,
@@ -114,6 +117,136 @@ function ProjectSettingsFormInner({ project }: { project: Project }) {
         )}
       </form.Subscribe>
     </form>
+  );
+}
+
+function FaviconSection({ project }: { project: Project }) {
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Tracks whether the current favicon URL successfully loaded — drives
+  // whether we show the "Remove" button. Reset when the project's updatedAt
+  // changes (new upload/delete) so we re-probe.
+  const [hasFavicon, setHasFavicon] = useState(false);
+
+  const upload = useMutation({
+    mutationFn: (file: File) => uploadFavicon(project.id, file),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: projectQueries.all() });
+      toast.success("Favicon updated");
+    },
+    onError: (error) => {
+      console.error("Failed to upload favicon:", error);
+      toast.error(error instanceof Error ? error.message : "Could not upload favicon");
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: () => deleteFavicon(project.id),
+    onSuccess: () => {
+      setHasFavicon(false);
+      void queryClient.invalidateQueries({ queryKey: projectQueries.all() });
+      toast.success("Favicon removed");
+    },
+    onError: (error) => {
+      console.error("Failed to delete favicon:", error);
+      toast.error(error instanceof Error ? error.message : "Could not remove favicon");
+    },
+  });
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // allow re-selecting the same filename
+    if (!file) return;
+    if (file.size > FAVICON_MAX_BYTES) {
+      toast.error("Favicon must be 500 KB or smaller.");
+      return;
+    }
+    upload.mutate(file);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-4">
+        <div
+          // Re-key on updatedAt so the <img> remounts after an upload and
+          // re-attempts the load (otherwise a previously-errored state lingers).
+          key={project.updatedAt}
+          className="bg-muted border-border flex size-16 items-center justify-center overflow-hidden rounded-md border"
+        >
+          <ProjectFaviconProbe
+            project={project}
+            onLoaded={() => setHasFavicon(true)}
+            onErrored={() => setHasFavicon(false)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={FAVICON_ACCEPT}
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={upload.isPending}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {upload.isPending && <Spinner />}
+            {hasFavicon ? "Replace favicon" : "Upload favicon"}
+          </Button>
+          {hasFavicon && (
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={remove.isPending}
+              onClick={() => remove.mutate()}
+            >
+              {remove.isPending && <Spinner />}
+              Remove
+            </Button>
+          )}
+        </div>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        PNG, SVG, or ICO. Max 500 KB. Square images work best — 512×512 or vector recommended.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Wrapper around <ProjectFavicon> that reports load/error state to the parent
+ * so it can toggle the "Remove" button. The 64px preview always renders at the
+ * same box; this just listens to the underlying <img>.
+ */
+function ProjectFaviconProbe({
+  project,
+  onLoaded,
+  onErrored,
+}: {
+  project: Project;
+  onLoaded: () => void;
+  onErrored: () => void;
+}) {
+  const [errored, setErrored] = useState(false);
+
+  if (errored) {
+    return <ImageIcon className="text-muted-foreground size-6" aria-hidden />;
+  }
+
+  return (
+    <img
+      src={`${import.meta.env.VITE_API_URL}/favicons/${project.id}?v=${project.updatedAt}`}
+      alt=""
+      className="size-full object-contain p-2"
+      onLoad={onLoaded}
+      onError={() => {
+        setErrored(true);
+        onErrored();
+      }}
+    />
   );
 }
 
@@ -267,6 +400,12 @@ function ProjectSettingsPage() {
     <div className="mx-auto max-w-4xl space-y-12">
       <Section title="Project settings" description="Manage your project's general configuration.">
         <ProjectSettingsFormInner key={project.id} project={project} />
+      </Section>
+      <Section
+        title="Favicon"
+        description="The icon shown in browser tabs for this project's pages."
+      >
+        <FaviconSection project={project} />
       </Section>
       <Section
         title="Project credentials"

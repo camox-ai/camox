@@ -326,6 +326,9 @@ export async function deleteProject(
     await ctx.db.delete(files).where(eq(files.projectId, projectId));
   }
 
+  // Delete project favicon from R2 (no DB row to clean up — favicons are R2-only)
+  await ctx.env.FILES_BUCKET.delete(`favicons/${projectId}`);
+
   await ctx.db.delete(layouts).where(eq(layouts.projectId, projectId));
   await ctx.db.delete(blockDefinitions).where(eq(blockDefinitions.projectId, projectId));
   await ctx.db.delete(environments).where(eq(environments.projectId, projectId));
