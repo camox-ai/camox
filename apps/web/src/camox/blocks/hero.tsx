@@ -1,5 +1,6 @@
 import { PulsingBorder } from "@paper-design/shaders-react";
 import { Type, createBlock } from "camox/createBlock";
+import { useEffect, useRef, useState } from "react";
 
 import { blockSideBorder } from "@/components/BlockContainer";
 import { TerminalCard } from "@/components/TerminalCard";
@@ -30,9 +31,27 @@ const hero = createBlock({
 });
 
 function HeroComponent() {
+  const sectionRef = useRef<HTMLElement>(null);
+  // Pause the WebGL shader when the hero is off-screen so it stops eating GPU
+  // while the user scrolls the rest of the page.
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), {
+      rootMargin: "100px",
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <>
-      <section className="bg-background dark border-border relative flex flex-col items-center justify-center overflow-hidden border-b">
+      <section
+        ref={sectionRef}
+        className="bg-background dark border-border relative flex flex-col items-center justify-center overflow-hidden border-b"
+      >
         <PulsingBorder
           colors={["#047857", "#065f46", "#064e3b", "#3b0764", "#4c1d95"]}
           colorBack="#09090b"
@@ -46,7 +65,8 @@ function HeroComponent() {
           pulse={0}
           smoke={0.32}
           smokeSize={0.5}
-          speed={0.15}
+          speed={isVisible ? 0.15 : 0}
+          minPixelRatio={1}
           scale={1.1}
           marginLeft={0}
           marginRight={0}

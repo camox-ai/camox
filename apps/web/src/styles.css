@@ -53,3 +53,15 @@
     }
   }
 }
+
+/* Paper Shaders mounts its <canvas> async after WebGL init; fade it in to hide
+   the pop. The `data-paper-shader` attribute is set by the library only once
+   the shader is ready, so the animation runs when the canvas is inserted. */
+@keyframes paper-shader-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+[data-paper-shader] > canvas {
+  animation: paper-shader-fade-in 1s ease-out;
+}
