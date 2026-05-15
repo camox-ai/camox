@@ -198,6 +198,9 @@ export async function getPageByPath(
   return {
     page: { ...page, blockIds },
     projectName: project.name,
+    // `id` + `updatedAt` are enough for the SDK to build a cache-busted
+    // favicon URL (`/favicons/${id}?v=${updatedAt}`) in the page <head>.
+    project: { id: project.id, updatedAt: project.updatedAt },
     layout: layout
       ? { id: layout.id, layoutId: layout.layoutId, beforeBlockIds, afterBlockIds }
       : null,
@@ -249,6 +252,7 @@ export async function getPageStructure(
   return {
     page: { ...page, blockIds: pageBlocks.map((b) => b.id) },
     projectName: project.name,
+    project: { id: project.id, updatedAt: project.updatedAt },
     layout: layout
       ? {
           id: layout.id,

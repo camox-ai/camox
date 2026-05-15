@@ -22,10 +22,6 @@ export const Route = createRootRoute({
           rel: "stylesheet",
           href: siteCss,
         },
-        {
-          rel: "icon",
-          href: "/favicon.ico",
-        },
       ],
     };
   },

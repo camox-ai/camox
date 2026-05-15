@@ -14,6 +14,7 @@ export type PageStructure = {
   page: PageWithBlocks["page"];
   layout: PageWithBlocks["layout"];
   projectName: string;
+  project: PageWithBlocks["project"];
 };
 export type Project = Awaited<ReturnType<ApiClient["projects"]["getBySlug"]>>;
 export type Layout = Awaited<ReturnType<ApiClient["layouts"]["list"]>>[number];

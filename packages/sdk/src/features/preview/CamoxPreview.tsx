@@ -66,7 +66,12 @@ function pageFullQueryFn(
   return async () => {
     const data = await getApiClient().pages.getByPath({ path, projectSlug });
     seedBlockCaches(queryClient, data);
-    return { page: data.page, layout: data.layout, projectName: data.projectName };
+    return {
+      page: data.page,
+      layout: data.layout,
+      projectName: data.projectName,
+      project: data.project,
+    };
   };
 }
 

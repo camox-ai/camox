@@ -113,13 +113,21 @@ export function createPageLoader(apiUrl: string, projectSlug: string, environmen
             if (pagesList) {
               context.queryClient.setQueryData(queryKeys.pages.list, pagesList);
             }
-            return { page: data.page, layout: data.layout, projectName: data.projectName };
+            return {
+              page: data.page,
+              layout: data.layout,
+              projectName: data.projectName,
+              project: data.project,
+            };
           },
           staleTime: Infinity,
         }),
         getOrigin(),
       ]);
-      return { page, origin };
+      // Built here (not in the head factory) so the API URL stays a loader
+      // closure detail — the head function reads it straight from loaderData.
+      const faviconUrl = `${apiUrl}/favicons/${page.project.id}?v=${page.project.updatedAt}`;
+      return { page, origin, faviconUrl };
     } catch {
       throw notFound();
     }
@@ -133,13 +141,14 @@ export function createPageHead(camoxApp: CamoxApp) {
     loaderData?: {
       page: PageStructure;
       origin: string;
+      faviconUrl: string;
     };
   }) => {
     if (!loaderData) {
       return {};
     }
 
-    const { page, origin } = loaderData;
+    const { page, origin, faviconUrl } = loaderData;
     const pageMetaTitle = page.page.metaTitle ?? page.page.pathSegment;
 
     const meta: Array<Record<string, string>> = [];
@@ -185,7 +194,13 @@ export function createPageHead(camoxApp: CamoxApp) {
       });
     }
 
-    return { meta };
+    // Cache-busted via `?v=${project.updatedAt}` (set by the loader). When the
+    // project has no favicon uploaded, the request 404s and the browser falls
+    // back to whatever the user's root template declares.
+    return {
+      meta,
+      links: [{ rel: "icon", href: faviconUrl }],
+    };
   };
 }
 
