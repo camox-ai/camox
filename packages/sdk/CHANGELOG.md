@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0](https://github.com/camox-ai/camox/compare/camox-v0.21.0...camox-sdk-v0.22.0) (2026-05-15)
+
+
+### Features
+
+* render project favicon in camox pages ([b2ec6e5](https://github.com/camox-ai/camox/commit/b2ec6e5a25fd76e1f328eacbe0e4a44e570aeaf5))
+
 ## [0.21.0](https://github.com/camox-ai/camox/compare/camox-v0.20.0...camox-sdk-v0.21.0) (2026-05-13)
 
 
