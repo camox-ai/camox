@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.22.0](https://github.com/camox-ai/camox/compare/camox-v0.21.0...camox-v0.22.0) (2026-05-15)
+
+
+### Features
+
+* favicon upload ([f37ac2f](https://github.com/camox-ai/camox/commit/f37ac2fdf214a94591a0b39301215deeed2fe6b9))
+* render project favicon in camox pages ([b2ec6e5](https://github.com/camox-ai/camox/commit/b2ec6e5a25fd76e1f328eacbe0e4a44e570aeaf5))
+
+
+### Bug Fixes
+
+* **dashboard:** land on any org without 401 ([885dbd1](https://github.com/camox-ai/camox/commit/885dbd1a6b59a6710ed22cb0aa28118c416bb785))
+* **web:** hero shader performance ([0147f5e](https://github.com/camox-ai/camox/commit/0147f5ed272d94601c05e2031d814da6224cac19))
+
 ## [0.21.0](https://github.com/camox-ai/camox/compare/camox-v0.20.0...camox-v0.21.0) (2026-05-13)
 
 
