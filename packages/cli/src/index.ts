@@ -4,6 +4,7 @@ import { defineProgram } from "@optique/core/program";
 import { runSync } from "@optique/run";
 
 import * as blocks from "./commands/blocks";
+import * as env from "./commands/env";
 import * as init from "./commands/init";
 import * as layouts from "./commands/layouts";
 import * as login from "./commands/login";
@@ -23,7 +24,8 @@ type Result =
   | Parameters<typeof status.handler>[0]
   | Parameters<typeof pages.handler>[0]
   | Parameters<typeof blocks.handler>[0]
-  | Parameters<typeof layouts.handler>[0];
+  | Parameters<typeof layouts.handler>[0]
+  | Parameters<typeof env.handler>[0];
 
 const program = defineProgram({
   parser: or(
@@ -34,6 +36,7 @@ const program = defineProgram({
     pages.parser,
     blocks.parser,
     layouts.parser,
+    env.parser,
   ),
   metadata: {
     name: "camox",
@@ -74,5 +77,10 @@ switch (result.command) {
     break;
   case "layouts.list":
     await layouts.handler(result);
+    break;
+  case "env.check":
+  case "env.push":
+  case "env.pull":
+    await env.handler(result);
     break;
 }
