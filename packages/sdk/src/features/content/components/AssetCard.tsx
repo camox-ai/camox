@@ -11,8 +11,11 @@ interface AssetCardProps {
   onOpen: () => void;
 }
 
+const OPAQUE_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/jpg"]);
+
 export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) => {
   const isImage = file.mimeType?.startsWith("image/");
+  const isOpaqueImage = isImage && OPAQUE_IMAGE_MIME_TYPES.has(file.mimeType ?? "");
   const extension = file.filename?.split(".").pop()?.toUpperCase() ?? "";
 
   return (
@@ -32,7 +35,14 @@ export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) 
         onOpen();
       }}
     >
-      <div className="checkered flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-sm p-1.5">
+      <div
+        className={cn(
+          "flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-sm",
+          isOpaqueImage && "bg-muted",
+          !isImage && "bg-muted",
+          isImage && !isOpaqueImage && "checkered p-1.5",
+        )}
+      >
         {isImage ? (
           <img
             src={transformImageUrl(file.url, {
@@ -42,7 +52,10 @@ export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) 
             })}
             alt={file.alt || file.filename}
             draggable={false}
-            className="pointer-events-none h-full w-full object-contain"
+            className={cn(
+              "pointer-events-none h-full w-full",
+              isOpaqueImage ? "object-cover" : "object-contain",
+            )}
           />
         ) : (
           <div className="text-muted-foreground flex flex-col items-center gap-1">
