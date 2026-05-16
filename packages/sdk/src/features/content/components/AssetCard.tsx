@@ -31,13 +31,13 @@ export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) 
         onOpen();
       }}
     >
-      <div className="bg-muted flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-sm">
+      <div className="checkered flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-sm p-1.5">
         {isImage ? (
           <img
             src={file.url}
             alt={file.alt || file.filename}
             draggable={false}
-            className="pointer-events-none h-full w-full object-cover"
+            className="pointer-events-none h-full w-full object-contain"
           />
         ) : (
           <div className="text-muted-foreground flex flex-col items-center gap-1">
