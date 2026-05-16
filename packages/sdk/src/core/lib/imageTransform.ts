@@ -45,6 +45,15 @@ function isNonTransformableMimeType(mimeType: string | undefined): boolean {
   return mimeType === "image/svg+xml";
 }
 
+// Only raster images (JPEG/PNG/WebP/AVIF/GIF/etc.) carry visual content a vision
+// model can analyze. SVGs are markup and non-image MIME types aren't images at
+// all — neither is worth sending to the metadata LLM.
+export function isRasterImage(mimeType: string | undefined | null): boolean {
+  if (!mimeType) return false;
+  if (!mimeType.startsWith("image/")) return false;
+  return mimeType !== "image/svg+xml";
+}
+
 export function transformImageUrl(
   url: string,
   options: { width?: number; quality?: number; mimeType?: string } = {},

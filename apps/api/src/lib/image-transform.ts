@@ -14,6 +14,12 @@ function isNonProxiedHostname(hostname: string): boolean {
   return false;
 }
 
+export function isRasterImage(mimeType: string | undefined | null): boolean {
+  if (!mimeType) return false;
+  if (!mimeType.startsWith("image/")) return false;
+  return mimeType !== "image/svg+xml";
+}
+
 export function transformImageUrl(
   url: string,
   options: {

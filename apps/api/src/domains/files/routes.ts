@@ -3,6 +3,7 @@ import { Hono } from "hono";
 
 import { getAuthorizedProject } from "../../authorization";
 import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
+import { isRasterImage } from "../../lib/image-transform";
 import { resolveEnvironment } from "../../lib/resolve-environment";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
 import { authed, pub } from "../../orpc";
@@ -112,6 +113,10 @@ fileHonoRoutes.post("/upload", async (c) => {
   const apiOrigin = new URL(c.req.url).origin;
   const url = `${apiOrigin}/files/serve/${key}`;
 
+  // Only raster images can be analyzed by the vision model — other types
+  // (PDFs, video, audio, SVG) skip the AI metadata pipeline entirely.
+  const canGenerateAiMetadata = isRasterImage(file.type);
+
   const result = await c.var.db
     .insert(files)
     .values({
@@ -124,20 +129,23 @@ fileHonoRoutes.post("/upload", async (c) => {
       path: key,
       url,
       alt: "",
+      aiMetadataEnabled: canGenerateAiMetadata ? null : false,
       createdAt: now,
       updatedAt: now,
     })
     .returning()
     .get();
 
-  c.executionCtx.waitUntil(
-    scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
-      entityTable: "files",
-      entityId: result.id,
-      type: "fileMetadata",
-      delayMs: 0,
-    }),
-  );
+  if (canGenerateAiMetadata) {
+    c.executionCtx.waitUntil(
+      scheduleAiJob(c.env.AI_JOB_SCHEDULER, {
+        entityTable: "files",
+        entityId: result.id,
+        type: "fileMetadata",
+        delayMs: 0,
+      }),
+    );
+  }
   broadcastInvalidation({
     waitUntil: (p) => c.executionCtx.waitUntil(p),
     projectRoomNamespace: c.env.ProjectRoom,

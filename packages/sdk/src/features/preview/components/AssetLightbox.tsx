@@ -9,7 +9,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Download, FileIcon, Info, Link, Loader2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { transformImageUrl } from "@/core/lib/imageTransform";
+import { isRasterImage, transformImageUrl } from "@/core/lib/imageTransform";
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { getApiUrl, getEnvironmentName } from "@/lib/api-client";
 import { getAuthCookieHeader } from "@/lib/auth";
@@ -147,6 +147,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
   }, [open]);
 
   const isImage = file?.mimeType?.startsWith("image/") ?? false;
+  const canUseAiMetadata = isRasterImage(file?.mimeType);
   const fileUrl = file?.url;
   const fileMimeType = file?.mimeType;
 
@@ -424,34 +425,51 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                   <TooltipContent>Delete</TooltipContent>
                 </Tooltip>
               </ButtonGroup>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="ai-metadata"
-                  checked={file.aiMetadataEnabled !== false}
-                  onCheckedChange={(checked) => {
-                    setAiMetadata.mutate({ id: fileId, enabled: checked });
-                    trackClientEvent("ai_metadata_toggled", {
-                      target: "file",
-                      enabled: checked,
-                      fileId,
-                      mimeType: file.mimeType,
-                    });
-                  }}
-                />
-                <Label htmlFor="ai-metadata">AI metadata</Label>
-              </div>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <div
+                      className={`flex items-center gap-2 ${canUseAiMetadata ? "" : "cursor-not-allowed"}`}
+                    />
+                  }
+                >
+                  <Switch
+                    id="ai-metadata"
+                    disabled={!canUseAiMetadata}
+                    checked={canUseAiMetadata && file.aiMetadataEnabled !== false}
+                    onCheckedChange={(checked) => {
+                      setAiMetadata.mutate({ id: fileId, enabled: checked });
+                      trackClientEvent("ai_metadata_toggled", {
+                        target: "file",
+                        enabled: checked,
+                        fileId,
+                        mimeType: file.mimeType,
+                      });
+                    }}
+                  />
+                  <Label
+                    htmlFor="ai-metadata"
+                    className={canUseAiMetadata ? "" : "text-muted-foreground"}
+                  >
+                    AI metadata
+                  </Label>
+                </TooltipTrigger>
+                {!canUseAiMetadata && (
+                  <TooltipContent>AI metadata is only available for raster images.</TooltipContent>
+                )}
+              </Tooltip>
               <DebouncedFieldEditor
                 label="File name"
                 placeholder="File name..."
                 initialValue={file.filename}
-                disabled={file.aiMetadataEnabled !== false}
+                disabled={canUseAiMetadata && file.aiMetadataEnabled !== false}
                 onSave={(value) => setFilename.mutate({ id: fileId, filename: value })}
               />
               <DebouncedFieldEditor
                 label="Alt text"
                 placeholder="Describe this file..."
                 initialValue={file.alt}
-                disabled={file.aiMetadataEnabled !== false}
+                disabled={canUseAiMetadata && file.aiMetadataEnabled !== false}
                 rows={2}
                 onSave={(value) => setAlt.mutate({ id: fileId, alt: value })}
               />

@@ -9,7 +9,7 @@ import { z } from "zod";
 import { assertFileAccess } from "../../authorization";
 import type { Database } from "../../db";
 import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
-import { transformImageUrl } from "../../lib/image-transform";
+import { isRasterImage, transformImageUrl } from "../../lib/image-transform";
 import { resolveEnvironment } from "../../lib/resolve-environment";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
 import { blocks, files, member, projects, repeatableItems } from "../../schema";
@@ -107,6 +107,7 @@ async function generateImageMetadata(
 export async function executeFileMetadata(db: Database, apiKey: string, fileId: number) {
   const file = await db.select().from(files).where(eq(files.id, fileId)).get();
   if (!file || file.aiMetadataEnabled === false) return;
+  if (!isRasterImage(file.mimeType)) return;
 
   const metadata = await generateImageMetadata(apiKey, file.url, file.mimeType, file.filename);
 
@@ -470,8 +471,9 @@ export async function replaceFile(ctx: ServiceContext, rawInput: z.input<typeof 
     await ctx.env.FILES_BUCKET.delete(oldBlobId);
   }
 
-  // Re-run AI metadata if it was enabled — the asset is different.
-  if (oldAccess.file.aiMetadataEnabled !== false) {
+  // Re-run AI metadata if it was enabled and the new asset is a raster image
+  // (vision model can't analyze SVG/PDF/etc.).
+  if (oldAccess.file.aiMetadataEnabled !== false && isRasterImage(newAsset.mimeType)) {
     ctx.waitUntil(
       scheduleAiJob(ctx.env.AI_JOB_SCHEDULER, {
         entityTable: "files",
@@ -504,6 +506,7 @@ export async function setFileAiMetadata(
   const { id, enabled } = setFileAiMetadataInput.parse(rawInput);
   const access = await assertFileAccess(ctx.db, id, user.id);
   if (!access) throw new ORPCError("NOT_FOUND");
+  if (enabled && !isRasterImage(access.file.mimeType)) throw new ORPCError("BAD_REQUEST");
 
   const result = await ctx.db
     .update(files)
