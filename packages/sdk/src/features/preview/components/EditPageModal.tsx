@@ -18,10 +18,10 @@ import { Switch } from "@camox/ui/switch";
 import { toast } from "@camox/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
-import { Globe, Info } from "lucide-react";
+import { Globe, Info, Trash2, Upload } from "lucide-react";
 import * as React from "react";
 
 import { useProjectSlug } from "@/lib/auth";
@@ -36,6 +36,7 @@ import {
 import { trackClientEvent } from "@/lib/telemetry-client";
 import { formatPathSegment } from "@/lib/utils";
 
+import { UploadDropZone } from "../../content/components/UploadDropZone";
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { previewStore } from "../previewStore";
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
@@ -377,24 +378,98 @@ const SocialPreviewSection = ({
     ...(page.metaDescription && { description: page.metaDescription }),
     ...(projectName && { projectName }),
   });
-  const ogImage = `/og?${ogImageParams.toString()}`;
+  const generatedOgImage = `/og?${ogImageParams.toString()}`;
+  const ogImage = page.customOgImageUrl ?? generatedOgImage;
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const url = `${origin}${page.fullPath}`;
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+
+  const uploadCustomOgImage = useMutation({
+    ...pageMutations.uploadCustomOgImage(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: pageQueries.getById(page.id).queryKey });
+      trackClientEvent("page_custom_og_image_uploaded", { pageId: page.id });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Could not upload image");
+    },
+  });
+
+  const deleteCustomOgImage = useMutation({
+    ...pageMutations.deleteCustomOgImage(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: pageQueries.getById(page.id).queryKey });
+      trackClientEvent("page_custom_og_image_removed", { pageId: page.id });
+    },
+    onError: () => {
+      toast.error("Could not remove image");
+    },
+  });
+
+  const hasCustomImage = !!page.customOgImageUrl;
+  const isBusy = uploadCustomOgImage.isPending || deleteCustomOgImage.isPending;
+
+  const handleFiles = (files: FileList) => {
+    const file = files[0];
+    if (file) uploadCustomOgImage.mutate({ pageId: page.id, file });
+  };
 
   return (
     <div className="space-y-2 pt-2">
       <Label>Social preview</Label>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={isBusy}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {uploadCustomOgImage.isPending ? <Spinner /> : <Upload className="size-3.5" />}
+          {hasCustomImage ? "Replace custom image" : "Upload custom image"}
+        </Button>
+        {hasCustomImage && (
+          <Button
+            type="button"
+            variant="ghost"
+            // size="icon"
+            disabled={isBusy}
+            onClick={() => deleteCustomOgImage.mutate({ pageId: page.id })}
+            aria-label="Remove custom image"
+          >
+            {deleteCustomOgImage.isPending ? (
+              <Spinner className="text-muted-foreground" />
+            ) : (
+              <Trash2 className="text-muted-foreground" />
+            )}{" "}
+            Clear
+          </Button>
+        )}
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          onChange={(e) => {
+            if (e.target.files) handleFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </div>
       <div className="border-border max-w-xl overflow-hidden rounded-lg border">
-        {ogImage ? (
+        <UploadDropZone
+          onDrop={handleFiles}
+          label={hasCustomImage ? "Drop image to replace" : "Drop image to upload"}
+          className="block"
+        >
           <img
             src={ogImage}
             alt=""
             className="w-full object-cover"
             style={{ aspectRatio: "1200 / 630" }}
           />
-        ) : (
-          <div className="bg-muted w-full" style={{ aspectRatio: "1200 / 630" }} />
-        )}
+        </UploadDropZone>
         <div className="space-y-1.5 border-t px-3 py-2.5">
           <p className="text-foreground truncate text-sm font-semibold">
             {metaTitle || "Untitled"}

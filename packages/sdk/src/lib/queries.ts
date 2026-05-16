@@ -1,6 +1,7 @@
 import { queryKeys } from "@camox/api-contract/query-keys";
 
-import { type ApiClient, getOrpc } from "./api-client";
+import { type ApiClient, getApiUrl, getEnvironmentName, getOrpc } from "./api-client";
+import { getAuthCookieHeader } from "./auth";
 
 // --- Inferred API response types ---
 
@@ -171,6 +172,13 @@ export const repeatableItemMutations = {
   updatePosition: () => getOrpc().repeatableItems.updatePosition.mutationOptions(),
 };
 
+function ogImageHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { "Better-Auth-Cookie": getAuthCookieHeader() };
+  const envName = getEnvironmentName();
+  if (envName) headers["x-environment-name"] = envName;
+  return headers;
+}
+
 export const pageMutations = {
   create: () => getOrpc().pages.create.mutationOptions(),
   delete: () => getOrpc().pages.delete.mutationOptions(),
@@ -179,6 +187,34 @@ export const pageMutations = {
   setAiSeo: () => getOrpc().pages.setAiSeo.mutationOptions(),
   setMetaTitle: () => getOrpc().pages.setMetaTitle.mutationOptions(),
   setMetaDescription: () => getOrpc().pages.setMetaDescription.mutationOptions(),
+  uploadCustomOgImage: () => ({
+    mutationFn: async ({ pageId, file }: { pageId: number; file: globalThis.File }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`${getApiUrl()}/pages/${pageId}/og-image`, {
+        method: "POST",
+        body: formData,
+        headers: ogImageHeaders(),
+        credentials: "omit",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? `Upload failed: ${res.status}`);
+      }
+      return res.json() as Promise<Page>;
+    },
+  }),
+  deleteCustomOgImage: () => ({
+    mutationFn: async ({ pageId }: { pageId: number }) => {
+      const res = await fetch(`${getApiUrl()}/pages/${pageId}/og-image`, {
+        method: "DELETE",
+        headers: ogImageHeaders(),
+        credentials: "omit",
+      });
+      if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+      return res.json();
+    },
+  }),
 };
 
 export const fileMutations = {

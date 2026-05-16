@@ -6,6 +6,7 @@ import { cors } from "hono/cors";
 import { createDb } from "./db";
 import { authRoutes, createAuth } from "./domains/auth/routes";
 import { fileHonoRoutes } from "./domains/files/routes";
+import { pageHonoRoutes } from "./domains/pages/og-image-routes";
 import { faviconHonoRoutes } from "./domains/projects/routes";
 import { router } from "./router";
 import type { AppEnv } from "./types";
@@ -100,6 +101,7 @@ app.use(
 app.route("/api/auth", authRoutes);
 app.route("/files", fileHonoRoutes);
 app.route("/favicons", faviconHonoRoutes);
+app.route("/pages", pageHonoRoutes);
 
 // ---------------------------------------------------------------------------
 // oRPC handler (all other API procedures)

@@ -178,7 +178,7 @@ export function createPageHead(camoxApp: CamoxApp) {
       }),
       ...(page.projectName && { projectName: page.projectName }),
     });
-    const ogImageUrl = `${origin}/og?${ogImageParams.toString()}`;
+    const ogImageUrl = page.page.customOgImageUrl ?? `${origin}/og?${ogImageParams.toString()}`;
 
     meta.push(
       { property: "og:title", content: title },

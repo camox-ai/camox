@@ -22,6 +22,8 @@ export const pages = sqliteTable(
     metaTitle: text("meta_title"),
     metaDescription: text("meta_description"),
     aiSeoEnabled: int("ai_seo_enabled", { mode: "boolean" }),
+    customOgImageBlobId: text("custom_og_image_blob_id"),
+    customOgImageUrl: text("custom_og_image_url"),
     createdAt: int("created_at").notNull(),
     updatedAt: int("updated_at").notNull(),
   },
