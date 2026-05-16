@@ -3,6 +3,9 @@
 
 const DEFAULT_QUALITY = 85;
 const DEFAULT_WIDTH = 1280;
+// Below this raw size, re-encoding through Cloudflare typically *increases* the
+// byte count (encoder overhead dominates), so we serve the original untouched.
+const MIN_OPTIMIZE_SIZE = 50 * 1024;
 
 function isNonProxiedHostname(hostname: string): boolean {
   if (hostname === "localhost") return true;
@@ -28,10 +31,12 @@ export function transformImageUrl(
     quality?: number;
     mimeType?: string;
     format?: string;
+    size?: number | null;
   } = {},
 ): string {
   if (!url) return url;
   if (options.mimeType === "image/svg+xml") return url;
+  if (options.size != null && options.size < MIN_OPTIMIZE_SIZE) return url;
   let parsed: URL;
   try {
     parsed = new URL(url);

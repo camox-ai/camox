@@ -35,7 +35,11 @@ export const AssetCard = ({ file, selected, onSelect, onOpen }: AssetCardProps) 
       <div className="checkered flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-sm p-1.5">
         {isImage ? (
           <img
-            src={transformImageUrl(file.url, { width: 480, mimeType: file.mimeType })}
+            src={transformImageUrl(file.url, {
+              width: 480,
+              mimeType: file.mimeType,
+              size: file.size,
+            })}
             alt={file.alt || file.filename}
             draggable={false}
             className="pointer-events-none h-full w-full object-contain"

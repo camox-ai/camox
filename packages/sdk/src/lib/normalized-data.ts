@@ -201,7 +201,14 @@ export function seedBlockCaches(queryClient: QueryClient, pageData: PageWithBloc
 export function resolveFileMarker(
   marker: { _fileId: number },
   filesMap: Map<number, NormalizedFile>,
-): { url: string; alt: string; filename: string; mimeType: string; _fileId: number } {
+): {
+  url: string;
+  alt: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  _fileId: number;
+} {
   const file = filesMap.get(marker._fileId);
   if (file) {
     return {
@@ -209,8 +216,9 @@ export function resolveFileMarker(
       alt: file.alt,
       filename: file.filename,
       mimeType: file.mimeType,
+      size: file.size,
       _fileId: marker._fileId,
     };
   }
-  return { url: "", alt: "", filename: "", mimeType: "", _fileId: marker._fileId };
+  return { url: "", alt: "", filename: "", mimeType: "", size: 0, _fileId: marker._fileId };
 }

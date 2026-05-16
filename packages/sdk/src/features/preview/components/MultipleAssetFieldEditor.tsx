@@ -41,6 +41,7 @@ type ResolvedAsset = {
   alt: string;
   filename: string;
   mimeType: string;
+  size?: number;
   _fileId: number;
 };
 
@@ -95,7 +96,11 @@ const SortableAssetItem = ({ asset, assetType, onRemove, onAssetOpen }: Sortable
           {assetType === "Image" ? (
             <div className="border-border h-12 w-12 shrink-0 overflow-hidden rounded border">
               <img
-                src={transformImageUrl(asset.url, { width: 128, mimeType: asset.mimeType })}
+                src={transformImageUrl(asset.url, {
+                  width: 128,
+                  mimeType: asset.mimeType,
+                  size: asset.size,
+                })}
                 alt={asset.alt || asset.filename}
                 className="h-full w-full object-cover"
               />

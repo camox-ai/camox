@@ -159,10 +159,12 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
     const phoneUrl = transformImageUrl(fileUrl, {
       width: DELIVERED_PHONE_WIDTH,
       mimeType: fileMimeType,
+      size: file?.size,
     });
     const laptopUrl = transformImageUrl(fileUrl, {
       width: DELIVERED_LAPTOP_WIDTH,
       mimeType: fileMimeType,
+      size: file?.size,
     });
     // No transform applied (placeholder, localhost, SVG, etc.) — nothing meaningful to show.
     if (phoneUrl === fileUrl && laptopUrl === fileUrl) {

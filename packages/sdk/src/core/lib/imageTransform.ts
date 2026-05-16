@@ -8,6 +8,9 @@ const DEFAULT_QUALITY = 85;
 const DEFAULT_SRCSET_WIDTHS = [320, 640, 960, 1280, 1920];
 const DEFAULT_SRC_WIDTH = 1280;
 const DEFAULT_SIZES = "100vw";
+// Below this raw size, re-encoding through Cloudflare typically *increases* the
+// byte count (encoder overhead dominates), so we serve the original untouched.
+const MIN_OPTIMIZE_SIZE = 50 * 1024;
 
 function isNonProxiedHostname(hostname: string): boolean {
   if (hostname === "localhost") return true;
@@ -56,10 +59,11 @@ export function isRasterImage(mimeType: string | undefined | null): boolean {
 
 export function transformImageUrl(
   url: string,
-  options: { width?: number; quality?: number; mimeType?: string } = {},
+  options: { width?: number; quality?: number; mimeType?: string; size?: number | null } = {},
 ): string {
   if (!url) return url;
   if (isNonTransformableMimeType(options.mimeType)) return url;
+  if (options.size != null && options.size < MIN_OPTIMIZE_SIZE) return url;
   const parsed = parseUrl(url);
   if (!parsed) return url;
   if (!isTransformableUrl(parsed)) return url;
@@ -70,9 +74,14 @@ export function transformImageUrl(
   return `${parsed.origin}/cdn-cgi/image/${parts.join(",")}${parsed.pathname}${parsed.search}`;
 }
 
-export function buildImageSrcSet(url: string, mimeType?: string): string | undefined {
+export function buildImageSrcSet(
+  url: string,
+  mimeType?: string,
+  size?: number | null,
+): string | undefined {
   if (!url) return undefined;
   if (isNonTransformableMimeType(mimeType)) return undefined;
+  if (size != null && size < MIN_OPTIMIZE_SIZE) return undefined;
   const parsed = parseUrl(url);
   if (!parsed) return undefined;
   if (!isTransformableUrl(parsed)) return undefined;

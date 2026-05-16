@@ -1296,8 +1296,9 @@ export function createBlock<
       src: transformImageUrl(fieldValue.url, {
         width: getDefaultImageWidth(),
         mimeType: fieldValue.mimeType,
+        size: fieldValue.size,
       }),
-      srcSet: buildImageSrcSet(fieldValue.url, fieldValue.mimeType),
+      srcSet: buildImageSrcSet(fieldValue.url, fieldValue.mimeType, fieldValue.size),
       sizes: getDefaultImageSizes(),
       alt: fieldValue.alt,
     } satisfies ImageRenderProps;

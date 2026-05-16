@@ -93,6 +93,7 @@ const SingleAssetFieldEditor = ({
         alt: string;
         filename: string;
         mimeType: string;
+        size?: number;
         _fileId?: string;
       }
     | undefined;
@@ -152,6 +153,7 @@ const SingleAssetFieldEditor = ({
                       src={transformImageUrl(asset.url, {
                         width: 128,
                         mimeType: asset.mimeType,
+                        size: asset.size,
                       })}
                       alt={asset.alt || asset.filename}
                       className="h-full w-full object-cover"
