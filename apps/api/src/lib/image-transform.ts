@@ -16,7 +16,13 @@ function isNonProxiedHostname(hostname: string): boolean {
 
 export function transformImageUrl(
   url: string,
-  options: { width?: number; quality?: number; mimeType?: string } = {},
+  options: {
+    width?: number;
+    height?: number;
+    quality?: number;
+    mimeType?: string;
+    format?: string;
+  } = {},
 ): string {
   if (!url) return url;
   if (options.mimeType === "image/svg+xml") return url;
@@ -30,8 +36,13 @@ export function transformImageUrl(
   if (parsed.pathname.startsWith("/cdn-cgi/image/")) return url;
   if (!parsed.pathname.startsWith("/files/serve/")) return url;
 
-  const parts = [`format=auto`, `quality=${options.quality ?? DEFAULT_QUALITY}`, `fit=scale-down`];
+  const parts = [
+    `format=${options.format ?? "auto"}`,
+    `quality=${options.quality ?? DEFAULT_QUALITY}`,
+    `fit=scale-down`,
+  ];
   parts.push(`width=${options.width ?? DEFAULT_WIDTH}`);
+  if (options.height != null) parts.push(`height=${options.height}`);
 
   return `${parsed.origin}/cdn-cgi/image/${parts.join(",")}${parsed.pathname}${parsed.search}`;
 }

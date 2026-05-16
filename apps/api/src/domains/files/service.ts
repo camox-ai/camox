@@ -9,6 +9,7 @@ import { z } from "zod";
 import { assertFileAccess } from "../../authorization";
 import type { Database } from "../../db";
 import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
+import { transformImageUrl } from "../../lib/image-transform";
 import { resolveEnvironment } from "../../lib/resolve-environment";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
 import { blocks, files, member, projects, repeatableItems } from "../../schema";
@@ -49,9 +50,25 @@ function invalidateFile(
 
 // --- AI Executor ---
 
-async function generateImageMetadata(apiKey: string, imageUrl: string, currentFilename: string) {
+async function generateImageMetadata(
+  apiKey: string,
+  imageUrl: string,
+  imageMimeType: string,
+  currentFilename: string,
+) {
+  // Gemini 2.5 Flash Lite processes images in 768×768 tiles — larger sizes are
+  // downsampled by the model and just inflate tokens. Bound BOTH dimensions so
+  // very tall or very wide images fit inside one tile instead of being split.
+  // Force WebP so the payload is small and the format is accepted across vision
+  // models (AVIF support is inconsistent). SVG passes through unchanged.
+  const optimizedUrl = transformImageUrl(imageUrl, {
+    width: 768,
+    height: 768,
+    format: "webp",
+    mimeType: imageMimeType,
+  });
   // Fetch image server-side — the AI provider can't reach localhost URLs in development
-  const response = await fetch(imageUrl);
+  const response = await fetch(optimizedUrl);
   const buffer = await response.arrayBuffer();
   const bytes = new Uint8Array(buffer);
   let binary = "";
@@ -91,7 +108,7 @@ export async function executeFileMetadata(db: Database, apiKey: string, fileId: 
   const file = await db.select().from(files).where(eq(files.id, fileId)).get();
   if (!file || file.aiMetadataEnabled === false) return;
 
-  const metadata = await generateImageMetadata(apiKey, file.url, file.filename);
+  const metadata = await generateImageMetadata(apiKey, file.url, file.mimeType, file.filename);
 
   await db
     .update(files)
