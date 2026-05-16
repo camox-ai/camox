@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.1](https://github.com/camox-ai/camox/compare/camox-v0.24.0...camox-v0.24.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* add get block cli tool ([7f9f7ad](https://github.com/camox-ai/camox/commit/7f9f7ad97ec508cfe8dc860af003f8293a1e2e36))
+
 ## [0.24.0](https://github.com/camox-ai/camox/compare/camox-v0.23.0...camox-v0.24.0) (2026-05-16)
 
 
