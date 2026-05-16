@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.0](https://github.com/camox-ai/camox/compare/camox-v0.22.0...@camox/cli-v0.23.0) (2026-05-16)
+
+
+### Features
+
+* add env commands to cli ([449231c](https://github.com/camox-ai/camox/commit/449231c42b55b129d42df071a9eed545c6deb828))
+
 ## [0.22.0](https://github.com/camox-ai/camox/compare/camox-v0.21.0...@camox/cli-v0.22.0) (2026-05-15)
 
 

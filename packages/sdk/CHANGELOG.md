@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.23.0](https://github.com/camox-ai/camox/compare/camox-v0.22.0...camox-sdk-v0.23.0) (2026-05-16)
+
+
+### Features
+
+* add env commands to cli ([449231c](https://github.com/camox-ai/camox/commit/449231c42b55b129d42df071a9eed545c6deb828))
+* automatic image optimization ([0ce6e18](https://github.com/camox-ai/camox/commit/0ce6e18876792f937a1385e9a99a0ad9ac7723ee))
+
+
+### Bug Fixes
+
+* make assets grid scrollable ([cce9198](https://github.com/camox-ai/camox/commit/cce9198e26ff31a4ee8caa7917f4db6cfa4326e2))
+* only generate ai metadata for raster images ([8740973](https://github.com/camox-ai/camox/commit/8740973359012f8825354ecb21336b35b6ca5dcf))
+
+
+### Miscellaneous
+
+* **sdk:** revamp all Type list APIs for consistency ([181dc77](https://github.com/camox-ai/camox/commit/181dc7745c3cb5297b64bf3ed41c3f3893bef195))
+
 ## [0.22.0](https://github.com/camox-ai/camox/compare/camox-v0.21.0...camox-sdk-v0.22.0) (2026-05-15)
 
 
