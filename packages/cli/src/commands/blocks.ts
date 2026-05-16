@@ -31,6 +31,17 @@ const describe = command(
   }),
 );
 
+const get = command(
+  "get",
+  object({
+    command: constant("blocks.get" as const),
+    id: option("--id", integer({ metavar: "ID" })),
+    project: projectFlag,
+    production: productionFlag,
+    json: jsonFlag,
+  }),
+);
+
 const create = command(
   "create",
   object({
@@ -94,7 +105,7 @@ const del = command(
   }),
 );
 
-export const parser = command("blocks", or(types, describe, create, edit, move, del));
+export const parser = command("blocks", or(types, describe, get, create, edit, move, del));
 
 type CommonFlags = { project?: string; production: boolean; json: boolean };
 
@@ -109,6 +120,7 @@ type PositioningFlags = {
 type Args =
   | ({ command: "blocks.types" } & CommonFlags)
   | ({ command: "blocks.describe"; type: readonly string[] } & CommonFlags)
+  | ({ command: "blocks.get"; id: number } & CommonFlags)
   | ({
       command: "blocks.create";
       pageId: number;
@@ -173,6 +185,14 @@ export async function handler(args: Args): Promise<never> {
         return dispatch({
           toolName: "describeBlockTypes",
           args: { types: [...args.type] },
+          projectFlag,
+          production,
+          outputMode,
+        });
+      case "blocks.get":
+        return dispatch({
+          toolName: "getBlock",
+          args: { id: args.id },
           projectFlag,
           production,
           outputMode,
