@@ -1,3 +1,5 @@
+import { transformImageUrl } from "./image-transform";
+
 type ResolvedFile = { url: string; alt: string; filename: string; mimeType: string };
 
 type SettingsContext = {
@@ -126,9 +128,9 @@ function resolveField(schema: any, value: unknown, ctx: SettingsContext): string
   }
 
   if (fieldType === "Image") {
-    const { url, alt } = resolveAsset(value, ctx.files);
+    const { url, alt, mimeType } = resolveAsset(value, ctx.files);
     if (!url) return undefined;
-    return `![${alt}](${url})`;
+    return `![${alt}](${transformImageUrl(url, { mimeType })})`;
   }
 
   if (fieldType === "File") {

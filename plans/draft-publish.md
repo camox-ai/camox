@@ -77,6 +77,26 @@ Files do not get draft / published state. They are addressable storage; what mat
 - `files.replace` operates on **live rows only**. Checkpoints are immutable history; replacing a file in the past would defeat the purpose of having that history. If a user wants the replacement reflected publicly, they publish.
 - `files.delete` should eventually warn if any checkpoint (live or not) references the file. **File garbage collection is explicitly out of scope for v1.** We'll watch how files accumulate in practice and add tooling later.
 
+### Forward Compatibility: Collection Entries
+
+Collections ship after D&P (see [collections.md](./collections.md)). Entries — the JSON data rows that will drive entry layouts and `$collectionRef` / `$collectionList` blocks — will land as their own publishable surface, mirroring pages and layouts: a `collection_entries` live row, a `collection_entry_checkpoints` table, a `live_published_checkpoint_id` pointer, a `content_updated_at` timestamp. Entries are not part of D&P v1, but a few design decisions are pinned now so the seam is clean when they land.
+
+**The entry resolver is source-parameterized.** Block content keeps its `$entry` / `$collectionRef` / `$collectionList` tokens through snapshots — same rule as `_fileId` and `_itemId` markers, never inlined to values. A single resolver function takes `(token, source)` and consults different state per source:
+
+- `source: 'live'` → each referenced entry's current `live_published_checkpoint_id`. **Composable**: publishing an entry immediately updates every published page referencing it. Matches how files resolve today.
+- `source: 'draft'` → entries' live row data. Editor preview of all in-flight content.
+- `source: { checkpointId }` on a page → entries pinned to the checkpoints they were on when this page checkpoint was created (see entry-refs map below). Historical views render coherently.
+
+In v1 the resolver has nothing to resolve — collection tokens don't exist yet. It's introduced as the stable seam so the entry case later lands as a single call-site change in `pages.getByPath`, not a re-plumbing.
+
+**Page snapshots reserve an `entryRefs` field.** When entries land, the page snapshot picks up an optional `entryRefs: { [entryId]: checkpointId }` map captured at publish time — IDs only, no entry data. `source: 'live'` ignores it (composable); `source: { checkpointId }` consults it (pinned-in-time). Tiny per page, absent on pages without entry refs. v1 page snapshots don't write the field; the `schema_version` ratchet absorbs the addition.
+
+**Status semantics don't change.** A page being "modified" remains driven by its own and its layout's `content_updated_at`. Entry edits won't flip page status — entries will surface their own pending-changes signal in the collections UI. A derived "this page's public render is showing newer entry content than at its last publish" badge, if wanted later, is a presentation overlay computed at list time, not a status-column rule.
+
+**Materialized pages (pages backed by an entry layout + entry) publish like any other page**, with one constraint at first publish: the bound entry must already be published, or the publish dialog offers publish-entry-and-page as a combined action. After first publish, page and entry have independent lifecycles.
+
+**Null-resolution contract.** `pages.getByPath` on a published page referencing a never-published entry resolves that token to null; the renderer surfaces a broken-binding placeholder (concrete UX TBD). Contract: no exception, no fallback to draft data on a public read.
+
 ### Path / Slug Changes While Drafting
 
 A page's `fullPath` lives on the page row (the draft) and is also captured into each checkpoint's snapshot.
@@ -108,7 +128,7 @@ A page that has never been published has `livePublishedCheckpointId = NULL`. The
 **Editing a published page**
 
 - User edits a block on a published page. Status flips to "Modified". Public URL still serves the previous version.
-- A "Preview" toggle in the studio header lets the user flip between _Draft_ and _Published_ without leaving the editor — same render, different data source.
+- A Draft / Live source select in the studio sidebar (see [Sidebar placement](#sidebar-placement) below) lets the user flip between _Draft_ and _Live_ without leaving the editor — same render, different data source.
 - User clicks **Publish**. New checkpoint created, live pointer updated. Status flips back to "Published".
 
 **Editing a layout**
@@ -118,13 +138,17 @@ A page that has never been published has `livePublishedCheckpointId = NULL`. The
 - Every page using _regular-page_ now shows "Modified" with a tooltip explaining the layout caused it.
 - User publishes the layout: every affected page's status recomputes, and most flip back to "Published".
 
-**Manual checkpoints**
+**Unpublishing a page**
+
+- User clicks **Unpublish** in the page menu. Confirmation dialog notes the public URL will start 404'ing. Live pointer is cleared. Draft is untouched. The page's previous `auto-publish` checkpoint stays in the DB (and the same row in `page_checkpoints` can be re-pointed-at later, once the history sidebar ships).
+
+**Manual checkpoints** _(deferred — depends on history sidebar)_
 
 - While drafting, user clicks **Save checkpoint** in the page menu, enters a label ("Before homepage redesign").
 - A manual checkpoint is created. Public site is unaffected (the live pointer didn't move).
 - Later, user wants to undo recent changes: open the history sidebar, click the checkpoint, choose **Restore to draft**. Confirmation dialog explains that current draft will be auto-saved as a "Before restore" checkpoint. Draft rows are overwritten.
 
-**Rolling back what's public**
+**Rolling back what's public** _(deferred — depends on history sidebar)_
 
 - User regrets the last publish. Opens the history sidebar, finds the previous `auto-publish` checkpoint, chooses **Restore to live**. The live pointer is repointed. Draft is untouched. Public site instantly serves the older version.
 
@@ -160,10 +184,13 @@ This shape-identity is the load-bearing property of the design: it means `(sourc
 
 - **Draft edits** (the hot path): unchanged from today. Mutations write to `pages` / `blocks` / `repeatable_items` / `layouts` live rows. The single additional cost is one extra UPDATE bumping the parent page's or layout's `content_updated_at` — this is what makes status a single-timestamp compare instead of a row scan.
 - **Publish**: one transaction. INSERT a row into `page_checkpoints` (or `layout_checkpoints`) with the serialized current state as `snapshot` and `kind = 'auto-publish'`, then UPDATE `pages.live_published_checkpoint_id` (or `layouts.live_published_checkpoint_id`) to the new id. Atomic.
-- **Manual checkpoint**: same INSERT, no UPDATE. The live pointer doesn't move.
-- **Restore to draft**: one transaction. First INSERT an `auto-draft` / `manual` checkpoint of the current draft (the "Before restore (auto)" safety net), then overwrite live rows from the chosen snapshot. This is more write-heavy than a publish because it touches every row of the page (and its repeatable items). But it's a rare action and a single per-page transaction.
-- **Restore to live**: UPDATE the pointer only. No row touched on `blocks` / `repeatable_items`. Effectively instant.
 - **Unpublish**: UPDATE the pointer to NULL. Checkpoints kept.
+
+The following write paths are specified for forward compat but are **not triggered by any v1 UI** (history sidebar is deferred):
+
+- **Manual checkpoint**: same INSERT as publish, no UPDATE. The live pointer doesn't move.
+- **Restore to draft**: one transaction. First INSERT an `auto-draft` / `manual` checkpoint of the current draft (the "Before restore (auto)" safety net), then overwrite live rows from the chosen snapshot. More write-heavy than a publish because it touches every row of the page (and its repeatable items). A rare action when it ships; single per-page transaction.
+- **Restore to live**: UPDATE the pointer only. No row touched on `blocks` / `repeatable_items`. Effectively instant.
 
 **Read patterns: draft is granular, published is wholesale**
 
@@ -176,7 +203,7 @@ Today, after the initial `pages.getByPath`, the studio's `seedBlockCaches` (`pac
 
 The crucial observation: **the published state never mutates piecewise.** The only event that changes "what's published" is a publish, which atomically swaps the live pointer. There is no `updatePublishedBlockContent`. So per-block invalidation against the `'live'` source is a code path that never fires in normal operation. After a publish, the studio invalidates the entire `'live'` namespace for the affected page (and any pages affected by a layout publish) and re-seeds from the new snapshot — **one wholesale refetch, not N individual ones**.
 
-`blocks.get(id, source)` is plumbed for symmetry and future deep-link scenarios (history sidebar showing "this block in this old checkpoint"). When `source` is `'live'` or `{ checkpointId }`, it locates the parent (page or layout) by id, reads its snapshot, extracts the block. Mildly wasteful (parses N KB to return one block's worth) but never the hot path.
+`blocks.get(id, source)` is plumbed for symmetry and future deep-link scenarios (e.g. once the history sidebar ships, showing "this block in this old checkpoint"). When `source` is `'live'` or `{ checkpointId }`, it locates the parent (page or layout) by id, reads its snapshot, extracts the block. Mildly wasteful (parses N KB to return one block's worth) but never the hot path.
 
 Invalidation summary:
 
@@ -189,6 +216,8 @@ Invalidation summary:
 | Restore checkpoint → draft           | all draft keys for that page (wholesale)            | none                                                                                                                   |
 | Restore checkpoint → live (repoint)  | none                                                | all `'live'` keys for that page (wholesale)                                                                            |
 | Save manual checkpoint               | none (history list only)                            | none                                                                                                                   |
+
+The bottom three rows (Restore → draft, Restore → live, Save manual checkpoint) are forward-compat — they don't fire in v1 because the history sidebar that triggers them is deferred. Publish / Unpublish are the only checkpoint-touching events in v1.
 
 Net effect: draft invalidation stays as granular as today; published invalidation is always wholesale-per-page; publishes are infrequent compared to keystrokes, so the wholesale cost is negligible.
 
@@ -223,7 +252,7 @@ A typical page snapshot is a few KB to a few tens of KB (blocks are small, items
 
 **API contract (`packages/api-contract`)**
 
-- New procedures: `pages.checkpoints.{list, create, publish, unpublish, restore, delete}`, mirrored under `layouts.checkpoints`.
+- New procedures (v1): `pages.publish`, `pages.unpublish`, mirrored under `layouts`. (`list`, manual `create`, `restore`, and `delete` are deferred with the history sidebar.)
 - Existing read procedures gain the `source` parameter.
 - Page list shape gains a `status` field (`'draft' | 'published' | 'modified'`).
 
@@ -238,18 +267,24 @@ A typical page snapshot is a few KB to a few tens of KB (blocks are small, items
 - Status badge on every page in the page list.
 - Per-page **Publish** button and dialog (with optional "also publish layout" checkbox).
 - Per-layout **Publish** button.
-- Preview toggle (Draft / Published / pick-a-checkpoint).
-- History sidebar listing checkpoints with kind, label, date, author; actions to **Restore to draft**, **Restore to live**, **Delete** (can't delete the currently-live one).
-- **Save checkpoint** action (manual checkpoint, with label input).
+- Draft / Live source select for the current page (see Sidebar placement below).
+- Page-menu **Unpublish** action (clears the live pointer; page 404s on the public site, draft is untouched).
 - Project-level **Publish all** view listing every modified page and layout with checkboxes.
 - UI explanation for "modified because of layout" state.
+
+The history sidebar — and the actions that depend on it (browsing checkpoints, **Save checkpoint**, **Restore to draft**, **Restore to live**, **Delete** checkpoint) — is **out of scope for v1**. The schema and `kind` enum already support them; only the UI is deferred. See [What's Deferred](#whats-deferred) below.
+
+<a id="sidebar-placement"></a>**Sidebar placement.** The Draft / Live source select and the per-page **Publish…** button live together as a single row in the studio sidebar, immediately beside the `PagePicker` and above its divider. Draft / Live select on the left; **Publish…** button on the right. Pairing them in one row reflects the fact that both operate on the page currently in focus: the select chooses _what am I looking at_, the button promotes that draft to public.
 
 **Template / public-facing site (`apps/template-default`, deployed sites)**
 
 - No code change required: the SDK switches its loader to `source: 'live'` and downstream rendering is unchanged. This is the property that justifies the snapshot model — it falls out of the design.
 
-### What's Deferred (Not v1)
+<a id="whats-deferred"></a>### What's Deferred (Not v1)
 
+- **History sidebar.** Browsing a page's or layout's checkpoint history is deferred. The publish flow still creates `auto-publish` checkpoints (that's how the live pointer has anything to point at), they just have no UI surface. Schema, `kind` enum, and the snapshot pipeline are all in v1; only the sidebar component and its dependent actions are out.
+- **Manual (`Save checkpoint`) and restore actions.** Both **Restore to draft** and **Restore to live** depend on a UI to pick a checkpoint, which doesn't exist without the sidebar. `kind = 'manual'` rows are never written in v1. The "safety-net checkpoint before restore" logic moves with restore itself.
+- **Checkpoint deletion.** Same dependency.
 - **Auto-draft checkpoints.** Schema supports the `auto-draft` kind, but we don't create any on a schedule yet.
 - **File garbage collection.** Surface "only referenced by drafts" / "only referenced by historical checkpoints" badges later, once usage tells us whether it matters.
 - **Signed preview URLs** for sharing drafts with non-editors. The `source` parameter on the read path makes this trivial to add later; the UI and auth piece is the actual work.

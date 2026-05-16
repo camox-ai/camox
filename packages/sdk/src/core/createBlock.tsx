@@ -46,6 +46,12 @@ import {
   type ToMarkdownBuilder,
   type ItemSettingsBrand,
 } from "./lib/contentType.ts";
+import {
+  buildImageSrcSet,
+  getDefaultImageSizes,
+  getDefaultImageWidth,
+  transformImageUrl,
+} from "./lib/imageTransform";
 import { markdownToReactNodes } from "./lib/lexicalReact";
 
 export { Type };
@@ -679,6 +685,8 @@ export function createBlock<
   type ImageRenderProps = {
     src: string;
     alt: string;
+    srcSet?: string;
+    sizes?: string;
   };
 
   type FileRenderProps = {
@@ -1284,7 +1292,15 @@ export function createBlock<
       previewStore.send({ type: "toggleContentSheet" });
     };
 
-    const imageProps = { src: fieldValue.url, alt: fieldValue.alt } satisfies ImageRenderProps;
+    const imageProps = {
+      src: transformImageUrl(fieldValue.url, {
+        width: getDefaultImageWidth(),
+        mimeType: fieldValue.mimeType,
+      }),
+      srcSet: buildImageSrcSet(fieldValue.url, fieldValue.mimeType),
+      sizes: getDefaultImageSizes(),
+      alt: fieldValue.alt,
+    } satisfies ImageRenderProps;
 
     if (!isContentEditable) {
       return <>{children(imageProps, fieldValue)}</>;

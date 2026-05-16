@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { FileIcon, GripVertical } from "lucide-react";
 import * as React from "react";
 
+import { transformImageUrl } from "@/core/lib/imageTransform";
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { useProjectSlug } from "@/lib/auth";
@@ -94,7 +95,7 @@ const SortableAssetItem = ({ asset, assetType, onRemove, onAssetOpen }: Sortable
           {assetType === "Image" ? (
             <div className="border-border h-12 w-12 shrink-0 overflow-hidden rounded border">
               <img
-                src={asset.url}
+                src={transformImageUrl(asset.url, { width: 128, mimeType: asset.mimeType })}
                 alt={asset.alt || asset.filename}
                 className="h-full w-full object-cover"
               />

@@ -6,9 +6,10 @@ import { Switch } from "@camox/ui/switch";
 import { toast } from "@camox/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Check, Download, FileIcon, Link, Loader2, Trash2, X } from "lucide-react";
+import { Check, Download, FileIcon, Info, Link, Loader2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { transformImageUrl } from "@/core/lib/imageTransform";
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { getApiUrl, getEnvironmentName } from "@/lib/api-client";
 import { getAuthCookieHeader } from "@/lib/auth";
@@ -17,13 +18,50 @@ import { trackClientEvent } from "@/lib/telemetry-client";
 
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
 
-function MetadataRow({ label, children }: { label: string; children: React.ReactNode }) {
+function MetadataRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline gap-2">
       <span className="shrink-0">{label}</span>
       <span className="border-border min-w-0 flex-1 border-b" />
       <span className="text-foreground shrink-0">{children}</span>
     </div>
+  );
+}
+
+function DeliveredSize({ bytes, raw }: { bytes: number | null; raw: number | null }) {
+  if (bytes == null) return <>…</>;
+  const savingsPct = raw != null && raw > 0 ? Math.round(((raw - bytes) / raw) * 100) : null;
+  if (savingsPct == null || savingsPct <= 0) return <>≈{formatFileSize(bytes)}</>;
+  return (
+    <>
+      ≈{formatFileSize(bytes)} <span className="text-muted-foreground">(−{savingsPct}%)</span>
+    </>
+  );
+}
+
+function DeliveredLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {children}
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="About image optimization"
+            />
+          }
+        >
+          <Info className="h-3.5 w-3.5" />
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          Visitors automatically receive a compressed WebP/AVIF version sized to their device.
+          Estimates use {DELIVERED_PHONE_WIDTH}px (phone) and {DELIVERED_LAPTOP_WIDTH}px (laptop) —
+          the original is preserved.
+        </TooltipContent>
+      </Tooltip>
+    </span>
   );
 }
 
@@ -54,6 +92,22 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
+const DELIVERED_PHONE_WIDTH = 640;
+const DELIVERED_LAPTOP_WIDTH = 1280;
+
+async function measureContentLength(url: string, signal: AbortSignal): Promise<number | null> {
+  try {
+    const res = await fetch(url, { signal });
+    void res.body?.cancel();
+    const cl = res.headers.get("content-length");
+    if (!cl) return null;
+    const parsed = Number.parseInt(cl, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 interface AssetLightboxProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -79,6 +133,11 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
   const [zoomed, setZoomed] = useState(false);
   const [zoomedWidth, setZoomedWidth] = useState<number | null>(null);
   const clickFractionRef = useRef<{ x: number; y: number } | null>(null);
+  const [deliveredSizes, setDeliveredSizes] = useState<{
+    phone: number | null;
+    laptop: number | null;
+    measured: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -86,6 +145,40 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
       setZoomedWidth(null);
     }
   }, [open]);
+
+  const isImage = file?.mimeType?.startsWith("image/") ?? false;
+  const fileUrl = file?.url;
+  const fileMimeType = file?.mimeType;
+
+  useEffect(() => {
+    if (!open || !isImage || !fileUrl) {
+      setDeliveredSizes(null);
+      return;
+    }
+    const phoneUrl = transformImageUrl(fileUrl, {
+      width: DELIVERED_PHONE_WIDTH,
+      mimeType: fileMimeType,
+    });
+    const laptopUrl = transformImageUrl(fileUrl, {
+      width: DELIVERED_LAPTOP_WIDTH,
+      mimeType: fileMimeType,
+    });
+    // No transform applied (placeholder, localhost, SVG, etc.) — nothing meaningful to show.
+    if (phoneUrl === fileUrl && laptopUrl === fileUrl) {
+      setDeliveredSizes(null);
+      return;
+    }
+    setDeliveredSizes({ phone: null, laptop: null, measured: false });
+    const controller = new AbortController();
+    void Promise.all([
+      measureContentLength(phoneUrl, controller.signal),
+      measureContentLength(laptopUrl, controller.signal),
+    ]).then(([phone, laptop]) => {
+      if (controller.signal.aborted) return;
+      setDeliveredSizes({ phone, laptop, measured: true });
+    });
+    return () => controller.abort();
+  }, [open, isImage, fileUrl, fileMimeType]);
 
   useEffect(() => {
     if (!zoomed || !zoomedWidth || !containerRef.current || !clickFractionRef.current) return;
@@ -174,8 +267,6 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
   };
 
   if (!file) return null;
-
-  const isImage = file.mimeType?.startsWith("image/");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -368,9 +459,19 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 <MetadataRow label="Format">
                   {file.mimeType.split("/").pop()?.toUpperCase() ?? "Unknown"}
                 </MetadataRow>
-                <MetadataRow label="Size">
+                <MetadataRow label="Raw size">
                   {file.size != null ? formatFileSize(file.size) : "Unknown"}
                 </MetadataRow>
+                {isImage && deliveredSizes && (
+                  <>
+                    <MetadataRow label={<DeliveredLabel>On phone</DeliveredLabel>}>
+                      <DeliveredSize bytes={deliveredSizes.phone} raw={file.size} />
+                    </MetadataRow>
+                    <MetadataRow label={<DeliveredLabel>On laptop</DeliveredLabel>}>
+                      <DeliveredSize bytes={deliveredSizes.laptop} raw={file.size} />
+                    </MetadataRow>
+                  </>
+                )}
                 <MetadataRow label="Created">{formatRelativeTime(file.createdAt)}</MetadataRow>
                 <MetadataRow label="Updated">{formatRelativeTime(file.updatedAt)}</MetadataRow>
                 <MetadataRow label="Used in">

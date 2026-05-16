@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { FileIcon, Upload } from "lucide-react";
 import * as React from "react";
 
+import { transformImageUrl } from "@/core/lib/imageTransform";
 import { UploadDropZone } from "@/features/content/components/UploadDropZone";
 import { UploadItemRow } from "@/features/content/components/UploadProgressDrawer";
 import { type UploadItem, useFileUpload } from "@/hooks/use-file-upload";
@@ -148,7 +149,10 @@ const SingleAssetFieldEditor = ({
                 {isImage ? (
                   <div className="border-border h-10 w-10 shrink-0 overflow-hidden rounded border">
                     <img
-                      src={asset.url}
+                      src={transformImageUrl(asset.url, {
+                        width: 128,
+                        mimeType: asset.mimeType,
+                      })}
                       alt={asset.alt || asset.filename}
                       className="h-full w-full object-cover"
                     />
