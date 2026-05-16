@@ -379,7 +379,7 @@ type FieldSchema = {
 
 /**
  * Apply a partial content patch to a block, with replace-within-field semantics
- * for any RepeatableItem fields present in the patch:
+ * for any Repeater fields present in the patch:
  *   - `{ _itemId: N }` keeps existing item N (re-positioned in array order).
  *   - `{ _itemId: N, ...overrides }` updates item N's content; nested repeatable
  *     overrides recurse via this same diff logic.
@@ -387,9 +387,9 @@ type FieldSchema = {
  *   - Existing items at the same scope not referenced in the new array are deleted
  *     (cascades to nested children via the parentItemId FK).
  *
- * RepeatableItem fields not present in the patch are untouched.
+ * Repeater fields not present in the patch are untouched.
  *
- * Returns the new merged block.content with all RepeatableItem fields stripped —
+ * Returns the new merged block.content with all Repeater fields stripped —
  * the items table is the source of truth and `getBlock` re-injects markers on read.
  */
 async function applyContentPatch(
@@ -406,14 +406,14 @@ async function applyContentPatch(
   const merged: Record<string, unknown> = { ...(block.content as Record<string, unknown>) };
   if (props) {
     for (const [key, fieldSchema] of Object.entries(props)) {
-      if (fieldSchema.fieldType === "RepeatableItem") delete merged[key];
+      if (fieldSchema.fieldType === "Repeater") delete merged[key];
     }
   }
 
   let allItems: Awaited<ReturnType<typeof fetchBlockItems>> | null = null;
   for (const [key, value] of Object.entries(patch)) {
     const fieldSchema = props?.[key];
-    if (fieldSchema?.fieldType !== "RepeatableItem") {
+    if (fieldSchema?.fieldType !== "Repeater") {
       if (fieldSchema?.fieldType === "Image" || fieldSchema?.fieldType === "File") {
         merged[key] = sanitizeAssetValue(value);
       } else {
@@ -503,7 +503,7 @@ async function applyRepeatableFieldPatch(
       for (const [k, v] of Object.entries(elementObj)) {
         if (k === "_itemId") continue;
         const subSchema = itemSchemaProps?.[k];
-        if (subSchema?.fieldType === "RepeatableItem") {
+        if (subSchema?.fieldType === "Repeater") {
           await applyRepeatableFieldPatch(ctx, {
             blockId,
             parentItemId: itemId,
@@ -526,7 +526,7 @@ async function applyRepeatableFieldPatch(
       // Strip stale repeatable fields from item content (items table is truth).
       if (itemSchemaProps) {
         for (const [k, schema] of Object.entries(itemSchemaProps)) {
-          if (schema.fieldType === "RepeatableItem") delete newContent[k];
+          if (schema.fieldType === "Repeater") delete newContent[k];
         }
       }
 
@@ -617,10 +617,10 @@ export async function getBlock(ctx: ServiceContext, rawInput: z.input<typeof get
     fieldMap.set(item.fieldName, list);
   }
 
-  // Inject _itemId markers only for RepeatableItem fields — i.e., where content
-  // doesn't already hold the field's data. Multi-asset arrays keep their inline
+  // Inject _itemId markers only for Repeater fields — i.e., where content
+  // doesn't already hold the field's data. Asset list arrays keep their inline
   // _fileId markers stored on the parent; any stray child rows for those fields
-  // (e.g. legacy data from before the MultipleAssets refactor) are ignored.
+  // are ignored.
   const hasInlineArray = (c: Record<string, unknown>, key: string) => {
     const v = c[key];
     return Array.isArray(v) && v.length > 0;
@@ -964,7 +964,7 @@ export async function updateBlockContent(
   const now = Date.now();
 
   // Look up the block definition's content schema so the patch helper can detect
-  // RepeatableItem fields and apply replace-within-field semantics.
+  // Repeater fields and apply replace-within-field semantics.
   const def = await ctx.db
     .select()
     .from(blockDefinitions)

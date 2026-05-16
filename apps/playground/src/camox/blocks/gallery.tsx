@@ -12,8 +12,7 @@ const gallery = createBlock({
       default: "Gallery",
       title: "Title",
     }),
-    images: Type.Image({
-      multiple: true,
+    images: Type.ImageList({
       defaultItems: 6,
       title: "Images",
     }),
@@ -52,9 +51,9 @@ function GalleryComponent() {
             columns === "4" && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
           )}
         >
-          <gallery.MultipleAssets name="images">
+          <gallery.ImageList name="images">
             {(props) => <img {...props} className="aspect-square w-full rounded-lg object-cover" />}
-          </gallery.MultipleAssets>
+          </gallery.ImageList>
         </div>
       </div>
     </section>

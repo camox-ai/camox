@@ -157,7 +157,7 @@ declare const EmbedURLBrand: unique symbol;
 export type EmbedURL = string & { readonly [EmbedURLBrand]: true };
 
 /* -------------------------------------------------------------------------------------------------
- * RepeatableItem settings brand
+ * Repeater settings brand
  * Carries the per-item settings shape on the TArray schema at the type level only,
  * so createBlock can infer a typed `item.useSetting` signature without runtime cost.
  * -----------------------------------------------------------------------------------------------*/
@@ -208,28 +208,11 @@ export type FileValue = {
  * -----------------------------------------------------------------------------------------------*/
 
 /* -------------------------------------------------------------------------------------------------
- * Image / File type builders (overloaded for single vs multiple)
+ * Image / File / ImageList / FileList type builders
  * -----------------------------------------------------------------------------------------------*/
 
-function _imageType(options: { title?: string; multiple?: false }): TUnsafe<ImageValue>;
-function _imageType(options: {
-  title?: string;
-  multiple: true;
-  defaultItems: number;
-}): TArray<TUnsafe<ImageValue>>;
-function _imageType(options: {
-  title?: string;
-  multiple?: boolean;
-  defaultItems?: number;
-}): TArray<TUnsafe<ImageValue>> | TUnsafe<ImageValue> {
-  const imageDefault = {
-    url: `https://placehold.co/1200x800/f4f4f5/a1a1aa.png?text=${options?.title || "image"}`,
-    alt: "",
-    filename: "placeholder.png",
-    mimeType: "image/png",
-  };
-
-  const singleSchema = TypeBoxType.Unsafe<ImageValue>({
+function _imageSingle(options: { title?: string }): TUnsafe<ImageValue> {
+  return TypeBoxType.Unsafe<ImageValue>({
     type: "object",
     properties: {
       url: { type: "string" },
@@ -238,52 +221,33 @@ function _imageType(options: {
       mimeType: { type: "string" },
     },
     accept: ["image/*"],
-    default: imageDefault,
+    default: {
+      url: `https://placehold.co/1200x800/f4f4f5/a1a1aa.png?text=${options?.title || "image"}`,
+      alt: "",
+      filename: "placeholder.png",
+      mimeType: "image/png",
+    },
     title: options.title,
     fieldType: "Image" as const,
   });
+}
 
-  if (!options.multiple) {
-    return singleSchema;
-  }
-
-  const defaultItems = options.defaultItems ?? 0;
-  return TypeBoxType.Array(singleSchema, {
+function _imageList(options: {
+  title?: string;
+  defaultItems?: number;
+}): TArray<TUnsafe<ImageValue>> {
+  return TypeBoxType.Array(_imageSingle({ title: options.title }), {
     minItems: 0,
     maxItems: 100,
     default: [],
-    defaultItems,
+    defaultItems: options.defaultItems ?? 0,
     title: options.title,
-    fieldType: "MultipleAssets" as const,
-    arrayItemType: "Image" as const,
+    fieldType: "ImageList" as const,
   });
 }
 
-function _fileType(options: {
-  accept: string[];
-  title?: string;
-  multiple?: false;
-}): TUnsafe<FileValue>;
-function _fileType(options: {
-  accept: string[];
-  title?: string;
-  multiple: true;
-  defaultItems: number;
-}): TArray<TUnsafe<FileValue>>;
-function _fileType(options: {
-  accept: string[];
-  title?: string;
-  multiple?: boolean;
-  defaultItems?: number;
-}): TArray<TUnsafe<FileValue>> | TUnsafe<FileValue> {
-  const fileDefault = {
-    url: "https://placehold.co/file-placeholder",
-    alt: "",
-    filename: "placeholder",
-    mimeType: "application/octet-stream",
-  };
-
-  const singleSchema = TypeBoxType.Unsafe<FileValue>({
+function _fileSingle(options: { accept: string[]; title?: string }): TUnsafe<FileValue> {
+  return TypeBoxType.Unsafe<FileValue>({
     type: "object",
     properties: {
       url: { type: "string" },
@@ -292,24 +256,29 @@ function _fileType(options: {
       mimeType: { type: "string" },
     },
     accept: options.accept,
-    default: fileDefault,
+    default: {
+      url: "https://placehold.co/file-placeholder",
+      alt: "",
+      filename: "placeholder",
+      mimeType: "application/octet-stream",
+    },
     title: options.title,
     fieldType: "File" as const,
   });
+}
 
-  if (!options.multiple) {
-    return singleSchema;
-  }
-
-  const defaultItems = options.defaultItems ?? 0;
-  return TypeBoxType.Array(singleSchema, {
+function _fileList(options: {
+  accept: string[];
+  title?: string;
+  defaultItems?: number;
+}): TArray<TUnsafe<FileValue>> {
+  return TypeBoxType.Array(_fileSingle({ accept: options.accept, title: options.title }), {
     minItems: 0,
     maxItems: 100,
     default: [],
-    defaultItems,
+    defaultItems: options.defaultItems ?? 0,
     title: options.title,
-    fieldType: "MultipleAssets" as const,
-    arrayItemType: "File" as const,
+    fieldType: "FileList" as const,
   });
 }
 
@@ -349,7 +318,7 @@ export const Type = {
    * similar to block-level settings.
    *
    * @example
-   * Type.RepeatableItem({
+   * Type.Repeater({
    *   content: {
    *     title: Type.String({ default: 'Item' }),
    *     description: Type.String({ default: 'Description' }),
@@ -363,7 +332,7 @@ export const Type = {
    *   toMarkdown: (c) => [`### ${c.title}`, c.description],
    * })
    */
-  RepeatableItem: <
+  Repeater: <
     T extends Record<string, TSchema>,
     S extends Record<string, TSchema> = Record<string, never>,
   >(options: {
@@ -375,7 +344,7 @@ export const Type = {
     toMarkdown: ToMarkdownBuilder<T, S>;
   }) => {
     if (options.minItems < 1) {
-      throw new Error("RepeatableItem requires minItems to be at least 1");
+      throw new Error("Repeater requires minItems to be at least 1");
     }
 
     const objectSchema = TypeBoxType.Object(options.content);
@@ -415,7 +384,7 @@ export const Type = {
       maxItems: options.maxItems,
       default: defaultArray,
       title: options.title,
-      fieldType: "RepeatableItem" as const,
+      fieldType: "Repeater" as const,
       toMarkdown: resolveToMarkdown<T, S>(options.toMarkdown, options.settings, "item"),
       itemSettingsSchema,
       defaultItemSettings: settingsTypeboxSchema ? defaultItemSettings : undefined,
@@ -510,9 +479,36 @@ export const Type = {
     });
   },
 
-  Image: _imageType,
+  /**
+   * Creates an image asset field.
+   *
+   * @example
+   * Type.Image({ title: 'Hero' })
+   */
+  Image: (options: { title?: string } = {}) => _imageSingle(options),
 
-  File: _fileType,
-  // MultipleAssets has no dedicated builder — it's emitted by Type.Image / Type.File
-  // when called with `multiple: true` — so it's excluded from the satisfies constraint.
-} satisfies Record<Exclude<FieldType, "MultipleAssets">, unknown>;
+  /**
+   * Creates a file asset field.
+   *
+   * @example
+   * Type.File({ accept: ['application/pdf'], title: 'Datasheet' })
+   */
+  File: (options: { accept: string[]; title?: string }) => _fileSingle(options),
+
+  /**
+   * Creates an array of image assets.
+   *
+   * @example
+   * Type.ImageList({ title: 'Gallery', defaultItems: 3 })
+   */
+  ImageList: (options: { title?: string; defaultItems?: number } = {}) => _imageList(options),
+
+  /**
+   * Creates an array of file assets.
+   *
+   * @example
+   * Type.FileList({ accept: ['application/pdf'], title: 'Attachments' })
+   */
+  FileList: (options: { accept: string[]; title?: string; defaultItems?: number }) =>
+    _fileList(options),
+} satisfies Record<FieldType, unknown>;

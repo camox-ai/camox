@@ -14,7 +14,7 @@ const largeParagraphsGroup = createBlock({
       default: "Why choose us",
       title: "Title",
     }),
-    items: Type.RepeatableItem({
+    items: Type.Repeater({
       content: {
         title: Type.String({
           default: "A new kind of tool.",

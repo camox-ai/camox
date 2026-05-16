@@ -327,7 +327,7 @@ export async function createPage(ctx: ServiceContext, rawInput: z.input<typeof c
     settings?: Record<string, unknown>;
   }[] = [DEFAULT_HERO_BLOCK];
   // Lookup used by the seed-insertion loop below to normalize each generated
-  // block's content (extract RepeatableItem arrays into seeds, sanitize asset
+  // block's content (extract Repeater arrays into seeds, sanitize asset
   // leaks). Empty when contentDescription is unset — the default hero block
   // has no asset fields, so a no-op normalization is fine.
   const schemaByType = new Map<string, unknown>();

@@ -30,7 +30,6 @@ export interface SchemaField {
   enumValues?: string[];
   minItems?: number;
   maxItems?: number;
-  arrayItemType?: "Image" | "File";
 }
 
 export const formatFieldName = (fieldName: string): string => {
@@ -53,13 +52,12 @@ const getSchemaFieldsInOrder = (schema: unknown): SchemaField[] => {
       label: prop.title as string | undefined,
       minItems: prop.minItems as number | undefined,
       maxItems: prop.maxItems as number | undefined,
-      arrayItemType: prop.arrayItemType as "Image" | "File" | undefined,
     };
   });
 };
 
 /* -------------------------------------------------------------------------------------------------
- * DrillRow — label + click-to-drill button shared by Link / Image / File / MultipleAssets
+ * DrillRow — label + click-to-drill button shared by Link / Image / File / ImageList / FileList
  * -----------------------------------------------------------------------------------------------*/
 
 type DrillRowHover =
@@ -353,12 +351,12 @@ const ItemFieldsEditor = ({
           );
         }
 
-        if (field.fieldType === "MultipleAssets") {
+        if (field.fieldType === "ImageList" || field.fieldType === "FileList") {
           // The side editor always reflects real persisted data — `defaultItems`
           // is a peek-only render affordance and never a real count.
           const value = data[field.name];
           const count = Array.isArray(value) ? value.length : 0;
-          const isImage = field.arrayItemType === "Image";
+          const isImage = field.fieldType === "ImageList";
           const noun = isImage ? "image" : "file";
           let preview: string;
           if (count === 0) {
@@ -422,7 +420,7 @@ const ItemFieldsEditor = ({
           );
         }
 
-        if (field.fieldType === "RepeatableItem") {
+        if (field.fieldType === "Repeater") {
           const rawItems = (data[field.name] ?? []) as any[];
           // Resolve _itemId markers to full item objects
           const items = rawItems

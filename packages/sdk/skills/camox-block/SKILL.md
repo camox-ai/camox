@@ -78,7 +78,8 @@ toMarkdown: (c) => [`# ${c.title}`, c.description, c.cta];
 - **Image**: `![alt](filename)`
 - **File**: `[filename](url)`
 - **Embed**: raw URL string
-- **RepeatableItem**: each item rendered via its own `toMarkdown` (if set on the RepeatableItem options), items joined with `\n\n`
+- **Repeater**: each item rendered via its own `toMarkdown` (if set on the Repeater options), items joined with `\n\n`
+- **ImageList / FileList**: each asset rendered as a markdown bullet
 - **Boolean/Enum**: raw string value
 
 Lines where ALL referenced fields resolve to empty are omitted from output.
@@ -98,13 +99,13 @@ createBlock({
   content: { ... },
 })
 
-// Statistics — RepeatableItem with its own toMarkdown
+// Statistics — Repeater with its own toMarkdown
 createBlock({
   toMarkdown: (c) => [`## ${c.subtitle}`, c.description, c.statistics],
   content: {
     subtitle: Type.String({ default: "..." }),
     description: Type.String({ default: "..." }),
-    statistics: Type.RepeatableItem({
+    statistics: Type.Repeater({
       content: {
         number: Type.String({ default: "100M+" }),
         label: Type.String({ default: "pages served" }),
@@ -142,7 +143,7 @@ toMarkdown: (c, s) => [
 ];
 ```
 
-Only `Type.Boolean` and `Type.Enum` settings can be used this way — trying to reference any other setting is a type error. On a `RepeatableItem`'s own `toMarkdown`, `s` refers to the item's own `settings` (not the parent block's).
+Only `Type.Boolean` and `Type.Enum` settings can be used this way — trying to reference any other setting is a type error. On a `Repeater`'s own `toMarkdown`, `s` refers to the item's own `settings` (not the parent block's).
 
 ## Content Field Types
 
@@ -197,31 +198,38 @@ Type.Link({
 
 ### Type.Image
 
-A single image, or a flat array of images.
+A single image — render with `block.Image`.
 
 ```tsx
-// Single image — render with block.Image
 Type.Image({ title: "Cover photo" });
+```
 
-// Multiple images — render with block.MultipleAssets (NOT block.Repeater)
-Type.Image({ multiple: true, defaultItems: 6, title: "Gallery images" });
+### Type.ImageList
+
+A flat array of images — render with `block.ImageList` (NOT `block.Repeater`).
+
+```tsx
+Type.ImageList({ defaultItems: 6, title: "Gallery images" });
 ```
 
 ### Type.File
 
-A file upload, with MIME type filtering.
+A single file upload, with MIME type filtering — render with `block.File`.
 
 ```tsx
-// Single file — render with block.File
 Type.File({
   accept: ["application/pdf"],
   title: "PDF Document",
 });
+```
 
-// Multiple files — render with block.MultipleAssets (NOT block.Repeater)
-Type.File({
+### Type.FileList
+
+A flat array of files — render with `block.FileList` (NOT `block.Repeater`).
+
+```tsx
+Type.FileList({
   accept: ["application/pdf"],
-  multiple: true,
   defaultItems: 0,
   title: "Documents",
 });
@@ -241,12 +249,12 @@ Type.Embed({
 
 The `default` must match the `pattern` — an error is thrown at definition time otherwise.
 
-### Type.RepeatableItem
+### Type.Repeater
 
 An array of structured items. Each item is an object with its own fields. This is how you create lists of things (testimonials, features, stats, links...).
 
 ```tsx
-Type.RepeatableItem({
+Type.Repeater({
   content: {
     name: Type.String({ default: "Feature" }),
     description: Type.String({ default: "Description" }),
@@ -258,15 +266,15 @@ Type.RepeatableItem({
 });
 ```
 
-The `toMarkdown` option on RepeatableItem defines how each item is rendered as markdown when the parent block's `toMarkdown` references this field. It is required, same as on the block itself.
+The `toMarkdown` option on Repeater defines how each item is rendered as markdown when the parent block's `toMarkdown` references this field. It is required, same as on the block itself.
 
-Repeatable items can be nested — an item can contain another RepeatableItem:
+Repeaters can be nested — an item can contain another Repeater:
 
 ```tsx
-columns: Type.RepeatableItem({
+columns: Type.Repeater({
   content: {
     title: Type.String({ default: "Column" }),
-    links: Type.RepeatableItem({
+    links: Type.Repeater({
       content: {
         link: Type.Link({ default: { text: "Link", href: "#", newTab: false } }),
       },
@@ -359,7 +367,7 @@ The optional second argument `data` exposes raw values `{ text, href, newTab }` 
 </myBlock.Embed>
 ```
 
-### Rendering RepeatableItem fields — `block.Repeater`
+### Rendering Repeater fields — `block.Repeater`
 
 ```tsx
 <myBlock.Repeater name="features">
@@ -372,7 +380,7 @@ The optional second argument `data` exposes raw values `{ text, href, newTab }` 
 </myBlock.Repeater>
 ```
 
-Inside a Repeater, the `item` callback argument exposes the same `.Field`, `.Link`, `.Image`, `.File`, `.Embed`, `.MultipleAssets`, and `.Repeater` methods — scoped to that item. This is how nested repeaters work too:
+Inside a Repeater, the `item` callback argument exposes the same `.Field`, `.Link`, `.Image`, `.File`, `.Embed`, `.ImageList`, `.FileList`, and `.Repeater` methods — scoped to that item. This is how nested repeaters work too:
 
 ```tsx
 <footer.Repeater name="columns">
@@ -384,27 +392,27 @@ Inside a Repeater, the `item` callback argument exposes the same `.Field`, `.Lin
 </footer.Repeater>
 ```
 
-### Multiple images / files — `block.MultipleAssets`
+### Image and File lists — `block.ImageList` / `block.FileList`
 
-For `Type.Image({ multiple: true })` or `Type.File({ multiple: true })`, use `MultipleAssets` (NOT `Repeater`). The render-prop is the same shape as `block.Image` / `block.File` — `(props, data) => …` — invoked once per asset:
+For `Type.ImageList` use `block.ImageList`; for `Type.FileList` use `block.FileList` (NOT `block.Repeater`). The render-prop is the same shape as `block.Image` / `block.File` — `(props, data) => …` — invoked once per asset:
 
 ```tsx
 // Top-level
-<gallery.MultipleAssets name="images">
+<gallery.ImageList name="images">
   {(props) => <img {...props} className="rounded-lg" />}
-</gallery.MultipleAssets>
+</gallery.ImageList>
 
-// Nested inside a Type.RepeatableItem
+// Nested inside a Type.Repeater
 <paragraphGrid.Repeater name="paragraphs">
   {(item) => (
-    <item.MultipleAssets name="logos">
+    <item.ImageList name="logos">
       {(props) => <img {...props} className="size-10 object-contain" />}
-    </item.MultipleAssets>
+    </item.ImageList>
   )}
 </paragraphGrid.Repeater>
 ```
 
-`Repeater` is only for `Type.RepeatableItem` arrays. Trying to use `Repeater` on a `Type.Image`/`File` with `multiple: true` is a TypeScript error.
+`Repeater` is only for `Type.Repeater` arrays. Trying to use `Repeater` on an `ImageList` / `FileList` is a TypeScript error.
 
 ### Reading settings — `block.useSetting`
 
@@ -439,6 +447,6 @@ Renders content outside the block's DOM container. Useful for fixed/floating ele
 5. **Description is for the AI.** Write the `description` as guidance for an LLM — explain when to use this block, what kind of content it's for, and where it fits on a page.
 6. **`toMarkdown` is required.** Every block must define how its content renders as markdown. Use the builder function `(c) => [...]` and reference content fields via `c.fieldName`.
 7. **Settings = Enum and Boolean only.** Keep settings simple. Use `content` for everything the user edits inline.
-8. **RepeatableItem minItems >= 1.** You can't have an empty repeatable — there's always at least one item.
+8. **Repeater minItems >= 1.** You can't have an empty repeater — there's always at least one item.
 9. **Import path is `"camox/createBlock"`.** Both `Type` and `createBlock` come from this import.
 10. **Use Tailwind CSS for styling.** All example blocks use Tailwind utility classes. Follow the same patterns: `container mx-auto px-4` for centered content, responsive breakpoints, etc.

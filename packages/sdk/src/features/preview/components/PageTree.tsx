@@ -72,7 +72,6 @@ type FieldItemProps = {
   value: unknown;
   fieldType: string | undefined;
   schemaTitle: string | undefined;
-  arrayItemType?: string;
   isSelected: boolean;
   onFieldClick: () => void;
   onFieldDoubleClick: () => void;
@@ -85,7 +84,6 @@ const FieldItem = ({
   value,
   fieldType,
   schemaTitle,
-  arrayItemType,
   isSelected,
   onFieldClick,
   onFieldDoubleClick,
@@ -105,7 +103,7 @@ const FieldItem = ({
       })
     : JSON.stringify(value);
 
-  const FieldIcon = fieldDef?.getIcon({ arrayItemType }) ?? Type;
+  const FieldIcon = fieldDef?.getIcon() ?? Type;
 
   return (
     <li
@@ -162,17 +160,13 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
       type: "selectBlockField",
       blockId: block.id,
       fieldName,
-      fieldType: fieldType as "String" | "RepeatableItem",
+      fieldType: fieldType as "String" | "Repeater",
     });
   };
 
-  const handleFieldDoubleClick = (
-    fieldName: string,
-    fieldType: string,
-    arrayItemType: string | undefined,
-  ) => {
+  const handleFieldDoubleClick = (fieldName: string, fieldType: string) => {
     const fieldDef = fieldTypesDictionary[fieldType as keyof typeof fieldTypesDictionary];
-    fieldDef.onTreeDoubleClick({ blockId: block.id, fieldName }, { arrayItemType });
+    fieldDef.onTreeDoubleClick({ blockId: block.id, fieldName });
   };
 
   const handleFieldMouseEnter = (fieldName: string, isRepeatable: boolean) => {
@@ -220,7 +214,7 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
         const fieldSchema = schemaProperties?.[fieldName];
         if (!fieldSchema) return null;
         const fieldType = fieldSchema.fieldType;
-        const isRepeatable = fieldType === "RepeatableItem";
+        const isRepeatable = fieldType === "Repeater";
         return (
           <FieldItem
             key={fieldName}
@@ -228,12 +222,9 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
             value={value}
             fieldType={fieldType}
             schemaTitle={fieldSchema?.title}
-            arrayItemType={fieldSchema?.arrayItemType}
             isSelected={selectedFieldName === fieldName}
             onFieldClick={() => handleFieldClick(fieldName, fieldType!)}
-            onFieldDoubleClick={() =>
-              handleFieldDoubleClick(fieldName, fieldType!, fieldSchema?.arrayItemType)
-            }
+            onFieldDoubleClick={() => handleFieldDoubleClick(fieldName, fieldType!)}
             onMouseEnter={() => handleFieldMouseEnter(fieldName, isRepeatable)}
             onMouseLeave={() => handleFieldMouseLeave(fieldName, isRepeatable)}
           />

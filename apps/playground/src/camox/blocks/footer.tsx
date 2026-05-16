@@ -9,10 +9,10 @@ const footer = createBlock({
     "At the bottom of a page to provide the user with links and miscellaneous information.",
   content: {
     title: Type.String({ default: "Acme" }),
-    columns: Type.RepeatableItem({
+    columns: Type.Repeater({
       content: {
         title: Type.String({ default: "Column Title" }),
-        links: Type.RepeatableItem({
+        links: Type.Repeater({
           content: {
             link: Type.Link({
               default: {

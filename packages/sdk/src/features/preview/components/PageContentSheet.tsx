@@ -56,7 +56,6 @@ const getSettingsFields = (schema: unknown): SchemaField[] => {
       label: prop.title as string | undefined,
       enumLabels: prop.enumLabels as Record<string, string> | undefined,
       enumValues: prop.enum as string[] | undefined,
-      arrayItemType: prop.arrayItemType as "Image" | "File" | undefined,
     };
   });
 };
@@ -298,7 +297,7 @@ const PageContentSheet = () => {
   const isMultipleAsset = React.useMemo(() => {
     if (!isViewingAsset || !assetFieldName) return false;
     const prop = (currentSchema as any)?.properties?.[assetFieldName];
-    return prop?.arrayItemType === "Image" || prop?.arrayItemType === "File";
+    return prop?.fieldType === "ImageList" || prop?.fieldType === "FileList";
   }, [isViewingAsset, assetFieldName, currentSchema]);
 
   // Track open (once per session) + reset dirty flag for block_edited

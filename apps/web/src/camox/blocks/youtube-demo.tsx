@@ -23,7 +23,7 @@ const youtubeDemo = createBlock({
     facade: Type.Image({
       title: "Facade",
     }),
-    chapters: Type.RepeatableItem({
+    chapters: Type.Repeater({
       content: {
         timestamp: Type.String({
           default: "0:00",

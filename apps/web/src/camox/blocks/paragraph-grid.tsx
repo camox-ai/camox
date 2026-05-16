@@ -22,10 +22,9 @@ const paragraphGrid = createBlock({
       default: "A muted continuation that frames the section in one or two sentences.",
       title: "Description",
     }),
-    paragraphs: Type.RepeatableItem({
+    paragraphs: Type.Repeater({
       content: {
-        logos: Type.Image({
-          multiple: true,
+        logos: Type.ImageList({
           defaultItems: 2,
           title: "Logos",
         }),
@@ -76,9 +75,9 @@ function ParagraphGridComponent() {
           {(item) => (
             <div className="flex flex-col gap-3">
               <div className="flex flex-row flex-wrap items-center gap-3">
-                <item.MultipleAssets name="logos">
+                <item.ImageList name="logos">
                   {(props) => <img {...props} className="size-8 object-contain" />}
-                </item.MultipleAssets>
+                </item.ImageList>
               </div>
               <p className="text-foreground text-lg leading-snug font-semibold tracking-tight sm:text-xl">
                 <item.Field name="title">{(props) => <span {...props} />}</item.Field>

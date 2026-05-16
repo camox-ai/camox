@@ -23,7 +23,7 @@ const illustratedFeatures = createBlock({
         "A focused toolkit that gets out of your way, so you can move from idea to launch without the usual friction.",
       title: "Description",
     }),
-    items: Type.RepeatableItem({
+    items: Type.Repeater({
       content: {
         title: Type.String({
           default: "Built for speed.",

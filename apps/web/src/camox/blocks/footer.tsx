@@ -8,7 +8,7 @@ const footer = createBlock({
   description: "A footer at the bottom of a page with a site name and navigation links.",
   content: {
     title: Type.String({ default: "Camox" }),
-    links: Type.RepeatableItem({
+    links: Type.Repeater({
       content: {
         link: Type.Link({
           default: { text: "Footer link", href: "#", newTab: false },

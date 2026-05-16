@@ -17,11 +17,10 @@ const sellingPointsGrid = createBlock({
       default: "Why choose us.",
       title: "Title",
     }),
-    items: Type.RepeatableItem({
+    items: Type.Repeater({
       content: {
-        icons: Type.Image({
+        icons: Type.ImageList({
           title: "Icons",
-          multiple: true,
           defaultItems: 1,
         }),
         title: Type.String({
@@ -66,9 +65,9 @@ function SellingPointsGridComponent() {
             {(item) => (
               <div className="bg-background flex h-full flex-col p-5">
                 <div className="mb-2 flex flex-row items-center gap-2">
-                  <item.MultipleAssets name="icons">
+                  <item.ImageList name="icons">
                     {(props) => <img {...props} className="size-8 object-contain" />}
-                  </item.MultipleAssets>
+                  </item.ImageList>
                 </div>
                 <item.Field name="title">
                   {(props) => (

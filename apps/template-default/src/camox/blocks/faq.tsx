@@ -13,7 +13,7 @@ const faq = createBlock({
   description:
     "Use this block to answer common questions about the product, pricing, or company. Place it near the bottom of a page to address objections before a conversion section.",
   content: {
-    items: Type.RepeatableItem({
+    items: Type.Repeater({
       content: {
         question: Type.String({
           default: "What is your refund policy?",

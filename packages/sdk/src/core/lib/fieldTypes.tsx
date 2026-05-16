@@ -24,10 +24,6 @@ type TreeDoubleClickParams = {
   fieldName: string;
 };
 
-type SchemaFieldMeta = {
-  arrayItemType?: string;
-};
-
 const fieldTypesDictionary = {
   String: {
     label: "String",
@@ -45,16 +41,12 @@ const fieldTypesDictionary = {
       previewStore.send({ type: "openBlockContentSheet", blockId });
     },
   },
-  RepeatableItem: {
-    label: "Repeatable item",
+  Repeater: {
+    label: "Repeater",
     isScalar: false,
     isContentEditable: false,
     hasOwnView: false,
-    getIcon: ({ arrayItemType }: SchemaFieldMeta) => {
-      if (arrayItemType === "Image") return (props: LucideProps) => <ImagesIcon {...props} />;
-      if (arrayItemType === "File") return (props: LucideProps) => <FileIcon {...props} />;
-      return (props: LucideProps) => <ListIcon {...props} />;
-    },
+    getIcon: () => (props: LucideProps) => <ListIcon {...props} />,
     getLabel: (_value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) =>
       schemaTitle ?? fieldName,
     onTreeDoubleClick: ({ blockId }: TreeDoubleClickParams) => {
@@ -148,23 +140,29 @@ const fieldTypesDictionary = {
       previewStore.send({ type: "openBlockContentSheet", blockId });
     },
   },
-  MultipleAssets: {
-    label: "Multiple assets",
+  ImageList: {
+    label: "Image list",
     isScalar: false,
     isContentEditable: false,
     hasOwnView: true,
-    getIcon: ({ arrayItemType }: SchemaFieldMeta) => {
-      if (arrayItemType === "File") return (props: LucideProps) => <FileIcon {...props} />;
-      return (props: LucideProps) => <ImagesIcon {...props} />;
-    },
+    getIcon: () => (props: LucideProps) => <ImagesIcon {...props} />,
     getLabel: (_value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) =>
       schemaTitle ?? fieldName,
-    onTreeDoubleClick: (
-      { blockId, fieldName }: TreeDoubleClickParams,
-      { arrayItemType }: SchemaFieldMeta,
-    ) => {
-      const fieldType = arrayItemType === "File" ? "File" : "Image";
-      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType });
+    onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
+      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType: "Image" });
+      previewStore.send({ type: "openBlockContentSheet", blockId });
+    },
+  },
+  FileList: {
+    label: "File list",
+    isScalar: false,
+    isContentEditable: false,
+    hasOwnView: true,
+    getIcon: () => (props: LucideProps) => <FileIcon {...props} />,
+    getLabel: (_value: unknown, { schemaTitle, fieldName }: FieldLabelMeta) =>
+      schemaTitle ?? fieldName,
+    onTreeDoubleClick: ({ blockId, fieldName }: TreeDoubleClickParams) => {
+      previewStore.send({ type: "selectBlockField", blockId, fieldName, fieldType: "File" });
       previewStore.send({ type: "openBlockContentSheet", blockId });
     },
   },
@@ -175,14 +173,14 @@ const fieldTypesDictionary = {
     isScalar: boolean;
     isContentEditable: boolean;
     hasOwnView: boolean;
-    getIcon: (meta: SchemaFieldMeta) => (props: LucideProps) => React.ReactNode;
+    getIcon: () => (props: LucideProps) => React.ReactNode;
     getLabel: (value: unknown, meta: FieldLabelMeta) => string;
-    onTreeDoubleClick: (params: TreeDoubleClickParams, meta: SchemaFieldMeta) => void;
+    onTreeDoubleClick: (params: TreeDoubleClickParams) => void;
   }
 >;
 
 type FieldTypesDictionary = typeof fieldTypesDictionary;
 type FieldType = keyof FieldTypesDictionary;
 
-export type { FieldType, FieldLabelMeta, SchemaFieldMeta };
+export type { FieldType, FieldLabelMeta };
 export { fieldTypesDictionary };

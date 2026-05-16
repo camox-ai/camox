@@ -19,7 +19,7 @@ const navbar = createBlock({
         newTab: false,
       },
     }),
-    links: Type.RepeatableItem({
+    links: Type.Repeater({
       content: {
         link: Type.Link({
           default: { text: "Link", href: "#", newTab: false },

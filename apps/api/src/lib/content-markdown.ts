@@ -142,7 +142,7 @@ function resolveField(schema: any, value: unknown, ctx: SettingsContext): string
     return url || undefined;
   }
 
-  if (fieldType === "MultipleAssets") {
+  if (fieldType === "ImageList" || fieldType === "FileList") {
     if (!Array.isArray(value)) return undefined;
     const leafSchema = schema?.items;
     if (!leafSchema) return undefined;
@@ -158,7 +158,7 @@ function resolveField(schema: any, value: unknown, ctx: SettingsContext): string
     return itemParts.length > 0 ? itemParts.join("\n") : undefined;
   }
 
-  if (fieldType === "RepeatableItem") {
+  if (fieldType === "Repeater") {
     if (!Array.isArray(value)) return undefined;
     const itemSchema = schema?.items?.properties;
     if (!itemSchema) return undefined;

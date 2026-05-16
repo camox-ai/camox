@@ -20,11 +20,10 @@ const statistics = createBlock({
         "Camox empowers developers to build and deploy websites with unprecedented speed and flexibility. Our platform handles millions of page views and serves content globally with enterprise-grade reliability.",
       title: "Description",
     }),
-    statistics: Type.RepeatableItem({
+    statistics: Type.Repeater({
       content: {
-        icons: Type.Image({
+        icons: Type.ImageList({
           title: "Icons",
-          multiple: true,
           defaultItems: 1,
         }),
         number: Type.String({
@@ -105,9 +104,9 @@ function StatisticsComponent() {
                     <div className={`w-0.5 ${borderClass}`} />
                     <div className="flex flex-col">
                       <div className="flex flex-row gap-2">
-                        <stat.MultipleAssets name="icons">
+                        <stat.ImageList name="icons">
                           {(props) => <img {...props} className="mb-2 size-8 object-contain" />}
-                        </stat.MultipleAssets>
+                        </stat.ImageList>
                       </div>
                       <stat.Field name="number">
                         {(props) => (

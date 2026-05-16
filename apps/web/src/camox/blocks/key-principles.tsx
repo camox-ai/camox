@@ -19,7 +19,7 @@ const keyPrinciples = createBlock({
       default: "Built around a few key principles.",
       title: "Title",
     }),
-    items: Type.RepeatableItem({
+    items: Type.Repeater({
       content: {
         title: Type.String({
           default: "Context Server",
