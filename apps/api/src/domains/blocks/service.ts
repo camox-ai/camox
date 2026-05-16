@@ -277,25 +277,35 @@ async function assembleBlockContent(db: Database, blockId: number) {
   const block = await db.select().from(blocks).where(eq(blocks.id, blockId)).get();
   if (!block) return null;
 
-  // Get block definition for content schema and field order
+  // Get block definition for content schema and field order. Scope by
+  // environmentId — the same blockId can exist with different shapes across
+  // environments (e.g. mid-migration).
   let projectId: number | null = null;
+  let environmentId: number | null = null;
   if (block.pageId) {
     const page = await db.select().from(pages).where(eq(pages.id, block.pageId)).get();
     projectId = page?.projectId ?? null;
+    environmentId = page?.environmentId ?? null;
   } else if (block.layoutId) {
     const layout = await db.select().from(layouts).where(eq(layouts.id, block.layoutId)).get();
     projectId = layout?.projectId ?? null;
+    environmentId = layout?.environmentId ?? null;
   }
 
-  const def = projectId
-    ? await db
-        .select()
-        .from(blockDefinitions)
-        .where(
-          and(eq(blockDefinitions.projectId, projectId), eq(blockDefinitions.blockId, block.type)),
-        )
-        .get()
-    : null;
+  const def =
+    projectId && environmentId
+      ? await db
+          .select()
+          .from(blockDefinitions)
+          .where(
+            and(
+              eq(blockDefinitions.projectId, projectId),
+              eq(blockDefinitions.environmentId, environmentId),
+              eq(blockDefinitions.blockId, block.type),
+            ),
+          )
+          .get()
+      : null;
 
   const contentSchema = (def?.contentSchema as Record<string, any>) ?? null;
   const fieldOrder = contentSchema?.properties
@@ -677,11 +687,18 @@ export async function getPageMarkdown(
   const page = await ctx.db.select().from(pages).where(eq(pages.id, pageId)).get();
   if (!page) throw new ORPCError("NOT_FOUND");
 
-  // Get block definitions for content schemas and toMarkdown templates
+  // Get block definitions for content schemas and toMarkdown templates. Scope
+  // by environmentId — the same blockId can exist with different shapes across
+  // environments (e.g. mid-migration).
   const defs = await ctx.db
     .select()
     .from(blockDefinitions)
-    .where(eq(blockDefinitions.projectId, page.projectId));
+    .where(
+      and(
+        eq(blockDefinitions.projectId, page.projectId),
+        eq(blockDefinitions.environmentId, page.environmentId),
+      ),
+    );
   const schemaByType = new Map<
     string,
     { title: string; properties: Record<string, any>; toMarkdown?: readonly string[] }
@@ -837,12 +854,15 @@ export async function createBlock(ctx: ServiceContext, rawInput: z.input<typeof 
 
   // Look up the block definition's content schema and normalize inline repeatable
   // arrays into seeds, so the agent (and any caller) can produce a flat shape.
+  // Scope by environmentId — the same blockId can exist with different shapes
+  // across environments (e.g. mid-migration).
   const def = await ctx.db
     .select()
     .from(blockDefinitions)
     .where(
       and(
         eq(blockDefinitions.projectId, access.page.projectId),
+        eq(blockDefinitions.environmentId, access.page.environmentId),
         eq(blockDefinitions.blockId, type),
       ),
     )
@@ -964,13 +984,18 @@ export async function updateBlockContent(
   const now = Date.now();
 
   // Look up the block definition's content schema so the patch helper can detect
-  // Repeater fields and apply replace-within-field semantics.
+  // Repeater fields and apply replace-within-field semantics. Scope by
+  // environmentId — definitions are per-environment, and the same blockId can
+  // exist in dev and prod with different shapes (e.g. mid-migration from
+  // `Type.RepeatableItem` to `Type.Repeater`).
+  const environment = await resolveEnvironment(ctx.db, access.projectId, ctx.environmentName);
   const def = await ctx.db
     .select()
     .from(blockDefinitions)
     .where(
       and(
         eq(blockDefinitions.projectId, access.projectId),
+        eq(blockDefinitions.environmentId, environment.id),
         eq(blockDefinitions.blockId, access.block.type),
       ),
     )
