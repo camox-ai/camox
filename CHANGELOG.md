@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.24.0](https://github.com/camox-ai/camox/compare/camox-v0.23.0...camox-v0.24.0) (2026-05-16)
+
+
+### Features
+
+* custom per page opengraph image ([67bc8e0](https://github.com/camox-ai/camox/commit/67bc8e0c94eb8f27f4133425d2e0ed0e1c5c35d1))
+
+
+### Bug Fixes
+
+* don't optimize files below 50KB ([676b5c2](https://github.com/camox-ai/camox/commit/676b5c26bc85ac4119d976b44962024789930026))
+
+
+### Miscellaneous
+
+* nicer rendering of raster images in AssetCard ([d331336](https://github.com/camox-ai/camox/commit/d3313363e779e0afec1c654bcf14e5235a4685b7))
+
 ## [0.23.0](https://github.com/camox-ai/camox/compare/camox-v0.22.0...camox-v0.23.0) (2026-05-16)
 
 
