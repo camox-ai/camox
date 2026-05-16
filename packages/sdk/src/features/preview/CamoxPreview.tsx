@@ -49,9 +49,16 @@ import { previewStore } from "./previewStore";
 /**
  * Lightweight queryFn for client-side refetches — only fetches structural data.
  * Used after initial SSR load when block caches are already populated.
+ *
+ * Pinned to source: 'draft' because client-side refetches in CamoxPreview
+ * only fire after a studio mutation invalidates the cache. Until Phase 2
+ * adds an explicit source toggle, the studio always shows draft content.
+ * Unauthenticated public visitors never invalidate (no project room) so
+ * this query function doesn't run for them — they stay on the SSR-seeded
+ * 'live' data.
  */
 function pageStructureQueryFn(path: string, projectSlug: string) {
-  return () => getApiClient().pages.getStructure({ path, projectSlug });
+  return () => getApiClient().pages.getStructure({ path, projectSlug, source: "draft" });
 }
 
 /**
@@ -64,7 +71,7 @@ function pageFullQueryFn(
   projectSlug: string,
 ) {
   return async () => {
-    const data = await getApiClient().pages.getByPath({ path, projectSlug });
+    const data = await getApiClient().pages.getByPath({ path, projectSlug, source: "draft" });
     seedBlockCaches(queryClient, data);
     return {
       page: data.page,

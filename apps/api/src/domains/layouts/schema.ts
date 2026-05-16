@@ -14,6 +14,10 @@ export const layouts = sqliteTable(
       .references(() => environments.id),
     layoutId: text("layout_id").notNull(),
     description: text(),
+    // FK to layout_checkpoints.id is declared in checkpoints-schema.ts to avoid
+    // the circular import between layouts and layout_checkpoints.
+    livePublishedCheckpointId: int("live_published_checkpoint_id"),
+    contentUpdatedAt: int("content_updated_at").notNull(),
     createdAt: int("created_at").notNull(),
     updatedAt: int("updated_at").notNull(),
   },

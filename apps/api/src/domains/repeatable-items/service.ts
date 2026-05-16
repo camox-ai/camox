@@ -10,6 +10,10 @@ import { z } from "zod";
 import { assertBlockAccess, assertRepeatableItemAccess } from "../../authorization";
 import type { Database } from "../../db";
 import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
+import {
+  bumpContentUpdatedAt,
+  bumpContentUpdatedAtForBlock,
+} from "../../lib/bump-content-updated-at";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
 import { blockDefinitions, blocks, files, repeatableItems } from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
@@ -375,6 +379,8 @@ export async function createRepeatableItem(
     }
   }
 
+  await bumpContentUpdatedAt(ctx.db, access.block);
+
   ctx.waitUntil(
     scheduleAiJob(ctx.env.AI_JOB_SCHEDULER, {
       entityTable: "repeatableItems",
@@ -426,6 +432,8 @@ export async function updateRepeatableItemContent(
     .returning()
     .get();
 
+  await bumpContentUpdatedAtForBlock(ctx.db, access.item.blockId);
+
   ctx.waitUntil(
     scheduleAiJob(ctx.env.AI_JOB_SCHEDULER, {
       entityTable: "repeatableItems",
@@ -464,6 +472,8 @@ export async function updateRepeatableItemSettings(
     .where(eq(repeatableItems.id, id))
     .returning()
     .get();
+
+  await bumpContentUpdatedAtForBlock(ctx.db, access.item.blockId);
 
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
@@ -521,6 +531,7 @@ export async function updateRepeatableItemPosition(
     .where(eq(repeatableItems.id, id))
     .returning()
     .get();
+  await bumpContentUpdatedAtForBlock(ctx.db, access.item.blockId);
   // Granular invalidation: only refetch the parent block bundle
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
@@ -573,6 +584,7 @@ export async function duplicateRepeatableItem(
     })
     .returning()
     .get();
+  await bumpContentUpdatedAtForBlock(ctx.db, original.blockId);
   // Granular invalidation: refetch the parent block bundle (includes new item)
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
@@ -633,6 +645,7 @@ export async function deleteRepeatableItem(
     .where(eq(repeatableItems.id, id))
     .returning()
     .get();
+  await bumpContentUpdatedAtForBlock(ctx.db, blockId);
   // Granular invalidation: refetch the parent block bundle (item removed)
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,

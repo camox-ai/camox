@@ -107,6 +107,7 @@ export async function syncLayouts(ctx: ServiceContext, rawInput: z.input<typeof 
             environmentId: environment.id,
             layoutId: def.layoutId,
             description: def.description,
+            contentUpdatedAt: now,
             createdAt: now,
             updatedAt: now,
           })

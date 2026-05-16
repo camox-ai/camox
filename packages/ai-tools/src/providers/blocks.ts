@@ -42,7 +42,9 @@ export const blocksProvider: ToolProvider = (ctx): ToolDefinition[] => [
       "Fetch a single block by id. Returns the block (with `_itemId` markers injected for each repeatable field), the full list of `repeatableItems` (each with its own `id`), and any referenced `files`. " +
       "Use this before editing a single field inside a repeatable item — pass each item's `id` back as `_itemId` on the `editBlock` items array. Any existing item not referenced by `_itemId` in the patch is deleted, so the round-trip is the only safe way to update one item without losing the others (and their file references, settings, and positions).",
     inputSchema: getBlockInput,
-    handler: (input) => getBlock(ctx, getBlockInput.parse(input)),
+    // Agent tools read draft state — the agent is editing the user's
+    // in-progress draft, not the public snapshot. Phase 1 of Draft & Publish.
+    handler: (input) => getBlock(ctx, { ...getBlockInput.parse(input), source: "draft" }),
   },
   {
     name: "createBlock",

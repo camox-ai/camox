@@ -309,10 +309,14 @@ export async function replicateEnvironment(
 
   const layoutsMap = new Map<number, number>();
   for (const row of sourceLayouts) {
-    const { id, environmentId: _envId, ...rest } = row;
+    const { id, environmentId: _envId, livePublishedCheckpointId: _liveCk, ...rest } = row;
+    // Drop the source's live pointer — it references checkpoint rows that
+    // belong to the source env. Replicated rows in the target start with no
+    // published checkpoint (Phase 1 contract; Phase 3+ will reintroduce a
+    // per-environment publish action that fills this in).
     const inserted = await ctx.db
       .insert(layouts)
-      .values({ ...rest, environmentId: target.id })
+      .values({ ...rest, environmentId: target.id, livePublishedCheckpointId: null })
       .returning()
       .get();
     layoutsMap.set(id, inserted.id);
@@ -341,7 +345,14 @@ export async function replicateEnvironment(
 
   const pagesMap = new Map<number, number>();
   for (const row of sortPagesByDepth(sourcePages)) {
-    const { id, environmentId: _envId, parentPageId, layoutId, ...rest } = row;
+    const {
+      id,
+      environmentId: _envId,
+      parentPageId,
+      layoutId,
+      livePublishedCheckpointId: _liveCk,
+      ...rest
+    } = row;
     const newLayoutId = layoutsMap.get(layoutId);
     if (newLayoutId === undefined) {
       throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -356,6 +367,7 @@ export async function replicateEnvironment(
         environmentId: target.id,
         parentPageId: newParentPageId,
         layoutId: newLayoutId,
+        livePublishedCheckpointId: null,
       })
       .returning()
       .get();

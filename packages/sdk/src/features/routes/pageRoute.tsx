@@ -69,7 +69,7 @@ export function createMarkdownMiddleware(
     if (prefersMarkdown(accept)) {
       const url = new URL(request.url);
       try {
-        const page = await api.pages.getByPath({ path: url.pathname, projectSlug });
+        const page = await api.pages.getByPath({ path: url.pathname, projectSlug, source: "live" });
         const { markdown } = await api.blocks.getPageMarkdown({ pageId: page.page.id });
         if (markdown) {
           void trackEvent("markdown_served", {
@@ -106,7 +106,13 @@ export function createPageLoader(apiUrl: string, projectSlug: string, environmen
           queryKey: queryKeys.pages.getByPath(location.pathname),
           queryFn: async () => {
             const [data, pagesList] = await Promise.all([
-              serverApi.pages.getByPath({ path: location.pathname, projectSlug }),
+              // Public site: always read from the live (published) snapshot.
+              // A null live pointer surfaces as NOT_FOUND below → 404.
+              serverApi.pages.getByPath({
+                path: location.pathname,
+                projectSlug,
+                source: "live",
+              }),
               serverApi.pages.listBySlug({ projectSlug }).catch(() => null),
             ]);
             seedBlockCaches(context.queryClient, data);

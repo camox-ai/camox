@@ -10,6 +10,10 @@ import { z } from "zod";
 import { assertBlockAccess, assertPageAccess } from "../../authorization";
 import type { Database } from "../../db";
 import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
+import {
+  bumpContentUpdatedAt,
+  bumpContentUpdatedAtForBlocks,
+} from "../../lib/bump-content-updated-at";
 import { contentToMarkdown } from "../../lib/content-markdown";
 import { resolveEnvironment } from "../../lib/resolve-environment";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
@@ -17,14 +21,23 @@ import {
   blockDefinitions,
   blocks,
   files,
+  layoutCheckpoints,
   layouts,
   member,
+  pageCheckpoints,
   pages,
   projects,
   repeatableItems,
 } from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
+import {
+  layoutSnapshotSchema,
+  pageSnapshotSchema,
+  type SnapshotBlock,
+  type SnapshotRepeatableItem,
+} from "../_shared/snapshot-schemas";
 import { buildFileMap, collectFileIds } from "../pages/ai";
+import { pageSourceSchema, type PageSource } from "../pages/service";
 import { normalizeBlockContent, sanitizeAssetValue, type BlockItemSeed } from "./normalize-content";
 
 // --- Input Schemas ---
@@ -39,7 +52,10 @@ const repeatableItemSeedSchema = z.object({
   position: z.string(),
 });
 
-export const getBlockInput = z.object({ id: z.number() });
+export const getBlockInput = z.object({
+  id: z.number(),
+  source: pageSourceSchema.optional().default("live"),
+});
 export const getPageMarkdownInput = z.object({ pageId: z.number() });
 export const getBlocksUsageCountsInput = z.object({ projectId: z.number() });
 export const createBlockInput = z.object({
@@ -602,17 +618,88 @@ async function applyRepeatableFieldPatch(
 
 // --- Reads ---
 
-export async function getBlock(ctx: ServiceContext, rawInput: z.input<typeof getBlockInput>) {
-  const { id } = getBlockInput.parse(rawInput);
-  const block = await ctx.db.select().from(blocks).where(eq(blocks.id, id)).get();
-  if (!block) throw new ORPCError("NOT_FOUND");
+async function loadBlockBundle(
+  ctx: ServiceContext,
+  blockId: number,
+  source: PageSource,
+): Promise<{ block: SnapshotBlock | null; items: SnapshotRepeatableItem[] }> {
+  if (source === "draft") {
+    const block = (await ctx.db.select().from(blocks).where(eq(blocks.id, blockId)).get()) ?? null;
+    if (!block) return { block: null, items: [] };
+    const items = await ctx.db
+      .select()
+      .from(repeatableItems)
+      .where(eq(repeatableItems.blockId, block.id));
+    // The drizzle row shape is structurally compatible with SnapshotBlock /
+    // SnapshotRepeatableItem (same columns, same nullability), so casting
+    // through the union return type is safe here.
+    return { block, items };
+  }
 
-  // Fetch repeatable items for this block
-  const items = await ctx.db
-    .select()
-    .from(repeatableItems)
-    .where(eq(repeatableItems.blockId, block.id));
-  const sorted = items.sort((a, b) => comparePositions(a.position, b.position));
+  // Non-draft: find the parent (page or layout) by the live block row's
+  // parent ids, then pull the block + its items out of the parent's snapshot.
+  const liveBlock = await ctx.db.select().from(blocks).where(eq(blocks.id, blockId)).get();
+  if (!liveBlock) return { block: null, items: [] };
+
+  if (liveBlock.pageId != null) {
+    const parentPage = await ctx.db
+      .select()
+      .from(pages)
+      .where(eq(pages.id, liveBlock.pageId))
+      .get();
+    if (!parentPage) return { block: null, items: [] };
+    const checkpointId =
+      source === "live" ? parentPage.livePublishedCheckpointId : source.checkpointId;
+    if (checkpointId == null) return { block: null, items: [] };
+    const checkpoint = await ctx.db
+      .select()
+      .from(pageCheckpoints)
+      .where(eq(pageCheckpoints.id, checkpointId))
+      .get();
+    if (!checkpoint) return { block: null, items: [] };
+    if (typeof source === "object" && checkpoint.pageId !== parentPage.id) {
+      return { block: null, items: [] };
+    }
+    const snapshot = pageSnapshotSchema.parse(JSON.parse(checkpoint.snapshot));
+    const block = snapshot.blocks.find((b) => b.id === blockId) ?? null;
+    if (!block) return { block: null, items: [] };
+    return { block, items: snapshot.repeatableItems.filter((i) => i.blockId === blockId) };
+  }
+  if (liveBlock.layoutId != null) {
+    const parentLayout = await ctx.db
+      .select()
+      .from(layouts)
+      .where(eq(layouts.id, liveBlock.layoutId))
+      .get();
+    if (!parentLayout) return { block: null, items: [] };
+    // See readLayoutSnapshot in pages/service.ts: in phase 1 the layout side
+    // always follows its own live pointer regardless of source.
+    const checkpointId = parentLayout.livePublishedCheckpointId;
+    if (checkpointId == null) return { block: null, items: [] };
+    const checkpoint = await ctx.db
+      .select()
+      .from(layoutCheckpoints)
+      .where(eq(layoutCheckpoints.id, checkpointId))
+      .get();
+    if (!checkpoint) return { block: null, items: [] };
+    const snapshot = layoutSnapshotSchema.parse(JSON.parse(checkpoint.snapshot));
+    const block = snapshot.blocks.find((b) => b.id === blockId) ?? null;
+    if (!block) return { block: null, items: [] };
+    return { block, items: snapshot.repeatableItems.filter((i) => i.blockId === blockId) };
+  }
+  return { block: null, items: [] };
+}
+
+export async function getBlock(ctx: ServiceContext, rawInput: z.input<typeof getBlockInput>) {
+  const { id, source } = getBlockInput.parse(rawInput);
+  // For non-draft reads, locate the block + its items inside the parent
+  // page/layout's snapshot rather than the live tables. Mildly wasteful — we
+  // parse the whole snapshot to pull one block — but blocks.get against
+  // 'live' / { checkpointId } is never the hot path. The edit loop stays on
+  // 'draft'.
+  const { block, items: sourcedItems } = await loadBlockBundle(ctx, id, source);
+  if (!block) throw new ORPCError("NOT_FOUND");
+  const sorted = sourcedItems.sort((a, b) => comparePositions(a.position, b.position));
 
   // Build a map of parentItemId → grouped children by fieldName
   const childrenByParent = new Map<number | null, Map<string, typeof sorted>>();
@@ -950,6 +1037,8 @@ export async function createBlock(ctx: ServiceContext, rawInput: z.input<typeof 
     }
   }
 
+  await bumpContentUpdatedAt(ctx.db, { pageId });
+
   ctx.waitUntil(
     scheduleAiJob(ctx.env.AI_JOB_SCHEDULER, {
       entityTable: "blocks",
@@ -1011,6 +1100,8 @@ export async function updateBlockContent(
     .returning()
     .get();
 
+  await bumpContentUpdatedAt(ctx.db, access.block);
+
   ctx.waitUntil(
     scheduleAiJob(ctx.env.AI_JOB_SCHEDULER, {
       entityTable: "blocks",
@@ -1052,6 +1143,7 @@ export async function updateBlockSettings(
     .where(eq(blocks.id, id))
     .returning()
     .get();
+  await bumpContentUpdatedAt(ctx.db, access.block);
   // Granular invalidation: only refetch this block, not the entire page
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
@@ -1108,6 +1200,7 @@ export async function updateBlockPosition(
     .where(eq(blocks.id, id))
     .returning()
     .get();
+  await bumpContentUpdatedAt(ctx.db, access.block);
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
@@ -1130,6 +1223,7 @@ export async function deleteBlock(ctx: ServiceContext, rawInput: z.input<typeof 
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const result = await ctx.db.delete(blocks).where(eq(blocks.id, id)).returning().get();
+  await bumpContentUpdatedAt(ctx.db, access.block);
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
@@ -1168,6 +1262,8 @@ export async function deleteBlocks(
   if (authorizedBlocks.length !== blockIds.length) {
     throw new ORPCError("NOT_FOUND");
   }
+  // Bump first — once the rows are gone, we can't recover their parents.
+  await bumpContentUpdatedAtForBlocks(ctx.db, blockIds);
   const result = await ctx.db.delete(blocks).where(inArray(blocks.id, blockIds)).returning();
   const projectId = authorizedBlocks[0]?.projectId;
   if (projectId) {
@@ -1256,6 +1352,7 @@ export async function duplicateBlock(
     })
     .returning()
     .get();
+  await bumpContentUpdatedAt(ctx.db, original);
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,

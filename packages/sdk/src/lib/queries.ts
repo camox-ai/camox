@@ -93,9 +93,13 @@ export const layoutQueries = {
 };
 
 export const blockQueries = {
+  // source: 'draft' — see CamoxPreview.pageStructureQueryFn for the full
+  // explanation. Block-level refetches happen only inside the studio (after a
+  // mutation invalidates the cache); public visitors keep the SSR-seeded
+  // 'live' data and never reach this query function.
   get: (id: number) => ({
     ...getOrpc().blocks.get.queryOptions({
-      input: { id },
+      input: { id, source: "draft" as const },
       staleTime: Infinity,
     }),
     queryKey: queryKeys.blocks.get(id),

@@ -8,8 +8,25 @@ import { assertPageAccess, getAuthorizedProject } from "../../authorization";
 import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
 import { resolveEnvironment } from "../../lib/resolve-environment";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
-import { blockDefinitions, blocks, layouts, pages, projects, repeatableItems } from "../../schema";
+import {
+  blockDefinitions,
+  blocks,
+  layoutCheckpoints,
+  layouts,
+  pageCheckpoints,
+  pages,
+  projects,
+  repeatableItems,
+} from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
+import {
+  layoutSnapshotSchema,
+  pageSnapshotSchema,
+  type LayoutSnapshot,
+  type PageSnapshot,
+  type SnapshotBlock,
+  type SnapshotRepeatableItem,
+} from "../_shared/snapshot-schemas";
 import { normalizeBlockContent } from "../blocks/normalize-content";
 import {
   buildFileMap,
@@ -32,8 +49,28 @@ const DEFAULT_HERO_BLOCK = {
 // Exported so adapters (oRPC, MCP, CLI) share the same canonical contract.
 // Services .parse() them on entry — service is the trust boundary.
 
-export const getPageByPathInput = z.object({ projectSlug: z.string(), path: z.string() });
-export const getPageStructureInput = z.object({ projectSlug: z.string(), path: z.string() });
+// `source` selects the data plane the read serves from. Phase 1 of Draft &
+// Publish: 'live' follows the page's live_published_checkpoint_id and parses
+// the snapshot; 'draft' joins the live rows (today's behavior); the object
+// form pins to a specific checkpoint id. Default is 'live' — the public SDK
+// loader needs that, and the studio overrides explicitly with 'draft'.
+export const pageSourceSchema = z.union([
+  z.literal("live"),
+  z.literal("draft"),
+  z.object({ checkpointId: z.number() }),
+]);
+export type PageSource = z.infer<typeof pageSourceSchema>;
+
+export const getPageByPathInput = z.object({
+  projectSlug: z.string(),
+  path: z.string(),
+  source: pageSourceSchema.optional().default("live"),
+});
+export const getPageStructureInput = z.object({
+  projectSlug: z.string(),
+  path: z.string(),
+  source: pageSourceSchema.optional().default("live"),
+});
 export const listPagesInput = z.object({ projectId: z.number() });
 export const listPagesBySlugInput = z.object({ projectSlug: z.string() });
 export const getPageInput = z.union([
@@ -124,51 +161,71 @@ function injectRepeatableItemMarkers<TBlock extends { id: number; content: unkno
 
 // --- Reads ---
 
-export async function getPageByPath(
+// Snapshot reads return zod-parsed objects; live-row reads return drizzle's
+// $inferSelect. The two are structurally identical (every column has the
+// same shape), so SnapshotBlock / SnapshotRepeatableItem can stand in for
+// both inside composePageView.
+type RawBlock = SnapshotBlock;
+type RawItem = SnapshotRepeatableItem;
+
+async function readPageSnapshot(
   ctx: ServiceContext,
-  rawInput: z.input<typeof getPageByPathInput>,
-) {
-  const { path: fullPath, projectSlug } = getPageByPathInput.parse(rawInput);
-  const db = ctx.db;
+  pageRow: typeof pages.$inferSelect,
+  source: PageSource,
+): Promise<PageSnapshot | null> {
+  let checkpointId: number | null = null;
+  if (source === "live") {
+    checkpointId = pageRow.livePublishedCheckpointId;
+  } else if (typeof source === "object") {
+    checkpointId = source.checkpointId;
+  }
+  if (checkpointId == null) return null;
 
-  const project = await db.select().from(projects).where(eq(projects.slug, projectSlug)).get();
-  if (!project) throw new ORPCError("NOT_FOUND");
-
-  const environment = await resolveEnvironment(db, project.id, ctx.environmentName);
-
-  const page = await db
+  const checkpoint = await ctx.db
     .select()
-    .from(pages)
-    .where(and(eq(pages.fullPath, fullPath), eq(pages.environmentId, environment.id)))
+    .from(pageCheckpoints)
+    .where(eq(pageCheckpoints.id, checkpointId))
     .get();
-  if (!page) throw new ORPCError("NOT_FOUND");
+  if (!checkpoint) return null;
+  // When the caller pinned to a specific checkpoint id, refuse cross-page
+  // reads so a leaked id can't be used to fetch a different page's content.
+  if (typeof source === "object" && checkpoint.pageId !== pageRow.id) return null;
 
-  const pageBlocks = sortByPosition(
-    await db.select().from(blocks).where(eq(blocks.pageId, page.id)),
-  );
+  return pageSnapshotSchema.parse(JSON.parse(checkpoint.snapshot));
+}
 
-  const layout = page.layoutId
-    ? await db.select().from(layouts).where(eq(layouts.id, page.layoutId)).get()
-    : null;
+async function readLayoutSnapshot(
+  ctx: ServiceContext,
+  layoutRow: typeof layouts.$inferSelect,
+): Promise<LayoutSnapshot | null> {
+  // Phase 1 contract: when composing a non-draft page read, the layout side
+  // always resolves through its own live pointer. `{ checkpointId }` on a
+  // page doesn't carry a layout-checkpoint reference yet (that lands when
+  // entries arrive, see plans/draft-publish.md "Forward Compatibility").
+  if (layoutRow.livePublishedCheckpointId == null) return null;
+  const checkpoint = await ctx.db
+    .select()
+    .from(layoutCheckpoints)
+    .where(eq(layoutCheckpoints.id, layoutRow.livePublishedCheckpointId))
+    .get();
+  if (!checkpoint) return null;
+  return layoutSnapshotSchema.parse(JSON.parse(checkpoint.snapshot));
+}
 
-  const layoutBlocks = layout
-    ? sortByPosition(await db.select().from(blocks).where(eq(blocks.layoutId, layout.id)))
-    : [];
+function composePageView(args: {
+  page: typeof pages.$inferSelect;
+  project: typeof projects.$inferSelect;
+  layout: typeof layouts.$inferSelect | null;
+  pageBlocks: RawBlock[];
+  layoutBlocks: RawBlock[];
+  allItems: RawItem[];
+  fileRows: Map<number, typeof import("../../schema").files.$inferSelect>;
+}) {
+  const { page, project, layout, pageBlocks, layoutBlocks, allItems, fileRows } = args;
 
   const allBlocks = [...pageBlocks, ...layoutBlocks];
-  const allBlockIds = allBlocks.map((b) => b.id);
 
-  const allItems =
-    allBlockIds.length > 0
-      ? sortByPosition(
-          await db
-            .select()
-            .from(repeatableItems)
-            .where(inArray(repeatableItems.blockId, allBlockIds)),
-        )
-      : [];
-
-  const itemsByBlock = new Map<number, typeof allItems>();
+  const itemsByBlock = new Map<number, RawItem[]>();
   for (const item of allItems) {
     const list = itemsByBlock.get(item.blockId) ?? [];
     list.push(item);
@@ -180,16 +237,6 @@ export async function getPageByPath(
   );
   const blocksWithMarkers = normalizedBlocks.map(({ block }) => block);
   const itemsWithMarkers = normalizedBlocks.flatMap(({ items }) => items);
-
-  const fileIds = new Set<number>();
-  for (const block of blocksWithMarkers) {
-    collectFileIds(block.content as Record<string, unknown>, fileIds);
-  }
-  for (const item of itemsWithMarkers) {
-    collectFileIds(item.content as Record<string, unknown>, fileIds);
-  }
-
-  const fileRows = await buildFileMap(db, fileIds);
 
   const blockIds = pageBlocks.map((b) => b.id);
   const beforeBlockIds = layoutBlocks.filter((b) => b.placement === "before").map((b) => b.id);
@@ -210,11 +257,11 @@ export async function getPageByPath(
   };
 }
 
-export async function getPageStructure(
+export async function getPageByPath(
   ctx: ServiceContext,
-  rawInput: z.input<typeof getPageStructureInput>,
+  rawInput: z.input<typeof getPageByPathInput>,
 ) {
-  const { path: fullPath, projectSlug } = getPageStructureInput.parse(rawInput);
+  const { path: fullPath, projectSlug, source } = getPageByPathInput.parse(rawInput);
   const db = ctx.db;
 
   const project = await db.select().from(projects).where(eq(projects.slug, projectSlug)).get();
@@ -229,36 +276,134 @@ export async function getPageStructure(
     .get();
   if (!page) throw new ORPCError("NOT_FOUND");
 
-  const pageBlocks = sortByPosition(
-    await db
-      .select({ id: blocks.id, position: blocks.position })
-      .from(blocks)
-      .where(eq(blocks.pageId, page.id)),
-  );
-
   const layout = page.layoutId
-    ? await db.select().from(layouts).where(eq(layouts.id, page.layoutId)).get()
+    ? ((await db.select().from(layouts).where(eq(layouts.id, page.layoutId)).get()) ?? null)
     : null;
 
-  const layoutBlocks = layout
-    ? sortByPosition(
-        await db
-          .select({ id: blocks.id, position: blocks.position, placement: blocks.placement })
-          .from(blocks)
-          .where(eq(blocks.layoutId, layout.id)),
-      )
-    : [];
+  let pageBlocks: RawBlock[];
+  let layoutBlocks: RawBlock[];
+  let allItems: RawItem[];
+
+  if (source === "draft") {
+    pageBlocks = sortByPosition(await db.select().from(blocks).where(eq(blocks.pageId, page.id)));
+    layoutBlocks = layout
+      ? sortByPosition(await db.select().from(blocks).where(eq(blocks.layoutId, layout.id)))
+      : [];
+    const allBlockIds = [...pageBlocks, ...layoutBlocks].map((b) => b.id);
+    allItems =
+      allBlockIds.length > 0
+        ? sortByPosition(
+            await db
+              .select()
+              .from(repeatableItems)
+              .where(inArray(repeatableItems.blockId, allBlockIds)),
+          )
+        : [];
+  } else {
+    const pageSnapshot = await readPageSnapshot(ctx, page, source);
+    if (!pageSnapshot) throw new ORPCError("NOT_FOUND");
+    pageBlocks = pageSnapshot.blocks;
+    const pageItems = pageSnapshot.repeatableItems;
+
+    let layoutItems: RawItem[] = [];
+    if (layout) {
+      const layoutSnapshot = await readLayoutSnapshot(ctx, layout);
+      layoutBlocks = layoutSnapshot?.blocks ?? [];
+      layoutItems = layoutSnapshot?.repeatableItems ?? [];
+    } else {
+      layoutBlocks = [];
+    }
+    allItems = [...pageItems, ...layoutItems];
+  }
+
+  const fileIds = new Set<number>();
+  for (const block of [...pageBlocks, ...layoutBlocks]) {
+    collectFileIds(block.content as Record<string, unknown>, fileIds);
+  }
+  for (const item of allItems) {
+    collectFileIds(item.content as Record<string, unknown>, fileIds);
+  }
+
+  const fileRows = await buildFileMap(db, fileIds);
+
+  return composePageView({
+    page,
+    project,
+    layout,
+    pageBlocks,
+    layoutBlocks,
+    allItems,
+    fileRows,
+  });
+}
+
+export async function getPageStructure(
+  ctx: ServiceContext,
+  rawInput: z.input<typeof getPageStructureInput>,
+) {
+  const { path: fullPath, projectSlug, source } = getPageStructureInput.parse(rawInput);
+  const db = ctx.db;
+
+  const project = await db.select().from(projects).where(eq(projects.slug, projectSlug)).get();
+  if (!project) throw new ORPCError("NOT_FOUND");
+
+  const environment = await resolveEnvironment(db, project.id, ctx.environmentName);
+
+  const page = await db
+    .select()
+    .from(pages)
+    .where(and(eq(pages.fullPath, fullPath), eq(pages.environmentId, environment.id)))
+    .get();
+  if (!page) throw new ORPCError("NOT_FOUND");
+
+  const layout = page.layoutId
+    ? ((await db.select().from(layouts).where(eq(layouts.id, page.layoutId)).get()) ?? null)
+    : null;
+
+  let pageBlockOrder: { id: number; position: string }[];
+  let layoutBlockOrder: { id: number; position: string; placement: "before" | "after" | null }[];
+
+  if (source === "draft") {
+    pageBlockOrder = sortByPosition(
+      await db
+        .select({ id: blocks.id, position: blocks.position })
+        .from(blocks)
+        .where(eq(blocks.pageId, page.id)),
+    );
+    layoutBlockOrder = layout
+      ? sortByPosition(
+          await db
+            .select({ id: blocks.id, position: blocks.position, placement: blocks.placement })
+            .from(blocks)
+            .where(eq(blocks.layoutId, layout.id)),
+        )
+      : [];
+  } else {
+    const pageSnapshot = await readPageSnapshot(ctx, page, source);
+    if (!pageSnapshot) throw new ORPCError("NOT_FOUND");
+    pageBlockOrder = pageSnapshot.blocks.map((b) => ({ id: b.id, position: b.position }));
+    if (layout) {
+      const layoutSnapshot = await readLayoutSnapshot(ctx, layout);
+      layoutBlockOrder = (layoutSnapshot?.blocks ?? []).map((b) => ({
+        id: b.id,
+        position: b.position,
+        placement: b.placement,
+      }));
+    } else {
+      layoutBlockOrder = [];
+    }
+  }
 
   return {
-    page: { ...page, blockIds: pageBlocks.map((b) => b.id) },
+    page: { ...page, blockIds: pageBlockOrder.map((b) => b.id) },
     projectName: project.name,
     project: { id: project.id, updatedAt: project.updatedAt },
     layout: layout
       ? {
           id: layout.id,
           layoutId: layout.layoutId,
-          beforeBlockIds: layoutBlocks.filter((b) => b.placement === "before").map((b) => b.id),
-          afterBlockIds: layoutBlocks.filter((b) => b.placement === "after").map((b) => b.id),
+          beforeBlockIds: layoutBlockOrder.filter((b) => b.placement === "before").map((b) => b.id),
+          afterBlockIds: layoutBlockOrder.filter((b) => b.placement === "after").map((b) => b.id),
         }
       : null,
   };
@@ -377,6 +522,7 @@ export async function createPage(ctx: ServiceContext, rawInput: z.input<typeof c
       fullPath,
       parentPageId: parentPageId ?? null,
       layoutId,
+      contentUpdatedAt: now,
       createdAt: now,
       updatedAt: now,
     })
