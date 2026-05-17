@@ -21,6 +21,13 @@ export function useAdminShortcuts() {
       if (event.key.toLowerCase() === "l" && !event.metaKey && !event.altKey && !event.shiftKey) {
         if (event.repeat) return;
         if (checkIfInputFocused()) return;
+        // While previewing a non-draft source the lock is forced on and the
+        // user can't toggle it themselves. Swallow the keypress so the user
+        // doesn't trigger any side effect.
+        if (previewStore.getSnapshot().context.previewSource !== "draft") {
+          event.preventDefault();
+          return;
+        }
         event.preventDefault();
         if (previousLockState.current === null) {
           lockKeyDownTime.current = Date.now();
@@ -89,6 +96,7 @@ export function useAdminShortcuts() {
     const handleMessage = (event: MessageEvent) => {
       // Handle L key hold/release forwarded from iframe
       if (event.data?.type === "holdLockContent") {
+        if (previewStore.getSnapshot().context.previewSource !== "draft") return;
         if (previousLockState.current === null) {
           lockKeyDownTime.current = Date.now();
           previousLockState.current = previewStore.getSnapshot().context.isContentLocked;

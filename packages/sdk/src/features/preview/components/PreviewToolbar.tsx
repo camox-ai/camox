@@ -16,6 +16,8 @@ export const PreviewToolbar = () => {
   const isEditingLocked = useSelector(previewStore, (state) => state.context.isContentLocked);
   const isEditingPanelOpen = useSelector(previewStore, (state) => state.context.isSidebarOpen);
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
+  const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
+  const isPreviewingNonDraft = previewSource !== "draft";
   const isPageContentSheetOpen = useSelector(
     previewStore,
     (state) => state.context.isPageContentSheetOpen,
@@ -63,6 +65,7 @@ export const PreviewToolbar = () => {
               <Toggle
                 data-state={isEditingLocked ? "on" : "off"}
                 pressed={isEditingLocked}
+                disabled={isPreviewingNonDraft}
                 onPressedChange={() => previewStore.send({ type: "toggleLockContent" })}
                 variant="outline"
               />
@@ -71,7 +74,13 @@ export const PreviewToolbar = () => {
             <Lock />
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent>
-            Toggle edit mode <Kbd>L</Kbd>
+            {isPreviewingNonDraft ? (
+              "Switch to draft to edit"
+            ) : (
+              <>
+                Toggle edit mode <Kbd>L</Kbd>
+              </>
+            )}
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>
         <Tooltip.Tooltip>

@@ -14,6 +14,7 @@ import { generateKeyBetween } from "fractional-indexing";
 import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
+import { useRequireDraftSource } from "@/core/hooks/useRequireDraftSource";
 import { useProjectSlug } from "@/lib/auth";
 import { usePageBlocks } from "@/lib/normalized-data";
 import {
@@ -36,6 +37,7 @@ const AddBlockSheet = () => {
   const { pathname } = useLocation();
   const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
   const pagePathname = peekedPagePathname ?? pathname;
+  const requireDraft = useRequireDraftSource();
 
   const createBlock = useMutation({
     ...blockMutations.create(),
@@ -168,6 +170,7 @@ const AddBlockSheet = () => {
 
   const handleAddBlock = async (block: Block) => {
     if (!page) return;
+    if (!requireDraft()) return;
 
     const afterPosition =
       peekedBlockPosition === ""

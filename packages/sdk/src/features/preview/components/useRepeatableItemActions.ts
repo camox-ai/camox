@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { generateKeyBetween } from "fractional-indexing";
 import * as React from "react";
 
+import { useRequireDraftSource } from "@/core/hooks/useRequireDraftSource";
 import type { NormalizedItem } from "@/lib/normalized-data";
 import { blockQueries, repeatableItemMutations } from "@/lib/queries";
 
@@ -114,6 +115,7 @@ export const useRepeatableItemActions = ({
 }: UseRepeatableItemActionsArgs) => {
   const createRepeatableItem = useMutation(repeatableItemMutations.create());
   const deleteRepeatableItem = useMutation(repeatableItemMutations.delete());
+  const requireDraft = useRequireDraftSource();
 
   const canAdd =
     arraySchema != null &&
@@ -124,6 +126,7 @@ export const useRepeatableItemActions = ({
 
   const addItem = (options?: AddItemOptions) => {
     if (!arraySchema) return;
+    if (!requireDraft()) return;
     const itemsSchema = arraySchema.items;
     const defaultContent = buildDefaultContent(itemsSchema?.properties);
     const defaultSettings = arraySchema.defaultItemSettings;
@@ -148,6 +151,7 @@ export const useRepeatableItemActions = ({
   };
 
   const removeItem = (itemId: number, options?: { onSuccess?: () => void }) => {
+    if (!requireDraft()) return;
     deleteRepeatableItem.mutate(
       { id: itemId },
       {

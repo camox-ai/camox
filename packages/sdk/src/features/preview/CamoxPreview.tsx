@@ -28,6 +28,7 @@ import { AddBlockSheet } from "./components/AddBlockSheet";
 import { AgentChatSheet } from "./components/AgentChatSheet";
 import { BlockErrorBoundary } from "./components/BlockErrorBoundary";
 import { CreatePageModal } from "./components/CreatePageModal";
+import { DraftSwitchDialog } from "./components/DraftSwitchDialog";
 import { EditPageModal } from "./components/EditPageModal";
 import { PageContentSheet } from "./components/PageContentSheet";
 import { PagePicker } from "./components/PagePicker";
@@ -329,28 +330,6 @@ const LiveContentSwitch = ({
 };
 
 /* -------------------------------------------------------------------------------------------------
- * useAutoSwitchToDraftOnEdit
- *
- * Any mutation the studio fires is a draft-side write — including ones not
- * directly bound to the current page (file uploads, repeatable item edits,
- * etc.). When the user is previewing 'live' and starts editing, we silently
- * flip back to 'draft' so the UI shows the changes they're making. Plan:
- * "auto-switch back to Draft on first edit, with no warning".
- * -----------------------------------------------------------------------------------------------*/
-
-function useAutoSwitchToDraftOnEdit() {
-  const queryClient = useQueryClient();
-  React.useEffect(() => {
-    const cache = queryClient.getMutationCache();
-    const unsubscribe = cache.subscribe((event) => {
-      if (event.type !== "added") return;
-      previewStore.send({ type: "ensureDraftSource" });
-    });
-    return unsubscribe;
-  }, [queryClient]);
-}
-
-/* -------------------------------------------------------------------------------------------------
  * useHydrateDraftCache
  *
  * SSR seeds the `'draft'` cache slot with the live snapshot data so the studio
@@ -406,7 +385,6 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
   const isSidebarOpen = useSelector(previewStore, (state) => state.context.isSidebarOpen);
   const pageData = usePreviewedPage();
-  useAutoSwitchToDraftOnEdit();
   useHydrateDraftCache();
 
   React.useEffect(() => {
@@ -508,6 +486,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       <AgentChatSheet />
       <CreatePageModal />
       <EditPageModal />
+      <DraftSwitchDialog />
     </div>
   );
 };

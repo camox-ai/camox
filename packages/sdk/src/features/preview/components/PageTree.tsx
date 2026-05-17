@@ -27,6 +27,7 @@ import { useSelector } from "@xstate/store-react";
 import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react";
 import * as React from "react";
 
+import { useRequireDraftSource } from "@/core/hooks/useRequireDraftSource";
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
 import { type NormalizedBlock, usePageBlocks } from "@/lib/normalized-data";
 import { blockQueries } from "@/lib/queries";
@@ -381,9 +382,13 @@ const animateLayoutChanges: AnimateLayoutChanges = (args) => {
 
 const SortableBlock = ({ block }: SortableBlockProps) => {
   const [gripPopoverOpen, setGripPopoverOpen] = React.useState(false);
+  const previewSource = usePreviewSource();
+  const requireDraft = useRequireDraftSource();
+  const isReadOnly = previewSource !== "draft";
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: String(block.id),
     animateLayoutChanges,
+    disabled: isReadOnly,
   });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -394,6 +399,31 @@ const SortableBlock = ({ block }: SortableBlockProps) => {
   const isBlockFocused = useSelector(
     previewStore,
     (state) => state.context.selection?.blockId === block.id,
+  );
+
+  const gripButton = (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      className={cn(
+        "text-muted-foreground hover:text-foreground flex",
+        isReadOnly ? "cursor-not-allowed opacity-50" : "cursor-grab active:cursor-grabbing",
+      )}
+      {...(isReadOnly ? {} : attributes)}
+      {...(isReadOnly ? {} : listeners)}
+      onClick={
+        isReadOnly
+          ? (e: React.MouseEvent) => {
+              e.preventDefault();
+              e.stopPropagation();
+              requireDraft();
+            }
+          : undefined
+      }
+    >
+      <span className="sr-only">Click and use arrow keys to reorder</span>
+      <GripVertical className="h-4 w-4" />
+    </Button>
   );
 
   return (
@@ -411,33 +441,39 @@ const SortableBlock = ({ block }: SortableBlockProps) => {
             shouldShowHover={ctx.shouldShowHover}
             shouldShowActive={ctx.shouldShowActive}
           >
-            <BlockActionsPopover
-              block={block}
-              open={gripPopoverOpen}
-              onOpenChange={setGripPopoverOpen}
-            >
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground hover:text-foreground flex cursor-grab active:cursor-grabbing"
-                {...attributes}
-                {...listeners}
+            {isReadOnly ? (
+              gripButton
+            ) : (
+              <BlockActionsPopover
+                block={block}
+                open={gripPopoverOpen}
+                onOpenChange={setGripPopoverOpen}
               >
-                <span className="sr-only">Click and use arrow keys to reorder</span>
-                <GripVertical className="h-4 w-4" />
-              </Button>
-            </BlockActionsPopover>
+                {gripButton}
+              </BlockActionsPopover>
+            )}
             <BlockTreeItemTrigger
               displayText={block.summary || block.type}
               onClick={ctx.toggleSelection}
             />
-            <BlockActionsPopover
-              block={block}
-              open={ctx.ellipsisPopoverOpen}
-              onOpenChange={ctx.setEllipsisPopoverOpen}
-            >
-              <BlockTreeItemEllipsis open={ctx.ellipsisPopoverOpen} />
-            </BlockActionsPopover>
+            {isReadOnly ? (
+              <BlockTreeItemEllipsis
+                open={false}
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  requireDraft();
+                }}
+              />
+            ) : (
+              <BlockActionsPopover
+                block={block}
+                open={ctx.ellipsisPopoverOpen}
+                onOpenChange={ctx.setEllipsisPopoverOpen}
+              >
+                <BlockTreeItemEllipsis open={ctx.ellipsisPopoverOpen} />
+              </BlockActionsPopover>
+            )}
           </BlockTreeItemHeader>
         </Accordion.Header>
         <BlockTreeItemContent block={block} />
@@ -459,6 +495,9 @@ const LayoutBlockItem = ({ block, layoutName }: LayoutBlockItemProps) => {
   const camoxApp = useCamoxApp();
   const blockDef = camoxApp.getBlockById(block.type);
   const ctx = useBlockTreeItem(block);
+  const previewSource = usePreviewSource();
+  const requireDraft = useRequireDraftSource();
+  const isReadOnly = previewSource !== "draft";
   const displayText = blockDef?._internal.title ?? block.type;
   const isBlockFocused = useSelector(
     previewStore,
@@ -491,15 +530,26 @@ const LayoutBlockItem = ({ block, layoutName }: LayoutBlockItemProps) => {
               </Tooltip>
             </div>
             <BlockTreeItemTrigger displayText={displayText} onClick={ctx.toggleSelection} />
-            <BlockActionsPopover
-              block={block}
-              open={ctx.ellipsisPopoverOpen}
-              onOpenChange={ctx.setEllipsisPopoverOpen}
-              isLayoutBlock
-              layoutPlacement={block.placement as "before" | "after"}
-            >
-              <BlockTreeItemEllipsis open={ctx.ellipsisPopoverOpen} />
-            </BlockActionsPopover>
+            {isReadOnly ? (
+              <BlockTreeItemEllipsis
+                open={false}
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  requireDraft();
+                }}
+              />
+            ) : (
+              <BlockActionsPopover
+                block={block}
+                open={ctx.ellipsisPopoverOpen}
+                onOpenChange={ctx.setEllipsisPopoverOpen}
+                isLayoutBlock
+                layoutPlacement={block.placement as "before" | "after"}
+              >
+                <BlockTreeItemEllipsis open={ctx.ellipsisPopoverOpen} />
+              </BlockActionsPopover>
+            )}
           </BlockTreeItemHeader>
         </Accordion.Header>
         <BlockTreeItemContent block={block} />
@@ -515,6 +565,8 @@ const LayoutBlockItem = ({ block, layoutName }: LayoutBlockItemProps) => {
 const PageTree = () => {
   const page = usePreviewedPage();
   const previewSource = usePreviewSource();
+  const requireDraft = useRequireDraftSource();
+  const isReadOnly = previewSource !== "draft";
   const {
     pageBlocks,
     beforeBlocks: layoutBeforeBlocks,
@@ -546,6 +598,14 @@ const PageTree = () => {
     const { active, over } = event;
 
     if (!over || active.id === over.id || !page) {
+      setActiveId(null);
+      return;
+    }
+
+    // Defensive: useSortable is `disabled` while previewing non-draft, so a
+    // drop event shouldn't reach here. Still gate on `requireDraft()` in case
+    // a code path slips through — it opens the dialog and aborts the move.
+    if (!requireDraft()) {
       setActiveId(null);
       return;
     }
@@ -649,12 +709,14 @@ const PageTree = () => {
       </div>
       <Button
         variant="secondary"
-        onClick={() =>
+        className={cn(isReadOnly && "opacity-50 cursor-not-allowed")}
+        onClick={() => {
+          if (!requireDraft()) return;
           previewStore.send({
             type: "openAddBlockSheet",
             via: "page-tree",
-          })
-        }
+          });
+        }}
       >
         <Plus />
         Add block

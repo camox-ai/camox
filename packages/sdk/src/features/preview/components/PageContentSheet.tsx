@@ -23,11 +23,13 @@ import { useSelector } from "@xstate/store-react";
 import { CircleMinus, CirclePlus, CornerLeftUp } from "lucide-react";
 import * as React from "react";
 
+import { useRequireDraftSource } from "@/core/hooks/useRequireDraftSource";
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
 import { actionsStore, type Action } from "@/features/provider/actionsStore";
 import { isFileMarker, type NormalizedItem } from "@/lib/normalized-data";
 import { blockMutations, blockQueries, fileQueries, repeatableItemMutations } from "@/lib/queries";
 import { trackClientEvent } from "@/lib/telemetry-client";
+import { cn } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import type { OverlayMessage } from "../overlayMessages";
@@ -144,11 +146,14 @@ const PageContentSheet = () => {
   const updateSettings = useMutation(blockMutations.updateSettings());
   const updateRepeatableContent = useMutation(repeatableItemMutations.updateContent());
   const updateRepeatableSettings = useMutation(repeatableItemMutations.updateSettings());
+  const requireDraft = useRequireDraftSource();
 
   // Get state from store
   const isOpen = useSelector(previewStore, (state) => state.context.isPageContentSheetOpen);
   const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
+  const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
+  const isReadOnly = previewSource !== "draft";
 
   const postToIframe = React.useCallback(
     (message: OverlayMessage) => {
@@ -362,22 +367,24 @@ const PageContentSheet = () => {
   const handleBlockFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
       if (!block) return;
+      if (!requireDraft()) return;
       sessionDirtyRef.current = true;
       updateContent.mutate({ id: block.id, content: { [fieldName]: value } });
     },
-    [block, updateContent],
+    [block, updateContent, requireDraft],
   );
 
   const handleItemFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
       if (currentItemId == null) return;
+      if (!requireDraft()) return;
       sessionDirtyRef.current = true;
       updateRepeatableContent.mutate({
         id: currentItemId,
         content: { [fieldName]: value },
       });
     },
-    [currentItemId, updateRepeatableContent],
+    [currentItemId, updateRepeatableContent, requireDraft],
   );
 
   const activeFieldChangeHandler =
@@ -524,252 +531,270 @@ const PageContentSheet = () => {
           </BreadcrumbList>
         </SheetParts.SheetDescription>
       </SheetParts.SheetHeader>
-      <div className="flex-1 overflow-auto">
-        {isItemLoading ? (
-          <div className="flex h-full items-center justify-center py-12">
-            <Spinner />
-          </div>
-        ) : (
-          <>
-            {currentItemId == null && !fieldHasOwnView && settingsFields.length > 0 && (
-              <div className="border-border space-y-4 border-b px-4 py-4">
-                <Label className="text-muted-foreground">Settings</Label>
-                {settingsFields.map((field) => {
-                  const label = field.label ?? formatFieldName(field.name);
-                  const settingsValues = (block.settings ?? {}) as Record<string, unknown>;
-
-                  if (field.fieldType === "Enum") {
-                    const value =
-                      (settingsValues[field.name] as string | undefined) ??
-                      (blockDef._internal.settingsSchema?.properties?.[field.name] as any)
-                        ?.default ??
-                      "";
-
-                    return (
-                      <div key={field.name} className="space-y-2">
-                        <Label htmlFor={`setting-${field.name}`}>{label}</Label>
-                        <Select
-                          value={value}
-                          onValueChange={(newValue) => {
-                            sessionDirtyRef.current = true;
-                            updateSettings.mutate({
-                              id: block.id,
-                              settings: { [field.name]: newValue },
-                            });
-                          }}
-                        >
-                          <SelectTrigger id={`setting-${field.name}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {field.enumValues?.map((enumValue) => (
-                              <SelectItem key={enumValue} value={enumValue}>
-                                {field.enumLabels?.[enumValue] ?? enumValue}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    );
-                  }
-
-                  if (field.fieldType === "Boolean") {
-                    const checked =
-                      (settingsValues[field.name] as boolean | undefined) ??
-                      (blockDef._internal.settingsSchema?.properties?.[field.name] as any)
-                        ?.default ??
-                      false;
-
-                    return (
-                      <div key={field.name} className="flex items-center justify-between">
-                        <Label htmlFor={`setting-${field.name}`}>{label}</Label>
-                        <Switch
-                          id={`setting-${field.name}`}
-                          checked={checked}
-                          onCheckedChange={(newValue) => {
-                            sessionDirtyRef.current = true;
-                            updateSettings.mutate({
-                              id: block.id,
-                              settings: { [field.name]: newValue },
-                            });
-                          }}
-                        />
-                      </div>
-                    );
-                  }
-
-                  return null;
-                })}
-              </div>
-            )}
-            {currentItemId != null && !fieldHasOwnView && itemSettingsFields.length > 0 && (
-              <div className="border-border space-y-4 border-b px-4 py-4">
-                <Label className="text-muted-foreground">Settings</Label>
-                {itemSettingsFields.map((field) => {
-                  const label = field.label ?? formatFieldName(field.name);
-                  const itemSettingsValues = (currentItem?.settings ?? {}) as Record<
-                    string,
-                    unknown
-                  >;
-                  const itemSettingsSchemaProps = (itemArraySchema as any)?.itemSettingsSchema
-                    ?.properties as Record<string, any> | undefined;
-
-                  if (field.fieldType === "Enum") {
-                    const value =
-                      (itemSettingsValues[field.name] as string | undefined) ??
-                      (itemSettingsSchemaProps?.[field.name]?.default as string | undefined) ??
-                      "";
-
-                    return (
-                      <div key={field.name} className="space-y-2">
-                        <Label htmlFor={`item-setting-${field.name}`}>{label}</Label>
-                        <Select
-                          value={value}
-                          onValueChange={(newValue) => {
-                            sessionDirtyRef.current = true;
-                            updateRepeatableSettings.mutate({
-                              id: currentItemId,
-                              settings: { [field.name]: newValue },
-                            });
-                          }}
-                        >
-                          <SelectTrigger id={`item-setting-${field.name}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {field.enumValues?.map((enumValue) => (
-                              <SelectItem key={enumValue} value={enumValue}>
-                                {field.enumLabels?.[enumValue] ?? enumValue}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    );
-                  }
-
-                  if (field.fieldType === "Boolean") {
-                    const checked =
-                      (itemSettingsValues[field.name] as boolean | undefined) ??
-                      (itemSettingsSchemaProps?.[field.name]?.default as boolean | undefined) ??
-                      false;
-
-                    return (
-                      <div key={field.name} className="flex items-center justify-between">
-                        <Label htmlFor={`item-setting-${field.name}`}>{label}</Label>
-                        <Switch
-                          id={`item-setting-${field.name}`}
-                          checked={checked}
-                          onCheckedChange={(newValue) => {
-                            sessionDirtyRef.current = true;
-                            updateRepeatableSettings.mutate({
-                              id: currentItemId,
-                              settings: { [field.name]: newValue },
-                            });
-                          }}
-                        />
-                      </div>
-                    );
-                  }
-
-                  return null;
-                })}
-              </div>
-            )}
-            {isViewingAsset && assetFieldName && isMultipleAsset && (
-              <MultipleAssetFieldEditor
-                fieldName={assetFieldName}
-                assetType={assetType}
-                currentData={currentData}
-                onFieldChange={activeFieldChangeHandler}
-              />
-            )}
-            {isViewingAsset && assetFieldName && !isMultipleAsset && (
-              <SingleAssetFieldEditor
-                fieldName={assetFieldName}
-                assetType={assetType}
-                currentData={currentData}
-                onFieldChange={activeFieldChangeHandler}
-              />
-            )}
-            {!isViewingAsset && isViewingLink && linkFieldName && (
-              <div className="px-4 py-4">
-                <LinkFieldEditor
-                  fieldName={linkFieldName}
-                  linkValue={
-                    (currentData[linkFieldName] as Record<string, unknown>) ??
-                    ({
-                      type: "external",
-                      text: "",
-                      href: "",
-                      newTab: false,
-                    } as Record<string, unknown>)
-                  }
-                  onSave={(fieldName, value) => {
-                    activeFieldChangeHandler(fieldName, value);
-                  }}
-                />
-              </div>
-            )}
-            {!isViewingAsset && !isViewingLink && (currentItemId == null || currentItem) && (
-              <ItemFieldsEditor
-                key={currentItemId ?? `block-${block.id}`}
-                schema={currentSchema}
-                data={currentData}
-                blockId={block.id}
-                itemId={currentItemId ?? undefined}
-                onFieldChange={activeFieldChangeHandler}
-                postToIframe={postToIframe}
-                filesMap={filesMap}
-                itemsMap={itemsMap}
-                fieldIdPrefix={fieldIdPrefix}
-                autoFocusFieldName={autoFocusFieldName}
-              />
-            )}
-            {!isViewingAsset && !isViewingLink && currentItemId != null && currentItem && (
-              <div className="border-border flex items-center gap-1 border-t px-4 py-4">
-                {canAddSibling && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground justify-start"
-                    onClick={() => addSibling({ afterPosition: currentItem.position })}
-                  >
-                    <CirclePlus className="h-4 w-4" />
-                    Add item
-                  </Button>
-                )}
-                {canRemoveCurrent && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground justify-start"
-                    onClick={() =>
-                      removeCurrent(currentItemId, {
-                        onSuccess: () => previewStore.send({ type: "selectParent" }),
-                      })
-                    }
-                  >
-                    <CircleMinus className="h-4 w-4" />
-                    Remove item
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground justify-start"
-                  onClick={() => previewStore.send({ type: "selectParent" })}
-                >
-                  <CornerLeftUp className="h-4 w-4" />
-                  Select parent
-                </Button>
-              </div>
-            )}
-          </>
+      <div className="relative flex-1 overflow-auto">
+        {isReadOnly && (
+          <button
+            type="button"
+            aria-label="Switch to draft to edit"
+            className="absolute inset-0 z-10 h-full w-full cursor-not-allowed"
+            onClick={() => previewStore.send({ type: "requestDraftSwitch" })}
+          />
         )}
+        <div className={cn(isReadOnly && "pointer-events-none opacity-50")}>
+          {isItemLoading ? (
+            <div className="flex h-full items-center justify-center py-12">
+              <Spinner />
+            </div>
+          ) : (
+            <>
+              {currentItemId == null && !fieldHasOwnView && settingsFields.length > 0 && (
+                <div className="border-border space-y-4 border-b px-4 py-4">
+                  <Label className="text-muted-foreground">Settings</Label>
+                  {settingsFields.map((field) => {
+                    const label = field.label ?? formatFieldName(field.name);
+                    const settingsValues = (block.settings ?? {}) as Record<string, unknown>;
+
+                    if (field.fieldType === "Enum") {
+                      const value =
+                        (settingsValues[field.name] as string | undefined) ??
+                        (blockDef._internal.settingsSchema?.properties?.[field.name] as any)
+                          ?.default ??
+                        "";
+
+                      return (
+                        <div key={field.name} className="space-y-2">
+                          <Label htmlFor={`setting-${field.name}`}>{label}</Label>
+                          <Select
+                            value={value}
+                            onValueChange={(newValue) => {
+                              if (!requireDraft()) return;
+                              sessionDirtyRef.current = true;
+                              updateSettings.mutate({
+                                id: block.id,
+                                settings: { [field.name]: newValue },
+                              });
+                            }}
+                          >
+                            <SelectTrigger id={`setting-${field.name}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.enumValues?.map((enumValue) => (
+                                <SelectItem key={enumValue} value={enumValue}>
+                                  {field.enumLabels?.[enumValue] ?? enumValue}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    }
+
+                    if (field.fieldType === "Boolean") {
+                      const checked =
+                        (settingsValues[field.name] as boolean | undefined) ??
+                        (blockDef._internal.settingsSchema?.properties?.[field.name] as any)
+                          ?.default ??
+                        false;
+
+                      return (
+                        <div key={field.name} className="flex items-center justify-between">
+                          <Label htmlFor={`setting-${field.name}`}>{label}</Label>
+                          <Switch
+                            id={`setting-${field.name}`}
+                            checked={checked}
+                            onCheckedChange={(newValue) => {
+                              if (!requireDraft()) return;
+                              sessionDirtyRef.current = true;
+                              updateSettings.mutate({
+                                id: block.id,
+                                settings: { [field.name]: newValue },
+                              });
+                            }}
+                          />
+                        </div>
+                      );
+                    }
+
+                    return null;
+                  })}
+                </div>
+              )}
+              {currentItemId != null && !fieldHasOwnView && itemSettingsFields.length > 0 && (
+                <div className="border-border space-y-4 border-b px-4 py-4">
+                  <Label className="text-muted-foreground">Settings</Label>
+                  {itemSettingsFields.map((field) => {
+                    const label = field.label ?? formatFieldName(field.name);
+                    const itemSettingsValues = (currentItem?.settings ?? {}) as Record<
+                      string,
+                      unknown
+                    >;
+                    const itemSettingsSchemaProps = (itemArraySchema as any)?.itemSettingsSchema
+                      ?.properties as Record<string, any> | undefined;
+
+                    if (field.fieldType === "Enum") {
+                      const value =
+                        (itemSettingsValues[field.name] as string | undefined) ??
+                        (itemSettingsSchemaProps?.[field.name]?.default as string | undefined) ??
+                        "";
+
+                      return (
+                        <div key={field.name} className="space-y-2">
+                          <Label htmlFor={`item-setting-${field.name}`}>{label}</Label>
+                          <Select
+                            value={value}
+                            onValueChange={(newValue) => {
+                              if (!requireDraft()) return;
+                              sessionDirtyRef.current = true;
+                              updateRepeatableSettings.mutate({
+                                id: currentItemId,
+                                settings: { [field.name]: newValue },
+                              });
+                            }}
+                          >
+                            <SelectTrigger id={`item-setting-${field.name}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.enumValues?.map((enumValue) => (
+                                <SelectItem key={enumValue} value={enumValue}>
+                                  {field.enumLabels?.[enumValue] ?? enumValue}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    }
+
+                    if (field.fieldType === "Boolean") {
+                      const checked =
+                        (itemSettingsValues[field.name] as boolean | undefined) ??
+                        (itemSettingsSchemaProps?.[field.name]?.default as boolean | undefined) ??
+                        false;
+
+                      return (
+                        <div key={field.name} className="flex items-center justify-between">
+                          <Label htmlFor={`item-setting-${field.name}`}>{label}</Label>
+                          <Switch
+                            id={`item-setting-${field.name}`}
+                            checked={checked}
+                            onCheckedChange={(newValue) => {
+                              if (!requireDraft()) return;
+                              sessionDirtyRef.current = true;
+                              updateRepeatableSettings.mutate({
+                                id: currentItemId,
+                                settings: { [field.name]: newValue },
+                              });
+                            }}
+                          />
+                        </div>
+                      );
+                    }
+
+                    return null;
+                  })}
+                </div>
+              )}
+              {isViewingAsset && assetFieldName && isMultipleAsset && (
+                <MultipleAssetFieldEditor
+                  fieldName={assetFieldName}
+                  assetType={assetType}
+                  currentData={currentData}
+                  onFieldChange={activeFieldChangeHandler}
+                />
+              )}
+              {isViewingAsset && assetFieldName && !isMultipleAsset && (
+                <SingleAssetFieldEditor
+                  fieldName={assetFieldName}
+                  assetType={assetType}
+                  currentData={currentData}
+                  onFieldChange={activeFieldChangeHandler}
+                />
+              )}
+              {!isViewingAsset && isViewingLink && linkFieldName && (
+                <div className="px-4 py-4">
+                  <LinkFieldEditor
+                    fieldName={linkFieldName}
+                    linkValue={
+                      (currentData[linkFieldName] as Record<string, unknown>) ??
+                      ({
+                        type: "external",
+                        text: "",
+                        href: "",
+                        newTab: false,
+                      } as Record<string, unknown>)
+                    }
+                    onSave={(fieldName, value) => {
+                      activeFieldChangeHandler(fieldName, value);
+                    }}
+                  />
+                </div>
+              )}
+              {!isViewingAsset && !isViewingLink && (currentItemId == null || currentItem) && (
+                <ItemFieldsEditor
+                  key={currentItemId ?? `block-${block.id}`}
+                  schema={currentSchema}
+                  data={currentData}
+                  blockId={block.id}
+                  itemId={currentItemId ?? undefined}
+                  onFieldChange={activeFieldChangeHandler}
+                  postToIframe={postToIframe}
+                  filesMap={filesMap}
+                  itemsMap={itemsMap}
+                  fieldIdPrefix={fieldIdPrefix}
+                  autoFocusFieldName={autoFocusFieldName}
+                />
+              )}
+              {!isViewingAsset && !isViewingLink && currentItemId != null && currentItem && (
+                <div className="border-border flex items-center gap-1 border-t px-4 py-4">
+                  {canAddSibling && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground justify-start"
+                      onClick={() => {
+                        if (!requireDraft()) return;
+                        addSibling({ afterPosition: currentItem.position });
+                      }}
+                    >
+                      <CirclePlus className="h-4 w-4" />
+                      Add item
+                    </Button>
+                  )}
+                  {canRemoveCurrent && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground justify-start"
+                      onClick={() => {
+                        if (!requireDraft()) return;
+                        removeCurrent(currentItemId, {
+                          onSuccess: () => previewStore.send({ type: "selectParent" }),
+                        });
+                      }}
+                    >
+                      <CircleMinus className="h-4 w-4" />
+                      Remove item
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground justify-start"
+                    onClick={() => previewStore.send({ type: "selectParent" })}
+                  >
+                    <CornerLeftUp className="h-4 w-4" />
+                    Select parent
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </PreviewSideSheet>
   );

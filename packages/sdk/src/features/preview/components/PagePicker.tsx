@@ -47,14 +47,14 @@ const StatusBadge = ({ page }: { page: Page }) => {
   // = modified (calls out unpublished changes).
   if (page.status === "draft") {
     return (
-      <Badge variant="outline" className="shrink-0">
+      <Badge variant="outline" className="h-4 shrink-0 px-1.5">
         Draft
       </Badge>
     );
   }
   if (page.status === "published") {
     return (
-      <Badge variant="secondary" className="shrink-0">
+      <Badge variant="secondary" className="h-4 shrink-0 px-1.5">
         Published
       </Badge>
     );
@@ -62,7 +62,7 @@ const StatusBadge = ({ page }: { page: Page }) => {
 
   const reason = page.modifiedReason;
   const badge = (
-    <Badge variant="default" className="shrink-0">
+    <Badge variant="default" className="h-4 shrink-0 px-1.5">
       Modified
     </Badge>
   );
@@ -210,12 +210,14 @@ const PagePicker = () => {
                         <p className="truncate">
                           {page.metaTitle ?? formatPathSegment(page.pathSegment)}
                         </p>
-                        <p className="text-muted-foreground truncate font-mono text-xs">
-                          {page.fullPath}
-                        </p>
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <p className="text-muted-foreground truncate font-mono text-xs">
+                            {page.fullPath}
+                          </p>
+                          <StatusBadge page={page} />
+                        </div>
                       </div>
                     </div>
-                    <StatusBadge page={page} />
                     <div className="hidden gap-1 group-data-[selected=true]/item:flex">
                       <Button
                         variant="ghost"

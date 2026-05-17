@@ -47,7 +47,14 @@ A single `Switch` labeled "Live content" in the studio sidebar, immediately besi
 
 Both states render through the same component — only the loader's `source` argument differs. This is the user-facing payoff of Phase 1's shape-identity property.
 
-The current source is held in the page-editor state and threaded into every read in that page view (the `pages.getByPath` call and the seeded per-block reads from `seedBlockCaches`). Block mutations are always issued against the draft regardless of which source is being previewed — toggling the switch on should not silently disable editing UI in a confusing way; either block edits while in Live preview, or flip back to Draft on first edit. Lean toward the latter (auto-switch back to Draft on first edit, with no warning) — matches user intent.
+The current source is held in the page-editor state and threaded into every read in that page view (the `pages.getByPath` call and the seeded per-block reads from `seedBlockCaches`).
+
+**Read-only while previewing Live.** Block mutations always land on the draft, but allowing edits to fire silently while the user is staring at the Live snapshot is too confusing — the canvas wouldn't reflect what just changed. So while `previewSource !== 'draft'`:
+
+- `isContentLocked` is forced to `true` (the existing toolbar/L-key lock). Its prior value is remembered and restored on return to draft. The user can't manually toggle the lock — the PreviewToolbar button and the `L` shortcut are both disabled.
+- In-canvas overlays disappear (the existing `useIsEditable` plumbing already gates on `isContentLocked`).
+- Every external edit entry point (PageTree drag/click, PageContentSheet inputs, AddBlockSheet, `useBlockActionsShortcuts`, repeater add/remove, iframe-forwarded `CAMOX_ADD_BLOCK_REQUEST`) calls a `useRequireDraftSource()` gate. If source is `'draft'` it proceeds; otherwise it opens a "Switch to draft to edit?" `AlertDialog` (`DraftSwitchDialog`, mounted once in `CamoxPreview`). The dialog's only CTA flips `previewSource` to `'draft'` — the original edit attempt is **not** replayed; the user re-issues the edit themselves once they're on draft.
+- Distinction from manual lock: when `isContentLocked` is true _while on draft_, shortcuts/actions stay silent (today's behavior). When `isContentLocked` is true _because_ source ≠ draft, the same paths open the dialog instead. `checkIfAvailable` discriminates with `ctx.isContentLocked && ctx.previewSource === 'draft'`.
 
 ### Cache / invalidation
 
@@ -67,7 +74,10 @@ The page list itself needs to invalidate (or refetch) on any edit that could fli
 - **Edit a block → page flips to "Modified" within one query tick.** Status badge updates in the page list.
 - **Layout cascade.** Edit a block belonging to a layout, every page using that layout flips to "Modified" with the `modifiedReason: 'layout'` tooltip and the correct affected-pages count.
 - **Toggle Live content.** With the switch on, the preview shows the snapshot version (i.e. the state before your edits). With it off, your in-flight changes. Switching is instant — both sources are React-Query cached.
-- **Auto-switch on edit while Live.** Open a page, turn Live content on, click into a block to edit. The switch flips back off. No warning dialog.
+- **Overlays vanish on Live.** Toggling Live on hides every in-canvas editing overlay. The PreviewToolbar lock button and the `L` shortcut are both disabled (tooltip explains why).
+- **Edit attempt while Live opens dialog.** With Live on, every edit path opens the "Switch to draft to edit?" dialog: PageContentSheet inputs (click anywhere in the form area), PageTree drag attempt and grip/ellipsis click, "Add block" button, keyboard shortcuts (Cmd+⌫, Cmd+D, Alt+↑/↓, O, Shift+O). Cancel keeps Live and no mutation runs. Confirm flips source to Draft — the original edit attempt is **not** replayed.
+- **Manual lock vs source lock are distinct.** With source = Draft, manually pressing `L` toggles the lock and silences shortcuts (existing UX). With source = Live, the same shortcuts open the dialog instead of being silent.
+- **Lock state preserved across Live round-trip.** Manually lock on Draft → toggle Live → toggle back to Draft: the manual lock is restored. Manually-unlocked starting state → Live → back to Draft: the user returns to an editable state.
 - **Never-published page.** Create a new page (no publish UI exists yet — do it via the API directly, or temporarily through a test script). Page list shows it as "Draft". Live content switch is disabled. The public site 404s on its path (already true from Phase 1).
 
 ### What's explicitly out of scope for this phase
