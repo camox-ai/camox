@@ -325,7 +325,7 @@ const SearchEnginePreview = ({
   metaTitle,
   metaDescription,
 }: {
-  page: Page;
+  page: Pick<Page, "fullPath">;
   metaTitle: string;
   metaDescription: string;
 }) => {
@@ -365,7 +365,10 @@ const SocialPreviewSection = ({
   layoutId,
   projectName,
 }: {
-  page: Page;
+  page: Pick<
+    Page,
+    "id" | "fullPath" | "metaTitle" | "metaDescription" | "pathSegment" | "customOgImageUrl"
+  >;
   metaTitle: string;
   metaDescription: string;
   layoutId?: string;

@@ -103,7 +103,7 @@ export function createPageLoader(apiUrl: string, projectSlug: string, environmen
     try {
       const [page, origin] = await Promise.all([
         context.queryClient.ensureQueryData({
-          queryKey: queryKeys.pages.getByPath(location.pathname),
+          queryKey: queryKeys.pages.getByPath(location.pathname, "live"),
           queryFn: async () => {
             const [data, pagesList] = await Promise.all([
               // Public site: always read from the live (published) snapshot.
@@ -115,7 +115,23 @@ export function createPageLoader(apiUrl: string, projectSlug: string, environmen
               }),
               serverApi.pages.listBySlug({ projectSlug }).catch(() => null),
             ]);
-            seedBlockCaches(context.queryClient, data);
+            // Seed block caches under 'live' (matches the snapshot source).
+            // The studio's default 'draft' view will fetch on mount if the
+            // user is authenticated, but for public visitors the live caches
+            // serve the entire page render without any client-side fetch.
+            seedBlockCaches(context.queryClient, data, "live");
+            // Also seed 'draft' caches with the same data: pre-edit, draft
+            // and live render identically (the Phase 1 migration guarantees
+            // every page starts with `auto-publish` checkpoint == draft).
+            // This avoids a Suspense flash when the studio mounts on a
+            // freshly-loaded page. The 'draft' cache will refetch on first
+            // draft mutation invalidation, picking up real draft data if it
+            // has since diverged.
+            seedBlockCaches(context.queryClient, data, "draft");
+            context.queryClient.setQueryData(
+              queryKeys.pages.getByPath(location.pathname, "draft"),
+              data,
+            );
             if (pagesList) {
               context.queryClient.setQueryData(queryKeys.pages.list, pagesList);
             }

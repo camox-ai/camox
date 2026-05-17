@@ -6,8 +6,8 @@ import { blocks, layouts, pages } from "../schema";
 /**
  * Bumps `content_updated_at` on the parent page or layout that owns these
  * blocks. Called by every block / repeatable-item mutation so the derived
- * publish status (Phase 2 of Draft & Publish) is a cheap timestamp compare
- * instead of a row scan. One extra UPDATE per mutation on the hot edit path.
+ * publish status is a cheap timestamp compare instead of a row scan. One
+ * extra UPDATE per mutation on the hot edit path.
  */
 export async function bumpContentUpdatedAt(
   db: Database,

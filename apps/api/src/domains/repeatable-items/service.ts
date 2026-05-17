@@ -394,7 +394,11 @@ export async function createRepeatableItem(
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
-    targets: [queryKeys.blocks.get(blockId), queryKeys.blocks.getUsageCounts],
+    targets: [
+      queryKeys.blocks.get(blockId, "draft"),
+      queryKeys.pages.list,
+      queryKeys.blocks.getUsageCounts,
+    ],
   });
 
   return result;
@@ -442,12 +446,12 @@ export async function updateRepeatableItemContent(
       delayMs: 5000,
     }),
   );
-  // Granular invalidation: only refetch the parent block bundle
+  // Granular invalidation: only refetch the parent block bundle (draft source)
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
-    targets: [queryKeys.blocks.get(access.item.blockId)],
+    targets: [queryKeys.blocks.get(access.item.blockId, "draft"), queryKeys.pages.list],
   });
 
   return result;
@@ -479,7 +483,7 @@ export async function updateRepeatableItemSettings(
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
-    targets: [queryKeys.blocks.get(access.item.blockId)],
+    targets: [queryKeys.blocks.get(access.item.blockId, "draft"), queryKeys.pages.list],
   });
 
   return result;
@@ -532,12 +536,12 @@ export async function updateRepeatableItemPosition(
     .returning()
     .get();
   await bumpContentUpdatedAtForBlock(ctx.db, access.item.blockId);
-  // Granular invalidation: only refetch the parent block bundle
+  // Granular invalidation: only refetch the parent block bundle (draft source)
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
-    targets: [queryKeys.blocks.get(access.item.blockId)],
+    targets: [queryKeys.blocks.get(access.item.blockId, "draft"), queryKeys.pages.list],
   });
   return result;
 }
@@ -590,7 +594,11 @@ export async function duplicateRepeatableItem(
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
-    targets: [queryKeys.blocks.get(original.blockId), queryKeys.blocks.getUsageCounts],
+    targets: [
+      queryKeys.blocks.get(original.blockId, "draft"),
+      queryKeys.pages.list,
+      queryKeys.blocks.getUsageCounts,
+    ],
   });
   return result;
 }
@@ -620,7 +628,7 @@ export async function generateRepeatableItemSummary(
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
-    targets: [queryKeys.blocks.get(access.item.blockId), queryKeys.blocks.getUsageCounts],
+    targets: [queryKeys.blocks.get(access.item.blockId, "draft"), queryKeys.blocks.getUsageCounts],
   });
   const updated = await ctx.db
     .select()
@@ -651,7 +659,11 @@ export async function deleteRepeatableItem(
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
-    targets: [queryKeys.blocks.get(blockId), queryKeys.blocks.getUsageCounts],
+    targets: [
+      queryKeys.blocks.get(blockId, "draft"),
+      queryKeys.pages.list,
+      queryKeys.blocks.getUsageCounts,
+    ],
   });
   return result;
 }

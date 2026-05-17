@@ -17,7 +17,10 @@ export function useUpdateBlockPosition() {
   return useMutation({
     ...blockMutations.updatePosition(),
     onMutate: (variables) => {
-      const pageQueryKey = queryKeys.pages.getByPath(pagePathname);
+      // Optimistic updates only touch the draft cache — edits never affect
+      // the live snapshot. The 'live' source slot stays as-is and the
+      // studio's Live preview keeps showing the published version.
+      const pageQueryKey = queryKeys.pages.getByPath(pagePathname, "draft");
       const previousPage = queryClient.getQueryData<PageStructure>(pageQueryKey);
       if (!previousPage) return {};
 
@@ -27,9 +30,10 @@ export function useUpdateBlockPosition() {
       );
 
       // Update the moved block's position in its individual cache
-      const prevBundle = queryClient.getQueryData<BlockBundle>(queryKeys.blocks.get(variables.id));
+      const blockKey = queryKeys.blocks.get(variables.id, "draft");
+      const prevBundle = queryClient.getQueryData<BlockBundle>(blockKey);
       if (prevBundle) {
-        queryClient.setQueryData(queryKeys.blocks.get(variables.id), {
+        queryClient.setQueryData(blockKey, {
           ...prevBundle,
           block: { ...prevBundle.block, position: newPosition },
         });
@@ -42,7 +46,7 @@ export function useUpdateBlockPosition() {
         if (id === variables.id) {
           positions.set(id, newPosition);
         } else {
-          const bundle = queryClient.getQueryData<BlockBundle>(queryKeys.blocks.get(id));
+          const bundle = queryClient.getQueryData<BlockBundle>(queryKeys.blocks.get(id, "draft"));
           if (bundle) positions.set(id, bundle.block.position);
         }
       }
@@ -62,14 +66,19 @@ export function useUpdateBlockPosition() {
     },
     onError: (_error, variables, context) => {
       if (context?.previousPage) {
-        queryClient.setQueryData(queryKeys.pages.getByPath(pagePathname), context.previousPage);
+        queryClient.setQueryData(
+          queryKeys.pages.getByPath(pagePathname, "draft"),
+          context.previousPage,
+        );
       }
       if (context?.prevBundle) {
-        queryClient.setQueryData(queryKeys.blocks.get(variables.id), context.prevBundle);
+        queryClient.setQueryData(queryKeys.blocks.get(variables.id, "draft"), context.prevBundle);
       }
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.pages.getByPath(pagePathname) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.pages.getByPath(pagePathname, "draft"),
+      });
     },
   });
 }

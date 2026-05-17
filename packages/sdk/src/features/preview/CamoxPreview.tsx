@@ -1,6 +1,7 @@
-import { queryKeys } from "@camox/api-contract/query-keys";
+import { queryKeys, type ReadSource } from "@camox/api-contract/query-keys";
 import { Button } from "@camox/ui/button";
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import {
   keepPreviousData,
@@ -17,7 +18,7 @@ import { getApiClient } from "@/lib/api-client";
 import { useIsAuthenticated, useProjectSlug } from "@/lib/auth";
 import { NormalizedDataProvider, seedBlockCaches, usePageBlocks } from "@/lib/normalized-data";
 import { blockQueries, pageQueries, projectQueries } from "@/lib/queries";
-import { formatPathSegment } from "@/lib/utils";
+import { cn, formatPathSegment } from "@/lib/utils";
 
 import { type Action, actionsStore } from "../provider/actionsStore";
 import { useCamoxApp } from "../provider/components/CamoxAppContext";
@@ -50,15 +51,14 @@ import { previewStore } from "./previewStore";
  * Lightweight queryFn for client-side refetches — only fetches structural data.
  * Used after initial SSR load when block caches are already populated.
  *
- * Pinned to source: 'draft' because client-side refetches in CamoxPreview
- * only fire after a studio mutation invalidates the cache. Until Phase 2
- * adds an explicit source toggle, the studio always shows draft content.
- * Unauthenticated public visitors never invalidate (no project room) so
+ * Source is threaded from the studio's source select (previewStore). Each
+ * source has its own cache slot, so toggling Draft↔Live is instant once both
+ * have been seeded. Public visitors never invalidate (no project room) so
  * this query function doesn't run for them — they stay on the SSR-seeded
  * 'live' data.
  */
-function pageStructureQueryFn(path: string, projectSlug: string) {
-  return () => getApiClient().pages.getStructure({ path, projectSlug, source: "draft" });
+function pageStructureQueryFn(path: string, projectSlug: string, source: ReadSource) {
+  return () => getApiClient().pages.getStructure({ path, projectSlug, source });
 }
 
 /**
@@ -69,10 +69,11 @@ function pageFullQueryFn(
   queryClient: ReturnType<typeof useQueryClient>,
   path: string,
   projectSlug: string,
+  source: ReadSource,
 ) {
   return async () => {
-    const data = await getApiClient().pages.getByPath({ path, projectSlug, source: "draft" });
-    seedBlockCaches(queryClient, data);
+    const data = await getApiClient().pages.getByPath({ path, projectSlug, source });
+    seedBlockCaches(queryClient, data, source);
     return {
       page: data.page,
       layout: data.layout,
@@ -87,6 +88,7 @@ export function usePreviewedPage() {
   const queryClient = useQueryClient();
   const projectSlug = useProjectSlug();
   const peekedPagePathname = useSelector(previewStore, (state) => state.context.peekedPagePathname);
+  const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
 
   // When the actual route changes, clear any stale peeked page so it doesn't
   // override the new pathname. This handles the race condition where the
@@ -99,11 +101,13 @@ export function usePreviewedPage() {
     }
   }, [pathname]);
 
-  // Current page: SSR loader seeds block caches on first load.
-  // Client-side refetches (after invalidation) use the lightweight endpoint.
+  // Current page: SSR loader seeds block caches on first load (both 'live'
+  // and 'draft' slots, so the studio's default 'draft' view has data even
+  // before the first edit). Client-side refetches (after invalidation) use
+  // the lightweight endpoint.
   const { data: currentPage } = useSuspenseQuery({
-    queryKey: queryKeys.pages.getByPath(pathname),
-    queryFn: pageStructureQueryFn(pathname, projectSlug),
+    queryKey: queryKeys.pages.getByPath(pathname, previewSource),
+    queryFn: pageStructureQueryFn(pathname, projectSlug, previewSource),
     staleTime: Infinity,
   });
 
@@ -111,8 +115,8 @@ export function usePreviewedPage() {
   // since those blocks may not be in cache yet.
   const isAuthenticated = useIsAuthenticated();
   const { data: peekedPage } = useQuery({
-    queryKey: queryKeys.pages.getByPath(peekedPagePathname ?? ""),
-    queryFn: pageFullQueryFn(queryClient, peekedPagePathname ?? "", projectSlug),
+    queryKey: queryKeys.pages.getByPath(peekedPagePathname ?? "", previewSource),
+    queryFn: pageFullQueryFn(queryClient, peekedPagePathname ?? "", projectSlug, previewSource),
     enabled: isAuthenticated && !!peekedPagePathname,
     placeholderData: keepPreviousData,
     staleTime: Infinity,
@@ -136,7 +140,8 @@ const BlockRenderer = ({
   showAddBlockTop: boolean;
   showAddBlockBottom: boolean;
 }) => {
-  const { data } = useSuspenseQuery(blockQueries.get(blockId));
+  const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
+  const { data } = useSuspenseQuery(blockQueries.get(blockId, previewSource));
   const camoxApp = useCamoxApp();
   const blockDef = camoxApp.getBlockById(data.block.type);
 
@@ -166,8 +171,11 @@ const BlockRenderer = ({
 
 export const PageContent = () => {
   const pageData = usePreviewedPage();
-  const { pageBlocks, beforeBlocks, afterBlocks, layoutFiles, layoutItems } =
-    usePageBlocks(pageData);
+  const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
+  const { pageBlocks, beforeBlocks, afterBlocks, layoutFiles, layoutItems } = usePageBlocks(
+    pageData,
+    previewSource,
+  );
   const peekedBlockPosition = useSelector(
     previewStore,
     (state) => state.context.peekedBlockPosition,
@@ -286,6 +294,113 @@ export const PageContent = () => {
 };
 
 /* -------------------------------------------------------------------------------------------------
+ * SourceSelect — Draft / Live preview toggle
+ * -----------------------------------------------------------------------------------------------*/
+
+const SourceSelect = ({
+  livePublishedCheckpointId,
+}: {
+  livePublishedCheckpointId: number | null;
+}) => {
+  const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
+  // 'Live' isn't a valid preview target for a page that's never been
+  // published — there's no snapshot to render. Disable rather than hide so
+  // the control's position in the toolbar stays stable as the user
+  // navigates between published and unpublished pages.
+  const hasLiveCheckpoint = livePublishedCheckpointId != null;
+
+  return (
+    <Select
+      value={previewSource}
+      onValueChange={(value) => {
+        if (value === "draft" || value === "live") {
+          previewStore.send({ type: "setPreviewSource", source: value });
+        }
+      }}
+    >
+      <SelectTrigger size="sm" className="w-[88px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="end">
+        <SelectItem value="draft">Draft</SelectItem>
+        <SelectItem value="live" disabled={!hasLiveCheckpoint}>
+          Live
+        </SelectItem>
+      </SelectContent>
+    </Select>
+  );
+};
+
+/* -------------------------------------------------------------------------------------------------
+ * useAutoSwitchToDraftOnEdit
+ *
+ * Any mutation the studio fires is a draft-side write — including ones not
+ * directly bound to the current page (file uploads, repeatable item edits,
+ * etc.). When the user is previewing 'live' and starts editing, we silently
+ * flip back to 'draft' so the UI shows the changes they're making. Plan:
+ * "auto-switch back to Draft on first edit, with no warning".
+ * -----------------------------------------------------------------------------------------------*/
+
+function useAutoSwitchToDraftOnEdit() {
+  const queryClient = useQueryClient();
+  React.useEffect(() => {
+    const cache = queryClient.getMutationCache();
+    const unsubscribe = cache.subscribe((event) => {
+      if (event.type !== "added") return;
+      previewStore.send({ type: "ensureDraftSource" });
+    });
+    return unsubscribe;
+  }, [queryClient]);
+}
+
+/* -------------------------------------------------------------------------------------------------
+ * useHydrateDraftCache
+ *
+ * SSR seeds the `'draft'` cache slot with the live snapshot data so the studio
+ * can render immediately on first paint without a Suspense flash. That seed
+ * is stale the moment there's an unpublished edit, though — on refresh the
+ * studio would silently re-render the published version and the user's
+ * in-flight changes would disappear from view (the row in the DB is fine).
+ *
+ * After the initial paint, fetch the real draft data and re-seed the draft
+ * caches. From there, every block invalidation keeps the slot in sync. Only
+ * runs for authenticated users — public visitors stay on the live cache.
+ * -----------------------------------------------------------------------------------------------*/
+
+function useHydrateDraftCache() {
+  const isAuthenticated = useIsAuthenticated();
+  const queryClient = useQueryClient();
+  const projectSlug = useProjectSlug();
+  const { pathname } = useLocation();
+
+  React.useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    void getApiClient()
+      .pages.getByPath({ path: pathname, projectSlug, source: "draft" })
+      .then((data) => {
+        if (cancelled) return;
+        seedBlockCaches(queryClient, data, "draft");
+        queryClient.setQueryData(queryKeys.pages.getByPath(pathname, "draft"), {
+          page: data.page,
+          layout: data.layout,
+          projectName: data.projectName,
+          project: data.project,
+        });
+      })
+      .catch(() => {
+        // A draft fetch failure (network blip, 404 on a just-deleted page) is
+        // non-fatal — the SSR-seeded view stays on screen and the next edit
+        // invalidation will retry. Throwing here would break the studio for a
+        // transient error.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, pathname, projectSlug, queryClient]);
+}
+
+/* -------------------------------------------------------------------------------------------------
  * CamoxPreview
  * -----------------------------------------------------------------------------------------------*/
 
@@ -294,6 +409,8 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
   const isSidebarOpen = useSelector(previewStore, (state) => state.context.isSidebarOpen);
   const pageData = usePreviewedPage();
+  useAutoSwitchToDraftOnEdit();
+  useHydrateDraftCache();
 
   React.useEffect(() => {
     const actions = [
@@ -352,25 +469,28 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       <div className="flex h-full flex-row items-stretch">
         {isSidebarOpen && (
           <div className="flex w-[300px] flex-col border-r-2">
-            <PanelHeader className="flew-row flex gap-2 px-2 py-2">
-              <PagePicker />
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() =>
-                        previewStore.send({ type: "openEditPageModal", pageId: pageData.page.id })
-                      }
-                    />
-                  }
-                >
-                  <Info className="text-muted-foreground size-4" />
-                </TooltipTrigger>
-                <TooltipContent>Page metadata, SEO and markdown</TooltipContent>
-              </Tooltip>
+            <PanelHeader className={cn("flex flex-col gap-2 px-2 py-2")}>
+              <div className="flex flex-row gap-2">
+                <PagePicker />
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() =>
+                          previewStore.send({ type: "openEditPageModal", pageId: pageData.page.id })
+                        }
+                      />
+                    }
+                  >
+                    <Info className="text-muted-foreground size-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>Page metadata, SEO and markdown</TooltipContent>
+                </Tooltip>
+              </div>
+              <SourceSelect livePublishedCheckpointId={pageData.page.livePublishedCheckpointId} />
             </PanelHeader>
             <PanelContent className="flex grow basis-0 flex-col gap-2 overflow-auto p-2">
               <PageTree />

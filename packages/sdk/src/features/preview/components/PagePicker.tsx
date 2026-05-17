@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@camox/ui/alert-dialog";
+import { Badge } from "@camox/ui/badge";
 import { Button } from "@camox/ui/button";
 import {
   Command,
@@ -21,6 +22,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { Skeleton } from "@camox/ui/skeleton";
 import { toast } from "@camox/ui/toaster";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
@@ -33,6 +35,57 @@ import { pageMutations, pageQueries, projectQueries } from "@/lib/queries";
 import { cn, formatPathSegment } from "@/lib/utils";
 
 import { previewStore } from "../previewStore";
+
+/* -------------------------------------------------------------------------------------------------
+ * StatusBadge — Draft / Published / Modified indicator
+ * -----------------------------------------------------------------------------------------------*/
+
+const StatusBadge = ({ page }: { page: Page }) => {
+  // Three visual states map to three badge variants. Plan calls for "three
+  // states, three colors — match whatever the studio's existing badge
+  // primitive is." Outline = neutral draft, secondary = published, default
+  // = modified (calls out unpublished changes).
+  if (page.status === "draft") {
+    return (
+      <Badge variant="outline" className="shrink-0">
+        Draft
+      </Badge>
+    );
+  }
+  if (page.status === "published") {
+    return (
+      <Badge variant="secondary" className="shrink-0">
+        Published
+      </Badge>
+    );
+  }
+
+  const reason = page.modifiedReason;
+  const badge = (
+    <Badge variant="default" className="shrink-0">
+      Modified
+    </Badge>
+  );
+
+  // Only the layout-cascade variants get the explanatory tooltip — for
+  // 'self', the badge is self-explanatory ("you edited this page").
+  if (reason && (reason.reason === "layout" || reason.reason === "both")) {
+    const pluralized = reason.affectedPagesCount === 1 ? "page" : "pages";
+    const headline =
+      reason.reason === "layout"
+        ? `Layout ${reason.layoutHandle} has unpublished changes`
+        : `This page and layout ${reason.layoutHandle} both have unpublished changes`;
+    return (
+      <Tooltip>
+        <TooltipTrigger render={<span className="shrink-0" />}>{badge}</TooltipTrigger>
+        <TooltipContent>
+          {headline} (affects {reason.affectedPagesCount} {pluralized})
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  return badge;
+};
 
 /* -------------------------------------------------------------------------------------------------
  * PagePicker
@@ -162,6 +215,7 @@ const PagePicker = () => {
                         </p>
                       </div>
                     </div>
+                    <StatusBadge page={page} />
                     <div className="hidden gap-1 group-data-[selected=true]/item:flex">
                       <Button
                         variant="ghost"

@@ -1,4 +1,4 @@
-import { queryKeys } from "@camox/api-contract/query-keys";
+import { queryKeys, type ReadSource } from "@camox/api-contract/query-keys";
 
 import { type ApiClient, getApiUrl, getEnvironmentName, getOrpc } from "./api-client";
 import { getAuthCookieHeader } from "./auth";
@@ -33,12 +33,12 @@ export const pageQueries = {
     queryKey: queryKeys.pages.list,
   }),
 
-  getByPath: (fullPath: string, projectSlug: string) => ({
+  getByPath: (fullPath: string, projectSlug: string, source: ReadSource = "draft") => ({
     ...getOrpc().pages.getByPath.queryOptions({
-      input: { path: fullPath, projectSlug },
+      input: { path: fullPath, projectSlug, source },
       staleTime: Infinity,
     }),
-    queryKey: queryKeys.pages.getByPath(fullPath),
+    queryKey: queryKeys.pages.getByPath(fullPath, source),
   }),
 
   getById: (id: number) => ({
@@ -93,16 +93,16 @@ export const layoutQueries = {
 };
 
 export const blockQueries = {
-  // source: 'draft' — see CamoxPreview.pageStructureQueryFn for the full
-  // explanation. Block-level refetches happen only inside the studio (after a
-  // mutation invalidates the cache); public visitors keep the SSR-seeded
-  // 'live' data and never reach this query function.
-  get: (id: number) => ({
+  // Source is split into draft/live cache slots so toggling the studio source
+  // select is instant once both have been populated. The studio's default is
+  // 'draft' (matches today's edit-loop behavior); SSR seeds 'live' for the
+  // public visitor path.
+  get: (id: number, source: ReadSource = "draft") => ({
     ...getOrpc().blocks.get.queryOptions({
-      input: { id, source: "draft" as const },
+      input: { id, source },
       staleTime: Infinity,
     }),
-    queryKey: queryKeys.blocks.get(id),
+    queryKey: queryKeys.blocks.get(id, source),
   }),
 
   getUsageCounts: (projectId: number) => ({

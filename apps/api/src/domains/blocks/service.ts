@@ -1052,7 +1052,12 @@ export async function createBlock(ctx: ServiceContext, rawInput: z.input<typeof 
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.page.projectId,
     targets: [
-      queryKeys.pages.getByPath(access.page.fullPath),
+      // Block create/delete/duplicate restructures the page — refetch the
+      // draft page view. The live snapshot is untouched, so its cache stays.
+      queryKeys.pages.getByPath(access.page.fullPath, "draft"),
+      // Page list refetches so the derived publish-status badge picks up the
+      // new `content_updated_at`.
+      queryKeys.pages.list,
       queryKeys.blocks.getPageMarkdown(pageId),
       queryKeys.blocks.getUsageCounts,
     ],
@@ -1110,13 +1115,15 @@ export async function updateBlockContent(
       delayMs: 5000,
     }),
   );
-  // Granular invalidation: only refetch this block, not the entire page
+  // Granular invalidation: only refetch this block, not the entire page.
+  // Draft source only — the live snapshot doesn't change on edits.
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
     targets: [
-      queryKeys.blocks.get(id),
+      queryKeys.blocks.get(id, "draft"),
+      queryKeys.pages.list,
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
     ],
   });
@@ -1144,13 +1151,15 @@ export async function updateBlockSettings(
     .returning()
     .get();
   await bumpContentUpdatedAt(ctx.db, access.block);
-  // Granular invalidation: only refetch this block, not the entire page
+  // Granular invalidation: only refetch this block, not the entire page.
+  // Draft source only — the live snapshot doesn't change on edits.
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
     targets: [
-      queryKeys.blocks.get(id),
+      queryKeys.blocks.get(id, "draft"),
+      queryKeys.pages.list,
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
     ],
   });
@@ -1207,8 +1216,9 @@ export async function updateBlockPosition(
     projectId: access.projectId,
     targets: [
       ...(access.pagePath
-        ? [queryKeys.pages.getByPath(access.pagePath)]
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
         : [queryKeys.pages.getByPathAll]),
+      queryKeys.pages.list,
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
       queryKeys.blocks.getUsageCounts,
     ],
@@ -1230,8 +1240,9 @@ export async function deleteBlock(ctx: ServiceContext, rawInput: z.input<typeof 
     projectId: access.projectId,
     targets: [
       ...(access.pagePath
-        ? [queryKeys.pages.getByPath(access.pagePath)]
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
         : [queryKeys.pages.getByPathAll]),
+      queryKeys.pages.list,
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
       queryKeys.blocks.getUsageCounts,
     ],
@@ -1271,7 +1282,11 @@ export async function deleteBlocks(
       waitUntil: ctx.waitUntil,
       projectRoomNamespace: ctx.env.ProjectRoom,
       projectId,
-      targets: [queryKeys.pages.getByPathAll, queryKeys.blocks.getUsageCounts],
+      targets: [
+        queryKeys.pages.getByPathAll,
+        queryKeys.pages.list,
+        queryKeys.blocks.getUsageCounts,
+      ],
     });
   }
   return result;
@@ -1302,9 +1317,9 @@ export async function generateBlockSummary(
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
     targets: [
-      queryKeys.blocks.get(id),
+      queryKeys.blocks.get(id, "draft"),
       ...(access.pagePath
-        ? [queryKeys.pages.getByPath(access.pagePath)]
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
         : [queryKeys.pages.getByPathAll]),
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
       queryKeys.blocks.getUsageCounts,
@@ -1359,8 +1374,9 @@ export async function duplicateBlock(
     projectId: access.projectId,
     targets: [
       ...(access.pagePath
-        ? [queryKeys.pages.getByPath(access.pagePath)]
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
         : [queryKeys.pages.getByPathAll]),
+      queryKeys.pages.list,
       ...(original.pageId ? [queryKeys.blocks.getPageMarkdown(original.pageId)] : []),
       queryKeys.blocks.getUsageCounts,
     ],

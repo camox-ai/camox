@@ -39,6 +39,8 @@ import { previewStore } from "../previewStore";
 import { BlockActionsPopover } from "./BlockActionsPopover";
 import { useUpdateBlockPosition } from "./useUpdateBlockPosition";
 
+const usePreviewSource = () => useSelector(previewStore, (state) => state.context.previewSource);
+
 /* -------------------------------------------------------------------------------------------------
  * useEmbedTitle
  * -----------------------------------------------------------------------------------------------*/
@@ -137,7 +139,8 @@ const BlockFields = ({ block }: BlockFieldsProps) => {
 
   const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
-  const { data: blockBundle } = useQuery(blockQueries.get(block.id));
+  const previewSource = usePreviewSource();
+  const { data: blockBundle } = useQuery(blockQueries.get(block.id, previewSource));
 
   let selectedFieldName: string | null = null;
   if (selection?.type === "block-field" && selection.blockId === block.id) {
@@ -511,11 +514,12 @@ const LayoutBlockItem = ({ block, layoutName }: LayoutBlockItemProps) => {
 
 const PageTree = () => {
   const page = usePreviewedPage();
+  const previewSource = usePreviewSource();
   const {
     pageBlocks,
     beforeBlocks: layoutBeforeBlocks,
     afterBlocks: layoutAfterBlocks,
-  } = usePageBlocks(page);
+  } = usePageBlocks(page, previewSource);
   const camoxApp = useCamoxApp();
 
   const updatePosition = useUpdateBlockPosition();

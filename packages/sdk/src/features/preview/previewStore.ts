@@ -47,6 +47,14 @@ export function selectionField(
   return null;
 }
 
+/**
+ * Which side of the draft/publish split the studio is currently previewing.
+ * 'draft' (default) shows in-flight editor changes; 'live' shows visitors'
+ * view (the page's live published checkpoint snapshot). Any edit flips this
+ * back to 'draft' — see `ensureDraftSource` in CamoxPreview.
+ */
+export type PreviewSource = "draft" | "live";
+
 interface PreviewContext {
   isPresentationMode: boolean;
   isSidebarOpen: boolean;
@@ -65,6 +73,7 @@ interface PreviewContext {
   skipPeekedBlockExitAnimation: boolean;
   selection: Selection | null;
   iframeElement: HTMLIFrameElement | null;
+  previewSource: PreviewSource;
 }
 
 export const previewStore = createStore({
@@ -85,6 +94,7 @@ export const previewStore = createStore({
     skipPeekedBlockExitAnimation: false,
     selection: null,
     iframeElement: null,
+    previewSource: "draft",
   } as PreviewContext,
   on: {
     enterPresentationMode: (context, _, enqueue) => {
@@ -286,5 +296,16 @@ export const previewStore = createStore({
       ...context,
       iframeElement: event.element,
     }),
+    setPreviewSource: (context, event: { source: PreviewSource }) => ({
+      ...context,
+      previewSource: event.source,
+    }),
+    /**
+     * Force the preview back to 'draft'. Fired by the global mutation listener
+     * so a stray edit while previewing 'live' silently snaps the studio back
+     * to the source the edit actually lands on — auto-switch back to Draft on
+     * first edit, with no warning.
+     */
+    ensureDraftSource: (context) => ({ ...context, previewSource: "draft" as const }),
   },
 });

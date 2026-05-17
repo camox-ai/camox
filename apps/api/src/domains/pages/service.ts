@@ -1,6 +1,6 @@
 import { queryKeys } from "@camox/api-contract/query-keys";
 import { ORPCError } from "@orpc/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { z } from "zod";
 
@@ -157,6 +157,171 @@ function injectRepeatableItemMarkers<TBlock extends { id: number; content: unkno
   });
 
   return { block: { ...block, content }, items };
+}
+
+// --- Derived publish status ---
+//
+// Status is derived per page at read time — never stored. Cheap timestamp
+// compare, no row scan: the page row carries `content_updated_at` (bumped on
+// every block / repeatable-item mutation), the live checkpoint row carries
+// `created_at`, and the same pair on the layout side feeds the cascade.
+
+export type PageStatus = "draft" | "published" | "modified";
+export type ModifiedReason =
+  | { reason: "self" }
+  | { reason: "layout"; layoutId: number; layoutHandle: string; affectedPagesCount: number }
+  | { reason: "both"; layoutId: number; layoutHandle: string; affectedPagesCount: number };
+
+export type PageStatusInfo = {
+  status: PageStatus;
+  modifiedReason: ModifiedReason | null;
+};
+
+type PageRow = typeof pages.$inferSelect;
+type LayoutRow = typeof layouts.$inferSelect;
+
+function deriveStatus(args: {
+  page: Pick<PageRow, "livePublishedCheckpointId" | "contentUpdatedAt">;
+  pageCheckpointCreatedAt: number | null;
+  layout: Pick<
+    LayoutRow,
+    "id" | "layoutId" | "livePublishedCheckpointId" | "contentUpdatedAt"
+  > | null;
+  layoutCheckpointCreatedAt: number | null;
+  layoutAffectedPagesCount: number;
+}): PageStatusInfo {
+  const {
+    page,
+    pageCheckpointCreatedAt,
+    layout,
+    layoutCheckpointCreatedAt,
+    layoutAffectedPagesCount,
+  } = args;
+
+  // Never been published — no checkpoint pointer, or the checkpoint row is gone.
+  if (page.livePublishedCheckpointId == null || pageCheckpointCreatedAt == null) {
+    return { status: "draft", modifiedReason: null };
+  }
+
+  const pageSelfModified = page.contentUpdatedAt > pageCheckpointCreatedAt;
+  // A layout with no live checkpoint, or with content past its live checkpoint,
+  // counts as modified for the cascade — visitors see the published checkpoint,
+  // so any drift on the layout side puts every dependent page out of sync.
+  const layoutModified =
+    layout != null &&
+    (layout.livePublishedCheckpointId == null ||
+      layoutCheckpointCreatedAt == null ||
+      layout.contentUpdatedAt > layoutCheckpointCreatedAt);
+
+  if (!pageSelfModified && !layoutModified) {
+    return { status: "published", modifiedReason: null };
+  }
+
+  if (pageSelfModified && layoutModified && layout) {
+    return {
+      status: "modified",
+      modifiedReason: {
+        reason: "both",
+        layoutId: layout.id,
+        layoutHandle: layout.layoutId,
+        affectedPagesCount: layoutAffectedPagesCount,
+      },
+    };
+  }
+  if (layoutModified && layout) {
+    return {
+      status: "modified",
+      modifiedReason: {
+        reason: "layout",
+        layoutId: layout.id,
+        layoutHandle: layout.layoutId,
+        affectedPagesCount: layoutAffectedPagesCount,
+      },
+    };
+  }
+  return { status: "modified", modifiedReason: { reason: "self" } };
+}
+
+async function fetchPageStatuses(
+  ctx: ServiceContext,
+  pageRows: PageRow[],
+  environmentId: number,
+): Promise<Map<number, PageStatusInfo>> {
+  const result = new Map<number, PageStatusInfo>();
+  if (pageRows.length === 0) return result;
+  const db = ctx.db;
+
+  const pageCheckpointIds = pageRows
+    .map((p) => p.livePublishedCheckpointId)
+    .filter((id): id is number => id != null);
+  const pageCheckpointCreatedAt = new Map<number, number>();
+  if (pageCheckpointIds.length > 0) {
+    const rows = await db
+      .select({ id: pageCheckpoints.id, createdAt: pageCheckpoints.createdAt })
+      .from(pageCheckpoints)
+      .where(inArray(pageCheckpoints.id, pageCheckpointIds));
+    for (const row of rows) pageCheckpointCreatedAt.set(row.id, row.createdAt);
+  }
+
+  const layoutIds = [
+    ...new Set(pageRows.map((p) => p.layoutId).filter((id): id is number => id != null)),
+  ];
+  const layoutById = new Map<number, LayoutRow>();
+  if (layoutIds.length > 0) {
+    const rows = await db.select().from(layouts).where(inArray(layouts.id, layoutIds));
+    for (const row of rows) layoutById.set(row.id, row);
+  }
+
+  const layoutCheckpointIds = [...layoutById.values()]
+    .map((l) => l.livePublishedCheckpointId)
+    .filter((id): id is number => id != null);
+  const layoutCheckpointCreatedAt = new Map<number, number>();
+  if (layoutCheckpointIds.length > 0) {
+    const rows = await db
+      .select({ id: layoutCheckpoints.id, createdAt: layoutCheckpoints.createdAt })
+      .from(layoutCheckpoints)
+      .where(inArray(layoutCheckpoints.id, layoutCheckpointIds));
+    for (const row of rows) layoutCheckpointCreatedAt.set(row.id, row.createdAt);
+  }
+
+  // Count pages per layout in this environment — surfaces in the "affects N
+  // pages" cascade tooltip. One GROUP BY, all layouts at once.
+  const layoutPageCounts = new Map<number, number>();
+  if (layoutIds.length > 0) {
+    const rows = await db
+      .select({ layoutId: pages.layoutId, count: sql<number>`count(*)` })
+      .from(pages)
+      .where(and(eq(pages.environmentId, environmentId), inArray(pages.layoutId, layoutIds)))
+      .groupBy(pages.layoutId);
+    for (const row of rows) {
+      if (row.layoutId != null) layoutPageCounts.set(row.layoutId, Number(row.count));
+    }
+  }
+
+  for (const page of pageRows) {
+    const layout = page.layoutId != null ? (layoutById.get(page.layoutId) ?? null) : null;
+    const pageCpAt =
+      page.livePublishedCheckpointId != null
+        ? (pageCheckpointCreatedAt.get(page.livePublishedCheckpointId) ?? null)
+        : null;
+    const layoutCpAt =
+      layout?.livePublishedCheckpointId != null
+        ? (layoutCheckpointCreatedAt.get(layout.livePublishedCheckpointId) ?? null)
+        : null;
+    const affected = layout != null ? (layoutPageCounts.get(layout.id) ?? 0) : 0;
+    result.set(
+      page.id,
+      deriveStatus({
+        page,
+        pageCheckpointCreatedAt: pageCpAt,
+        layout,
+        layoutCheckpointCreatedAt: layoutCpAt,
+        layoutAffectedPagesCount: affected,
+      }),
+    );
+  }
+
+  return result;
 }
 
 // --- Reads ---
@@ -326,7 +491,10 @@ export async function getPageByPath(
 
   const fileRows = await buildFileMap(db, fileIds);
 
-  return composePageView({
+  const statuses = await fetchPageStatuses(ctx, [page], environment.id);
+  const statusInfo = statuses.get(page.id) ?? { status: "draft" as const, modifiedReason: null };
+
+  const view = composePageView({
     page,
     project,
     layout,
@@ -335,6 +503,7 @@ export async function getPageByPath(
     allItems,
     fileRows,
   });
+  return { ...view, page: { ...view.page, ...statusInfo } };
 }
 
 export async function getPageStructure(
@@ -394,8 +563,11 @@ export async function getPageStructure(
     }
   }
 
+  const statuses = await fetchPageStatuses(ctx, [page], environment.id);
+  const statusInfo = statuses.get(page.id) ?? { status: "draft" as const, modifiedReason: null };
+
   return {
-    page: { ...page, blockIds: pageBlockOrder.map((b) => b.id) },
+    page: { ...page, blockIds: pageBlockOrder.map((b) => b.id), ...statusInfo },
     projectName: project.name,
     project: { id: project.id, updatedAt: project.updatedAt },
     layout: layout
@@ -412,10 +584,15 @@ export async function getPageStructure(
 export async function listPages(ctx: ServiceContext, rawInput: z.input<typeof listPagesInput>) {
   const { projectId } = listPagesInput.parse(rawInput);
   const environment = await resolveEnvironment(ctx.db, projectId, ctx.environmentName);
-  return await ctx.db
+  const rows = await ctx.db
     .select()
     .from(pages)
     .where(and(eq(pages.projectId, projectId), eq(pages.environmentId, environment.id)));
+  const statuses = await fetchPageStatuses(ctx, rows, environment.id);
+  return rows.map((page) => ({
+    ...page,
+    ...(statuses.get(page.id) ?? { status: "draft" as const, modifiedReason: null }),
+  }));
 }
 
 export async function listPagesBySlug(
@@ -427,10 +604,15 @@ export async function listPagesBySlug(
   if (!project) throw new ORPCError("NOT_FOUND");
 
   const environment = await resolveEnvironment(ctx.db, project.id, ctx.environmentName);
-  return await ctx.db
+  const rows = await ctx.db
     .select()
     .from(pages)
     .where(and(eq(pages.projectId, project.id), eq(pages.environmentId, environment.id)));
+  const statuses = await fetchPageStatuses(ctx, rows, environment.id);
+  return rows.map((page) => ({
+    ...page,
+    ...(statuses.get(page.id) ?? { status: "draft" as const, modifiedReason: null }),
+  }));
 }
 
 export async function getPage(ctx: ServiceContext, rawInput: z.input<typeof getPageInput>) {

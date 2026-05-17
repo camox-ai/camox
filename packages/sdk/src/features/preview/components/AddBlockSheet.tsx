@@ -40,14 +40,19 @@ const AddBlockSheet = () => {
   const createBlock = useMutation({
     ...blockMutations.create(),
     onMutate: (variables) => {
-      const pageQueryKey = queryKeys.pages.getByPath(pagePathname);
+      // Optimistic insert lands in the draft cache slot only — edits never
+      // touch the live snapshot. See useUpdateBlockPosition for the same
+      // pattern.
+      const pageQueryKey = queryKeys.pages.getByPath(pagePathname, "draft");
       const previousPage = queryClient.getQueryData<PageStructure>(pageQueryKey);
       if (!previousPage) return {};
 
       // Read block positions from individual caches for position computation
       const blockIds = previousPage.page.blockIds;
       const pageBlocks = blockIds
-        .map((id) => queryClient.getQueryData<BlockBundle>(queryKeys.blocks.get(id))?.block)
+        .map(
+          (id) => queryClient.getQueryData<BlockBundle>(queryKeys.blocks.get(id, "draft"))?.block,
+        )
         .filter((b) => b != null);
       const { afterPosition } = variables;
 
@@ -90,7 +95,7 @@ const AddBlockSheet = () => {
       };
 
       // Seed the optimistic block's individual cache
-      queryClient.setQueryData(queryKeys.blocks.get(optimisticId), {
+      queryClient.setQueryData(queryKeys.blocks.get(optimisticId, "draft"), {
         block: optimisticBlock,
         repeatableItems: [],
         files: [],
@@ -115,14 +120,21 @@ const AddBlockSheet = () => {
     },
     onError: (_error, _variables, context) => {
       if (context?.previousPage) {
-        queryClient.setQueryData(queryKeys.pages.getByPath(pagePathname), context.previousPage);
+        queryClient.setQueryData(
+          queryKeys.pages.getByPath(pagePathname, "draft"),
+          context.previousPage,
+        );
       }
       if (context?.optimisticId) {
-        queryClient.removeQueries({ queryKey: queryKeys.blocks.get(context.optimisticId) });
+        queryClient.removeQueries({
+          queryKey: queryKeys.blocks.get(context.optimisticId, "draft"),
+        });
       }
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.pages.getByPath(pagePathname) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.pages.getByPath(pagePathname, "draft"),
+      });
     },
   });
 
