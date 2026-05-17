@@ -57,6 +57,14 @@ const generateSeo = authed
   .input(service.generatePageSeoInput)
   .handler(({ context, input }) => service.generatePageSeo(context, input));
 
+const publish = authed
+  .input(service.publishPageInput)
+  .handler(({ context, input }) => service.publishPage(context, input));
+
+const unpublish = authed
+  .input(service.unpublishPageInput)
+  .handler(({ context, input }) => service.unpublishPage(context, input));
+
 export const pageProcedures = {
   getByPath,
   getStructure,
@@ -71,4 +79,6 @@ export const pageProcedures = {
   setMetaDescription,
   setLayout,
   generateSeo,
+  publish,
+  unpublish,
 };

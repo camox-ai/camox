@@ -99,6 +99,18 @@ export const setPageMetaDescriptionInput = z.object({
 });
 export const setPageLayoutInput = z.object({ id: z.number(), layoutId: z.number() });
 export const generatePageSeoInput = z.object({ id: z.number() });
+// `alsoPublishLayout` is the Phase 4 hook — the field is part of the procedure
+// shape now so the API contract doesn't change between Phase 3 and Phase 4.
+// Until Phase 4 ships, true is rejected; the dialog's checkbox is not wired.
+export const publishPageInput = z.object({
+  id: z.number(),
+  alsoPublishLayout: z.boolean().optional(),
+});
+export const unpublishPageInput = z.object({ id: z.number() });
+
+// Snapshot shape version written into `page_checkpoints.schema_version`.
+// One-way ratchet — bump and add a migration when the snapshot shape changes.
+const PAGE_SNAPSHOT_SCHEMA_VERSION = 1;
 
 function assertUser(ctx: ServiceContext) {
   if (!ctx.user) throw new ORPCError("UNAUTHORIZED");
@@ -111,6 +123,35 @@ function invalidatePage(ctx: ServiceContext, projectId: number, pageId: number) 
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId,
     targets: [queryKeys.pages.list, queryKeys.pages.getById(pageId)],
+  });
+}
+
+// Publish / unpublish wholesale-invalidate the 'live' cache slots for the
+// affected page and all its blocks. Published state never mutates piecewise
+// (Phase 1 design note), so this is the only event in v1 that touches 'live'
+// keys — at most once per click. The path prefix `getByPath(path)` (no
+// source) hits both the draft and live slots for that path, which is correct:
+// the draft slot also re-derives status after the pointer flips.
+function invalidatePagePublish(
+  ctx: ServiceContext,
+  args: {
+    projectId: number;
+    pageId: number;
+    fullPath: string;
+    blockIds: number[];
+  },
+) {
+  broadcastInvalidation({
+    waitUntil: ctx.waitUntil,
+    projectRoomNamespace: ctx.env.ProjectRoom,
+    projectId: args.projectId,
+    targets: [
+      queryKeys.pages.list,
+      queryKeys.pages.getById(args.pageId),
+      // Prefix invalidation: both 'draft' and 'live' slots at this path.
+      queryKeys.pages.getByPath(args.fullPath),
+      ...args.blockIds.map((id) => queryKeys.blocks.get(id, "live")),
+    ],
   });
 }
 
@@ -357,6 +398,77 @@ async function readPageSnapshot(
   if (typeof source === "object" && checkpoint.pageId !== pageRow.id) return null;
 
   return pageSnapshotSchema.parse(JSON.parse(checkpoint.snapshot));
+}
+
+// Build a canonical page snapshot from the current live (draft) rows. Mirrors
+// the migration's SQL `json_object(...)` shape (snapshotPageRowSchema +
+// snapshotBlockSchema + snapshotRepeatableItemSchema) so the read path doesn't
+// know whether it's looking at a migration-seeded checkpoint or one freshly
+// minted by a Phase 3 publish.
+//
+// Blocks store their content with `_itemId` markers stripped — the read path
+// re-injects them via injectRepeatableItemMarkers when composing a PageView.
+async function buildPageSnapshotFromDraft(
+  ctx: ServiceContext,
+  page: typeof pages.$inferSelect,
+): Promise<PageSnapshot> {
+  const pageBlocks = sortByPosition(
+    await ctx.db.select().from(blocks).where(eq(blocks.pageId, page.id)),
+  );
+  const blockIds = pageBlocks.map((b) => b.id);
+  const items =
+    blockIds.length > 0
+      ? sortByPosition(
+          await ctx.db
+            .select()
+            .from(repeatableItems)
+            .where(inArray(repeatableItems.blockId, blockIds)),
+        )
+      : [];
+
+  return {
+    page: {
+      id: page.id,
+      projectId: page.projectId,
+      environmentId: page.environmentId,
+      pathSegment: page.pathSegment,
+      fullPath: page.fullPath,
+      parentPageId: page.parentPageId,
+      layoutId: page.layoutId,
+      metaTitle: page.metaTitle,
+      metaDescription: page.metaDescription,
+      aiSeoEnabled: page.aiSeoEnabled,
+      customOgImageBlobId: page.customOgImageBlobId,
+      customOgImageUrl: page.customOgImageUrl,
+      createdAt: page.createdAt,
+      updatedAt: page.updatedAt,
+    },
+    blocks: pageBlocks.map((b) => ({
+      id: b.id,
+      pageId: b.pageId,
+      layoutId: b.layoutId,
+      type: b.type,
+      content: b.content,
+      settings: b.settings,
+      placement: b.placement,
+      summary: b.summary,
+      position: b.position,
+      createdAt: b.createdAt,
+      updatedAt: b.updatedAt,
+    })),
+    repeatableItems: items.map((item) => ({
+      id: item.id,
+      blockId: item.blockId,
+      parentItemId: item.parentItemId,
+      fieldName: item.fieldName,
+      content: item.content,
+      settings: item.settings,
+      summary: item.summary,
+      position: item.position,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    })),
+  };
 }
 
 async function readLayoutSnapshot(
@@ -886,6 +998,111 @@ export async function setPageLayout(
     .get();
   invalidatePage(ctx, access.page.projectId, id);
   return result;
+}
+
+// Promote the current draft to public: snapshot the live rows, write a new
+// auto-publish checkpoint, point the page at it. The pointer update is the
+// publish — that's the moment the public site changes. We run insert-then-
+// update sequentially (D1 + drizzle has no shared-transaction primitive);
+// a partial failure between the two steps leaves a checkpoint nothing points
+// at, which is harmless history that no UI surfaces.
+export async function publishPage(ctx: ServiceContext, rawInput: z.input<typeof publishPageInput>) {
+  const user = assertUser(ctx);
+  const { id, alsoPublishLayout } = publishPageInput.parse(rawInput);
+  // Phase 4 will accept this and cascade the layout publish in the same call.
+  // Until then, true is a hard error so the dialog can't silently fall back.
+  if (alsoPublishLayout) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "alsoPublishLayout is not supported yet (Phase 4).",
+    });
+  }
+  const access = await assertPageAccess(ctx.db, id, user.id);
+  if (!access) throw new ORPCError("NOT_FOUND");
+
+  const pageRow = await ctx.db.select().from(pages).where(eq(pages.id, id)).get();
+  if (!pageRow) throw new ORPCError("NOT_FOUND");
+
+  const snapshot = await buildPageSnapshotFromDraft(ctx, pageRow);
+  const now = Date.now();
+
+  const checkpoint = await ctx.db
+    .insert(pageCheckpoints)
+    .values({
+      pageId: pageRow.id,
+      kind: "auto-publish",
+      label: null,
+      snapshot: JSON.stringify(snapshot),
+      schemaVersion: PAGE_SNAPSHOT_SCHEMA_VERSION,
+      createdAt: now,
+      createdBy: user.id,
+    })
+    .returning()
+    .get();
+
+  const updated = await ctx.db
+    .update(pages)
+    .set({ livePublishedCheckpointId: checkpoint.id, updatedAt: now })
+    .where(eq(pages.id, id))
+    .returning()
+    .get();
+
+  invalidatePagePublish(ctx, {
+    projectId: access.page.projectId,
+    pageId: id,
+    fullPath: pageRow.fullPath,
+    blockIds: snapshot.blocks.map((b) => b.id),
+  });
+
+  return updated;
+}
+
+// Clear the live pointer. The public router will start 404'ing for this page;
+// the draft is untouched, and the previous auto-publish checkpoint stays in
+// the DB so a future history-sidebar feature can re-point at it.
+export async function unpublishPage(
+  ctx: ServiceContext,
+  rawInput: z.input<typeof unpublishPageInput>,
+) {
+  const user = assertUser(ctx);
+  const { id } = unpublishPageInput.parse(rawInput);
+  const access = await assertPageAccess(ctx.db, id, user.id);
+  if (!access) throw new ORPCError("NOT_FOUND");
+
+  const pageRow = await ctx.db.select().from(pages).where(eq(pages.id, id)).get();
+  if (!pageRow) throw new ORPCError("NOT_FOUND");
+
+  // Surface a clear error rather than silently no-op when the user hits
+  // unpublish on a never-published page — the menu should already be
+  // disabled in that case, but a stale UI shouldn't write garbage.
+  if (pageRow.livePublishedCheckpointId == null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Page is not published.",
+    });
+  }
+
+  const now = Date.now();
+  const updated = await ctx.db
+    .update(pages)
+    .set({ livePublishedCheckpointId: null, updatedAt: now })
+    .where(eq(pages.id, id))
+    .returning()
+    .get();
+
+  // Block-level 'live' caches still hold the previous published snapshot;
+  // invalidate them so a subsequent Live preview (or public read on the path
+  // that just became 404) doesn't render stale block content from the cache.
+  const blockRows = await ctx.db
+    .select({ id: blocks.id })
+    .from(blocks)
+    .where(eq(blocks.pageId, id));
+  invalidatePagePublish(ctx, {
+    projectId: access.page.projectId,
+    pageId: id,
+    fullPath: pageRow.fullPath,
+    blockIds: blockRows.map((b) => b.id),
+  });
+
+  return updated;
 }
 
 export async function generatePageSeo(

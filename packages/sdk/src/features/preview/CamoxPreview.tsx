@@ -35,6 +35,7 @@ import { PagePicker } from "./components/PagePicker";
 import { PageTree } from "./components/PageTree";
 import { PeekedBlock } from "./components/PeekedBlock";
 import { PreviewFrame, PreviewPanel } from "./components/PreviewPanel";
+import { PublishDialog } from "./components/PublishDialog";
 import { previewStore } from "./previewStore";
 
 /* -------------------------------------------------------------------------------------------------
@@ -296,36 +297,73 @@ export const PageContent = () => {
 };
 
 /* -------------------------------------------------------------------------------------------------
- * LiveContentSwitch — Draft / Live preview toggle
+ * SidebarPublishRow — Draft / Live preview toggle + Publish… button
+ * -------------------------------------------------------------------------------------------------
+ * The switch chooses _what am I looking at_; the button promotes that draft
+ * to public. Pairing them in the same row reflects that both operate on the
+ * page currently in focus.
  * -----------------------------------------------------------------------------------------------*/
 
-const LiveContentSwitch = ({
-  livePublishedCheckpointId,
+const SidebarPublishRow = ({
+  page,
 }: {
-  livePublishedCheckpointId: number | null;
+  page: {
+    id: number;
+    metaTitle: string | null;
+    pathSegment: string;
+    fullPath: string;
+    livePublishedCheckpointId: number | null;
+    status: "draft" | "published" | "modified";
+  };
 }) => {
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
+  const [isPublishDialogOpen, setIsPublishDialogOpen] = React.useState(false);
+
   // 'Live' isn't a valid preview target for a page that's never been
   // published — there's no snapshot to render. Disable rather than hide so
   // the control's position in the toolbar stays stable as the user
   // navigates between published and unpublished pages.
-  const hasLiveCheckpoint = livePublishedCheckpointId != null;
+  const hasLiveCheckpoint = page.livePublishedCheckpointId != null;
+  // Publish is gated on (a) there's something to publish and (b) the user is
+  // looking at the draft. Publishing while previewing Live would mean
+  // promoting the already-public snapshot to itself — meaningless, and the
+  // mental model "you publish what you're looking at" only holds on Draft.
+  const hasChangesToPublish = page.status === "draft" || page.status === "modified";
+  const canPublish = hasChangesToPublish && previewSource === "draft";
 
   return (
-    <div className="flex items-center gap-2">
-      <Switch
-        id="live-content"
-        disabled={!hasLiveCheckpoint}
-        checked={previewSource === "live"}
-        onCheckedChange={(checked) => {
-          previewStore.send({
-            type: "setPreviewSource",
-            source: checked ? "live" : "draft",
-          });
-        }}
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Switch
+            id="live-content"
+            disabled={!hasLiveCheckpoint}
+            checked={previewSource === "live"}
+            onCheckedChange={(checked) => {
+              previewStore.send({
+                type: "setPreviewSource",
+                source: checked ? "live" : "draft",
+              });
+            }}
+          />
+          <Label htmlFor="live-content">Live content</Label>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          disabled={!canPublish}
+          onClick={() => setIsPublishDialogOpen(true)}
+        >
+          Publish…
+        </Button>
+      </div>
+      <PublishDialog
+        page={isPublishDialogOpen ? page : null}
+        pageStatus={page.status}
+        open={isPublishDialogOpen}
+        onOpenChange={setIsPublishDialogOpen}
       />
-      <Label htmlFor="live-content">Live content</Label>
-    </div>
+    </>
   );
 };
 
@@ -465,9 +503,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
                   <TooltipContent>Page metadata, SEO and markdown</TooltipContent>
                 </Tooltip>
               </div>
-              <LiveContentSwitch
-                livePublishedCheckpointId={pageData.page.livePublishedCheckpointId}
-              />
+              <SidebarPublishRow page={pageData.page} />
             </PanelHeader>
             <PanelContent className="flex grow basis-0 flex-col gap-2 overflow-auto p-2">
               <PageTree />
