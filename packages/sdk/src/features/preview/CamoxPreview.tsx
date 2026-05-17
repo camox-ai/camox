@@ -1,7 +1,8 @@
 import { queryKeys, type ReadSource } from "@camox/api-contract/query-keys";
 import { Button } from "@camox/ui/button";
+import { Label } from "@camox/ui/label";
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
+import { Switch } from "@camox/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import {
   keepPreviousData,
@@ -294,10 +295,10 @@ export const PageContent = () => {
 };
 
 /* -------------------------------------------------------------------------------------------------
- * SourceSelect — Draft / Live preview toggle
+ * LiveContentSwitch — Draft / Live preview toggle
  * -----------------------------------------------------------------------------------------------*/
 
-const SourceSelect = ({
+const LiveContentSwitch = ({
   livePublishedCheckpointId,
 }: {
   livePublishedCheckpointId: number | null;
@@ -310,24 +311,20 @@ const SourceSelect = ({
   const hasLiveCheckpoint = livePublishedCheckpointId != null;
 
   return (
-    <Select
-      value={previewSource}
-      onValueChange={(value) => {
-        if (value === "draft" || value === "live") {
-          previewStore.send({ type: "setPreviewSource", source: value });
-        }
-      }}
-    >
-      <SelectTrigger size="sm" className="w-[88px]">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent align="end">
-        <SelectItem value="draft">Draft</SelectItem>
-        <SelectItem value="live" disabled={!hasLiveCheckpoint}>
-          Live
-        </SelectItem>
-      </SelectContent>
-    </Select>
+    <div className="flex items-center gap-2">
+      <Switch
+        id="live-content"
+        disabled={!hasLiveCheckpoint}
+        checked={previewSource === "live"}
+        onCheckedChange={(checked) => {
+          previewStore.send({
+            type: "setPreviewSource",
+            source: checked ? "live" : "draft",
+          });
+        }}
+      />
+      <Label htmlFor="live-content">Live content</Label>
+    </div>
   );
 };
 
@@ -490,7 +487,9 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
                   <TooltipContent>Page metadata, SEO and markdown</TooltipContent>
                 </Tooltip>
               </div>
-              <SourceSelect livePublishedCheckpointId={pageData.page.livePublishedCheckpointId} />
+              <LiveContentSwitch
+                livePublishedCheckpointId={pageData.page.livePublishedCheckpointId}
+              />
             </PanelHeader>
             <PanelContent className="flex grow basis-0 flex-col gap-2 overflow-auto p-2">
               <PageTree />

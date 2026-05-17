@@ -31,7 +31,7 @@ The procedure shape accepts an optional `alsoPublishLayout: boolean` flag — bu
 
 **Sidebar row — add the Publish… button**
 
-The sidebar row from Phase 2 (Draft/Live select + PagePicker) gets a **Publish…** button on the right side of the same row. Pairing them reflects that both operate on the page currently in focus: the select chooses _what am I looking at_, the button promotes that draft to public.
+The sidebar row from Phase 2 (Live content switch + PagePicker) gets a **Publish…** button on the right side of the same row. Pairing them reflects that both operate on the page currently in focus: the switch chooses _what am I looking at_, the button promotes that draft to public.
 
 The button is enabled when the page is `draft` or `modified`. Disabled (or relabeled) when `published`.
 
@@ -83,7 +83,7 @@ No special path-handling code in the publish procedure — this falls out natura
 **Editing a published page**
 
 1. User edits a block on a published page. Status flips to **Modified**. Public URL still serves the previous version.
-2. The Draft / Live source select in the sidebar lets the user flip between draft and live previews without leaving the editor — same render, different data source.
+2. The Live content switch in the sidebar lets the user flip between draft and live previews without leaving the editor — same render, different data source.
 3. User clicks **Publish…**, confirms. New checkpoint created, live pointer updated. Status flips back to **Published**.
 
 **Unpublishing**

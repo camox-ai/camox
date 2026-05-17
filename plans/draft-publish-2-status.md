@@ -38,16 +38,16 @@ No new procedures in this phase. The `source` parameter from Phase 1 is already 
 
 Render the status as a small badge in the page list. Three states, three colors — match whatever the studio's existing badge primitive is. The "modified because of layout X (affects N pages)" tooltip surfaces `modifiedReason` when relevant.
 
-**Draft / Live source select in the sidebar**
+**"Live content" switch in the sidebar**
 
-A simple two-option select in the studio sidebar, immediately beside the `PagePicker` and above its divider — the same row that will host the **Publish…** button in Phase 3. The select chooses _what am I looking at_:
+A single `Switch` labeled "Live content" in the studio sidebar, immediately beside the `PagePicker` and above its divider — the same row that will host the **Publish…** button in Phase 3. The switch chooses _what am I looking at_:
 
-- `Draft` (default) — studio reads with `source: 'draft'`. Today's behavior.
-- `Live` — studio reads with `source: 'live'`. Shows the user what visitors currently see. Disabled (or just unavailable) on never-published pages.
+- Off (default) — studio reads with `source: 'draft'`. Today's behavior.
+- On — studio reads with `source: 'live'`. Shows the user what visitors currently see. Disabled on never-published pages.
 
-Both options render through the same component — only the loader's `source` argument differs. This is the user-facing payoff of Phase 1's shape-identity property.
+Both states render through the same component — only the loader's `source` argument differs. This is the user-facing payoff of Phase 1's shape-identity property.
 
-The current source is held in the page-editor state and threaded into every read in that page view (the `pages.getByPath` call and the seeded per-block reads from `seedBlockCaches`). Block mutations are always issued against the draft regardless of which source is being previewed — toggling to Live should not silently disable editing UI in a confusing way; either block edits while in Live preview, or flip back to Draft on first edit. Lean toward the latter (auto-switch back to Draft on first edit, with no warning) — matches user intent.
+The current source is held in the page-editor state and threaded into every read in that page view (the `pages.getByPath` call and the seeded per-block reads from `seedBlockCaches`). Block mutations are always issued against the draft regardless of which source is being previewed — toggling the switch on should not silently disable editing UI in a confusing way; either block edits while in Live preview, or flip back to Draft on first edit. Lean toward the latter (auto-switch back to Draft on first edit, with no warning) — matches user intent.
 
 ### Cache / invalidation
 
@@ -57,7 +57,7 @@ This phase introduces a second cache namespace per page (`'draft'` and `'live'`)
 | ------------------------------------ | --------------------------------------------------- | --------------------- |
 | Block content/settings/position edit | `blocks.get(id, 'draft')` for the affected block(s) | none                  |
 | Block create / delete / duplicate    | `blocks.get(...)` + page list (draft)               | none                  |
-| Toggle source select                 | nothing (just a render-side state flip)             | nothing               |
+| Toggle Live content switch           | nothing (just a render-side state flip)             | nothing               |
 
 The page list itself needs to invalidate (or refetch) on any edit that could flip a status — i.e. on any draft mutation that bumps `content_updated_at`. Cheap because status is a derived field on an already-cached query; standard React Query invalidation.
 
@@ -66,9 +66,9 @@ The page list itself needs to invalidate (or refetch) on any edit that could fli
 - **Every existing page reads as "Published"** in the page list after a freshly-migrated DB, regardless of which environment or layout.
 - **Edit a block → page flips to "Modified" within one query tick.** Status badge updates in the page list.
 - **Layout cascade.** Edit a block belonging to a layout, every page using that layout flips to "Modified" with the `modifiedReason: 'layout'` tooltip and the correct affected-pages count.
-- **Toggle source.** With Live selected, the preview shows the snapshot version (i.e. the state before your edits). With Draft selected, your in-flight changes. Switching is instant — both sources are React-Query cached.
-- **Auto-switch on edit while in Live.** Open a page, toggle to Live, click into a block to edit. The source select flips to Draft. No warning dialog.
-- **Never-published page.** Create a new page (no publish UI exists yet — do it via the API directly, or temporarily through a test script). Page list shows it as "Draft". Live preview is unavailable / disabled. The public site 404s on its path (already true from Phase 1).
+- **Toggle Live content.** With the switch on, the preview shows the snapshot version (i.e. the state before your edits). With it off, your in-flight changes. Switching is instant — both sources are React-Query cached.
+- **Auto-switch on edit while Live.** Open a page, turn Live content on, click into a block to edit. The switch flips back off. No warning dialog.
+- **Never-published page.** Create a new page (no publish UI exists yet — do it via the API directly, or temporarily through a test script). Page list shows it as "Draft". Live content switch is disabled. The public site 404s on its path (already true from Phase 1).
 
 ### What's explicitly out of scope for this phase
 
