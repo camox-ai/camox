@@ -22,10 +22,11 @@ export type DispatchOptions = {
   /** Slug from `--project` flag if user passed one. Overrides the sidecar. */
   projectFlag?: string;
   /**
-   * When `true` (from `--production`), force `environmentName` to "production"
-   * regardless of what the sidecar says. The sidecar's env (typically
-   * `dev:<email>` during `pnpm dev`) is the default — this is the explicit
-   * opt-in to write to the prod environment from a dev workspace.
+   * When `true` (from `--production`), target the `production` environment.
+   * Default is `dev:<email>` derived from the local auth token — the same
+   * environment the vite dev server uses. `--production` is the only way to
+   * route writes to prod, so a prior `vite build` can't make the next CLI
+   * invocation silently edit production content.
    */
   production?: boolean;
   outputMode: OutputMode;
@@ -65,9 +66,11 @@ async function callRemote(params: CallToolParams): Promise<CallToolResponse> {
  * and render the result. Exit codes: 0 on success, 1 on tool error, 2 on
  * auth/project resolution failure.
  *
- * Project, apiUrl, and authenticationUrl all come from the vite plugin's
- * `node_modules/.camox/runtime.json` sidecar — that's the single source of
- * truth. `--project <slug>` and `CAMOX_PROJECT` may override the slug.
+ * Project, apiUrl, and authenticationUrl come from the vite plugin's
+ * `node_modules/.camox/runtime.json` sidecar. `--project <slug>` and
+ * `CAMOX_PROJECT` may override the slug. The environment is *not* read
+ * from the sidecar — it's derived from auth (`dev:<email>`) by default,
+ * with `--production` as the only opt-in for prod.
  */
 export async function dispatch(opts: DispatchOptions): Promise<never> {
   let runtime;
@@ -93,7 +96,16 @@ export async function dispatch(opts: DispatchOptions): Promise<never> {
     );
   }
 
-  const environmentName = opts.production ? "production" : runtime.environmentName;
+  if (!opts.production && !token.email) {
+    return fail(
+      {
+        code: "AUTH_INCOMPLETE",
+        message: "Auth token is missing an email. Run `camox login` to refresh credentials.",
+      },
+      2,
+    );
+  }
+  const environmentName = opts.production ? "production" : `dev:${token.email}`;
 
   const projectId = await resolveProjectId(token.token, slug, runtime.apiUrl);
   const response = await callRemote({

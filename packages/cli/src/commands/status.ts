@@ -28,8 +28,12 @@ export async function handler(args: Args): Promise<never> {
     throw err;
   }
 
-  const environmentName = args.production ? "production" : runtime.environmentName;
   const token = readAuthTokenForUrl(runtime.authenticationUrl);
+  const environmentName = args.production
+    ? "production"
+    : token?.email
+      ? `dev:${token.email}`
+      : null;
   const status = {
     projectSlug: runtime.projectSlug,
     environmentName,
@@ -46,7 +50,7 @@ export async function handler(args: Args): Promise<never> {
 
   const lines = [
     `project:     ${status.projectSlug}`,
-    `environment: ${status.environmentName}`,
+    `environment: ${status.environmentName ?? "(unknown — run `camox login`)"}`,
     `api:         ${status.apiUrl}`,
     `auth:        ${status.authenticationUrl}`,
     status.user

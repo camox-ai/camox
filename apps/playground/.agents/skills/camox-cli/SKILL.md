@@ -85,6 +85,29 @@ pnpm camox pages get --path /pricing
 pnpm camox blocks edit --id 314 --content '{"headline": "New headline"}'
 ```
 
+### Update one item inside a repeatable field (one FAQ answer, one feature title, …)
+
+Repeatable fields are an array of items. `blocks edit` treats the items array as the new truth: any existing item whose `_itemId` is not in your patch is **deleted** (cascading to its file references, settings, and child items). To change one item without losing the rest, fetch the block first to learn every item's id, then patch with every `_itemId` present.
+
+```sh
+# 1) Fetch the block's raw items (the `id` of each is its `_itemId`).
+pnpm camox blocks get --id 99
+# in the response, `repeatableItems` lists each item with `id`, `fieldName`,
+# `parentItemId`, and `content`. Pick the id you want to edit.
+
+# 2) Send every item back. Empty `{"_itemId": N}` entries preserve items as-is;
+# the entry you want to change carries the field overrides.
+pnpm camox blocks edit --id 99 --content '{
+  "items": [
+    {"_itemId": 401},
+    {"_itemId": 402, "answer": "Updated answer."},
+    {"_itemId": 403}
+  ]
+}'
+```
+
+Same pattern for nested repeatables: each child item also has an `id` you pass back as `_itemId` inside the parent item's array field.
+
 ### Create a new page using an existing layout
 
 ```sh

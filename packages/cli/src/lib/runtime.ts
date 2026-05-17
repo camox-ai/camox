@@ -16,7 +16,6 @@ export const runtimeSchema = z.object({
   projectSlug: z.string().min(1),
   apiUrl: z.string().url(),
   authenticationUrl: z.string().url(),
-  environmentName: z.string().min(1),
   disableTelemetry: z.boolean().optional().default(false),
 });
 

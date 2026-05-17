@@ -44,10 +44,12 @@ function readAuthEmail(authenticationUrl: string): string | null {
 
 /**
  * Drop a sidecar at `<root>/node_modules/.camox/runtime.json` so the `camox`
- * CLI can pick up the same projectSlug / apiUrl / authenticationUrl /
- * environmentName the plugin actually used. The CLI treats the vite config
- * as the source of truth — there is no other reliable way to recover these
- * values from outside vite.
+ * CLI can pick up the same projectSlug / apiUrl / authenticationUrl the
+ * plugin actually used. The CLI treats the vite config as the source of
+ * truth for those values — there is no other reliable way to recover them
+ * from outside vite. The environment is *not* written here: the CLI derives
+ * `dev:<email>` from auth at call time and requires `--production` for prod,
+ * so a stale build sidecar can't silently route writes to production.
  */
 function writeRuntimeSidecar(
   root: string,
@@ -55,7 +57,6 @@ function writeRuntimeSidecar(
     projectSlug: string;
     apiUrl: string;
     authenticationUrl: string;
-    environmentName: string;
     disableTelemetry: boolean;
   },
 ): void {
@@ -237,7 +238,6 @@ export function camox(options: CamoxPluginOptions): Plugin {
         projectSlug: options.projectSlug,
         apiUrl,
         authenticationUrl,
-        environmentName,
         disableTelemetry: !!options.disableTelemetry,
       });
 
