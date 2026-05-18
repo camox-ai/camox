@@ -28,6 +28,7 @@ import {
   type SnapshotRepeatableItem,
 } from "../_shared/snapshot-schemas";
 import { normalizeBlockContent } from "../blocks/normalize-content";
+import { writeLayoutCheckpointAndPoint } from "../layouts/service";
 import {
   buildFileMap,
   collectFileIds,
@@ -99,9 +100,11 @@ export const setPageMetaDescriptionInput = z.object({
 });
 export const setPageLayoutInput = z.object({ id: z.number(), layoutId: z.number() });
 export const generatePageSeoInput = z.object({ id: z.number() });
-// `alsoPublishLayout` is the Phase 4 hook — the field is part of the procedure
-// shape now so the API contract doesn't change between Phase 3 and Phase 4.
-// Until Phase 4 ships, true is rejected; the dialog's checkbox is not wired.
+// `alsoPublishLayout` bundles the page's layout into the same publish in one
+// transaction — checkbox in the page publish dialog. When `true` and the page
+// has no layout, the flag is silently ignored. If the layout has no pending
+// changes, we still write a fresh checkpoint; that's a no-op on the public
+// site and simpler than gating the flag at this layer.
 export const publishPageInput = z.object({
   id: z.number(),
   alsoPublishLayout: z.boolean().optional(),
@@ -132,6 +135,11 @@ function invalidatePage(ctx: ServiceContext, projectId: number, pageId: number) 
 // keys — at most once per click. The path prefix `getByPath(path)` (no
 // source) hits both the draft and live slots for that path, which is correct:
 // the draft slot also re-derives status after the pointer flips.
+//
+// The Phase 4 bundled-publish path (page + layout in one click) optionally
+// piggybacks layout-side targets here so the broadcast is still single-shot:
+// `layouts.all` for the layout list, plus the dependent pages' paths and
+// every dependent block's `'live'` key for the cascade refresh.
 function invalidatePagePublish(
   ctx: ServiceContext,
   args: {
@@ -139,8 +147,22 @@ function invalidatePagePublish(
     pageId: number;
     fullPath: string;
     blockIds: number[];
+    layoutCascade?: {
+      dependentPagePaths: string[];
+      dependentBlockIds: number[];
+      layoutBlockIds: number[];
+    };
   },
 ) {
+  const cascadeTargets = args.layoutCascade
+    ? [
+        queryKeys.layouts.all,
+        ...args.layoutCascade.dependentPagePaths.map((p) => queryKeys.pages.getByPath(p)),
+        ...args.layoutCascade.dependentBlockIds.map((id) => queryKeys.blocks.get(id, "live")),
+        ...args.layoutCascade.layoutBlockIds.map((id) => queryKeys.blocks.get(id, "live")),
+      ]
+    : [];
+
   broadcastInvalidation({
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
@@ -151,6 +173,7 @@ function invalidatePagePublish(
       // Prefix invalidation: both 'draft' and 'live' slots at this path.
       queryKeys.pages.getByPath(args.fullPath),
       ...args.blockIds.map((id) => queryKeys.blocks.get(id, "live")),
+      ...cascadeTargets,
     ],
   });
 }
@@ -1006,21 +1029,71 @@ export async function setPageLayout(
 // update sequentially (D1 + drizzle has no shared-transaction primitive);
 // a partial failure between the two steps leaves a checkpoint nothing points
 // at, which is harmless history that no UI surfaces.
+//
+// `alsoPublishLayout` bundles a layout publish into the same call (Phase 4).
+// The layout side runs first so its checkpoint exists before the page pointer
+// flips — same trade-off on partial failure: an orphan layout checkpoint is
+// harmless, but a published page pointing at unpublished layout data would
+// not be. If the page has no layout, the flag is silently ignored. If the
+// layout is clean, we still write a fresh checkpoint; that's a no-op for
+// renderers and simpler than gating the flag.
 export async function publishPage(ctx: ServiceContext, rawInput: z.input<typeof publishPageInput>) {
   const user = assertUser(ctx);
   const { id, alsoPublishLayout } = publishPageInput.parse(rawInput);
-  // Phase 4 will accept this and cascade the layout publish in the same call.
-  // Until then, true is a hard error so the dialog can't silently fall back.
-  if (alsoPublishLayout) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "alsoPublishLayout is not supported yet (Phase 4).",
-    });
-  }
   const access = await assertPageAccess(ctx.db, id, user.id);
   if (!access) throw new ORPCError("NOT_FOUND");
 
   const pageRow = await ctx.db.select().from(pages).where(eq(pages.id, id)).get();
   if (!pageRow) throw new ORPCError("NOT_FOUND");
+
+  let layoutCascade: {
+    dependentPagePaths: string[];
+    dependentBlockIds: number[];
+    layoutBlockIds: number[];
+  } | null = null;
+
+  if (alsoPublishLayout && pageRow.layoutId != null) {
+    const layoutRow = await ctx.db
+      .select()
+      .from(layouts)
+      .where(eq(layouts.id, pageRow.layoutId))
+      .get();
+    if (layoutRow) {
+      await writeLayoutCheckpointAndPoint(ctx, { layout: layoutRow, userId: user.id });
+
+      // Build the cascade invalidation set in the same go — pages-using-layout
+      // + their block ids + the layout's own block ids. One DB pass per set,
+      // bundled with the page invalidation below so the broadcast is single-
+      // shot. Excludes the page being published itself; its keys are already
+      // in the base invalidation list.
+      const dependentPages = await ctx.db
+        .select({ id: pages.id, fullPath: pages.fullPath })
+        .from(pages)
+        .where(
+          and(eq(pages.layoutId, layoutRow.id), eq(pages.environmentId, layoutRow.environmentId)),
+        );
+      const otherPageIds = dependentPages.map((p) => p.id).filter((pid) => pid !== id);
+      const otherPagePaths = dependentPages.filter((p) => p.id !== id).map((p) => p.fullPath);
+      const otherBlockIds =
+        otherPageIds.length > 0
+          ? (
+              await ctx.db
+                .select({ id: blocks.id })
+                .from(blocks)
+                .where(inArray(blocks.pageId, otherPageIds))
+            ).map((b) => b.id)
+          : [];
+      const layoutBlockIds = (
+        await ctx.db.select({ id: blocks.id }).from(blocks).where(eq(blocks.layoutId, layoutRow.id))
+      ).map((b) => b.id);
+
+      layoutCascade = {
+        dependentPagePaths: otherPagePaths,
+        dependentBlockIds: otherBlockIds,
+        layoutBlockIds,
+      };
+    }
+  }
 
   const snapshot = await buildPageSnapshotFromDraft(ctx, pageRow);
   const now = Date.now();
@@ -1051,6 +1124,7 @@ export async function publishPage(ctx: ServiceContext, rawInput: z.input<typeof 
     pageId: id,
     fullPath: pageRow.fullPath,
     blockIds: snapshot.blocks.map((b) => b.id),
+    ...(layoutCascade ? { layoutCascade } : {}),
   });
 
   return updated;

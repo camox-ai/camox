@@ -304,18 +304,21 @@ export const PageContent = () => {
  * page currently in focus.
  * -----------------------------------------------------------------------------------------------*/
 
-const SidebarPublishRow = ({
-  page,
-}: {
-  page: {
-    id: number;
-    metaTitle: string | null;
-    pathSegment: string;
-    fullPath: string;
-    livePublishedCheckpointId: number | null;
-    status: "draft" | "published" | "modified";
-  };
-}) => {
+type PreviewedPage = {
+  id: number;
+  metaTitle: string | null;
+  pathSegment: string;
+  fullPath: string;
+  livePublishedCheckpointId: number | null;
+  status: "draft" | "published" | "modified";
+  modifiedReason:
+    | { reason: "self" }
+    | { reason: "layout"; layoutId: number; layoutHandle: string; affectedPagesCount: number }
+    | { reason: "both"; layoutId: number; layoutHandle: string; affectedPagesCount: number }
+    | null;
+};
+
+const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
   const [isPublishDialogOpen, setIsPublishDialogOpen] = React.useState(false);
 
@@ -330,6 +333,19 @@ const SidebarPublishRow = ({
   // mental model "you publish what you're looking at" only holds on Draft.
   const hasChangesToPublish = page.status === "draft" || page.status === "modified";
   const canPublish = hasChangesToPublish && previewSource === "draft";
+
+  // The "Also publish layout" toggle is offered only when the layout is the
+  // one (or one of the) reasons the page is modified. `'self'`-only modified
+  // pages and clean published pages don't surface it — the layout has
+  // nothing new to ship in those cases.
+  const layoutCascade =
+    page.modifiedReason &&
+    (page.modifiedReason.reason === "layout" || page.modifiedReason.reason === "both")
+      ? {
+          layoutHandle: page.modifiedReason.layoutHandle,
+          affectedPagesCount: page.modifiedReason.affectedPagesCount,
+        }
+      : null;
 
   return (
     <>
@@ -360,6 +376,7 @@ const SidebarPublishRow = ({
       <PublishDialog
         page={isPublishDialogOpen ? page : null}
         pageStatus={page.status}
+        alsoPublishLayout={layoutCascade}
         open={isPublishDialogOpen}
         onOpenChange={setIsPublishDialogOpen}
       />

@@ -517,7 +517,7 @@ const LayoutBlockItem = ({ block, layoutName }: LayoutBlockItemProps) => {
             shouldShowHover={ctx.shouldShowHover}
             shouldShowActive={ctx.shouldShowActive}
           >
-            <div className="text-muted-foreground flex size-7 shrink-0 items-center justify-center">
+            <div className="text-muted-foreground flex size-8 shrink-0 items-center justify-center">
               <Tooltip>
                 <TooltipTrigger>
                   <LayoutTemplate className="h-4 w-4" />

@@ -70,6 +70,18 @@ export async function assertPageAccess(db: Database, pageId: number, userId: str
   return result;
 }
 
+export async function assertLayoutAccess(db: Database, layoutId: number, userId: string) {
+  const result = await db
+    .select({ layout: layouts, projectId: projects.id })
+    .from(layouts)
+    .innerJoin(projects, eq(projects.id, layouts.projectId))
+    .where(eq(layouts.id, layoutId))
+    .get();
+  if (!result) return null;
+  await assertProjectMembership(db, result.projectId, userId);
+  return result;
+}
+
 export async function assertBlockAccess(db: Database, blockId: number, userId: string) {
   const result = await db
     .select({ block: blocks, projectId: projects.id, pagePath: pages.fullPath })
