@@ -65,6 +65,10 @@ const unpublish = authed
   .input(service.unpublishPageInput)
   .handler(({ context, input }) => service.unpublishPage(context, input));
 
+const discardChanges = authed
+  .input(service.discardPageChangesInput)
+  .handler(({ context, input }) => service.discardPageChanges(context, input));
+
 export const pageProcedures = {
   getByPath,
   getStructure,
@@ -81,4 +85,5 @@ export const pageProcedures = {
   generateSeo,
   publish,
   unpublish,
+  discardChanges,
 };

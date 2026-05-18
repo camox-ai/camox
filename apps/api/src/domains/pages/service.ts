@@ -126,6 +126,7 @@ export const publishPageInput = z.object({
   alsoPublishLayout: z.boolean().optional(),
 });
 export const unpublishPageInput = z.object({ id: z.number() });
+export const discardPageChangesInput = z.object({ id: z.number() });
 
 // Snapshot shape version written into `page_checkpoints.schema_version`.
 // One-way ratchet — bump and add a migration when the snapshot shape changes.
@@ -1181,6 +1182,147 @@ export async function writePageCheckpointAndPoint(
     .get();
 
   return { checkpoint, snapshot, updated };
+}
+
+function sortSnapshotItemsByParent(items: SnapshotRepeatableItem[]) {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const sorted: SnapshotRepeatableItem[] = [];
+  const visited = new Set<number>();
+
+  const visit = (item: SnapshotRepeatableItem) => {
+    if (visited.has(item.id)) return;
+    if (item.parentItemId != null) {
+      const parent = byId.get(item.parentItemId);
+      if (parent) visit(parent);
+    }
+    visited.add(item.id);
+    sorted.push(item);
+  };
+
+  for (const item of items) visit(item);
+  return sorted;
+}
+
+// Replace the draft rows with the currently published snapshot. The live
+// pointer stays untouched; only the editable working copy is reset.
+export async function discardPageChanges(
+  ctx: ServiceContext,
+  rawInput: z.input<typeof discardPageChangesInput>,
+) {
+  const user = assertUser(ctx);
+  const { id } = discardPageChangesInput.parse(rawInput);
+  const access = await assertPageAccess(ctx.db, id, user.id);
+  if (!access) throw new ORPCError("NOT_FOUND");
+
+  const pageRow = await ctx.db.select().from(pages).where(eq(pages.id, id)).get();
+  if (!pageRow) throw new ORPCError("NOT_FOUND");
+  if (pageRow.livePublishedCheckpointId == null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Page has not been published.",
+    });
+  }
+
+  const checkpoint = await ctx.db
+    .select()
+    .from(pageCheckpoints)
+    .where(eq(pageCheckpoints.id, pageRow.livePublishedCheckpointId))
+    .get();
+  if (!checkpoint) throw new ORPCError("NOT_FOUND");
+
+  const snapshot = pageSnapshotSchema.parse(JSON.parse(checkpoint.snapshot));
+  if (snapshot.page.id !== id) throw new ORPCError("NOT_FOUND");
+
+  const existingBlocks = await ctx.db
+    .select({ id: blocks.id })
+    .from(blocks)
+    .where(eq(blocks.pageId, id));
+  const existingBlockIds = existingBlocks.map((block) => block.id);
+
+  if (existingBlockIds.length > 0) {
+    const existingItems = await ctx.db
+      .select({ id: repeatableItems.id })
+      .from(repeatableItems)
+      .where(inArray(repeatableItems.blockId, existingBlockIds));
+    if (existingItems.length > 0) {
+      await ctx.db.delete(repeatableItems).where(
+        inArray(
+          repeatableItems.id,
+          existingItems.map((item) => item.id),
+        ),
+      );
+    }
+    await ctx.db.delete(blocks).where(inArray(blocks.id, existingBlockIds));
+  }
+
+  for (const block of snapshot.blocks) {
+    await ctx.db.insert(blocks).values({
+      id: block.id,
+      pageId: id,
+      layoutId: null,
+      type: block.type,
+      content: block.content,
+      settings: block.settings,
+      placement: block.placement,
+      summary: block.summary,
+      position: block.position,
+      createdAt: block.createdAt,
+      updatedAt: block.updatedAt,
+    });
+  }
+
+  for (const item of sortSnapshotItemsByParent(snapshot.repeatableItems)) {
+    await ctx.db.insert(repeatableItems).values({
+      id: item.id,
+      blockId: item.blockId,
+      parentItemId: item.parentItemId,
+      fieldName: item.fieldName,
+      content: item.content,
+      settings: item.settings,
+      summary: item.summary,
+      position: item.position,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    });
+  }
+
+  const now = Date.now();
+  const updated = await ctx.db
+    .update(pages)
+    .set({
+      pathSegment: snapshot.page.pathSegment,
+      fullPath: snapshot.page.fullPath,
+      parentPageId: snapshot.page.parentPageId,
+      layoutId: snapshot.page.layoutId,
+      nickname: snapshot.page.nickname,
+      metaTitle: snapshot.page.metaTitle,
+      metaDescription: snapshot.page.metaDescription,
+      aiSeoEnabled: snapshot.page.aiSeoEnabled,
+      customOgImageBlobId: snapshot.page.customOgImageBlobId,
+      customOgImageUrl: snapshot.page.customOgImageUrl,
+      contentUpdatedAt: checkpoint.createdAt,
+      updatedAt: now,
+    })
+    .where(eq(pages.id, id))
+    .returning()
+    .get();
+
+  const snapshotBlockIds = snapshot.blocks.map((block) => block.id);
+  const affectedBlockIds = [...new Set([...existingBlockIds, ...snapshotBlockIds])];
+  const affectedPaths = [...new Set([pageRow.fullPath, snapshot.page.fullPath])];
+
+  broadcastInvalidation({
+    waitUntil: ctx.waitUntil,
+    projectRoomNamespace: ctx.env.ProjectRoom,
+    projectId: access.page.projectId,
+    targets: [
+      queryKeys.pages.list,
+      queryKeys.pages.getById(id),
+      ...affectedPaths.map((path) => queryKeys.pages.getByPath(path)),
+      ...affectedBlockIds.map((blockId) => queryKeys.blocks.get(blockId, "draft")),
+    ],
+  });
+
+  return updated;
 }
 
 // Clear the live pointer. The public router will start 404'ing for this page;

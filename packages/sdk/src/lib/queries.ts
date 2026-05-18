@@ -193,6 +193,7 @@ export const pageMutations = {
   setMetaDescription: () => getOrpc().pages.setMetaDescription.mutationOptions(),
   publish: () => getOrpc().pages.publish.mutationOptions(),
   unpublish: () => getOrpc().pages.unpublish.mutationOptions(),
+  discardChanges: () => getOrpc().pages.discardChanges.mutationOptions(),
   uploadCustomOgImage: () => ({
     mutationFn: async ({ pageId, file }: { pageId: number; file: globalThis.File }) => {
       const formData = new FormData();

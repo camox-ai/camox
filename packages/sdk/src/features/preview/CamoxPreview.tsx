@@ -1,4 +1,14 @@
 import { queryKeys, type ReadSource } from "@camox/api-contract/query-keys";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@camox/ui/alert-dialog";
 import { Button } from "@camox/ui/button";
 import { ButtonGroup } from "@camox/ui/button-group";
 import {
@@ -10,9 +20,11 @@ import {
 import { Label } from "@camox/ui/label";
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
 import { Switch } from "@camox/ui/switch";
+import { toast } from "@camox/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import {
   keepPreviousData,
+  useMutation,
   useQuery,
   useQueryClient,
   useSuspenseQuery,
@@ -25,7 +37,15 @@ import * as React from "react";
 import { getApiClient } from "@/lib/api-client";
 import { useIsAuthenticated, useProjectSlug } from "@/lib/auth";
 import { NormalizedDataProvider, seedBlockCaches, usePageBlocks } from "@/lib/normalized-data";
-import { blockQueries, pageQueries, projectQueries } from "@/lib/queries";
+import {
+  blockQueries,
+  type Page,
+  pageMutations,
+  pageQueries,
+  type PageStructure,
+  projectQueries,
+} from "@/lib/queries";
+import { trackClientEvent } from "@/lib/telemetry-client";
 import { cn } from "@/lib/utils";
 
 import { type Action, actionsStore } from "../provider/actionsStore";
@@ -331,6 +351,10 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
   const projectSlug = useProjectSlug();
   const { pathname } = useLocation();
   const [isPublishDialogOpen, setIsPublishDialogOpen] = React.useState(false);
+  const [isUnpublishDialogOpen, setIsUnpublishDialogOpen] = React.useState(false);
+  const [isDiscardDialogOpen, setIsDiscardDialogOpen] = React.useState(false);
+  const unpublishPage = useMutation(pageMutations.unpublish());
+  const discardChanges = useMutation(pageMutations.discardChanges());
 
   // 'Live' isn't a valid preview target for a page that's never been
   // published — there's no snapshot to render. Disable rather than hide so
@@ -360,6 +384,7 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
   // mental model "you publish what you're looking at" only holds on Draft.
   const hasChangesToPublish = page.status === "draft" || page.status === "modified";
   const canPublish = hasChangesToPublish && previewSource === "draft";
+  const canDiscardChanges = page.status === "modified";
 
   // The "Also publish layout" toggle is offered only when the layout is the
   // one (or one of the) reasons the page is modified. `'self'`-only modified
@@ -379,6 +404,59 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
   // that distinction so the user knows whether they're shipping the page for
   // the first time or pushing an update.
   const publishLabel = page.status === "modified" ? "Publish changes" : "Publish page";
+
+  const handleUnpublish = async () => {
+    try {
+      await unpublishPage.mutateAsync({ id: page.id });
+      queryClient.setQueryData<PageStructure>(
+        queryKeys.pages.getByPath(pathname, "draft"),
+        (current) =>
+          current
+            ? {
+                ...current,
+                page: {
+                  ...current.page,
+                  livePublishedCheckpointId: null,
+                  status: "draft",
+                  modifiedReason: null,
+                },
+              }
+            : current,
+      );
+      queryClient.setQueryData<Page[]>(queryKeys.pages.list, (current) =>
+        current?.map((item) =>
+          item.id === page.id
+            ? {
+                ...item,
+                livePublishedCheckpointId: null,
+                status: "draft",
+                modifiedReason: null,
+              }
+            : item,
+        ),
+      );
+      previewStore.send({ type: "setPreviewSource", source: "draft" });
+      trackClientEvent("page_unpublished", { pageId: page.id });
+      toast.success("Unpublished this page");
+      setIsUnpublishDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to unpublish page:", error);
+      toast.error("Could not unpublish this page");
+    }
+  };
+
+  const handleDiscardChanges = async () => {
+    try {
+      await discardChanges.mutateAsync({ id: page.id });
+      previewStore.send({ type: "setPreviewSource", source: "draft" });
+      trackClientEvent("page_changes_discarded", { pageId: page.id });
+      toast.success("Discarded draft changes");
+      setIsDiscardDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to discard page changes:", error);
+      toast.error("Could not discard draft changes");
+    }
+  };
 
   return (
     <>
@@ -407,8 +485,18 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
               <MoreHorizontal className="text-muted-foreground" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-42">
-              <DropdownMenuItem disabled>Unpublish</DropdownMenuItem>
-              <DropdownMenuItem disabled>Discard changes</DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!hasLiveCheckpoint || unpublishPage.isPending}
+                onClick={() => setIsUnpublishDialogOpen(true)}
+              >
+                Unpublish
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!canDiscardChanges || discardChanges.isPending}
+                onClick={() => setIsDiscardDialogOpen(true)}
+              >
+                Discard changes
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </ButtonGroup>
@@ -438,6 +526,51 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
         open={isPublishDialogOpen}
         onOpenChange={setIsPublishDialogOpen}
       />
+      <AlertDialog open={isUnpublishDialogOpen} onOpenChange={setIsUnpublishDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unpublish page</AlertDialogTitle>
+            <AlertDialogDescription>
+              Visitors at{" "}
+              <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
+                {page.fullPath}
+              </code>{" "}
+              will get a 404. The draft stays available in Camox Studio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel variant="outline" size="default" disabled={unpublishPage.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnpublish} disabled={unpublishPage.isPending}>
+              {unpublishPage.isPending ? "Unpublishing…" : "Unpublish"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={isDiscardDialogOpen} onOpenChange={setIsDiscardDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard draft changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              The draft for{" "}
+              <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
+                {page.fullPath}
+              </code>{" "}
+              will be reset to match the currently published version. This does not change what
+              visitors see.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel variant="outline" size="default" disabled={discardChanges.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDiscardChanges} disabled={discardChanges.isPending}>
+              {discardChanges.isPending ? "Discarding…" : "Discard changes"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
