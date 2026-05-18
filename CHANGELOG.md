@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.28.0](https://github.com/camox-ai/camox/compare/camox-v0.27.0...camox-v0.28.0) (2026-05-18)
+
+
+### Features
+
+* add blocks get-many tool ([83e8c0a](https://github.com/camox-ai/camox/commit/83e8c0a7c485d50bba764abb9baa6b5d7a3bd073))
+* **web:** add feature-video-grid block ([a74cf99](https://github.com/camox-ai/camox/commit/a74cf990fa11e790c3041884bf19668c9335bd6b))
+
+
+### Bug Fixes
+
+* caomx-cli skill description too long ([697fac0](https://github.com/camox-ai/camox/commit/697fac004c5396342b5deab8a3ee36db8a6e346b))
+* enable publish button when changes are made ([bd6a7bd](https://github.com/camox-ai/camox/commit/bd6a7bd2c35d9a0526e5eda1f7828951df5717ea))
+* replicate checkpoints when transferring environments ([d2bbaa8](https://github.com/camox-ai/camox/commit/d2bbaa83f84e9795761e054b6e9022d0397b305f))
+* toggle agent chat action ([6b98c86](https://github.com/camox-ai/camox/commit/6b98c86b69adb95c04d7876b368284e1e81fcb25))
+
 ## [0.27.0](https://github.com/camox-ai/camox/compare/camox-v0.26.0...camox-v0.27.0) (2026-05-18)
 
 
