@@ -9,8 +9,18 @@ import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
 import { type JsonValue, remapFileReferences } from "../../lib/remap-file-references";
 import { resolveEnvironment } from "../../lib/resolve-environment";
 import { stableStringify } from "../../lib/stable-stringify";
-import { blockDefinitions, blocks, files, layouts, pages, repeatableItems } from "../../schema";
+import {
+  blockDefinitions,
+  blocks,
+  files,
+  layoutCheckpoints,
+  layouts,
+  pageCheckpoints,
+  pages,
+  repeatableItems,
+} from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
+import { layoutSnapshotSchema, pageSnapshotSchema } from "../_shared/snapshot-schemas";
 
 // --- Input Schemas ---
 
@@ -202,6 +212,22 @@ function topoSortItems<T extends { id: number; parentItemId: number | null }>(it
   return sorted;
 }
 
+type IdMap = Map<number, number>;
+
+function remapNullableId(id: number | null, map: IdMap): number | null {
+  if (id === null) return null;
+  return map.get(id) ?? id;
+}
+
+function remapMaybeNullableId(id: number | null, map: IdMap): number | null {
+  if (id === null) return null;
+  return map.get(id) ?? null;
+}
+
+function remapCheckpointContent(value: unknown, filesMap: IdMap) {
+  return remapFileReferences(value as JsonValue, filesMap);
+}
+
 // --- replicateEnvironment ---
 
 export async function replicateEnvironment(
@@ -277,6 +303,20 @@ export async function replicateEnvironment(
           .from(repeatableItems)
           .where(inArray(repeatableItems.blockId, sourceBlockIds))
       : [];
+  const sourcePageCheckpoints =
+    sourcePageIds.length > 0
+      ? await ctx.db
+          .select()
+          .from(pageCheckpoints)
+          .where(inArray(pageCheckpoints.pageId, sourcePageIds))
+      : [];
+  const sourceLayoutCheckpoints =
+    sourceLayoutPkIds.length > 0
+      ? await ctx.db
+          .select()
+          .from(layoutCheckpoints)
+          .where(inArray(layoutCheckpoints.layoutId, sourceLayoutPkIds))
+      : [];
 
   const takenAt = Date.now();
   const snapshot = {
@@ -290,6 +330,8 @@ export async function replicateEnvironment(
     pages: sourcePages,
     blocks: sourceBlocks,
     repeatableItems: sourceItems,
+    pageCheckpoints: sourcePageCheckpoints,
+    layoutCheckpoints: sourceLayoutCheckpoints,
   };
   const snapshotKey = `${projectId}/env-snapshots/${target.name}/${takenAt}.json`;
   await ctx.env.FILES_BUCKET.put(snapshotKey, JSON.stringify(snapshot), {
@@ -300,6 +342,21 @@ export async function replicateEnvironment(
   // Order matters: pages must go before layouts (pages.layout_id has no
   // ON DELETE CASCADE), and the files DELETE bypasses the per-row service so
   // R2 blobs are preserved for re-insertion below.
+  const targetPages = await ctx.db.select().from(pages).where(eq(pages.environmentId, target.id));
+  const targetLayouts = await ctx.db
+    .select()
+    .from(layouts)
+    .where(eq(layouts.environmentId, target.id));
+  const targetPageIds = targetPages.map((p) => p.id);
+  const targetLayoutIds = targetLayouts.map((l) => l.id);
+  if (targetPageIds.length > 0) {
+    await ctx.db.delete(pageCheckpoints).where(inArray(pageCheckpoints.pageId, targetPageIds));
+  }
+  if (targetLayoutIds.length > 0) {
+    await ctx.db
+      .delete(layoutCheckpoints)
+      .where(inArray(layoutCheckpoints.layoutId, targetLayoutIds));
+  }
   await ctx.db.delete(pages).where(eq(pages.environmentId, target.id));
   await ctx.db.delete(layouts).where(eq(layouts.environmentId, target.id));
   await ctx.db.delete(blockDefinitions).where(eq(blockDefinitions.environmentId, target.id));
@@ -310,10 +367,6 @@ export async function replicateEnvironment(
   const layoutsMap = new Map<number, number>();
   for (const row of sourceLayouts) {
     const { id, environmentId: _envId, livePublishedCheckpointId: _liveCk, ...rest } = row;
-    // Drop the source's live pointer — it references checkpoint rows that
-    // belong to the source env. Replicated rows in the target start with no
-    // published checkpoint (Phase 1 contract; Phase 3+ will reintroduce a
-    // per-environment publish action that fills this in).
     const inserted = await ctx.db
       .insert(layouts)
       .values({ ...rest, environmentId: target.id, livePublishedCheckpointId: null })
@@ -427,6 +480,118 @@ export async function replicateEnvironment(
     itemsMap.set(id, inserted.id);
   }
 
+  const layoutCheckpointsMap = new Map<number, number>();
+  for (const row of sourceLayoutCheckpoints) {
+    const { id, layoutId, snapshot: rawSnapshot, ...rest } = row;
+    const newLayoutId = layoutsMap.get(layoutId);
+    if (newLayoutId === undefined) continue;
+
+    const parsed = layoutSnapshotSchema.parse(JSON.parse(rawSnapshot));
+    const remappedSnapshot = {
+      ...parsed,
+      layout: {
+        ...parsed.layout,
+        id: newLayoutId,
+        environmentId: target.id,
+      },
+      blocks: parsed.blocks.map((block) => ({
+        ...block,
+        id: blocksMap.get(block.id) ?? block.id,
+        pageId: remapMaybeNullableId(block.pageId, pagesMap),
+        layoutId: remapMaybeNullableId(block.layoutId, layoutsMap),
+        content: remapCheckpointContent(block.content, filesMap),
+        settings:
+          block.settings !== null
+            ? remapCheckpointContent(block.settings, filesMap)
+            : block.settings,
+      })),
+      repeatableItems: parsed.repeatableItems.map((item) => ({
+        ...item,
+        id: itemsMap.get(item.id) ?? item.id,
+        blockId: blocksMap.get(item.blockId) ?? item.blockId,
+        parentItemId: remapNullableId(item.parentItemId, itemsMap),
+        content: remapCheckpointContent(item.content, filesMap),
+        settings:
+          item.settings !== null ? remapCheckpointContent(item.settings, filesMap) : item.settings,
+      })),
+    };
+
+    const inserted = await ctx.db
+      .insert(layoutCheckpoints)
+      .values({ ...rest, layoutId: newLayoutId, snapshot: JSON.stringify(remappedSnapshot) })
+      .returning()
+      .get();
+    layoutCheckpointsMap.set(id, inserted.id);
+  }
+
+  const pageCheckpointsMap = new Map<number, number>();
+  for (const row of sourcePageCheckpoints) {
+    const { id, pageId, snapshot: rawSnapshot, ...rest } = row;
+    const newPageId = pagesMap.get(pageId);
+    if (newPageId === undefined) continue;
+
+    const parsed = pageSnapshotSchema.parse(JSON.parse(rawSnapshot));
+    const remappedSnapshot = {
+      ...parsed,
+      page: {
+        ...parsed.page,
+        id: newPageId,
+        environmentId: target.id,
+        parentPageId: remapMaybeNullableId(parsed.page.parentPageId, pagesMap),
+        layoutId: layoutsMap.get(parsed.page.layoutId) ?? parsed.page.layoutId,
+      },
+      blocks: parsed.blocks.map((block) => ({
+        ...block,
+        id: blocksMap.get(block.id) ?? block.id,
+        pageId: remapMaybeNullableId(block.pageId, pagesMap),
+        layoutId: remapMaybeNullableId(block.layoutId, layoutsMap),
+        content: remapCheckpointContent(block.content, filesMap),
+        settings:
+          block.settings !== null
+            ? remapCheckpointContent(block.settings, filesMap)
+            : block.settings,
+      })),
+      repeatableItems: parsed.repeatableItems.map((item) => ({
+        ...item,
+        id: itemsMap.get(item.id) ?? item.id,
+        blockId: blocksMap.get(item.blockId) ?? item.blockId,
+        parentItemId: remapNullableId(item.parentItemId, itemsMap),
+        content: remapCheckpointContent(item.content, filesMap),
+        settings:
+          item.settings !== null ? remapCheckpointContent(item.settings, filesMap) : item.settings,
+      })),
+    };
+
+    const inserted = await ctx.db
+      .insert(pageCheckpoints)
+      .values({ ...rest, pageId: newPageId, snapshot: JSON.stringify(remappedSnapshot) })
+      .returning()
+      .get();
+    pageCheckpointsMap.set(id, inserted.id);
+  }
+
+  for (const sourceLayout of sourceLayouts) {
+    if (sourceLayout.livePublishedCheckpointId === null) continue;
+    const newLayoutId = layoutsMap.get(sourceLayout.id);
+    const newCheckpointId = layoutCheckpointsMap.get(sourceLayout.livePublishedCheckpointId);
+    if (newLayoutId === undefined || newCheckpointId === undefined) continue;
+    await ctx.db
+      .update(layouts)
+      .set({ livePublishedCheckpointId: newCheckpointId })
+      .where(eq(layouts.id, newLayoutId));
+  }
+
+  for (const sourcePage of sourcePages) {
+    if (sourcePage.livePublishedCheckpointId === null) continue;
+    const newPageId = pagesMap.get(sourcePage.id);
+    const newCheckpointId = pageCheckpointsMap.get(sourcePage.livePublishedCheckpointId);
+    if (newPageId === undefined || newCheckpointId === undefined) continue;
+    await ctx.db
+      .update(pages)
+      .set({ livePublishedCheckpointId: newCheckpointId })
+      .where(eq(pages.id, newPageId));
+  }
+
   // Phase 5 — broadcast invalidation -----------------------------------------
   // The project room is shared across envs; sessions on the source env will
   // refetch unchanged data (a no-op), and sessions on the target env will
@@ -455,6 +620,8 @@ export async function replicateEnvironment(
       pages: sourcePages.length,
       blocks: sourceBlocks.length,
       repeatableItems: sourceItems.length,
+      pageCheckpoints: sourcePageCheckpoints.length,
+      layoutCheckpoints: sourceLayoutCheckpoints.length,
     },
     snapshotKey,
   };
