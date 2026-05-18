@@ -17,7 +17,6 @@ import * as React from "react";
 import type { Page } from "@/lib/queries";
 import { pageMutations } from "@/lib/queries";
 import { trackClientEvent } from "@/lib/telemetry-client";
-import { formatPathSegment } from "@/lib/utils";
 
 /**
  * Confirmation dialog for `pages.publish`. Shows the path that will go live
@@ -41,7 +40,7 @@ export function PublishDialog({
   open,
   onOpenChange,
 }: {
-  page: Pick<Page, "id" | "metaTitle" | "pathSegment" | "fullPath"> | null;
+  page: Pick<Page, "id" | "fullPath"> | null;
   pageStatus: "draft" | "published" | "modified";
   alsoPublishLayout: { layoutHandle: string; affectedPagesCount: number } | null;
   open: boolean;
@@ -61,7 +60,6 @@ export function PublishDialog({
 
   const handlePublish = async () => {
     if (!page) return;
-    const displayName = page.metaTitle ?? formatPathSegment(page.pathSegment);
     const shouldBundle = bundleLayout && alsoPublishLayout != null;
     try {
       await publishPage.mutateAsync({
@@ -72,15 +70,18 @@ export function PublishDialog({
         pageId: page.id,
         ...(shouldBundle ? { alsoPublishedLayout: true } : {}),
       });
+      // Toast copy says "this page" rather than naming the page — meta titles
+      // are often long and paths add noise next to a toast that fires right
+      // where the user clicked.
       toast.success(
         shouldBundle
-          ? `Published ${displayName} and layout ${alsoPublishLayout?.layoutHandle}`
-          : `Published ${displayName}`,
+          ? `Published this page and layout ${alsoPublishLayout?.layoutHandle}`
+          : "Published this page",
       );
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to publish page:", error);
-      toast.error(`Could not publish ${displayName}`);
+      toast.error("Could not publish this page");
     }
   };
 

@@ -320,6 +320,9 @@ type PreviewedPage = {
 
 const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
+  const queryClient = useQueryClient();
+  const projectSlug = useProjectSlug();
+  const { pathname } = useLocation();
   const [isPublishDialogOpen, setIsPublishDialogOpen] = React.useState(false);
 
   // 'Live' isn't a valid preview target for a page that's never been
@@ -327,6 +330,23 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
   // the control's position in the toolbar stays stable as the user
   // navigates between published and unpublished pages.
   const hasLiveCheckpoint = page.livePublishedCheckpointId != null;
+
+  // Warm the other source's cache on hover so the toggle feels instant. We
+  // use the full query fn (rather than the lightweight structural one) so
+  // block caches are seeded alongside the page row — that way a switch from
+  // 'draft' to 'live' (or vice versa) doesn't Suspense on a missing block
+  // cache. `staleTime: Infinity` on the queries means subsequent hovers are
+  // no-ops once the data is in.
+  const otherSource: ReadSource = previewSource === "draft" ? "live" : "draft";
+  const canPrefetchOther = otherSource === "draft" || hasLiveCheckpoint;
+  const prefetchOtherSource = React.useCallback(() => {
+    if (!canPrefetchOther) return;
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.pages.getByPath(pathname, otherSource),
+      queryFn: pageFullQueryFn(queryClient, pathname, projectSlug, otherSource),
+      staleTime: Infinity,
+    });
+  }, [canPrefetchOther, otherSource, pathname, projectSlug, queryClient]);
   // Publish is gated on (a) there's something to publish and (b) the user is
   // looking at the draft. Publishing while previewing Live would mean
   // promoting the already-public snapshot to itself — meaningless, and the
@@ -350,19 +370,23 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
   return (
     <>
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div
+          className="flex items-center gap-2"
+          onMouseEnter={prefetchOtherSource}
+          onFocus={prefetchOtherSource}
+        >
           <Switch
-            id="live-content"
+            id="draft-content"
             disabled={!hasLiveCheckpoint}
-            checked={previewSource === "live"}
+            checked={previewSource === "draft"}
             onCheckedChange={(checked) => {
               previewStore.send({
                 type: "setPreviewSource",
-                source: checked ? "live" : "draft",
+                source: checked ? "draft" : "live",
               });
             }}
           />
-          <Label htmlFor="live-content">Live content</Label>
+          <Label htmlFor="draft-content">Draft content</Label>
         </div>
         <Button
           type="button"
@@ -370,7 +394,7 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
           disabled={!canPublish}
           onClick={() => setIsPublishDialogOpen(true)}
         >
-          Publish…
+          Publish
         </Button>
       </div>
       <PublishDialog
