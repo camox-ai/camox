@@ -29,6 +29,7 @@ import {
   projects,
   repeatableItems,
 } from "../../schema";
+import { pageSourceSchema, type PageSource } from "../_shared/page-source";
 import type { ServiceContext } from "../_shared/service-context";
 import {
   layoutSnapshotSchema,
@@ -37,12 +38,7 @@ import {
   type SnapshotRepeatableItem,
 } from "../_shared/snapshot-schemas";
 import { buildFileMap, collectFileIds } from "../pages/ai";
-import {
-  pageSourceSchema,
-  readLayoutSnapshot,
-  readPageSnapshot,
-  type PageSource,
-} from "../pages/service";
+import { readLayoutSnapshot, readPageSnapshot } from "../pages/service";
 import { normalizeBlockContent, sanitizeAssetValue, type BlockItemSeed } from "./normalize-content";
 
 // --- Input Schemas ---

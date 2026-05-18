@@ -18,6 +18,7 @@ import {
   projects,
   repeatableItems,
 } from "../../schema";
+import { pageSourceSchema, type PageSource } from "../_shared/page-source";
 import type { ServiceContext } from "../_shared/service-context";
 import {
   layoutSnapshotSchema,
@@ -50,17 +51,10 @@ const DEFAULT_HERO_BLOCK = {
 // Exported so adapters (oRPC, MCP, CLI) share the same canonical contract.
 // Services .parse() them on entry — service is the trust boundary.
 
-// `source` selects the data plane the read serves from. Phase 1 of Draft &
-// Publish: 'live' follows the page's live_published_checkpoint_id and parses
-// the snapshot; 'draft' joins the live rows (today's behavior); the object
-// form pins to a specific checkpoint id. Default is 'live' — the public SDK
-// loader needs that, and the studio overrides explicitly with 'draft'.
-export const pageSourceSchema = z.union([
-  z.literal("live"),
-  z.literal("draft"),
-  z.object({ checkpointId: z.number() }),
-]);
-export type PageSource = z.infer<typeof pageSourceSchema>;
+// Re-exported for callers that already pull the rest of the page contract
+// from this module. The canonical definition lives in `_shared/page-source`
+// so bundlers don't trip over the cycle with `blocks/service.ts`.
+export { pageSourceSchema, type PageSource };
 
 export const getPageByPathInput = z.object({
   projectSlug: z.string(),

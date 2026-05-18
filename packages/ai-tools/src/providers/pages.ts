@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { pageSourceSchema } from "../../../../apps/api/src/domains/_shared/page-source";
 import { getPageMarkdown } from "../../../../apps/api/src/domains/blocks/service";
 import {
   createPage,
@@ -8,7 +9,6 @@ import {
   deletePageInput,
   getPage,
   listPages,
-  pageSourceSchema,
   publishPage,
   setPageLayout,
   setPageLayoutInput,

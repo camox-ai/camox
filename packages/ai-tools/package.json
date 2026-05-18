@@ -11,6 +11,11 @@
       "source": "./src/index.ts",
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./rewrite-asset-schema": {
+      "source": "./src/lib/rewrite-asset-schema.ts",
+      "types": "./src/lib/rewrite-asset-schema.ts",
+      "default": "./src/lib/rewrite-asset-schema.ts"
     }
   },
   "scripts": {

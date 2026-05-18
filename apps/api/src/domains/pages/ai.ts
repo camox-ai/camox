@@ -1,4 +1,9 @@
-import { rewriteAssetSchema } from "@camox/ai-tools";
+// Deep import (not from the package barrel) to keep the @camox/ai-tools tool
+// providers — which transitively import back into apps/api/src/domains —
+// out of this module's bundler init chain. Importing from the barrel here
+// created a circular evaluation that left `pageSourceSchema` / `createBlockInput`
+// undefined inside blocks/service.ts at runtime.
+import { rewriteAssetSchema } from "@camox/ai-tools/rewrite-asset-schema";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { eq, inArray } from "drizzle-orm";

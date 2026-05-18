@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { pageSourceSchema } from "../../../../apps/api/src/domains/_shared/page-source";
 import {
   createBlock,
   createBlockInput,
@@ -12,7 +13,6 @@ import {
   updateBlockPositionInput,
   updateBlockSettings,
 } from "../../../../apps/api/src/domains/blocks/service";
-import { pageSourceSchema } from "../../../../apps/api/src/domains/pages/service";
 import type { ToolDefinition, ToolProvider } from "../types";
 
 const positionAliasSchema = z.enum(["first", "last"]).optional();
