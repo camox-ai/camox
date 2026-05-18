@@ -396,6 +396,9 @@ export async function createRepeatableItem(
     projectId: access.projectId,
     targets: [
       queryKeys.blocks.get(blockId, "draft"),
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
+        : [queryKeys.pages.getByPathAll]),
       queryKeys.pages.list,
       queryKeys.blocks.getUsageCounts,
     ],
@@ -451,7 +454,13 @@ export async function updateRepeatableItemContent(
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
-    targets: [queryKeys.blocks.get(access.item.blockId, "draft"), queryKeys.pages.list],
+    targets: [
+      queryKeys.blocks.get(access.item.blockId, "draft"),
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
+        : [queryKeys.pages.getByPathAll]),
+      queryKeys.pages.list,
+    ],
   });
 
   return result;
@@ -483,7 +492,13 @@ export async function updateRepeatableItemSettings(
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
-    targets: [queryKeys.blocks.get(access.item.blockId, "draft"), queryKeys.pages.list],
+    targets: [
+      queryKeys.blocks.get(access.item.blockId, "draft"),
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
+        : [queryKeys.pages.getByPathAll]),
+      queryKeys.pages.list,
+    ],
   });
 
   return result;
@@ -541,7 +556,13 @@ export async function updateRepeatableItemPosition(
     waitUntil: ctx.waitUntil,
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
-    targets: [queryKeys.blocks.get(access.item.blockId, "draft"), queryKeys.pages.list],
+    targets: [
+      queryKeys.blocks.get(access.item.blockId, "draft"),
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
+        : [queryKeys.pages.getByPathAll]),
+      queryKeys.pages.list,
+    ],
   });
   return result;
 }
@@ -596,6 +617,9 @@ export async function duplicateRepeatableItem(
     projectId: access.projectId,
     targets: [
       queryKeys.blocks.get(original.blockId, "draft"),
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
+        : [queryKeys.pages.getByPathAll]),
       queryKeys.pages.list,
       queryKeys.blocks.getUsageCounts,
     ],
@@ -661,6 +685,9 @@ export async function deleteRepeatableItem(
     projectId: access.projectId,
     targets: [
       queryKeys.blocks.get(blockId, "draft"),
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
+        : [queryKeys.pages.getByPathAll]),
       queryKeys.pages.list,
       queryKeys.blocks.getUsageCounts,
     ],

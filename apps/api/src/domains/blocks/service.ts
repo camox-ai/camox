@@ -1159,6 +1159,9 @@ export async function updateBlockContent(
     projectId: access.projectId,
     targets: [
       queryKeys.blocks.get(id, "draft"),
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
+        : [queryKeys.pages.getByPathAll]),
       queryKeys.pages.list,
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
     ],
@@ -1195,6 +1198,9 @@ export async function updateBlockSettings(
     projectId: access.projectId,
     targets: [
       queryKeys.blocks.get(id, "draft"),
+      ...(access.pagePath
+        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
+        : [queryKeys.pages.getByPathAll]),
       queryKeys.pages.list,
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
     ],
