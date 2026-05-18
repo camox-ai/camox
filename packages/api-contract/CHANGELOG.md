@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/camox-ai/camox/compare/camox-v0.24.1...@camox/api-contract-v0.25.0) (2026-05-18)
+
+
+### Features
+
+* add draft-publish status badges and preview toggle (phase 2) ([5cab5bf](https://github.com/camox-ai/camox/commit/5cab5bf54e328b4508aecb3ecd8b8de2478b1771))
+
 ## [0.24.1](https://github.com/camox-ai/camox/compare/camox-v0.24.0...@camox/api-contract-v0.24.1) (2026-05-16)
 
 
