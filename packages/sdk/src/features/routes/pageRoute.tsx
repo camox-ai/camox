@@ -9,6 +9,7 @@ import { createMiddleware, createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 
 import type { CamoxApp } from "../../core/createApp";
+import { getAuthCookieHeader, getServerAuthCookieHeader } from "../../lib/auth";
 import { seedBlockCaches } from "../../lib/normalized-data";
 import type { PageStructure } from "../../lib/queries";
 import { trackEvent } from "../../lib/telemetry";
@@ -37,10 +38,25 @@ export function prefersMarkdown(accept: string): boolean {
   return markdownQ > 0 && markdownQ >= htmlQ;
 }
 
-function createServerApiClient(apiUrl: string, environmentName?: string): RouterClient<Router> {
+function createServerApiClient(
+  apiUrl: string,
+  environmentName?: string,
+  options?: { authCookieHeader?: string },
+): RouterClient<Router> {
   const headers: Record<string, string> = {};
   if (environmentName) headers["x-environment-name"] = environmentName;
-  return createORPCClient<RouterClient<Router>>(new RPCLink({ url: `${apiUrl}/rpc`, headers }));
+  return createORPCClient<RouterClient<Router>>(
+    new RPCLink({
+      url: `${apiUrl}/rpc`,
+      headers,
+      fetch: (request, init) => {
+        if (options?.authCookieHeader && request instanceof Request) {
+          request.headers.set("Better-Auth-Cookie", options.authCookieHeader);
+        }
+        return fetch(request, init);
+      },
+    }),
+  );
 }
 
 /* -------------------------------------------------------------------------------------------------
@@ -52,6 +68,12 @@ export const getOrigin = createServerFn({ method: "GET" }).handler(async () => {
   const url = new URL(request.url);
   return url.origin;
 });
+
+export const getServerLoaderAuthCookieHeader = createServerFn({ method: "GET" }).handler(
+  async () => {
+    return getServerAuthCookieHeader(getRequest().headers);
+  },
+);
 
 /* -------------------------------------------------------------------------------------------------
  * Factories
@@ -91,8 +113,6 @@ export function createMarkdownMiddleware(
 }
 
 export function createPageLoader(apiUrl: string, projectSlug: string, environmentName?: string) {
-  const serverApi = createServerApiClient(apiUrl, environmentName);
-
   return async ({
     location,
     context,
@@ -101,37 +121,48 @@ export function createPageLoader(apiUrl: string, projectSlug: string, environmen
     context: { queryClient: QueryClient };
   }) => {
     try {
+      const authCookieHeader =
+        typeof window !== "undefined"
+          ? getAuthCookieHeader()
+          : await getServerLoaderAuthCookieHeader();
+      const source = authCookieHeader ? "draft" : "live";
+      const serverApi = createServerApiClient(apiUrl, environmentName, { authCookieHeader });
       const [page, origin] = await Promise.all([
         context.queryClient.ensureQueryData({
-          queryKey: queryKeys.pages.getByPath(location.pathname, "live"),
+          queryKey: queryKeys.pages.getByPath(location.pathname, source),
           queryFn: async () => {
             const [data, pagesList] = await Promise.all([
-              // Public site: always read from the live (published) snapshot.
-              // A null live pointer surfaces as NOT_FOUND below → 404.
+              // Public visitors read from the live (published) snapshot.
+              // Authenticated studio navigation reads the draft so newly
+              // created, unpublished pages can mount their editing UI.
               serverApi.pages.getByPath({
                 path: location.pathname,
                 projectSlug,
-                source: "live",
+                source,
               }),
               serverApi.pages.listBySlug({ projectSlug }).catch(() => null),
             ]);
-            // Seed block caches under 'live' (matches the snapshot source).
-            // The studio's default 'draft' view will fetch on mount if the
-            // user is authenticated, but for public visitors the live caches
-            // serve the entire page render without any client-side fetch.
-            seedBlockCaches(context.queryClient, data, "live");
-            // Also seed 'draft' caches with the same data: pre-edit, draft
-            // and live render identically (the Phase 1 migration guarantees
-            // every page starts with `auto-publish` checkpoint == draft).
-            // This avoids a Suspense flash when the studio mounts on a
-            // freshly-loaded page. The 'draft' cache will refetch on first
-            // draft mutation invalidation, picking up real draft data if it
-            // has since diverged.
-            seedBlockCaches(context.queryClient, data, "draft");
-            context.queryClient.setQueryData(
-              queryKeys.pages.getByPath(location.pathname, "draft"),
-              data,
-            );
+            seedBlockCaches(context.queryClient, data, source);
+            context.queryClient.setQueryData(queryKeys.pages.getByPath(location.pathname, source), {
+              page: data.page,
+              layout: data.layout,
+              projectName: data.projectName,
+              project: data.project,
+            });
+            if (source === "live") {
+              // Public visitors render through the preview store's default
+              // draft slot, but they should only ever see published content.
+              seedBlockCaches(context.queryClient, data, "draft");
+              context.queryClient.setQueryData(
+                queryKeys.pages.getByPath(location.pathname, "draft"),
+                {
+                  page: data.page,
+                  layout: data.layout,
+                  projectName: data.projectName,
+                  project: data.project,
+                },
+              );
+            }
             if (pagesList) {
               context.queryClient.setQueryData(queryKeys.pages.list, pagesList);
             }

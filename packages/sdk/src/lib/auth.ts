@@ -31,6 +31,34 @@ interface StoredCookie {
   expires: string | null;
 }
 
+const SERVER_AUTH_COOKIE_NAME = "camox_auth_cookie";
+
+function writeServerAuthCookie(cookie: string) {
+  if (typeof document === "undefined") return;
+
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  if (!cookie) {
+    document.cookie = `${SERVER_AUTH_COOKIE_NAME}=; Path=/; SameSite=Lax; Max-Age=0${secure}`;
+    return;
+  }
+
+  document.cookie = `${SERVER_AUTH_COOKIE_NAME}=${encodeURIComponent(cookie)}; Path=/; SameSite=Lax; Max-Age=2592000${secure}`;
+}
+
+export function getServerAuthCookieHeader(headers: Headers): string {
+  const cookieHeader = headers.get("Cookie") ?? headers.get("cookie") ?? "";
+  const cookies = cookieHeader.split(";").map((part) => part.trim());
+  const authCookie = cookies.find((part) => part.startsWith(`${SERVER_AUTH_COOKIE_NAME}=`));
+  if (!authCookie) return "";
+
+  const value = authCookie.slice(SERVER_AUTH_COOKIE_NAME.length + 1);
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return "";
+  }
+}
+
 function parseSetCookieHeader(header: string): Map<string, CookieAttributes> {
   const cookieMap = new Map<string, CookieAttributes>();
   const cookies = header.split(", ");
@@ -105,7 +133,9 @@ function getCookie(cookie: string) {
  */
 export function getAuthCookieHeader(): string {
   if (typeof window === "undefined") return "";
-  return getCookie(localStorage.getItem("better-auth_cookie") || "{}");
+  const cookie = getCookie(localStorage.getItem("better-auth_cookie") || "{}");
+  writeServerAuthCookie(cookie);
+  return cookie;
 }
 
 function crossDomainClient(
@@ -162,6 +192,7 @@ function crossDomainClient(
               const prevCookie = storage.getItem(cookieName);
               const toSetCookie = getSetCookie(setCookie || "", prevCookie ?? undefined);
               await storage.setItem(cookieName, toSetCookie);
+              writeServerAuthCookie(getCookie(toSetCookie));
 
               if (setCookie.includes(".session_token=")) {
                 const parsed = parseSetCookieHeader(setCookie);
@@ -183,6 +214,9 @@ function crossDomainClient(
               storage.setItem(localCacheName, JSON.stringify(data));
               if (data === null) {
                 storage.setItem(cookieName, "{}");
+                writeServerAuthCookie("");
+              } else {
+                writeServerAuthCookie(getCookie(storage.getItem(cookieName) || "{}"));
               }
             }
           },
@@ -194,6 +228,7 @@ function crossDomainClient(
           options = options || {};
           const storedCookie = storage.getItem(cookieName);
           const cookie = getCookie(storedCookie || "{}");
+          writeServerAuthCookie(cookie);
           options.credentials = "omit";
           options.headers = {
             ...options.headers,
@@ -201,6 +236,7 @@ function crossDomainClient(
           };
           if (url.includes("/sign-out")) {
             await storage.setItem(cookieName, "{}");
+            writeServerAuthCookie("");
             store?.atoms.session?.set({
               data: null,
               error: null,

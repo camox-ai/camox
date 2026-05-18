@@ -579,6 +579,7 @@ export async function getPageByPath(
   rawInput: z.input<typeof getPageByPathInput>,
 ) {
   const { path: fullPath, projectSlug, source } = getPageByPathInput.parse(rawInput);
+  if (source === "draft") assertUser(ctx);
   const db = ctx.db;
 
   const project = await db.select().from(projects).where(eq(projects.slug, projectSlug)).get();
@@ -663,6 +664,7 @@ export async function getPageStructure(
   rawInput: z.input<typeof getPageStructureInput>,
 ) {
   const { path: fullPath, projectSlug, source } = getPageStructureInput.parse(rawInput);
+  if (source === "draft") assertUser(ctx);
   const db = ctx.db;
 
   const project = await db.select().from(projects).where(eq(projects.slug, projectSlug)).get();
@@ -769,6 +771,7 @@ export async function listPagesBySlug(
 
 export async function getPage(ctx: ServiceContext, rawInput: z.input<typeof getPageInput>) {
   const parsed = getPageInput.parse(rawInput);
+  if (parsed.source === "draft") assertUser(ctx);
   let row: typeof pages.$inferSelect | undefined;
   if ("id" in parsed) {
     row = await ctx.db.select().from(pages).where(eq(pages.id, parsed.id)).get();
