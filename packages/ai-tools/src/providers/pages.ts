@@ -7,6 +7,7 @@ import {
   createPageInput,
   deletePage,
   deletePageInput,
+  discardPageChanges,
   getPage,
   listPages,
   publishPage,
@@ -16,6 +17,7 @@ import {
   setPageMetaDescriptionInput,
   setPageMetaTitle,
   setPageMetaTitleInput,
+  unpublishPage,
   updatePage,
   updatePageInput,
 } from "../../../../apps/api/src/domains/pages/service";
@@ -32,15 +34,35 @@ const getPageToolInput = z.union([
 // Publish accepts either `id` or `path` so the CLI can mirror `pages get`'s
 // flags. `alsoPublishLayout` defaults true at the CLI layer; the underlying
 // service no-ops when the layout has no pending changes.
-const publishPageToolInput = z
+const pageMutationTargetInput = z
   .object({
     id: z.number().optional(),
     path: z.string().optional(),
-    alsoPublishLayout: z.boolean().optional(),
   })
   .refine((d) => (d.id != null) !== (d.path != null), {
     message: "Pass exactly one of `id` or `path`.",
   });
+
+const publishPageToolInput = pageMutationTargetInput.and(
+  z.object({
+    alsoPublishLayout: z.boolean().optional(),
+  }),
+);
+
+async function resolvePageTargetId(
+  ctx: Parameters<ToolProvider>[0],
+  target: z.infer<typeof pageMutationTargetInput>,
+): Promise<number> {
+  if (target.id != null) return target.id;
+  if (target.path == null) throw new Error("Pass exactly one of `id` or `path`.");
+
+  const page = await getPage(ctx, {
+    projectId: ctx.projectId,
+    path: target.path,
+    source: "draft",
+  });
+  return page.id;
+}
 
 export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
   {
@@ -116,19 +138,32 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
     inputSchema: publishPageToolInput,
     handler: async (input) => {
       const parsed = publishPageToolInput.parse(input);
-      let id = parsed.id;
-      if (id == null && parsed.path != null) {
-        const page = await getPage(ctx, {
-          projectId: ctx.projectId,
-          path: parsed.path,
-          source: "draft",
-        });
-        id = page.id;
-      }
-      if (id == null) {
-        throw new Error("Pass exactly one of `id` or `path`.");
-      }
+      const id = await resolvePageTargetId(ctx, parsed);
       return publishPage(ctx, { id, alsoPublishLayout: parsed.alsoPublishLayout });
+    },
+  },
+  {
+    name: "unpublishPage",
+    description:
+      "Remove the page's live published snapshot pointer so public/live reads stop serving it. " +
+      "The draft is left untouched. Accepts either `id` or `path` (e.g. `/about`).",
+    inputSchema: pageMutationTargetInput,
+    handler: async (input) => {
+      const parsed = pageMutationTargetInput.parse(input);
+      const id = await resolvePageTargetId(ctx, parsed);
+      return unpublishPage(ctx, { id });
+    },
+  },
+  {
+    name: "discardPageChanges",
+    description:
+      "Reset the page draft to the currently published live snapshot. This does not change live content and fails if the page has never been published. " +
+      "Accepts either `id` or `path` (e.g. `/about`).",
+    inputSchema: pageMutationTargetInput,
+    handler: async (input) => {
+      const parsed = pageMutationTargetInput.parse(input);
+      const id = await resolvePageTargetId(ctx, parsed);
+      return discardPageChanges(ctx, { id });
     },
   },
 ];

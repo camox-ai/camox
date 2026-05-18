@@ -12,7 +12,7 @@ import * as logout from "./commands/logout";
 import * as pages from "./commands/pages";
 import * as status from "./commands/status";
 
-// With 6 top-level parsers and many subcommands, optique's variadic `or`
+// With many top-level parsers and subcommands, optique's variadic `or`
 // overload + recursive command inference exceeds what TypeScript can resolve,
 // so `runSync` ends up returning `unknown`. We narrow at the call site via a
 // hand-written discriminator union — each handler still type-checks its own
@@ -66,6 +66,8 @@ switch (result.command) {
   case "pages.set-layout":
   case "pages.delete":
   case "pages.publish":
+  case "pages.unpublish":
+  case "pages.discard-changes":
     await pages.handler(result);
     break;
   case "blocks.types":

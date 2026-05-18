@@ -52,6 +52,30 @@ const publish = command(
   }),
 );
 
+const unpublish = command(
+  "unpublish",
+  object({
+    command: constant("pages.unpublish" as const),
+    id: optional(option("--id", integer({ metavar: "ID" }))),
+    path: optional(option("--path", string({ metavar: "PATH" }))),
+    project: projectFlag,
+    production: productionFlag,
+    json: jsonFlag,
+  }),
+);
+
+const discardChanges = command(
+  "discard-changes",
+  object({
+    command: constant("pages.discard-changes" as const),
+    id: optional(option("--id", integer({ metavar: "ID" }))),
+    path: optional(option("--path", string({ metavar: "PATH" }))),
+    project: projectFlag,
+    production: productionFlag,
+    json: jsonFlag,
+  }),
+);
+
 const create = command(
   "create",
   object({
@@ -104,7 +128,10 @@ const del = command(
   }),
 );
 
-export const parser = command("pages", or(list, get, create, update, setLayout, del, publish));
+export const parser = command(
+  "pages",
+  or(list, get, create, update, setLayout, del, publish, unpublish, discardChanges),
+);
 
 type CommonFlags = { project?: string; production: boolean; json: boolean };
 
@@ -133,6 +160,11 @@ type Args =
       id?: number;
       path?: string;
       noLayout: boolean;
+    } & CommonFlags)
+  | ({
+      command: "pages.unpublish" | "pages.discard-changes";
+      id?: number;
+      path?: string;
     } & CommonFlags);
 
 export async function handler(args: Args): Promise<never> {
@@ -218,6 +250,40 @@ export async function handler(args: Args): Promise<never> {
       return dispatch({
         toolName: "publishPage",
         args: { ...target, alsoPublishLayout: !args.noLayout },
+        projectFlag,
+        production,
+        outputMode,
+      });
+    }
+    case "pages.unpublish": {
+      if ((args.id == null) === (args.path == null)) {
+        printError({
+          code: "INVALID_ARGS",
+          message: "Pass exactly one of --id or --path.",
+        });
+        process.exit(2);
+      }
+      const target = args.id != null ? { id: args.id } : { path: args.path };
+      return dispatch({
+        toolName: "unpublishPage",
+        args: target,
+        projectFlag,
+        production,
+        outputMode,
+      });
+    }
+    case "pages.discard-changes": {
+      if ((args.id == null) === (args.path == null)) {
+        printError({
+          code: "INVALID_ARGS",
+          message: "Pass exactly one of --id or --path.",
+        });
+        process.exit(2);
+      }
+      const target = args.id != null ? { id: args.id } : { path: args.path };
+      return dispatch({
+        toolName: "discardPageChanges",
+        args: target,
         projectFlag,
         production,
         outputMode,

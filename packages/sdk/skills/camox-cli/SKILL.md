@@ -138,6 +138,20 @@ Agents should work on **drafts** first, get the changes reviewed, and only then 
 
 `pages publish` accepts exactly one of `--id` or `--path`. It publishes the page's current draft. By default it also publishes the page's layout; that layout publish is a no-op when there are no pending layout changes.
 
+To remove a published page from live without deleting its draft:
+
+```sh
+{{CAMOX_CMD}} pages unpublish --path /pricing
+```
+
+To throw away unpublished draft edits and reset the draft to the current live snapshot:
+
+```sh
+{{CAMOX_CMD}} pages discard-changes --path /pricing
+```
+
+`pages unpublish` and `pages discard-changes` accept exactly one of `--id` or `--path`. `pages unpublish` leaves the draft untouched. `pages discard-changes` does not change live content and fails when the page has never been published.
+
 `--live` is for **reading** the published snapshot. It is not a write target and it is not how you publish. Live reads error when the page or block has never been published.
 
 ### Promote dev to production (or pull production back into dev)
@@ -185,6 +199,7 @@ By default, reads and writes operate on the draft. This is intentional: agents s
 {{CAMOX_CMD}} pages get --path /about       # draft
 {{CAMOX_CMD}} blocks edit --id 314 --content '{"headline": "New headline"}'
 {{CAMOX_CMD}} pages publish --path /about   # after review
+{{CAMOX_CMD}} pages discard-changes --path /about # reset draft to live
 ```
 
 Use `--live` only to compare against the published snapshot:
