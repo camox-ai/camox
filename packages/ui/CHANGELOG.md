@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.27.0](https://github.com/camox-ai/camox/compare/camox-v0.26.0...@camox/ui-v0.27.0) (2026-05-18)
+
+
+### Bug Fixes
+
+* preview sidebar ui tweaks ([ff5e8cd](https://github.com/camox-ai/camox/commit/ff5e8cdf182246459fc7bacc47d96b3b343f2e3d))
+
+
+### Miscellaneous
+
+* remove greenish hue from accent colors ([7c02917](https://github.com/camox-ai/camox/commit/7c02917981265074b5a7258a5f6b8876ee573df2))
+
 ## [0.26.0](https://github.com/camox-ai/camox/compare/camox-v0.25.0...@camox/ui-v0.26.0) (2026-05-18)
 
 

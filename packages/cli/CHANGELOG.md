@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.0](https://github.com/camox-ai/camox/compare/camox-v0.26.0...@camox/cli-v0.27.0) (2026-05-18)
+
+
+### Features
+
+* add page nickname concept ([478b61e](https://github.com/camox-ai/camox/commit/478b61e24ea9c91b5a1dcf9382882093c46c0853))
+* add unpublish and discard draft cli commands ([c6b15cb](https://github.com/camox-ai/camox/commit/c6b15cb790f0280790ff181b5f3bc5725a2c3902))
+
 ## [0.26.0](https://github.com/camox-ai/camox/compare/camox-v0.25.0...@camox/cli-v0.26.0) (2026-05-18)
 
 
