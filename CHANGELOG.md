@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.26.0](https://github.com/camox-ai/camox/compare/camox-v0.25.0...camox-v0.26.0) (2026-05-18)
+
+
+### Features
+
+* **cli:** add --live flag and default to draft operations ([534e342](https://github.com/camox-ai/camox/commit/534e342caa095830b7893a22f24ad7cfdf873510))
+
+
+### Bug Fixes
+
+* publish initial pages on project creation ([c55b04a](https://github.com/camox-ai/camox/commit/c55b04a7c2a49f672281f299a0cc5ef239da683a))
+
 ## [0.25.0](https://github.com/camox-ai/camox/compare/camox-v0.24.1...camox-v0.25.0) (2026-05-18)
 
 
