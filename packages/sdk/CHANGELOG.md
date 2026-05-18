@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.25.0](https://github.com/camox-ai/camox/compare/camox-v0.24.1...camox-sdk-v0.25.0) (2026-05-18)
+
+
+### Features
+
+* add draft-publish status badges and preview toggle (phase 2) ([5cab5bf](https://github.com/camox-ai/camox/commit/5cab5bf54e328b4508aecb3ecd8b8de2478b1771))
+* add publish button ([a609c74](https://github.com/camox-ai/camox/commit/a609c74b8d85482986b42ae67486ef43b459599a))
+* add toggle live/draft content action and shortcut ([eecb5cc](https://github.com/camox-ai/camox/commit/eecb5cc2643872e558f50cdb388d21c7c50e284d))
+* plumb draft-publish snapshots (phase 1) ([fd92d1b](https://github.com/camox-ai/camox/commit/fd92d1b678807010b701b7c0e7f9adaf618a5661))
+* prevent edits when source is live ([8691030](https://github.com/camox-ai/camox/commit/86910300250f98cdab4dc8754debe772f7fa8f0c))
+* publish layout changes ([3f9db46](https://github.com/camox-ai/camox/commit/3f9db46093f11253091c19d88f06c195da7cc650))
+
+
+### Bug Fixes
+
+* remove environment name from sidecar file ([d10e7be](https://github.com/camox-ai/camox/commit/d10e7be4f1521b6088c7624a3c489846da739571))
+
+
+### Miscellaneous
+
+* draft and publish ui tweaks ([62e6ea5](https://github.com/camox-ai/camox/commit/62e6ea523d402f1060a018bae9599d13566faa12))
+* replace draft select by live content switch ([bd05ef1](https://github.com/camox-ai/camox/commit/bd05ef11306d07f2b855dd4ffdc9b68cef34529e))
+
 ## [0.24.1](https://github.com/camox-ai/camox/compare/camox-v0.24.0...camox-sdk-v0.24.1) (2026-05-16)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.25.0](https://github.com/camox-ai/camox/compare/camox-v0.24.1...@camox/cli-v0.25.0) (2026-05-18)
+
+
+### Bug Fixes
+
+* remove environment name from sidecar file ([d10e7be](https://github.com/camox-ai/camox/commit/d10e7be4f1521b6088c7624a3c489846da739571))
+* scope block-definition lookups by environment ([a788bd1](https://github.com/camox-ai/camox/commit/a788bd1502036b42a7ad302e890725ae20ec0e1f))
+
 ## [0.24.1](https://github.com/camox-ai/camox/compare/camox-v0.24.0...@camox/cli-v0.24.1) (2026-05-16)
 
 
