@@ -43,6 +43,11 @@ const getBlockToolInput = z.object({
   source: pageSourceSchema.optional(),
 });
 
+const getBlocksToolInput = z.object({
+  ids: z.array(z.number()).min(1),
+  source: pageSourceSchema.optional(),
+});
+
 export const blocksProvider: ToolProvider = (ctx): ToolDefinition[] => [
   {
     name: "getBlock",
@@ -54,6 +59,19 @@ export const blocksProvider: ToolProvider = (ctx): ToolDefinition[] => [
     handler: (input) => {
       const parsed = getBlockToolInput.parse(input);
       return getBlock(ctx, { id: parsed.id, source: parsed.source ?? "draft" });
+    },
+  },
+  {
+    name: "getBlocks",
+    description:
+      "Fetch multiple blocks by id in one call. Returns an array of getBlock bundle results in the same order as the requested ids. " +
+      "Use this before editing repeatable fields across several blocks so each block's `_itemId` markers can be preserved. " +
+      "Defaults to reading the draft; pass `source: 'live'` to read the published snapshot.",
+    inputSchema: getBlocksToolInput,
+    handler: async (input) => {
+      const parsed = getBlocksToolInput.parse(input);
+      const source = parsed.source ?? "draft";
+      return Promise.all(parsed.ids.map((id) => getBlock(ctx, { id, source })));
     },
   },
   {

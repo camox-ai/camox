@@ -108,6 +108,14 @@ pnpm camox blocks edit --id 99 --content '{
 
 Same pattern for nested repeatables: each child item also has an `id` you pass back as `_itemId` inside the parent item's array field.
 
+When you need to edit repeatable fields in several blocks, prefer fetching them together first:
+
+```sh
+pnpm camox blocks get-many --id 99 --id 100 --id 101
+```
+
+`blocks get-many` returns the same bundle shape as `blocks get` for each block, in the same order as the requested ids.
+
 ### Create a new page using an existing layout
 
 ```sh

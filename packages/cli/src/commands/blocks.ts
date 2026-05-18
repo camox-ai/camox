@@ -45,6 +45,18 @@ const get = command(
   }),
 );
 
+const getMany = command(
+  "get-many",
+  object({
+    command: constant("blocks.get-many" as const),
+    id: multiple(option("--id", integer({ metavar: "ID" })), { min: 1 }),
+    live: liveFlag,
+    project: projectFlag,
+    production: productionFlag,
+    json: jsonFlag,
+  }),
+);
+
 const create = command(
   "create",
   object({
@@ -108,7 +120,7 @@ const del = command(
   }),
 );
 
-export const parser = command("blocks", or(types, describe, get, create, edit, move, del));
+export const parser = command("blocks", or(types, describe, get, getMany, create, edit, move, del));
 
 type CommonFlags = { project?: string; production: boolean; json: boolean };
 
@@ -124,6 +136,7 @@ type Args =
   | ({ command: "blocks.types" } & CommonFlags)
   | ({ command: "blocks.describe"; type: readonly string[] } & CommonFlags)
   | ({ command: "blocks.get"; id: number; live: boolean } & CommonFlags)
+  | ({ command: "blocks.get-many"; id: readonly number[]; live: boolean } & CommonFlags)
   | ({
       command: "blocks.create";
       pageId: number;
@@ -196,6 +209,14 @@ export async function handler(args: Args): Promise<never> {
         return dispatch({
           toolName: "getBlock",
           args: { id: args.id, source: args.live ? "live" : "draft" },
+          projectFlag,
+          production,
+          outputMode,
+        });
+      case "blocks.get-many":
+        return dispatch({
+          toolName: "getBlocks",
+          args: { ids: [...args.id], source: args.live ? "live" : "draft" },
           projectFlag,
           production,
           outputMode,

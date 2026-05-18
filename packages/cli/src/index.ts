@@ -73,6 +73,7 @@ switch (result.command) {
   case "blocks.types":
   case "blocks.describe":
   case "blocks.get":
+  case "blocks.get-many":
   case "blocks.create":
   case "blocks.edit":
   case "blocks.move":
