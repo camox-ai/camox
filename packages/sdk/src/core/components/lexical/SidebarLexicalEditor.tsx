@@ -119,7 +119,7 @@ export function SidebarLexicalEditor({
         }
         ErrorBoundary={LexicalErrorBoundary}
       />
-      <OnChangePlugin onChange={handleChange} />
+      <OnChangePlugin onChange={handleChange} ignoreSelectionChange />
       <HistoryPlugin />
       <ExternalStateSync value={value} isSyncingRef={isSyncingRef} />
       <EnterAsLineBreakHandler />

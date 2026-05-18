@@ -175,7 +175,7 @@ export function InlineLexicalEditor({
         contentEditable={<InlineContentEditable style={{ outline: "none" }} />}
         ErrorBoundary={LexicalErrorBoundary}
       />
-      <OnChangePlugin onChange={handleChange} />
+      <OnChangePlugin onChange={handleChange} ignoreSelectionChange />
       <HistoryPlugin />
       <ExternalStateSync externalState={externalState} />
       <EscapeHandler />
