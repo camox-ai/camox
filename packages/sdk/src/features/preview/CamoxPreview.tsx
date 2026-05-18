@@ -463,8 +463,14 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useIsAuthenticated();
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
   const isSidebarOpen = useSelector(previewStore, (state) => state.context.isSidebarOpen);
+  const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
   const pageData = usePreviewedPage();
   useHydrateDraftCache();
+
+  // Gate "Preview live content" on a published snapshot existing — same rule
+  // as the sidebar Switch. Without it, flipping to 'live' would Suspense on
+  // an empty cache slot.
+  const hasLiveCheckpoint = pageData.page.livePublishedCheckpointId != null;
 
   React.useEffect(() => {
     const actions = [
@@ -483,6 +489,22 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         checkIfAvailable: () => isAuthenticated && isPresentationMode,
         execute: () => previewStore.send({ type: "exitPresentationMode" }),
         shortcut: { key: "Enter", withMeta: true },
+      },
+      {
+        id: "preview-live-content",
+        label: "Preview live content",
+        groupLabel: "Preview",
+        checkIfAvailable: () => isAuthenticated && previewSource === "draft" && hasLiveCheckpoint,
+        execute: () => previewStore.send({ type: "setPreviewSource", source: "live" }),
+        shortcut: { key: "d", withAlt: true },
+      },
+      {
+        id: "preview-draft-content",
+        label: "Preview draft content",
+        groupLabel: "Preview",
+        checkIfAvailable: () => isAuthenticated && previewSource === "live",
+        execute: () => previewStore.send({ type: "setPreviewSource", source: "draft" }),
+        shortcut: { key: "d", withAlt: true },
       },
       {
         id: "clear-selection",
@@ -507,7 +529,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         ids: actions.map((a) => a.id),
       });
     };
-  }, [isPresentationMode, isAuthenticated]);
+  }, [isPresentationMode, isAuthenticated, previewSource, hasLiveCheckpoint]);
 
   if (isPresentationMode) {
     return <PreviewFrame className="h-screen w-full">{children}</PreviewFrame>;

@@ -314,8 +314,13 @@ export const previewStore = createStore({
       ...context,
       iframeElement: event.element,
     }),
-    setPreviewSource: (context, event: { source: PreviewSource }) => {
+    setPreviewSource: (context, event: { source: PreviewSource }, enqueue) => {
       if (event.source === context.previewSource) return context;
+      enqueue.effect(() => {
+        toast(event.source === "draft" ? "Previewing draft content" : "Previewing live content", {
+          duration: 2500,
+        });
+      });
       // Entering a non-draft preview: remember the user's prior lock state
       // and force-lock. Overlays vanish (existing `isContentLocked` plumbing)
       // and the lock toggle UI/shortcut go disabled (see PreviewToolbar,
