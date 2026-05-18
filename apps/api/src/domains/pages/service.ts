@@ -1095,29 +1095,10 @@ export async function publishPage(ctx: ServiceContext, rawInput: z.input<typeof 
     }
   }
 
-  const snapshot = await buildPageSnapshotFromDraft(ctx, pageRow);
-  const now = Date.now();
-
-  const checkpoint = await ctx.db
-    .insert(pageCheckpoints)
-    .values({
-      pageId: pageRow.id,
-      kind: "auto-publish",
-      label: null,
-      snapshot: JSON.stringify(snapshot),
-      schemaVersion: PAGE_SNAPSHOT_SCHEMA_VERSION,
-      createdAt: now,
-      createdBy: user.id,
-    })
-    .returning()
-    .get();
-
-  const updated = await ctx.db
-    .update(pages)
-    .set({ livePublishedCheckpointId: checkpoint.id, updatedAt: now })
-    .where(eq(pages.id, id))
-    .returning()
-    .get();
+  const { updated, snapshot } = await writePageCheckpointAndPoint(ctx, {
+    page: pageRow,
+    userId: user.id,
+  });
 
   invalidatePagePublish(ctx, {
     projectId: access.page.projectId,
@@ -1128,6 +1109,45 @@ export async function publishPage(ctx: ServiceContext, rawInput: z.input<typeof 
   });
 
   return updated;
+}
+
+// The insert+pointer-update pair, factored so the project-init flow can reuse
+// it without going through `publishPage` (which requires an authenticated
+// user). Mirrors `writeLayoutCheckpointAndPoint`. D1 + drizzle has no shared-
+// transaction primitive; a partial failure between insert and update leaves a
+// checkpoint nothing points at, which is harmless history that no UI surfaces.
+//
+// `userId` is null for the project-init auto-publish (no authenticated user in
+// the sync-secret flow); matches the migration backfill which also stored NULL.
+export async function writePageCheckpointAndPoint(
+  ctx: ServiceContext,
+  args: { page: typeof pages.$inferSelect; userId: string | null },
+) {
+  const snapshot = await buildPageSnapshotFromDraft(ctx, args.page);
+  const now = Date.now();
+
+  const checkpoint = await ctx.db
+    .insert(pageCheckpoints)
+    .values({
+      pageId: args.page.id,
+      kind: "auto-publish",
+      label: null,
+      snapshot: JSON.stringify(snapshot),
+      schemaVersion: PAGE_SNAPSHOT_SCHEMA_VERSION,
+      createdAt: now,
+      createdBy: args.userId,
+    })
+    .returning()
+    .get();
+
+  const updated = await ctx.db
+    .update(pages)
+    .set({ livePublishedCheckpointId: checkpoint.id, updatedAt: now })
+    .where(eq(pages.id, args.page.id))
+    .returning()
+    .get();
+
+  return { checkpoint, snapshot, updated };
 }
 
 // Clear the live pointer. The public router will start 404'ing for this page;

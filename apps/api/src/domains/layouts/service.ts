@@ -549,9 +549,12 @@ export async function publishLayout(
 // the bundled-publish path. D1 + drizzle has no shared-transaction primitive;
 // a partial failure between the two steps leaves a checkpoint nothing points
 // at, which is harmless history that no UI surfaces. Same trade-off as page.
+//
+// `userId` is null for the project-init auto-publish (no authenticated user in
+// the sync-secret flow); matches the migration backfill which also stored NULL.
 export async function writeLayoutCheckpointAndPoint(
   ctx: ServiceContext,
-  args: { layout: typeof layouts.$inferSelect; userId: string },
+  args: { layout: typeof layouts.$inferSelect; userId: string | null },
 ) {
   const snapshot = await buildLayoutSnapshotFromDraft(ctx, args.layout);
   const now = Date.now();

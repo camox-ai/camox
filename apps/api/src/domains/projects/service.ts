@@ -19,6 +19,8 @@ import {
   repeatableItems,
 } from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
+import { writeLayoutCheckpointAndPoint } from "../layouts/service";
+import { writePageCheckpointAndPoint } from "../pages/service";
 
 // --- Input Schemas ---
 // Exported so adapters (oRPC, MCP, CLI) share the same canonical contract.
@@ -461,6 +463,19 @@ export async function initializeProjectContent(
 
     blockCount++;
   }
+
+  // Auto-publish the homepage (and its layout, if it hasn't been published
+  // yet) so the public site is immediately live after `camox init`. Without
+  // this, the SDK page route 404s on every path until the user manually hits
+  // publish in the studio. We only do it here — once the project exists, the
+  // regular draft → publish UX takes over for new pages.
+  //
+  // `userId: null` mirrors the migration 0016 backfill: the sync-secret flow
+  // has no authenticated user to attribute the checkpoint to.
+  if (layout.livePublishedCheckpointId == null) {
+    await writeLayoutCheckpointAndPoint(ctx, { layout, userId: null });
+  }
+  await writePageCheckpointAndPoint(ctx, { page: homepage, userId: null });
 
   return { created: true, pageId: homepage.id, blockCount };
 }
