@@ -9,6 +9,9 @@ import { type OutputMode, printError } from "../lib/output";
 const projectFlag = optional(option("--project", string({ metavar: "SLUG" })));
 const jsonFlag = option("--json");
 const productionFlag = option("--production");
+// `--live` flips read commands from the draft (default) to the published
+// snapshot. Orthogonal to `--production` (which selects the environment).
+const liveFlag = option("--live");
 
 const list = command(
   "list",
@@ -26,6 +29,23 @@ const get = command(
     command: constant("pages.get" as const),
     id: optional(option("--id", integer({ metavar: "ID" }))),
     path: optional(option("--path", string({ metavar: "PATH" }))),
+    live: liveFlag,
+    project: projectFlag,
+    production: productionFlag,
+    json: jsonFlag,
+  }),
+);
+
+const publish = command(
+  "publish",
+  object({
+    command: constant("pages.publish" as const),
+    id: optional(option("--id", integer({ metavar: "ID" }))),
+    path: optional(option("--path", string({ metavar: "PATH" }))),
+    // `--no-layout` opts out of the default layout cascade. The service no-ops
+    // the layout publish when there are no pending changes, so the cascade is
+    // safe to leave on by default.
+    noLayout: option("--no-layout"),
     project: projectFlag,
     production: productionFlag,
     json: jsonFlag,
@@ -82,13 +102,13 @@ const del = command(
   }),
 );
 
-export const parser = command("pages", or(list, get, create, update, setLayout, del));
+export const parser = command("pages", or(list, get, create, update, setLayout, del, publish));
 
 type CommonFlags = { project?: string; production: boolean; json: boolean };
 
 type Args =
   | ({ command: "pages.list" } & CommonFlags)
-  | ({ command: "pages.get"; id?: number; path?: string } & CommonFlags)
+  | ({ command: "pages.get"; id?: number; path?: string; live: boolean } & CommonFlags)
   | ({
       command: "pages.create";
       pathSegment: string;
@@ -103,7 +123,13 @@ type Args =
       parentPageId?: number;
     } & CommonFlags)
   | ({ command: "pages.set-layout"; id: number; layoutId: number } & CommonFlags)
-  | ({ command: "pages.delete"; id: number } & CommonFlags);
+  | ({ command: "pages.delete"; id: number } & CommonFlags)
+  | ({
+      command: "pages.publish";
+      id?: number;
+      path?: string;
+      noLayout: boolean;
+    } & CommonFlags);
 
 export async function handler(args: Args): Promise<never> {
   const outputMode: OutputMode = args.json ? "json" : "auto";
@@ -121,7 +147,10 @@ export async function handler(args: Args): Promise<never> {
         });
         process.exit(2);
       }
-      const toolArgs = args.id != null ? { id: args.id } : { path: args.path };
+      const target = args.id != null ? { id: args.id } : { path: args.path };
+      // Read draft by default; `--live` flips to the published snapshot. The
+      // tool errors when the page has never been published.
+      const toolArgs = { ...target, source: args.live ? "live" : "draft" };
       return dispatch({
         toolName: "getPage",
         args: toolArgs,
@@ -171,5 +200,22 @@ export async function handler(args: Args): Promise<never> {
         production,
         outputMode,
       });
+    case "pages.publish": {
+      if ((args.id == null) === (args.path == null)) {
+        printError({
+          code: "INVALID_ARGS",
+          message: "Pass exactly one of --id or --path.",
+        });
+        process.exit(2);
+      }
+      const target = args.id != null ? { id: args.id } : { path: args.path };
+      return dispatch({
+        toolName: "publishPage",
+        args: { ...target, alsoPublishLayout: !args.noLayout },
+        projectFlag,
+        production,
+        outputMode,
+      });
+    }
   }
 }

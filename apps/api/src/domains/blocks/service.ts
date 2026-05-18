@@ -37,7 +37,12 @@ import {
   type SnapshotRepeatableItem,
 } from "../_shared/snapshot-schemas";
 import { buildFileMap, collectFileIds } from "../pages/ai";
-import { pageSourceSchema, type PageSource } from "../pages/service";
+import {
+  pageSourceSchema,
+  readLayoutSnapshot,
+  readPageSnapshot,
+  type PageSource,
+} from "../pages/service";
 import { normalizeBlockContent, sanitizeAssetValue, type BlockItemSeed } from "./normalize-content";
 
 // --- Input Schemas ---
@@ -56,7 +61,10 @@ export const getBlockInput = z.object({
   id: z.number(),
   source: pageSourceSchema.optional().default("live"),
 });
-export const getPageMarkdownInput = z.object({ pageId: z.number() });
+export const getPageMarkdownInput = z.object({
+  pageId: z.number(),
+  source: pageSourceSchema.optional().default("draft"),
+});
 export const getBlocksUsageCountsInput = z.object({ projectId: z.number() });
 export const createBlockInput = z.object({
   pageId: z.number(),
@@ -769,7 +777,7 @@ export async function getPageMarkdown(
   ctx: ServiceContext,
   rawInput: z.input<typeof getPageMarkdownInput>,
 ) {
-  const { pageId } = getPageMarkdownInput.parse(rawInput);
+  const { pageId, source } = getPageMarkdownInput.parse(rawInput);
 
   const page = await ctx.db.select().from(pages).where(eq(pages.id, pageId)).get();
   if (!page) throw new ORPCError("NOT_FOUND");
@@ -801,23 +809,72 @@ export async function getPageMarkdown(
     }
   }
 
-  // Get page blocks sorted by position
-  const pageBlocks = await ctx.db.select().from(blocks).where(eq(blocks.pageId, pageId));
-  const sorted = pageBlocks.sort((a, b) => comparePositions(a.position, b.position));
+  // Page blocks + their items, sourced from either the live tables (draft) or
+  // the published checkpoint (live / pinned). SnapshotBlock and the drizzle
+  // row shape are structurally compatible — same columns, same nullability —
+  // so the renderer below works against either.
+  type RenderableBlock = SnapshotBlock;
+  type RenderableItem = SnapshotRepeatableItem;
+  let sorted: RenderableBlock[];
+  let allItems: RenderableItem[];
+  let sortedLayout: RenderableBlock[] = [];
+  let layoutAllItems: RenderableItem[] = [];
 
-  // Fetch all repeatable items for these blocks
-  const blockIds = sorted.map((b) => b.id);
-  const allItems =
-    blockIds.length > 0
-      ? sortByPosition(
-          await ctx.db
-            .select()
-            .from(repeatableItems)
-            .where(inArray(repeatableItems.blockId, blockIds)),
-        )
-      : [];
+  if (source === "draft") {
+    const pageBlocks = await ctx.db.select().from(blocks).where(eq(blocks.pageId, pageId));
+    sorted = pageBlocks.sort((a, b) => comparePositions(a.position, b.position));
+    const blockIds = sorted.map((b) => b.id);
+    allItems =
+      blockIds.length > 0
+        ? sortByPosition(
+            await ctx.db
+              .select()
+              .from(repeatableItems)
+              .where(inArray(repeatableItems.blockId, blockIds)),
+          )
+        : [];
+    if (page.layoutId) {
+      const layoutBlocks = await ctx.db
+        .select()
+        .from(blocks)
+        .where(eq(blocks.layoutId, page.layoutId));
+      sortedLayout = layoutBlocks.sort((a, b) => comparePositions(a.position, b.position));
+      const layoutBlockIds = sortedLayout.map((b) => b.id);
+      layoutAllItems =
+        layoutBlockIds.length > 0
+          ? sortByPosition(
+              await ctx.db
+                .select()
+                .from(repeatableItems)
+                .where(inArray(repeatableItems.blockId, layoutBlockIds)),
+            )
+          : [];
+    }
+  } else {
+    const pageSnapshot = await readPageSnapshot(ctx, page, source);
+    if (!pageSnapshot) {
+      throw new ORPCError("BAD_REQUEST", {
+        message:
+          "Page has not been published. Run `camox pages publish` first, or omit --live to read the draft.",
+      });
+    }
+    sorted = sortByPosition(pageSnapshot.blocks);
+    allItems = sortByPosition(pageSnapshot.repeatableItems);
+    // Phase 1 contract: the layout side always follows its own live pointer
+    // when reading a non-draft page (see readLayoutSnapshot). If the layout
+    // is unpublished, treat it as empty rather than failing the page read.
+    if (page.layoutId) {
+      const layout = await ctx.db.select().from(layouts).where(eq(layouts.id, page.layoutId)).get();
+      if (layout) {
+        const layoutSnapshot = await readLayoutSnapshot(ctx, layout);
+        sortedLayout = layoutSnapshot ? sortByPosition(layoutSnapshot.blocks) : [];
+        layoutAllItems = layoutSnapshot ? sortByPosition(layoutSnapshot.repeatableItems) : [];
+      }
+    }
+  }
+
   nestChildItems(allItems);
-  const itemsByBlock = new Map<number, typeof allItems>();
+  const itemsByBlock = new Map<number, RenderableItem[]>();
   for (const item of allItems) {
     if (item.parentItemId !== null) continue;
     const list = itemsByBlock.get(item.blockId) ?? [];
@@ -825,27 +882,10 @@ export async function getPageMarkdown(
     itemsByBlock.set(item.blockId, list);
   }
 
-  // Also fetch layout blocks if page has a layout
-  let sortedLayout: typeof pageBlocks = [];
-  let layoutItemsByBlock = new Map<number, typeof allItems>();
-  if (page.layoutId) {
-    const layoutBlocks = await ctx.db
-      .select()
-      .from(blocks)
-      .where(eq(blocks.layoutId, page.layoutId));
-    sortedLayout = layoutBlocks.sort((a, b) => comparePositions(a.position, b.position));
-    const layoutBlockIds = sortedLayout.map((b) => b.id);
-    const layoutItems =
-      layoutBlockIds.length > 0
-        ? sortByPosition(
-            await ctx.db
-              .select()
-              .from(repeatableItems)
-              .where(inArray(repeatableItems.blockId, layoutBlockIds)),
-          )
-        : [];
-    nestChildItems(layoutItems);
-    for (const item of layoutItems) {
+  const layoutItemsByBlock = new Map<number, RenderableItem[]>();
+  if (sortedLayout.length > 0) {
+    nestChildItems(layoutAllItems);
+    for (const item of layoutAllItems) {
       if (item.parentItemId !== null) continue;
       const list = layoutItemsByBlock.get(item.blockId) ?? [];
       list.push(item);
@@ -863,7 +903,7 @@ export async function getPageMarkdown(
   }
   const fileMap = await buildFileMap(ctx.db, fileIds);
 
-  const renderBlock = (block: (typeof pageBlocks)[number], items: typeof allItems) => {
+  const renderBlock = (block: RenderableBlock, items: RenderableItem[]) => {
     const schema = schemaByType.get(block.type);
     if (!schema?.toMarkdown) return JSON.stringify(block.content);
     const content = { ...(block.content as Record<string, unknown>) };

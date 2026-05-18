@@ -74,9 +74,16 @@ export const getPageStructureInput = z.object({
 });
 export const listPagesInput = z.object({ projectId: z.number() });
 export const listPagesBySlugInput = z.object({ projectSlug: z.string() });
+// `source` defaults to "draft" here — `getPage` backs CLI / agent tool reads
+// where draft is the working state. The public SDK loader has its own
+// `getPageByPath` with a `"live"` default.
 export const getPageInput = z.union([
-  z.object({ id: z.number() }),
-  z.object({ projectId: z.number(), path: z.string() }),
+  z.object({ id: z.number(), source: pageSourceSchema.optional().default("draft") }),
+  z.object({
+    projectId: z.number(),
+    path: z.string(),
+    source: pageSourceSchema.optional().default("draft"),
+  }),
 ]);
 
 export const createPageInput = z.object({
@@ -397,7 +404,7 @@ async function fetchPageStatuses(
 type RawBlock = SnapshotBlock;
 type RawItem = SnapshotRepeatableItem;
 
-async function readPageSnapshot(
+export async function readPageSnapshot(
   ctx: ServiceContext,
   pageRow: typeof pages.$inferSelect,
   source: PageSource,
@@ -494,7 +501,7 @@ async function buildPageSnapshotFromDraft(
   };
 }
 
-async function readLayoutSnapshot(
+export async function readLayoutSnapshot(
   ctx: ServiceContext,
   layoutRow: typeof layouts.$inferSelect,
 ): Promise<LayoutSnapshot | null> {
@@ -752,25 +759,37 @@ export async function listPagesBySlug(
 
 export async function getPage(ctx: ServiceContext, rawInput: z.input<typeof getPageInput>) {
   const parsed = getPageInput.parse(rawInput);
+  let row: typeof pages.$inferSelect | undefined;
   if ("id" in parsed) {
-    const result = await ctx.db.select().from(pages).where(eq(pages.id, parsed.id)).get();
-    if (!result) throw new ORPCError("NOT_FOUND");
-    return result;
+    row = await ctx.db.select().from(pages).where(eq(pages.id, parsed.id)).get();
+  } else {
+    const environment = await resolveEnvironment(ctx.db, parsed.projectId, ctx.environmentName);
+    row = await ctx.db
+      .select()
+      .from(pages)
+      .where(
+        and(
+          eq(pages.projectId, parsed.projectId),
+          eq(pages.environmentId, environment.id),
+          eq(pages.fullPath, parsed.path),
+        ),
+      )
+      .get();
   }
-  const environment = await resolveEnvironment(ctx.db, parsed.projectId, ctx.environmentName);
-  const result = await ctx.db
-    .select()
-    .from(pages)
-    .where(
-      and(
-        eq(pages.projectId, parsed.projectId),
-        eq(pages.environmentId, environment.id),
-        eq(pages.fullPath, parsed.path),
-      ),
-    )
-    .get();
-  if (!result) throw new ORPCError("NOT_FOUND");
-  return result;
+  if (!row) throw new ORPCError("NOT_FOUND");
+  if (parsed.source === "draft") return row;
+
+  // Non-draft read: serve the snapshotted page fields (pathSegment, metaTitle,
+  // etc. as they were at publish time) layered over the live row's identity
+  // and pointer columns so callers still see `livePublishedCheckpointId`.
+  const snapshot = await readPageSnapshot(ctx, row, parsed.source);
+  if (!snapshot) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "Page has not been published. Run `camox pages publish` first, or omit --live to read the draft.",
+    });
+  }
+  return { ...row, ...snapshot.page };
 }
 
 // --- Writes ---

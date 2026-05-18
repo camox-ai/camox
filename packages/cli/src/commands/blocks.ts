@@ -9,6 +9,8 @@ import { type OutputMode, asCliError, parseJsonFlag, printError } from "../lib/o
 const projectFlag = optional(option("--project", string({ metavar: "SLUG" })));
 const jsonFlag = option("--json");
 const productionFlag = option("--production");
+// `--live` flips read commands from draft (default) to the published snapshot.
+const liveFlag = option("--live");
 
 const types = command(
   "types",
@@ -36,6 +38,7 @@ const get = command(
   object({
     command: constant("blocks.get" as const),
     id: option("--id", integer({ metavar: "ID" })),
+    live: liveFlag,
     project: projectFlag,
     production: productionFlag,
     json: jsonFlag,
@@ -120,7 +123,7 @@ type PositioningFlags = {
 type Args =
   | ({ command: "blocks.types" } & CommonFlags)
   | ({ command: "blocks.describe"; type: readonly string[] } & CommonFlags)
-  | ({ command: "blocks.get"; id: number } & CommonFlags)
+  | ({ command: "blocks.get"; id: number; live: boolean } & CommonFlags)
   | ({
       command: "blocks.create";
       pageId: number;
@@ -192,7 +195,7 @@ export async function handler(args: Args): Promise<never> {
       case "blocks.get":
         return dispatch({
           toolName: "getBlock",
-          args: { id: args.id },
+          args: { id: args.id, source: args.live ? "live" : "draft" },
           projectFlag,
           production,
           outputMode,

@@ -6,13 +6,13 @@ import {
   deleteBlock,
   deleteBlockInput,
   getBlock,
-  getBlockInput,
   resolveBlockPosition,
   updateBlockContent,
   updateBlockPosition,
   updateBlockPositionInput,
   updateBlockSettings,
 } from "../../../../apps/api/src/domains/blocks/service";
+import { pageSourceSchema } from "../../../../apps/api/src/domains/pages/service";
 import type { ToolDefinition, ToolProvider } from "../types";
 
 const positionAliasSchema = z.enum(["first", "last"]).optional();
@@ -35,16 +35,26 @@ const editBlockToolInput = z.object({
   settings: z.unknown().optional(),
 });
 
+// Tool-layer schema for getBlock: source defaults to "draft" (agent / CLI edit
+// the working copy). The service's `getBlockInput` defaults to "live" because
+// it backs the public SDK loader too — we override here explicitly.
+const getBlockToolInput = z.object({
+  id: z.number(),
+  source: pageSourceSchema.optional(),
+});
+
 export const blocksProvider: ToolProvider = (ctx): ToolDefinition[] => [
   {
     name: "getBlock",
     description:
       "Fetch a single block by id. Returns the block (with `_itemId` markers injected for each repeatable field), the full list of `repeatableItems` (each with its own `id`), and any referenced `files`. " +
-      "Use this before editing a single field inside a repeatable item — pass each item's `id` back as `_itemId` on the `editBlock` items array. Any existing item not referenced by `_itemId` in the patch is deleted, so the round-trip is the only safe way to update one item without losing the others (and their file references, settings, and positions).",
-    inputSchema: getBlockInput,
-    // Agent tools read draft state — the agent is editing the user's
-    // in-progress draft, not the public snapshot. Phase 1 of Draft & Publish.
-    handler: (input) => getBlock(ctx, { ...getBlockInput.parse(input), source: "draft" }),
+      "Use this before editing a single field inside a repeatable item — pass each item's `id` back as `_itemId` on the `editBlock` items array. Any existing item not referenced by `_itemId` in the patch is deleted, so the round-trip is the only safe way to update one item without losing the others (and their file references, settings, and positions). " +
+      "Defaults to reading the draft; pass `source: 'live'` to read the published snapshot.",
+    inputSchema: getBlockToolInput,
+    handler: (input) => {
+      const parsed = getBlockToolInput.parse(input);
+      return getBlock(ctx, { id: parsed.id, source: parsed.source ?? "draft" });
+    },
   },
   {
     name: "createBlock",
