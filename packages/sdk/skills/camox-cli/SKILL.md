@@ -1,6 +1,6 @@
 ---
 name: camox-cli
-description: "How to read or modify the website's content (pages and the sections inside them) via the Camox CLI. This is a Camox-powered site, so any request about its content — even when phrased generically — is a Camox operation. Use this skill whenever the user wants to add, remove, rename, reorder, or change anything visible on the site: a new page or route, a section / hero / footer / etc., the title or wording shown to visitors, what appears at a URL, the SEO title or social-share preview, the structure shared across pages, etc. Also covers promoting or syncing content between the dev and production environments (push to prod, pull from prod, check whether the two envs are in sync). Trigger broadly — on phrases like 'add a page', 'put a hero at the top', 'change the headline', 'move this section', 'what's on /about', 'fix the meta title', 'rename this route', 'why does this show up on every page', 'push to production', 'promote my changes to prod', 'pull from production', 'sync dev with prod' — and on similar requests even when the user doesn't say 'page', 'block', 'layout', 'environment', 'CMS', 'Camox', or 'CLI'. When in doubt and the request touches site content or the dev/prod split, load this skill."
+description: "How to read or modify the website's content (pages and the sections inside them) via the Camox CLI. This is a Camox-powered site, so any request about its content — even when phrased generically — is a Camox operation. Use this skill whenever the user wants to add, remove, rename, reorder, review, publish, or change anything visible on the site: a new page or route, a section / hero / footer / etc., the title or wording shown to visitors, what appears at a URL, the SEO title or social-share preview, the structure shared across pages, etc. Also covers reading draft vs live content, publishing draft changes, and syncing content between the dev and production environments (push to prod, pull from prod, check whether the two envs are in sync). Trigger broadly — on phrases like 'add a page', 'put a hero at the top', 'change the headline', 'move this section', 'what's on /about', 'show me the live page', 'review the draft', 'publish this page', 'fix the meta title', 'rename this route', 'why does this show up on every page', 'push to production', 'promote my changes to prod', 'pull from production', 'sync dev with prod' — and on similar requests even when the user doesn't say 'page', 'block', 'layout', 'environment', 'CMS', 'Camox', or 'CLI'. When in doubt and the request touches site content, draft/live state, publishing, or the dev/prod split, load this skill."
 ---
 
 # Using the Camox CLI
@@ -115,9 +115,34 @@ Same pattern for nested repeatables: each child item also has an `id` you pass b
 # Use --parent-page-id <ID> to nest the page under another route.
 ```
 
+### Review a draft and publish it to live
+
+Agents should work on **drafts** first, get the changes reviewed, and only then publish. Draft is the default source for reads and the default target for writes, so do not add `--live` while editing.
+
+```sh
+# 1) Inspect the draft the agent will edit/review.
+{{CAMOX_CMD}} pages get --path /pricing
+{{CAMOX_CMD}} blocks get --id 314
+
+# 2) Inspect the currently published snapshot when you need a before/after.
+{{CAMOX_CMD}} pages get --path /pricing --live
+{{CAMOX_CMD}} blocks get --id 314 --live
+
+# 3) After review/approval, publish the draft page to live.
+{{CAMOX_CMD}} pages publish --path /pricing
+
+# Use --no-layout only when you explicitly do not want to publish pending
+# changes to the page's layout alongside the page.
+{{CAMOX_CMD}} pages publish --path /pricing --no-layout
+```
+
+`pages publish` accepts exactly one of `--id` or `--path`. It publishes the page's current draft. By default it also publishes the page's layout; that layout publish is a no-op when there are no pending layout changes.
+
+`--live` is for **reading** the published snapshot. It is not a write target and it is not how you publish. Live reads error when the page or block has never been published.
+
 ### Promote dev to production (or pull production back into dev)
 
-The `env` group replicates content in bulk between your dev environment and production — the same two operations the studio's environment menu exposes. Use this when the user wants to publish a batch of dev changes all at once, or wipe dev and start from the live site.
+The `env` group replicates content in bulk between your dev environment and production — the same two operations the studio's environment menu exposes. This is separate from draft/live publishing. Use it when the user wants to copy an environment's content to the other environment, or wipe dev and start from production.
 
 ```sh
 # Inspect both directions before committing. Shows whether push/pull are
@@ -131,7 +156,7 @@ The `env` group replicates content in bulk between your dev environment and prod
 {{CAMOX_CMD}} env pull --yes
 ```
 
-`--yes` (or `-y`) is required on `push` / `pull` — both replace every page, block, and file in the target environment and the change cannot be undone. See **Environments: dev vs production** below for when to use this vs the per-command `--production` flag.
+`--yes` (or `-y`) is required on `push` / `pull` — both replace every page, block, and file in the target environment and the change cannot be undone. See **Environments, drafts, and live** below for when to use this vs `pages publish`, `--live`, and `--production`.
 
 ## Block positioning
 
@@ -148,26 +173,43 @@ The `env` group replicates content in bulk between your dev environment and prod
 
 Prefer the high-level flags (`--position`, `--after-id`, `--before-id`) — they read naturally and don't require you to know the fractional-index format. The `--after-position` / `--before-position` flags exist for cases where you already have a key in hand (e.g. piping output between commands).
 
-## Environments: dev vs production
+## Environments, drafts, and live
 
-Every project has two environments: a per-user, isolated **dev** environment that the local dev server reads from, and the shared **production** environment that serves the live site. The CLI gives you two ways to interact with the split — pick the right one for what the user is asking.
+Every project has two environments: a per-user, isolated **dev** environment and the shared **production** environment. Inside each environment, content has a **draft** working copy and a **live** published snapshot.
+
+### Draft-first workflow
+
+By default, reads and writes operate on the draft. This is intentional: agents should make content changes in draft, summarize what changed, let the user review, and publish only after approval.
+
+```sh
+{{CAMOX_CMD}} pages get --path /about       # draft
+{{CAMOX_CMD}} blocks edit --id 314 --content '{"headline": "New headline"}'
+{{CAMOX_CMD}} pages publish --path /about   # after review
+```
+
+Use `--live` only to compare against the published snapshot:
+
+```sh
+{{CAMOX_CMD}} pages get --path /about --live
+{{CAMOX_CMD}} blocks get --id 314 --live
+```
 
 ### Per-command: the `--production` flag
 
-By default, every command runs against the dev environment. Changes you make here do not affect the live site, so dev is the safe place to experiment.
-
-Pass `--production` to target the live CMS instead, one command at a time:
+By default, every command runs against the dev environment. Pass `--production` to target the production environment instead, one command at a time:
 
 ```sh
 {{CAMOX_CMD}} pages list --production
 {{CAMOX_CMD}} blocks edit --id <ID> --production
 ```
 
-Only use `--production` when the user has explicitly asked to operate on live content. For everything else — exploration, tentative edits, anything you'd want to be able to throw away — stay on the default dev environment.
+`--production` selects the environment; it does not mean "published". Production still has draft and live state. To read production's published snapshot, combine `--production` with `--live`. To publish a production draft, use `pages publish --production`.
+
+Only use `--production` when the user has explicitly asked to operate on the production environment. For everything else — exploration, tentative edits, anything you'd want to be able to throw away — stay on the default dev environment.
 
 ### Bulk replication: the `env` group
 
-When the user wants to **promote a batch of dev changes to production** (or do the inverse — wipe dev and start from production), use the env group instead of running many commands with `--production`:
+When the user wants to **copy dev to production** (or do the inverse — wipe dev and start from production), use the env group instead of running many commands with `--production`:
 
 ```sh
 {{CAMOX_CMD}} env check        # report compatibility of both push and pull
@@ -197,5 +239,7 @@ Short version: if you're tempted to "make something up that sounds about right",
 1. If the task matches one of the **Common recipes** above, start from that template — it's almost always the right shape.
 2. Otherwise, run `{{CAMOX_CMD}} --help` to find the right command group, then `{{CAMOX_CMD}} <group> --help` and `{{CAMOX_CMD}} <group> <command> --help` to confirm the exact flags.
 3. Before writing content, read existing pages/blocks and gather any external facts you need (see above).
-4. Run the command against dev first (no `--production`).
-5. Add `--production` only when the user has asked to touch live content.
+4. Work on draft first. Omit `--live` while editing; use `--live` only for reading the published snapshot for comparison.
+5. Get the draft changes reviewed. Summarize the affected page(s), block ids, and notable copy/structure changes.
+6. Publish with `{{CAMOX_CMD}} pages publish --id <ID>` or `{{CAMOX_CMD}} pages publish --path <PATH>` only after the user asks or approves.
+7. Add `--production` only when the user has asked to operate on the production environment.
