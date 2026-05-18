@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------------------------------
- * EditPageModal
+ * PageMetadataModal
  * -----------------------------------------------------------------------------------------------*/
 
 import { Alert, AlertDescription, AlertTitle } from "@camox/ui/alert";
@@ -43,13 +43,13 @@ import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
 import { PageLocationFieldset } from "./PageLocationFieldset";
 import { ShikiMarkdown } from "./ShikiMarkdown";
 
-const EditPageModal = () => {
+const PageMetadataModal = () => {
   const editingPageId = useSelector(previewStore, (state) => state.context.editingPageId);
 
-  return <EditPageModalContent pageId={editingPageId} />;
+  return <PageMetadataModalContent pageId={editingPageId} />;
 };
 
-const EditPageModalContent = ({ pageId }: { pageId: number | null }) => {
+const PageMetadataModalContent = ({ pageId }: { pageId: number | null }) => {
   const projectSlug = useProjectSlug();
   const updatePage = useMutation(pageMutations.update());
   const setLayout = useMutation(pageMutations.setLayout());
@@ -145,8 +145,10 @@ const EditPageModalContent = ({ pageId }: { pageId: number | null }) => {
     >
       <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl">
         <DialogHeader className="border-border border-b p-4">
-          <DialogTitle>Edit page</DialogTitle>
-          <DialogDescription>Update the page details.</DialogDescription>
+          <DialogTitle>Page metadata</DialogTitle>
+          <DialogDescription>
+            Update the page structure, SEO and markdown content.
+          </DialogDescription>
         </DialogHeader>
         {page && (
           <div className="flex-1 overflow-y-auto">
@@ -519,4 +521,4 @@ const PageMarkdownPreview = ({
   return <ShikiMarkdown code={fullMarkdown} />;
 };
 
-export { EditPageModal };
+export { PageMetadataModal };

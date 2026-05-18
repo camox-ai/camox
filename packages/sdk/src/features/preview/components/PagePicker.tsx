@@ -8,7 +8,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@camox/ui/alert-dialog";
-import { Badge } from "@camox/ui/badge";
 import { Button } from "@camox/ui/button";
 import {
   Command,
@@ -22,7 +21,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@camox/ui/popover";
 import { Skeleton } from "@camox/ui/skeleton";
 import { toast } from "@camox/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
@@ -35,57 +33,7 @@ import { pageMutations, pageQueries, projectQueries } from "@/lib/queries";
 import { cn, formatPathSegment } from "@/lib/utils";
 
 import { previewStore } from "../previewStore";
-
-/* -------------------------------------------------------------------------------------------------
- * StatusBadge — Draft / Published / Modified indicator
- * -----------------------------------------------------------------------------------------------*/
-
-const StatusBadge = ({ page }: { page: Page }) => {
-  // Three visual states map to three badge variants. Plan calls for "three
-  // states, three colors — match whatever the studio's existing badge
-  // primitive is." Outline = neutral draft, secondary = published, default
-  // = modified (calls out unpublished changes).
-  if (page.status === "draft") {
-    return (
-      <Badge variant="outline" className="h-4 shrink-0 px-1.5">
-        Draft
-      </Badge>
-    );
-  }
-  if (page.status === "published") {
-    return (
-      <Badge variant="secondary" className="h-4 shrink-0 px-1.5">
-        Published
-      </Badge>
-    );
-  }
-
-  const reason = page.modifiedReason;
-  const badge = (
-    <Badge variant="default" className="h-4 shrink-0 px-1.5">
-      Modified
-    </Badge>
-  );
-
-  // Only the layout-cascade variants get the explanatory tooltip — for
-  // 'self', the badge is self-explanatory ("you edited this page").
-  if (reason && (reason.reason === "layout" || reason.reason === "both")) {
-    const pluralized = reason.affectedPagesCount === 1 ? "page" : "pages";
-    const headline =
-      reason.reason === "layout"
-        ? `Layout ${reason.layoutHandle} has unpublished changes`
-        : `This page and layout ${reason.layoutHandle} both have unpublished changes`;
-    return (
-      <Tooltip>
-        <TooltipTrigger render={<span className="shrink-0" />}>{badge}</TooltipTrigger>
-        <TooltipContent>
-          {headline} (affects {reason.affectedPagesCount} {pluralized})
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-  return badge;
-};
+import { PageStatusBadge } from "./PageStatusBadge";
 
 /* -------------------------------------------------------------------------------------------------
  * PagePicker
@@ -166,6 +114,11 @@ const PagePicker = () => {
           }
         >
           <span className="truncate">{currentPage.metaTitle ?? currentPage.fullPath}</span>
+          <PageStatusBadge
+            size="sm"
+            status={currentPage.status}
+            modifiedReason={currentPage.modifiedReason}
+          />
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </PopoverTrigger>
         <PopoverContent
@@ -214,7 +167,11 @@ const PagePicker = () => {
                           <p className="text-muted-foreground truncate font-mono text-xs">
                             {page.fullPath}
                           </p>
-                          <StatusBadge page={page} />
+                          <PageStatusBadge
+                            size="sm"
+                            status={page.status}
+                            modifiedReason={page.modifiedReason}
+                          />
                         </div>
                       </div>
                     </div>

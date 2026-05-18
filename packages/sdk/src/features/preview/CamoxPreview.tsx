@@ -1,5 +1,12 @@
 import { queryKeys, type ReadSource } from "@camox/api-contract/query-keys";
 import { Button } from "@camox/ui/button";
+import { ButtonGroup } from "@camox/ui/button-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@camox/ui/dropdown-menu";
 import { Label } from "@camox/ui/label";
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
 import { Switch } from "@camox/ui/switch";
@@ -12,7 +19,7 @@ import {
 } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
-import { Info } from "lucide-react";
+import { Info, MoreHorizontal } from "lucide-react";
 import * as React from "react";
 
 import { getApiClient } from "@/lib/api-client";
@@ -29,8 +36,8 @@ import { AgentChatSheet } from "./components/AgentChatSheet";
 import { BlockErrorBoundary } from "./components/BlockErrorBoundary";
 import { CreatePageModal } from "./components/CreatePageModal";
 import { DraftSwitchDialog } from "./components/DraftSwitchDialog";
-import { EditPageModal } from "./components/EditPageModal";
 import { PageContentSheet } from "./components/PageContentSheet";
+import { PageMetadataModal } from "./components/PageMetadataModal";
 import { PagePicker } from "./components/PagePicker";
 import { PageTree } from "./components/PageTree";
 import { PeekedBlock } from "./components/PeekedBlock";
@@ -367,9 +374,15 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
         }
       : null;
 
+  // 'modified' means the page has been published before but has unpublished
+  // edits; 'draft' means it's never been published. The button copy mirrors
+  // that distinction so the user knows whether they're shipping the page for
+  // the first time or pushing an update.
+  const publishLabel = page.status === "modified" ? "Publish changes" : "Publish page";
+
   return (
     <>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-3">
         <div
           className="flex items-center gap-2"
           onMouseEnter={prefetchOtherSource}
@@ -388,14 +401,35 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
           />
           <Label htmlFor="draft-content">Draft content</Label>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          disabled={!canPublish}
-          onClick={() => setIsPublishDialogOpen(true)}
-        >
-          Publish
-        </Button>
+        <ButtonGroup className="w-full">
+          <Button
+            variant="outline"
+            type="button"
+            disabled={!canPublish}
+            onClick={() => setIsPublishDialogOpen(true)}
+            className="flex-1"
+          >
+            {publishLabel}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="More publish actions"
+                />
+              }
+            >
+              <MoreHorizontal />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-42">
+              <DropdownMenuItem disabled>Unpublish</DropdownMenuItem>
+              <DropdownMenuItem disabled>Discard changes</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </ButtonGroup>
       </div>
       <PublishDialog
         page={isPublishDialogOpen ? page : null}
@@ -545,8 +579,8 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       <div className="flex h-full flex-row items-stretch">
         {isSidebarOpen && (
           <div className="flex w-[300px] flex-col border-r-2">
-            <PanelHeader className={cn("flex flex-col gap-2 px-2 py-2")}>
-              <div className="flex flex-row gap-2">
+            <PanelHeader className={cn("flex flex-col gap-3 px-2 py-2")}>
+              <ButtonGroup className="w-full">
                 <PagePicker />
                 <Tooltip>
                   <TooltipTrigger
@@ -563,9 +597,9 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
                   >
                     <Info className="text-muted-foreground size-4" />
                   </TooltipTrigger>
-                  <TooltipContent>Page metadata, SEO and markdown</TooltipContent>
+                  <TooltipContent>Page metadata</TooltipContent>
                 </Tooltip>
-              </div>
+              </ButtonGroup>
               <SidebarPublishRow page={pageData.page} />
             </PanelHeader>
             <PanelContent className="flex grow basis-0 flex-col gap-2 overflow-auto p-2">
@@ -584,7 +618,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       <AddBlockSheet />
       <AgentChatSheet />
       <CreatePageModal />
-      <EditPageModal />
+      <PageMetadataModal />
       <DraftSwitchDialog />
     </div>
   );
