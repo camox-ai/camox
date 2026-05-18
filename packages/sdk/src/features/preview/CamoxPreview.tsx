@@ -405,6 +405,48 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
   // the first time or pushing an update.
   const publishLabel = page.status === "modified" ? "Publish changes" : "Publish page";
 
+  React.useEffect(() => {
+    const actions: Action[] = [
+      {
+        id: "publish-current-page",
+        label: publishLabel,
+        groupLabel: "Preview",
+        checkIfAvailable: () => canPublish,
+        execute: () => setIsPublishDialogOpen(true),
+      },
+      {
+        id: "unpublish-current-page",
+        label: "Unpublish page",
+        groupLabel: "Preview",
+        checkIfAvailable: () => hasLiveCheckpoint && !unpublishPage.isPending,
+        execute: () => setIsUnpublishDialogOpen(true),
+      },
+      {
+        id: "discard-current-page-changes",
+        label: "Discard page changes",
+        groupLabel: "Preview",
+        checkIfAvailable: () => canDiscardChanges && !discardChanges.isPending,
+        execute: () => setIsDiscardDialogOpen(true),
+      },
+    ];
+
+    actionsStore.send({ type: "registerManyActions", actions });
+
+    return () => {
+      actionsStore.send({
+        type: "unregisterManyActions",
+        ids: actions.map((action) => action.id),
+      });
+    };
+  }, [
+    canDiscardChanges,
+    canPublish,
+    discardChanges.isPending,
+    hasLiveCheckpoint,
+    publishLabel,
+    unpublishPage.isPending,
+  ]);
+
   const handleUnpublish = async () => {
     try {
       await unpublishPage.mutateAsync({ id: page.id });
