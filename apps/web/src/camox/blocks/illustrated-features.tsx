@@ -100,7 +100,7 @@ function IllustratedFeaturesComponent() {
                   {(props) => (
                     <img
                       {...props}
-                      // className="w-full object-cover object-top"
+                      className="border-border rounded-t-xl border-t border-r border-l"
                     />
                   )}
                 </item.Image>
