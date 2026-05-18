@@ -1,3 +1,4 @@
+import { Alert, AlertDescription } from "@camox/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +16,7 @@ import { Separator } from "@camox/ui/separator";
 import { Spinner } from "@camox/ui/spinner";
 import { toast } from "@camox/ui/toaster";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Download, Upload } from "lucide-react";
+import { AlertCircle, ChevronDown, Download, Upload } from "lucide-react";
 import * as React from "react";
 
 import { AuthContext } from "@/lib/auth";
@@ -120,36 +121,38 @@ export const EnvironmentMenu = () => {
     replicate.mutate({ projectId, sourceEnvName, targetEnvName });
   };
 
+  const pushReason =
+    pushCheck.data && !pushCheck.data.compatible ? pushCheck.data.reasons[0] : null;
+  const pullReason =
+    pullCheck.data && !pullCheck.data.compatible ? pullCheck.data.reasons[0] : null;
+  const firstCompatibilityError = pushReason
+    ? formatReason(pushReason, "push")
+    : pullReason
+      ? formatReason(pullReason, "pull")
+      : null;
+
   const renderActionButton = (direction: Direction) => {
     const check = direction === "push" ? pushCheck : pullCheck;
     const checking = check.isLoading;
     const compatible = check.data?.compatible ?? false;
-    const reason = check.data && !check.data.compatible ? check.data.reasons[0] : null;
     const Icon = direction === "push" ? Upload : Download;
     const actionLabel = direction === "push" ? "Push to production" : "Pull from production";
 
     return (
-      <div className="flex flex-col gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full justify-start gap-2"
-          disabled={checking || !compatible || replicate.isPending}
-          onClick={() => setPendingDirection(direction)}
-        >
-          {checking ? (
-            <Spinner className="text-muted-foreground" />
-          ) : (
-            <Icon className="text-muted-foreground size-4" />
-          )}
-          <span>{actionLabel}</span>
-        </Button>
-        {reason ? (
-          <p className="text-destructive text-xs leading-tight">
-            {formatReason(reason, direction)}
-          </p>
-        ) : null}
-      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full justify-start gap-2"
+        disabled={checking || !compatible || replicate.isPending}
+        onClick={() => setPendingDirection(direction)}
+      >
+        {checking ? (
+          <Spinner className="text-muted-foreground" />
+        ) : (
+          <Icon className="text-muted-foreground size-4" />
+        )}
+        <span>{actionLabel}</span>
+      </Button>
     );
   };
 
@@ -179,6 +182,12 @@ export const EnvironmentMenu = () => {
                 <div className="flex flex-col gap-2 px-4">
                   {renderActionButton("push")}
                   {renderActionButton("pull")}
+                  {firstCompatibilityError ? (
+                    <Alert variant="destructive" className="mt-1">
+                      <AlertCircle className="size-4" />
+                      <AlertDescription>{firstCompatibilityError}</AlertDescription>
+                    </Alert>
+                  ) : null}
                 </div>
               </>
             )}
