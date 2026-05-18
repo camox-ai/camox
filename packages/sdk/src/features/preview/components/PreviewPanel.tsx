@@ -132,10 +132,6 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
     previewStore.send({ type: "setIframeElement", element });
   }, []);
   const isMobileMode = useSelector(previewStore, (state) => state.context.isMobileMode);
-  const isAgentChatSheetOpen = useSelector(
-    previewStore,
-    (state) => state.context.isAgentChatSheetOpen,
-  );
   const isAnySideSheetOpen = useIsPreviewSheetOpen();
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const [panelWidth, setPanelWidth] = React.useState(0);
@@ -184,11 +180,16 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
         shortcut: { key: "m" },
       },
       {
-        id: "open-agent-chat",
-        label: "Ask for changes",
+        id: "toggle-agent-chat",
+        label: "Toggle agent chat",
         groupLabel: "Preview",
-        checkIfAvailable: () => !isAgentChatSheetOpen,
-        execute: () => previewStore.send({ type: "openAgentChatSheet" }),
+        checkIfAvailable: () => true,
+        execute: () => {
+          const { isAgentChatSheetOpen } = previewStore.getSnapshot().context;
+          previewStore.send({
+            type: isAgentChatSheetOpen ? "closeAgentChatSheet" : "openAgentChatSheet",
+          });
+        },
         shortcut: { key: "i", withAlt: true },
       },
       {
@@ -211,7 +212,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
         ids: actions.map((a) => a.id),
       });
     };
-  }, [isAgentChatSheetOpen]);
+  }, []);
 
   return (
     <>
