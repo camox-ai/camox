@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.27.0](https://github.com/camox-ai/camox/compare/camox-v0.26.0...camox-sdk-v0.27.0) (2026-05-18)
+
+
+### Features
+
+* add page nickname concept ([478b61e](https://github.com/camox-ai/camox/commit/478b61e24ea9c91b5a1dcf9382882093c46c0853))
+* add publish-related actions to command palette ([4139209](https://github.com/camox-ai/camox/commit/413920972a5a41e842eb38c7ebe863fa4babcea5))
+* add unpublish and discard draft cli commands ([c6b15cb](https://github.com/camox-ai/camox/commit/c6b15cb790f0280790ff181b5f3bc5725a2c3902))
+* unpublish and restore drafts ([5a1c6f5](https://github.com/camox-ai/camox/commit/5a1c6f51814e6eb6e7cfcb89fd8027e27e65e3c1))
+
+
+### Bug Fixes
+
+* draft pages ssr ([1258180](https://github.com/camox-ai/camox/commit/125818007998a7c57aa24c4b558add3c5e58e3a4))
+* preview sidebar ui tweaks ([ff5e8cd](https://github.com/camox-ai/camox/commit/ff5e8cdf182246459fc7bacc47d96b3b343f2e3d))
+* stop triggering updates on lexical selection changes ([78de369](https://github.com/camox-ai/camox/commit/78de369398f8861ecf0b8634694ae673647db7d5))
+
+
+### Miscellaneous
+
+* update camox-cli for publishing workflows ([1ba85d9](https://github.com/camox-ai/camox/commit/1ba85d9e8ce1216dbe599c756de82fe24a818cc1))
+
 ## [0.26.0](https://github.com/camox-ai/camox/compare/camox-v0.25.0...camox-sdk-v0.26.0) (2026-05-18)
 
 
