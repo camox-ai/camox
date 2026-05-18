@@ -26,7 +26,7 @@ import { getApiClient } from "@/lib/api-client";
 import { useIsAuthenticated, useProjectSlug } from "@/lib/auth";
 import { NormalizedDataProvider, seedBlockCaches, usePageBlocks } from "@/lib/normalized-data";
 import { blockQueries, pageQueries, projectQueries } from "@/lib/queries";
-import { cn, formatPathSegment } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 import { type Action, actionsStore } from "../provider/actionsStore";
 import { useCamoxApp } from "../provider/components/CamoxAppContext";
@@ -382,25 +382,7 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
 
   return (
     <>
-      <div className="flex flex-col gap-3">
-        <div
-          className="flex items-center gap-2"
-          onMouseEnter={prefetchOtherSource}
-          onFocus={prefetchOtherSource}
-        >
-          <Switch
-            id="draft-content"
-            disabled={!hasLiveCheckpoint}
-            checked={previewSource === "draft"}
-            onCheckedChange={(checked) => {
-              previewStore.send({
-                type: "setPreviewSource",
-                source: checked ? "draft" : "live",
-              });
-            }}
-          />
-          <Label htmlFor="draft-content">Draft content</Label>
-        </div>
+      <div className="flex flex-col gap-2">
         <ButtonGroup className="w-full">
           <Button
             variant="outline"
@@ -422,7 +404,7 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
                 />
               }
             >
-              <MoreHorizontal />
+              <MoreHorizontal className="text-muted-foreground" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-42">
               <DropdownMenuItem disabled>Unpublish</DropdownMenuItem>
@@ -430,6 +412,24 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
             </DropdownMenuContent>
           </DropdownMenu>
         </ButtonGroup>
+        <div
+          className="mt-1 flex items-center gap-2"
+          onMouseEnter={prefetchOtherSource}
+          onFocus={prefetchOtherSource}
+        >
+          <Switch
+            id="draft-content"
+            disabled={!hasLiveCheckpoint}
+            checked={previewSource === "draft"}
+            onCheckedChange={(checked) => {
+              previewStore.send({
+                type: "setPreviewSource",
+                source: checked ? "draft" : "live",
+              });
+            }}
+          />
+          <Label htmlFor="draft-content">Draft content</Label>
+        </div>
       </div>
       <PublishDialog
         page={isPublishDialogOpen ? page : null}
@@ -579,7 +579,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       <div className="flex h-full flex-row items-stretch">
         {isSidebarOpen && (
           <div className="flex w-[300px] flex-col border-r-2">
-            <PanelHeader className={cn("flex flex-col gap-3 px-2 py-2")}>
+            <PanelHeader className={cn("flex flex-col gap-2 px-2 pt-2 pb-3")}>
               <ButtonGroup className="w-full">
                 <PagePicker />
                 <Tooltip>
@@ -674,7 +674,7 @@ export function usePreviewPagesActions() {
               ({
                 id: `go-to-page-${page.id}`,
                 parentActionId: GO_TO_PAGE_ID,
-                label: `Go to "${page.metaTitle ?? formatPathSegment(page.pathSegment)}"`,
+                label: `Go to "${page.nickname}"`,
                 groupLabel: "Preview",
                 checkIfAvailable: () => true,
                 execute: () => navigate({ to: page.fullPath }),

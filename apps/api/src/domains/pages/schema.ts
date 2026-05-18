@@ -19,6 +19,7 @@ export const pages = sqliteTable(
     layoutId: int("layout_id")
       .notNull()
       .references(() => layouts.id),
+    nickname: text("nickname").notNull(),
     metaTitle: text("meta_title"),
     metaDescription: text("meta_description"),
     aiSeoEnabled: int("ai_seo_enabled", { mode: "boolean" }),

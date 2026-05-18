@@ -70,7 +70,7 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
     name: "createPage",
     description:
       "Create a new page. `layoutId` is required — call listLayouts to discover available layouts. " +
-      "If `contentDescription` is provided, the AI generates initial blocks from it; otherwise the page starts with a default hero block.",
+      "`nickname` is the short internal Studio name for the page. If `contentDescription` is provided, the AI generates initial blocks from it; otherwise the page starts with a default hero block.",
     inputSchema: createPageToolInput,
     handler: (input) => {
       const data = createPageToolInput.parse(input);
@@ -80,7 +80,7 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
   {
     name: "updatePage",
     description:
-      "Update a page's `pathSegment` and/or `parentPageId`. Pages have no separate title field — visible content lives in blocks.",
+      "Update a page's internal `nickname`, `pathSegment`, and/or `parentPageId`. The nickname is only used inside Camox Studio and does not affect visible content or SEO.",
     inputSchema: updatePageInput,
     handler: (input) => updatePage(ctx, updatePageInput.parse(input)),
   },

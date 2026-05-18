@@ -28,6 +28,7 @@ import { trackClientEvent } from "@/lib/telemetry-client";
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { previewStore } from "../previewStore";
 import { PageLocationFieldset } from "./PageLocationFieldset";
+import { PageNicknameField } from "./PageNicknameField";
 
 const CreatePageModal = () => {
   const projectSlug = useProjectSlug();
@@ -47,6 +48,7 @@ const CreatePageModal = () => {
 
   const form = useForm({
     defaultValues: {
+      nickname: "",
       parentPageId: undefined as number | undefined,
       pathSegment: "",
       layoutId: "" as string,
@@ -59,8 +61,15 @@ const CreatePageModal = () => {
           return;
         }
 
+        const nickname = values.value.nickname.trim();
+        if (!nickname) {
+          toast.error("Page nickname is required");
+          return;
+        }
+
         const createPagePromise = createPage.mutateAsync({
           projectId: project.id,
+          nickname,
           pathSegment: values.value.pathSegment,
           parentPageId: values.value.parentPageId,
           layoutId: Number(values.value.layoutId),
@@ -121,6 +130,15 @@ const CreatePageModal = () => {
           }}
           className="-mx-1 space-y-4 overflow-y-auto px-1 py-2"
         >
+          <form.Field name="nickname">
+            {(field) => (
+              <PageNicknameField
+                value={field.state.value}
+                onChange={field.handleChange}
+                autoFocus
+              />
+            )}
+          </form.Field>
           <form.Field name="parentPageId">
             {(parentField) => (
               <form.Field name="pathSegment">
@@ -131,7 +149,6 @@ const CreatePageModal = () => {
                     pathSegment={pathField.state.value}
                     onPathSegmentChange={pathField.handleChange}
                     pages={pages}
-                    autoFocusPathSegment
                   />
                 )}
               </form.Field>

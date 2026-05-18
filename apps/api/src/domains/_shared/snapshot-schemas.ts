@@ -59,6 +59,7 @@ const snapshotPageRowSchema = z.object({
   fullPath: z.string(),
   parentPageId: z.number().nullable(),
   layoutId: z.number(),
+  nickname: z.string(),
   metaTitle: z.string().nullable(),
   metaDescription: z.string().nullable(),
   aiSeoEnabled: sqliteBoolean.nullable(),

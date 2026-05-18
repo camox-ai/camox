@@ -20,7 +20,7 @@ import type { LinkValue } from "@/core/lib/contentType.ts";
 import { useDebouncedField } from "@/hooks/use-debounced-field";
 import { useProjectSlug } from "@/lib/auth";
 import { pageQueries, projectQueries } from "@/lib/queries";
-import { cn, formatPathSegment } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------------------------------
  * LinkFieldEditor
@@ -125,9 +125,7 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
               }
             >
               {selectedPage ? (
-                <span className="truncate">
-                  {selectedPage.metaTitle ?? formatPathSegment(selectedPage.pathSegment)}
-                </span>
+                <span className="truncate">{selectedPage.nickname}</span>
               ) : (
                 <span className="text-muted-foreground">Select a page</span>
               )}
@@ -152,7 +150,7 @@ const LinkFieldEditor = ({ fieldName, linkValue: rawLinkValue, onSave }: LinkFie
                           )}
                         />
                         <div className="flex flex-col">
-                          <span>{page.metaTitle ?? formatPathSegment(page.pathSegment)}</span>
+                          <span>{page.nickname}</span>
                           <span className="text-muted-foreground font-mono text-xs">
                             {page.fullPath}
                           </span>

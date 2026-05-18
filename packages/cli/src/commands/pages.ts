@@ -56,6 +56,7 @@ const create = command(
   "create",
   object({
     command: constant("pages.create" as const),
+    nickname: optional(option("--nickname", string({ metavar: "TEXT" }))),
     pathSegment: option("--path-segment", string({ metavar: "SEGMENT" })),
     layoutId: option("--layout-id", integer({ metavar: "ID" })),
     parentPageId: optional(option("--parent-page-id", integer({ metavar: "ID" }))),
@@ -71,6 +72,7 @@ const update = command(
   object({
     command: constant("pages.update" as const),
     id: option("--id", integer({ metavar: "ID" })),
+    nickname: optional(option("--nickname", string({ metavar: "TEXT" }))),
     pathSegment: optional(option("--path-segment", string({ metavar: "SEGMENT" }))),
     parentPageId: optional(option("--parent-page-id", integer({ metavar: "ID" }))),
     project: projectFlag,
@@ -111,6 +113,7 @@ type Args =
   | ({ command: "pages.get"; id?: number; path?: string; live: boolean } & CommonFlags)
   | ({
       command: "pages.create";
+      nickname?: string;
       pathSegment: string;
       layoutId: number;
       parentPageId?: number;
@@ -119,6 +122,7 @@ type Args =
   | ({
       command: "pages.update";
       id: number;
+      nickname?: string;
       pathSegment?: string;
       parentPageId?: number;
     } & CommonFlags)
@@ -163,6 +167,7 @@ export async function handler(args: Args): Promise<never> {
       return dispatch({
         toolName: "createPage",
         args: {
+          nickname: args.nickname,
           pathSegment: args.pathSegment,
           layoutId: args.layoutId,
           parentPageId: args.parentPageId,
@@ -177,6 +182,7 @@ export async function handler(args: Args): Promise<never> {
         toolName: "updatePage",
         args: {
           id: args.id,
+          nickname: args.nickname,
           pathSegment: args.pathSegment,
           parentPageId: args.parentPageId,
         },

@@ -47,6 +47,19 @@ const DEFAULT_HERO_BLOCK = {
   },
 };
 
+const PAGE_NICKNAME_MAX_LENGTH = 80;
+const pageNicknameSchema = z.string().trim().min(1).max(PAGE_NICKNAME_MAX_LENGTH);
+
+function formatPathSegmentLabel(segment: string) {
+  return segment.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function deriveDefaultPageNickname(pathSegment: string) {
+  if (!pathSegment) return "Home";
+  const label = formatPathSegmentLabel(pathSegment).trim();
+  return (label || "Untitled page").slice(0, PAGE_NICKNAME_MAX_LENGTH);
+}
+
 // --- Input Schemas ---
 // Exported so adapters (oRPC, MCP, CLI) share the same canonical contract.
 // Services .parse() them on entry — service is the trust boundary.
@@ -82,6 +95,7 @@ export const getPageInput = z.union([
 
 export const createPageInput = z.object({
   projectId: z.number(),
+  nickname: pageNicknameSchema.optional(),
   pathSegment: z.string(),
   parentPageId: z.number().optional(),
   layoutId: z.number(),
@@ -89,6 +103,7 @@ export const createPageInput = z.object({
 });
 export const updatePageInput = z.object({
   id: z.number(),
+  nickname: pageNicknameSchema.optional(),
   pathSegment: z.string().optional(),
   parentPageId: z.number().nullable().optional(),
 });
@@ -114,7 +129,7 @@ export const unpublishPageInput = z.object({ id: z.number() });
 
 // Snapshot shape version written into `page_checkpoints.schema_version`.
 // One-way ratchet — bump and add a migration when the snapshot shape changes.
-const PAGE_SNAPSHOT_SCHEMA_VERSION = 1;
+const PAGE_SNAPSHOT_SCHEMA_VERSION = 2;
 
 function assertUser(ctx: ServiceContext) {
   if (!ctx.user) throw new ORPCError("UNAUTHORIZED");
@@ -459,6 +474,7 @@ async function buildPageSnapshotFromDraft(
       fullPath: page.fullPath,
       parentPageId: page.parentPageId,
       layoutId: page.layoutId,
+      nickname: page.nickname,
       metaTitle: page.metaTitle,
       metaDescription: page.metaDescription,
       aiSeoEnabled: page.aiSeoEnabled,
@@ -790,7 +806,7 @@ export async function getPage(ctx: ServiceContext, rawInput: z.input<typeof getP
 
 export async function createPage(ctx: ServiceContext, rawInput: z.input<typeof createPageInput>) {
   const user = assertUser(ctx);
-  const { projectId, pathSegment, parentPageId, layoutId, contentDescription } =
+  const { projectId, nickname, pathSegment, parentPageId, layoutId, contentDescription } =
     createPageInput.parse(rawInput);
   const project = await getAuthorizedProject(ctx.db, projectId, user.id);
   if (!project) throw new ORPCError("NOT_FOUND");
@@ -852,6 +868,7 @@ export async function createPage(ctx: ServiceContext, rawInput: z.input<typeof c
       fullPath,
       parentPageId: parentPageId ?? null,
       layoutId,
+      nickname: nickname ?? deriveDefaultPageNickname(pathSegment),
       contentUpdatedAt: now,
       createdAt: now,
       updatedAt: now,

@@ -120,6 +120,13 @@
       "when": 1778966705258,
       "tag": "0016_fine_longshot",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1779100800000,
+      "tag": "0017_add_page_nickname",
+      "breakpoints": true
     }
   ]
 }

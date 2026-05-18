@@ -34,13 +34,13 @@ import {
   projectQueries,
 } from "@/lib/queries";
 import { trackClientEvent } from "@/lib/telemetry-client";
-import { formatPathSegment } from "@/lib/utils";
 
 import { UploadDropZone } from "../../content/components/UploadDropZone";
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { previewStore } from "../previewStore";
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
 import { PageLocationFieldset } from "./PageLocationFieldset";
+import { PageNicknameField } from "./PageNicknameField";
 import { ShikiMarkdown } from "./ShikiMarkdown";
 
 const PageMetadataModal = () => {
@@ -71,6 +71,7 @@ const PageMetadataModalContent = ({ pageId }: { pageId: number | null }) => {
 
   const form = useForm({
     defaultValues: {
+      nickname: page?.nickname ?? "",
       pathSegment: page?.pathSegment ?? "",
       parentPageId: page?.parentPageId ?? undefined,
       layoutId: page?.layoutId ?? 0,
@@ -78,8 +79,15 @@ const PageMetadataModalContent = ({ pageId }: { pageId: number | null }) => {
     onSubmit: async (values) => {
       if (!page) return;
       try {
+        const nickname = values.value.nickname.trim();
+        if (!nickname) {
+          toast.error("Page nickname is required");
+          return;
+        }
+
         const { fullPath } = await updatePage.mutateAsync({
           id: page.id,
+          nickname,
           pathSegment: values.value.pathSegment,
           parentPageId: values.value.parentPageId,
         });
@@ -91,12 +99,13 @@ const PageMetadataModalContent = ({ pageId }: { pageId: number | null }) => {
         trackClientEvent("page_updated", {
           projectId: page.projectId,
           changes: {
+            nickname: nickname !== page.nickname,
             path: values.value.pathSegment !== page.pathSegment,
             layout: values.value.layoutId !== page.layoutId,
             parent: values.value.parentPageId !== page.parentPageId,
           },
         });
-        const displayName = page.metaTitle ?? formatPathSegment(values.value.pathSegment);
+        const displayName = nickname;
         toast.success(`Updated ${displayName} page`);
         previewStore.send({ type: "closeEditPageModal" });
         form.reset();
@@ -110,11 +119,12 @@ const PageMetadataModalContent = ({ pageId }: { pageId: number | null }) => {
   });
 
   // Reset form when opening with a different page
-  const prevPageId = React.useRef(pageId);
+  const prevPageId = React.useRef<number | null>(null);
   React.useEffect(() => {
     if (prevPageId.current === pageId || !page) return;
     prevPageId.current = pageId;
     form.reset({
+      nickname: page.nickname,
       pathSegment: page.pathSegment,
       parentPageId: page.parentPageId ?? undefined,
       layoutId: page.layoutId ?? 0,
@@ -168,6 +178,11 @@ const PageMetadataModalContent = ({ pageId }: { pageId: number | null }) => {
                   }}
                   className="-mx-1 space-y-4 px-1"
                 >
+                  <form.Field name="nickname">
+                    {(field) => (
+                      <PageNicknameField value={field.state.value} onChange={field.handleChange} />
+                    )}
+                  </form.Field>
                   {isRootPage ? (
                     <Alert>
                       <Info className="size-4" />

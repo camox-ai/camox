@@ -21,7 +21,6 @@ import {
 } from "@camox/ui/select";
 
 import type { Page } from "@/lib/queries";
-import { formatPathSegment } from "@/lib/utils";
 
 const NO_PARENT_VALUE = "__no_parent__";
 
@@ -80,7 +79,7 @@ const PageLocationFieldset = ({
             {nonRootPages?.map((page) => (
               <SelectItem key={page.id} value={String(page.id)}>
                 <div className="flex flex-col items-start">
-                  <span>{page.metaTitle ?? formatPathSegment(page.pathSegment)}</span>
+                  <span>{page.nickname}</span>
                   <span className="text-muted-foreground font-mono text-xs [[data-slot=select-value]_&]:hidden">
                     {page.fullPath}
                   </span>
