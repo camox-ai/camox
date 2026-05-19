@@ -30,10 +30,30 @@ export const handler = init;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ownPkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf-8"));
+const PNPM_VERSION = "11.1.3";
+const PNPM_WORKSPACE = `allowBuilds:
+  core-js@3.49.0: true
+  msw@2.14.6: true
+  protobufjs@7.5.9: true
+`;
 
 function onCancel() {
   p.cancel("Cancelled.");
   process.exit(0);
+}
+
+function runCommand(bin: string, args: string[], cwd: string) {
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(bin, args, {
+      cwd,
+      stdio: "ignore",
+    });
+    child.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`Exit code ${code}`));
+    });
+    child.on("error", reject);
+  });
 }
 
 const CREATE_NEW_ORG = "__create_new__" as const;
@@ -208,7 +228,13 @@ export async function init() {
   pkg.name = project.slug;
   delete pkg.version;
   pkg.dependencies.camox = `^${ownPkg.version}`;
+  if (pm === "pnpm") {
+    pkg.packageManager = `pnpm@${PNPM_VERSION}`;
+  }
   fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+  if (pm === "pnpm") {
+    fs.writeFileSync(path.join(targetDir, "pnpm-workspace.yaml"), PNPM_WORKSPACE);
+  }
 
   // .env and .gitignore can't live in the template dir:
   // - .gitignore is stripped by npm when publishing
@@ -247,17 +273,7 @@ src/routeTree.gen.ts
   const s2 = p.spinner();
   s2.start(`Running ${installCmd}...`);
   try {
-    await new Promise<void>((resolve, reject) => {
-      const child = spawn(installBin, installArgs, {
-        cwd: targetDir,
-        stdio: "ignore",
-      });
-      child.on("close", (code) => {
-        if (code === 0) resolve();
-        else reject(new Error(`Exit code ${code}`));
-      });
-      child.on("error", reject);
-    });
+    await runCommand(installBin, installArgs, targetDir);
     s2.stop("Dependencies installed!");
   } catch {
     s2.stop("Install failed.");
