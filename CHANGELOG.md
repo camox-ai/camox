@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.28.1](https://github.com/camox-ai/camox/compare/camox-v0.28.0...camox-v0.28.1) (2026-05-19)
+
+
+### Miscellaneous
+
+* nicer environment compatibility error display ([cf126cf](https://github.com/camox-ai/camox/commit/cf126cfed37158a9bbc12f1d50d130afbf4b726b))
+* upgrade all deps ([fead81a](https://github.com/camox-ai/camox/commit/fead81ab55a771bf1d75b467e9fa45535a22b883))
+* upgrade to pnpm 11 ([219b369](https://github.com/camox-ai/camox/commit/219b3696b16297e3e16699ae2e4e1562928ed9a1))
+
 ## [0.28.0](https://github.com/camox-ai/camox/compare/camox-v0.27.0...camox-v0.28.0) (2026-05-18)
 
 

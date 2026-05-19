@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.1](https://github.com/camox-ai/camox/compare/camox-v0.28.0...@camox/ui-v0.28.1) (2026-05-19)
+
+
+### Miscellaneous
+
+* upgrade all deps ([fead81a](https://github.com/camox-ai/camox/commit/fead81ab55a771bf1d75b467e9fa45535a22b883))
+
 ## [0.28.0](https://github.com/camox-ai/camox/compare/camox-v0.27.0...@camox/ui-v0.28.0) (2026-05-18)
 
 
