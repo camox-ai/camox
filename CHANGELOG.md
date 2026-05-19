@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.28.2](https://github.com/camox-ai/camox/compare/camox-v0.28.1...camox-v0.28.2) (2026-05-19)
+
+
+### Bug Fixes
+
+* prevent unpublishing homepage ([79f7058](https://github.com/camox-ai/camox/commit/79f70588d19253d18ba72496a74150b776eddc61))
+
+
+### Miscellaneous
+
+* set pnpm 11 for created apps ([4e8b109](https://github.com/camox-ai/camox/commit/4e8b109950f61adf8efe28bc5552bb77fd94ea12))
+
 ## [0.28.1](https://github.com/camox-ai/camox/compare/camox-v0.28.0...camox-v0.28.1) (2026-05-19)
 
 
