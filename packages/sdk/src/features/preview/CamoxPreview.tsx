@@ -361,6 +361,7 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
   // the control's position in the toolbar stays stable as the user
   // navigates between published and unpublished pages.
   const hasLiveCheckpoint = page.livePublishedCheckpointId != null;
+  const isHomePage = page.fullPath === "/";
 
   // Warm the other source's cache on hover so the toggle feels instant. We
   // use the full query fn (rather than the lightweight structural one) so
@@ -418,7 +419,7 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
         id: "unpublish-current-page",
         label: "Unpublish page",
         groupLabel: "Preview",
-        checkIfAvailable: () => hasLiveCheckpoint && !unpublishPage.isPending,
+        checkIfAvailable: () => hasLiveCheckpoint && !isHomePage && !unpublishPage.isPending,
         execute: () => setIsUnpublishDialogOpen(true),
       },
       {
@@ -443,11 +444,14 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
     canPublish,
     discardChanges.isPending,
     hasLiveCheckpoint,
+    isHomePage,
     publishLabel,
     unpublishPage.isPending,
   ]);
 
   const handleUnpublish = async () => {
+    if (isHomePage) return;
+
     try {
       await unpublishPage.mutateAsync({ id: page.id });
       queryClient.setQueryData<PageStructure>(
@@ -528,7 +532,7 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-42">
               <DropdownMenuItem
-                disabled={!hasLiveCheckpoint || unpublishPage.isPending}
+                disabled={!hasLiveCheckpoint || isHomePage || unpublishPage.isPending}
                 onClick={() => setIsUnpublishDialogOpen(true)}
               >
                 Unpublish
@@ -584,7 +588,10 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
             <AlertDialogCancel variant="outline" size="default" disabled={unpublishPage.isPending}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleUnpublish} disabled={unpublishPage.isPending}>
+            <AlertDialogAction
+              onClick={handleUnpublish}
+              disabled={isHomePage || unpublishPage.isPending}
+            >
               {unpublishPage.isPending ? "Unpublishing…" : "Unpublish"}
             </AlertDialogAction>
           </AlertDialogFooter>

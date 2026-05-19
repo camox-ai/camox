@@ -1339,6 +1339,11 @@ export async function unpublishPage(
 
   const pageRow = await ctx.db.select().from(pages).where(eq(pages.id, id)).get();
   if (!pageRow) throw new ORPCError("NOT_FOUND");
+  if (pageRow.fullPath === "/") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "The home page cannot be unpublished.",
+    });
+  }
 
   // Surface a clear error rather than silently no-op when the user hits
   // unpublish on a never-published page — the menu should already be
