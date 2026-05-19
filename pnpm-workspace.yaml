@@ -6,7 +6,6 @@ catalog:
   vite: npm:@voidzero-dev/vite-plus-core@latest
   vite-plus: ^0.1.21
   vitest: npm:@voidzero-dev/vite-plus-test@latest
-onlyBuiltDependenciesFile: ""
 overrides:
   vite: "catalog:"
   vitest: "catalog:"
@@ -17,3 +16,14 @@ peerDependencyRules:
   allowedVersions:
     vite: "*"
     vitest: "*"
+allowBuilds:
+  "@openrouter/sdk": true
+  "@parcel/watcher": true
+  core-js: true
+  esbuild: true
+  msw: true
+  nx: true
+  protobufjs: true
+  sharp: true
+  workerd: true
+minimumReleaseAge: 60
