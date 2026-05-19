@@ -17,10 +17,10 @@
     "prepare": "vp config"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.5.0",
-    "@commitlint/config-conventional": "^20.5.0",
+    "@commitlint/cli": "^20.5.3",
+    "@commitlint/config-conventional": "^20.5.3",
     "@typescript/native-preview": "7.0.0-dev.20260412.1",
-    "nx": "^21.6.10",
+    "nx": "^21.6.11",
     "vite-plus": "catalog:"
   },
   "packageManager": "pnpm@10.33.3",

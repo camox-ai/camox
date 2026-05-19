@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "dts-bundle-generator": "^9.5.1",
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.12"
   },
   "nx": {
     "tags": [
