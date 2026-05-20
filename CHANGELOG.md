@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.28.3](https://github.com/camox-ai/camox/compare/camox-v0.28.2...camox-v0.28.3) (2026-05-20)
+
+
+### Bug Fixes
+
+* pnpm 11 security features breaking app creation ([7705647](https://github.com/camox-ai/camox/commit/7705647ad67beb80f57fb3e23b0b1ad40b6e9423))
+
+
+### Miscellaneous
+
+* set up grill-with-docs and CONTEXT.md ([f5d7df8](https://github.com/camox-ai/camox/commit/f5d7df8f9a834d5582026fea9b94177cbb4ad5f6))
+
 ## [0.28.2](https://github.com/camox-ai/camox/compare/camox-v0.28.1...camox-v0.28.2) (2026-05-19)
 
 
