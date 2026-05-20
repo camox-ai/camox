@@ -32,9 +32,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ownPkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf-8"));
 const PNPM_VERSION = "11.1.3";
 const PNPM_WORKSPACE = `allowBuilds:
-  core-js@3.49.0: true
-  msw@2.14.6: true
-  protobufjs@7.5.9: true
+  core-js: true
+  msw: true
+  protobufjs: true
 `;
 
 function onCancel() {

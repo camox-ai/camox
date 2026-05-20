@@ -4,7 +4,7 @@ import { rmSync } from "node:fs";
 rmSync("dist", { recursive: true, force: true });
 
 // Emit JS + .d.ts for query-keys (runtime values)
-execSync("pnpm exec tsc -p tsconfig.build.json", { stdio: "inherit" });
+execSync("pnpm exec tsgo -p tsconfig.build.json", { stdio: "inherit" });
 
 // Bundle Router .d.ts (inlines all transitive types from the api app)
 execSync(
