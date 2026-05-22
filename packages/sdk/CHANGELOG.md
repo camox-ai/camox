@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.5](https://github.com/camox-ai/camox/compare/camox-v0.28.4...camox-sdk-v0.28.5) (2026-05-22)
+
+
+### Bug Fixes
+
+* list of optimized vite deps ([8a14bfa](https://github.com/camox-ai/camox/commit/8a14bfa1938af5fd2d98d839bf6117bf11ec1617))
+
 ## [0.28.4](https://github.com/camox-ai/camox/compare/camox-v0.28.3...camox-sdk-v0.28.4) (2026-05-22)
 
 
