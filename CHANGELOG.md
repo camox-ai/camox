@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.1](https://github.com/camox-ai/camox/compare/camox-v0.29.0...camox-v0.29.1) (2026-05-22)
+
+
+### Bug Fixes
+
+* posthog public key ([48dfbe6](https://github.com/camox-ai/camox/commit/48dfbe6f667136b0b4aaad3ad9bb8c916a3730fa))
+
 ## [0.29.0](https://github.com/camox-ai/camox/compare/camox-v0.28.6...camox-v0.29.0) (2026-05-22)
 
 
