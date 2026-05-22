@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.6](https://github.com/camox-ai/camox/compare/camox-v0.28.5...camox-v0.28.6) (2026-05-22)
+
+
+### Bug Fixes
+
+* drop yarn support ([457e2ca](https://github.com/camox-ai/camox/commit/457e2ca30edbde2f8580109641e6d9c57034389f))
+
 ## [0.28.5](https://github.com/camox-ai/camox/compare/camox-v0.28.4...camox-v0.28.5) (2026-05-22)
 
 
