@@ -56,17 +56,6 @@ function onCancel() {
   process.exit(0);
 }
 
-function versionFromSpecifier(specifier: unknown, dependency: string) {
-  if (typeof specifier !== "string") {
-    throw new Error(`Expected ${dependency} to use a string version specifier.`);
-  }
-
-  const match = specifier.match(/\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?/);
-  if (match) return match[0];
-
-  throw new Error(`Could not infer a concrete version from ${dependency}@${specifier}.`);
-}
-
 function runCommand(bin: string, args: string[], cwd: string) {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(bin, args, {
@@ -137,10 +126,6 @@ function getCommandFailureMessage(pm: PackageManager, err: unknown) {
 
   if (pm === "pnpm") {
     return "Corepack or pnpm is required to install dependencies with the selected package manager. Enable Corepack with `corepack enable` or install pnpm, then run the setup commands below.";
-  }
-
-  if (pm === "yarn") {
-    return "Corepack or Yarn is required to install dependencies with the selected package manager. Enable Corepack with `corepack enable` or install Yarn, then run the setup commands below.";
   }
 
   if (pm === "bun") {
@@ -284,7 +269,6 @@ export async function init() {
       { value: "pnpm" as const, label: "pnpm (recommended)" },
       { value: "bun" as const, label: "bun" },
       { value: "npm" as const, label: "npm" },
-      { value: "yarn" as const, label: "yarn" },
     ],
   });
   if (p.isCancel(selected)) return onCancel();
@@ -323,10 +307,6 @@ export async function init() {
   delete pkg.version;
   pkg.dependencies.camox = `^${ownPkg.version}`;
   pkg.packageManager = packageManagerVersions[pm];
-  if (pm === "yarn") {
-    const vitePlusVersion = versionFromSpecifier(pkg.devDependencies["vite-plus"], "vite-plus");
-    pkg.devDependencies.vite = `npm:@voidzero-dev/vite-plus-core@${vitePlusVersion}`;
-  }
   fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
   if (pm === "pnpm") {
     fs.writeFileSync(path.join(targetDir, "pnpm-workspace.yaml"), PNPM_WORKSPACE);

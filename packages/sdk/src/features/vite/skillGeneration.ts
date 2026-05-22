@@ -32,11 +32,10 @@ function injectNoticeAfterFrontmatter(source: string): string {
 
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-type PackageManager = "pnpm" | "yarn" | "bun" | "npm";
+type PackageManager = "pnpm" | "bun" | "npm";
 
 const camoxCmdByPm: Record<PackageManager, string> = {
   pnpm: "pnpm camox",
-  yarn: "yarn camox",
   bun: "bunx camox",
   npm: "npx camox",
 };
@@ -48,7 +47,7 @@ function detectPackageManagerInDir(dir: string): PackageManager | undefined {
       const pkg = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
       const declared = typeof pkg.packageManager === "string" ? pkg.packageManager : "";
       const name = declared.split("@", 1)[0];
-      if (name === "pnpm" || name === "yarn" || name === "bun" || name === "npm") return name;
+      if (name === "pnpm" || name === "bun" || name === "npm") return name;
     } catch {
       // fall through to lockfile detection
     }
@@ -56,7 +55,6 @@ function detectPackageManagerInDir(dir: string): PackageManager | undefined {
 
   if (existsSync(resolve(dir, "pnpm-lock.yaml"))) return "pnpm";
   if (existsSync(resolve(dir, "bun.lock")) || existsSync(resolve(dir, "bun.lockb"))) return "bun";
-  if (existsSync(resolve(dir, "yarn.lock"))) return "yarn";
   if (existsSync(resolve(dir, "package-lock.json"))) return "npm";
 
   return undefined;

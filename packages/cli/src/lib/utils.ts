@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export type PackageManager = "pnpm" | "bun" | "npm" | "yarn";
+export type PackageManager = "pnpm" | "bun" | "npm";
 
 export type PackageManagerCommand = {
   bin: string;
@@ -17,7 +17,6 @@ export const packageManagerVersions: Record<PackageManager, string> = {
   pnpm: "pnpm@11.1.3",
   bun: "bun@1.2.23",
   npm: "npm@11.6.2",
-  yarn: "yarn@4.9.2",
 };
 
 export const pmCommands: Record<
@@ -45,20 +44,6 @@ export const pmCommands: Record<
   npm: {
     install: { bin: "npm", args: ["install"], display: "npm install" },
     dev: { bin: "npm", args: ["run", "dev"], display: "npm run dev" },
-  },
-  yarn: {
-    install: {
-      bin: "corepack",
-      args: ["yarn", "install"],
-      display: "yarn install",
-      fallback: { bin: "yarn", args: ["install"] },
-    },
-    dev: {
-      bin: "corepack",
-      args: ["yarn", "dev"],
-      display: "yarn dev",
-      fallback: { bin: "yarn", args: ["dev"] },
-    },
   },
 };
 
