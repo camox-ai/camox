@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.0](https://github.com/camox-ai/camox/compare/camox-v0.28.6...@camox/cli-v0.29.0) (2026-05-22)
+
+
+### Miscellaneous
+
+* **@camox/cli:** Synchronize camox versions
+
 ## [0.28.6](https://github.com/camox-ai/camox/compare/camox-v0.28.5...@camox/cli-v0.28.6) (2026-05-22)
 
 

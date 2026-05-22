@@ -1,6 +1,6 @@
 {
   "name": "create-camox",
-  "version": "0.28.6",
+  "version": "0.29.0",
   "bin": {
     "create-camox": "./bin/create-camox.mjs"
   },
