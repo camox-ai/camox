@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.4](https://github.com/camox-ai/camox/compare/camox-v0.28.3...camox-v0.28.4) (2026-05-22)
+
+
+### Bug Fixes
+
+* corepack support for all package managers ([4063d2d](https://github.com/camox-ai/camox/commit/4063d2db9a83b52dde2729d8ad7ee397df95c1f2))
+
 ## [0.28.3](https://github.com/camox-ai/camox/compare/camox-v0.28.2...camox-v0.28.3) (2026-05-20)
 
 
