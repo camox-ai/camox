@@ -162,12 +162,11 @@ export function camox(options: CamoxPluginOptions): Plugin {
           alias: [{ find: /^tslib$/, replacement: "tslib/tslib.es6.mjs" }],
         },
         optimizeDeps: {
-          // When the Studio UI, loads dynamically at runtime, Vite discovers these dependencies in 3 batches,
-          // each causing a page reload if they weren't included in either include or exclude.
-          // All entries are prefixed with `camox >` because these packages are transitive
-          // dependencies of the SDK — under pnpm's strict resolution they aren't resolvable
-          // as bare specifiers from the user app's root. The `parent > child` form tells Vite
-          // to resolve the nested dep through the parent package's own node_modules.
+          // The Studio UI loads dynamically at runtime, so Vite's scanner can't see every
+          // dependency before startup. Include the runtime discoveries up front to avoid
+          // re-optimization reloads and 504 "Outdated Optimize Dep" responses.
+          // Entries prefixed with `camox >` are SDK dependencies that may not be
+          // resolvable as bare specifiers from the user app's root under pnpm.
           include: [
             // React entries reached through `virtual:tanstack-start-client-entry`, which Vite's
             // scanner can't crawl — without these they're discovered at runtime, triggering a
@@ -177,7 +176,6 @@ export function camox(options: CamoxPluginOptions): Plugin {
             "react-dom/client",
             "react/jsx-runtime",
             "react/jsx-dev-runtime",
-            // 1st batch
             "camox > @base-ui/react/accordion",
             "camox > @base-ui/react/alert-dialog",
             "camox > @base-ui/react/avatar",
@@ -193,7 +191,11 @@ export function camox(options: CamoxPluginOptions): Plugin {
             "camox > @base-ui/react/toggle",
             "camox > @base-ui/react/tooltip",
             "camox > @base-ui/react/use-render",
-            // 2nd batch
+            "camox > @camox/api-contract",
+            "camox > @camox/api-contract/query-keys",
+            "camox > @camox/ui > cmdk",
+            "camox > @camox/ui > lucide-react",
+            "camox > @camox/ui > sonner",
             "camox > @dnd-kit/core",
             "camox > @dnd-kit/modifiers",
             "camox > @dnd-kit/sortable",
@@ -216,15 +218,22 @@ export function camox(options: CamoxPluginOptions): Plugin {
             "camox > @takumi-rs/image-response",
             "camox > @tanstack/react-form",
             "camox > @xstate/store-react",
-            "camox > @camox/ui > cmdk",
+            "camox > better-auth > @better-auth/core/env",
+            "camox > better-auth > @better-auth/core/error",
+            "camox > better-auth > @better-auth/core/utils/error-codes",
+            "camox > better-auth > @better-auth/core/utils/string",
+            "camox > better-auth > @better-fetch/fetch",
+            "camox > better-auth > defu",
+            "camox > better-auth > nanostores",
             "camox > fractional-indexing",
             "camox > lexical",
-            "camox > posthog-js",
-            "camox > @camox/ui > sonner",
-            "camox > @camox/ui > lucide-react",
             "camox > lucide-react",
-            // 3rd batch
+            "camox > posthog-js",
             "camox > @tanstack/react-query-devtools/production",
+            "camox > @tanstack/react-router > @tanstack/router-core",
+            "camox > @tanstack/react-router > @tanstack/router-core/isServer",
+            "camox > @tanstack/react-router > @tanstack/router-core/ssr/client",
+            "camox > @tanstack/react-router > @tanstack/router-core > seroval",
             "camox > partysocket/react",
           ],
         },
