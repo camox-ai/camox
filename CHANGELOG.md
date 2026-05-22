@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.28.5](https://github.com/camox-ai/camox/compare/camox-v0.28.4...camox-v0.28.5) (2026-05-22)
+
+
+### Bug Fixes
+
+* list of optimized vite deps ([8a14bfa](https://github.com/camox-ai/camox/commit/8a14bfa1938af5fd2d98d839bf6117bf11ec1617))
+* vite dependency in app template for yarn ([49e8cb0](https://github.com/camox-ai/camox/commit/49e8cb09fa94999369e45755f6338e8d76e2a99f))
+
 ## [0.28.4](https://github.com/camox-ai/camox/compare/camox-v0.28.3...camox-v0.28.4) (2026-05-22)
 
 
