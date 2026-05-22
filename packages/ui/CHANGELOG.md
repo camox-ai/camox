@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.1](https://github.com/camox-ai/camox/compare/camox-v0.29.0...@camox/ui-v0.29.1) (2026-05-22)
+
+
+### Miscellaneous
+
+* **@camox/ui:** Synchronize camox versions
+
 ## [0.29.0](https://github.com/camox-ai/camox/compare/camox-v0.28.6...@camox/ui-v0.29.0) (2026-05-22)
 
 
