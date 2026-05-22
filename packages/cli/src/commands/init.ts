@@ -17,7 +17,13 @@ import {
   setActiveOrganization,
 } from "../lib/api";
 import { getOrAuthenticate, readAuthToken } from "../lib/auth";
-import { type PackageManager, copyDir, pmCommands } from "../lib/utils";
+import {
+  type PackageManager,
+  type PackageManagerCommand,
+  copyDir,
+  packageManagerVersions,
+  pmCommands,
+} from "../lib/utils";
 
 export const parser = command(
   "init",
@@ -30,12 +36,20 @@ export const handler = init;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ownPkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, "..", "package.json"), "utf-8"));
-const PNPM_VERSION = "11.1.3";
 const PNPM_WORKSPACE = `allowBuilds:
   core-js: true
   msw: true
   protobufjs: true
 `;
+
+class CommandError extends Error {
+  constructor(
+    message: string,
+    readonly cause: unknown,
+  ) {
+    super(message);
+  }
+}
 
 function onCancel() {
   p.cancel("Cancelled.");
@@ -52,8 +66,77 @@ function runCommand(bin: string, args: string[], cwd: string) {
       if (code === 0) resolve();
       else reject(new Error(`Exit code ${code}`));
     });
-    child.on("error", reject);
+    child.on("error", (err) => reject(new CommandError(`Failed to start ${bin}`, err)));
   });
+}
+
+function spawnCommand(bin: string, args: string[], cwd: string) {
+  return spawn(bin, args, {
+    cwd,
+    stdio: "inherit",
+    detached: true,
+  });
+}
+
+function isMissingCommandError(err: unknown) {
+  if (!(err instanceof CommandError)) return false;
+
+  const cause = err.cause;
+  if (!(cause instanceof Error) || "code" in cause === false) return false;
+
+  return cause.code === "ENOENT";
+}
+
+async function runPackageManagerCommand(command: PackageManagerCommand, cwd: string) {
+  try {
+    await runCommand(command.bin, command.args, cwd);
+  } catch (err) {
+    if (!isMissingCommandError(err) || !command.fallback) {
+      throw err;
+    }
+
+    await runCommand(command.fallback.bin, command.fallback.args, cwd);
+  }
+}
+
+function startPackageManagerCommand(command: PackageManagerCommand, cwd: string) {
+  return new Promise<ReturnType<typeof spawn>>((resolve, reject) => {
+    const child = spawnCommand(command.bin, command.args, cwd);
+    child.once("spawn", () => resolve(child));
+    child.once("error", (err) => {
+      const commandError = new CommandError(`Failed to start ${command.bin}`, err);
+      if (!isMissingCommandError(commandError) || !command.fallback) {
+        reject(commandError);
+        return;
+      }
+
+      const fallback = spawnCommand(command.fallback.bin, command.fallback.args, cwd);
+      fallback.once("spawn", () => resolve(fallback));
+      fallback.once("error", (fallbackErr) =>
+        reject(new CommandError(`Failed to start ${command.fallback?.bin}`, fallbackErr)),
+      );
+    });
+  });
+}
+
+function getCommandFailureMessage(pm: PackageManager, err: unknown) {
+  if (!isMissingCommandError(err)) {
+    return "Failed to install dependencies.";
+  }
+
+  if (pm === "pnpm") {
+    return "Corepack or pnpm is required to install dependencies with the selected package manager. Enable Corepack with `corepack enable` or install pnpm, then run the setup commands below.";
+  }
+
+  if (pm === "yarn") {
+    return "Corepack or Yarn is required to install dependencies with the selected package manager. Enable Corepack with `corepack enable` or install Yarn, then run the setup commands below.";
+  }
+
+  if (pm === "bun") {
+    return "Bun is required to install dependencies with the selected package manager. Install Bun, then run the setup commands below.";
+  }
+
+  return "npm is required to install dependencies. Install npm, then run the setup commands below.";
 }
 
 const CREATE_NEW_ORG = "__create_new__" as const;
@@ -228,9 +311,7 @@ export async function init() {
   pkg.name = project.slug;
   delete pkg.version;
   pkg.dependencies.camox = `^${ownPkg.version}`;
-  if (pm === "pnpm") {
-    pkg.packageManager = `pnpm@${PNPM_VERSION}`;
-  }
+  pkg.packageManager = packageManagerVersions[pm];
   fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
   if (pm === "pnpm") {
     fs.writeFileSync(path.join(targetDir, "pnpm-workspace.yaml"), PNPM_WORKSPACE);
@@ -269,31 +350,31 @@ src/routeTree.gen.ts
 
   // Install dependencies
   const { install: installCmd, dev: devCmd } = pmCommands[pm];
-  const [installBin, ...installArgs] = installCmd.split(" ");
   const s2 = p.spinner();
-  s2.start(`Running ${installCmd}...`);
+  s2.start(`Running ${installCmd.display}...`);
   try {
-    await runCommand(installBin, installArgs, targetDir);
+    await runPackageManagerCommand(installCmd, targetDir);
     s2.stop("Dependencies installed!");
-  } catch {
+  } catch (err) {
     s2.stop("Install failed.");
-    p.log.error(`Failed to install dependencies.`);
-    p.outro(`To finish setup:\n  cd ${resolvedPath}\n  ${installCmd}\n  ${devCmd}`);
+    p.log.error(getCommandFailureMessage(pm, err));
+    p.outro(`To finish setup:\n  cd ${resolvedPath}\n  ${installCmd.display}\n  ${devCmd.display}`);
     process.exit(1);
   }
 
   // Start dev server
   p.log.info(`Starting dev server... (Ctrl+C to stop)`);
 
-  const [cmd, ...args] = devCmd.split(" ");
-
   // Spawn in its own process group so Ctrl+C (SIGINT) doesn't reach it
   // directly — that would cause pnpm to print ELIFECYCLE noise.
-  const child = spawn(cmd, args, {
-    cwd: targetDir,
-    stdio: "inherit",
-    detached: true,
-  });
+  let child: ReturnType<typeof spawn>;
+  try {
+    child = await startPackageManagerCommand(devCmd, targetDir);
+  } catch (err) {
+    p.log.error(getCommandFailureMessage(pm, err));
+    p.outro(`To start the dev server:\n  cd ${resolvedPath}\n  ${devCmd.display}`);
+    process.exit(1);
+  }
 
   // Intercept Ctrl+C: send SIGTERM to the child's entire process group
   // for a clean shutdown (kills pnpm + vite + all children).
@@ -312,7 +393,7 @@ src/routeTree.gen.ts
   child.on("close", () => {
     process.removeListener("SIGINT", sigintHandler);
     process.removeListener("exit", sigintHandler);
-    p.outro(`To restart the dev server:\n  cd ${resolvedPath}\n  ${devCmd}`);
+    p.outro(`To restart the dev server:\n  cd ${resolvedPath}\n  ${devCmd.display}`);
     process.exit(0);
   });
 }

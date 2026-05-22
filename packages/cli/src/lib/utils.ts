@@ -3,11 +3,63 @@ import path from "node:path";
 
 export type PackageManager = "pnpm" | "bun" | "npm" | "yarn";
 
-export const pmCommands: Record<PackageManager, { install: string; dev: string }> = {
-  pnpm: { install: "pnpm install", dev: "pnpm dev" },
-  bun: { install: "bun install", dev: "bun dev" },
-  npm: { install: "npm install", dev: "npm run dev" },
-  yarn: { install: "yarn install", dev: "yarn dev" },
+export type PackageManagerCommand = {
+  bin: string;
+  args: string[];
+  display: string;
+  fallback?: {
+    bin: string;
+    args: string[];
+  };
+};
+
+export const packageManagerVersions: Record<PackageManager, string> = {
+  pnpm: "pnpm@11.1.3",
+  bun: "bun@1.2.23",
+  npm: "npm@11.6.2",
+  yarn: "yarn@4.9.2",
+};
+
+export const pmCommands: Record<
+  PackageManager,
+  { install: PackageManagerCommand; dev: PackageManagerCommand }
+> = {
+  pnpm: {
+    install: {
+      bin: "corepack",
+      args: ["pnpm", "install"],
+      display: "pnpm install",
+      fallback: { bin: "pnpm", args: ["install"] },
+    },
+    dev: {
+      bin: "corepack",
+      args: ["pnpm", "dev"],
+      display: "pnpm dev",
+      fallback: { bin: "pnpm", args: ["dev"] },
+    },
+  },
+  bun: {
+    install: { bin: "bun", args: ["install"], display: "bun install" },
+    dev: { bin: "bun", args: ["dev"], display: "bun dev" },
+  },
+  npm: {
+    install: { bin: "npm", args: ["install"], display: "npm install" },
+    dev: { bin: "npm", args: ["run", "dev"], display: "npm run dev" },
+  },
+  yarn: {
+    install: {
+      bin: "corepack",
+      args: ["yarn", "install"],
+      display: "yarn install",
+      fallback: { bin: "yarn", args: ["install"] },
+    },
+    dev: {
+      bin: "corepack",
+      args: ["yarn", "dev"],
+      display: "yarn dev",
+      fallback: { bin: "yarn", args: ["dev"] },
+    },
+  },
 };
 
 export function copyDir(src: string, dest: string, replacements: Record<string, string>) {
