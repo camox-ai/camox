@@ -3,6 +3,7 @@
   "version": "0.29.1",
   "private": true,
   "author": "",
+  "type": "module",
   "scripts": {
     "build": "nx run-many -t build --all",
     "dev": "nx run-many -t dev db:studio --all --parallel=10",
