@@ -162,17 +162,17 @@ const PagePicker = () => {
                         )}
                       />
                       <div className="flex min-w-0 flex-col">
-                        <p className="truncate">{page.nickname}</p>
                         <div className="flex min-w-0 items-center gap-1.5">
-                          <p className="text-muted-foreground truncate font-mono text-xs">
-                            {page.fullPath}
-                          </p>
+                          <p className="truncate">{page.nickname}</p>
                           <PageStatusBadge
                             size="sm"
                             status={page.status}
                             modifiedReason={page.modifiedReason}
                           />
                         </div>
+                        <p className="text-muted-foreground truncate font-mono text-xs">
+                          {page.fullPath}
+                        </p>
                       </div>
                     </div>
                     <div className="hidden gap-1 group-data-[selected=true]/item:flex">
