@@ -30,6 +30,18 @@ import { previewStore } from "../previewStore";
 import { PageLocationFieldset } from "./PageLocationFieldset";
 import { PageNicknameField } from "./PageNicknameField";
 
+const slugifyPathSegment = (nickname: string) => {
+  const trimmedNickname = nickname.trim();
+  if (trimmedNickname.toLowerCase() === "home") return "";
+
+  return trimmedNickname
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+};
+
 const CreatePageModal = () => {
   const projectSlug = useProjectSlug();
   const open = useSelector(previewStore, (state) => state.context.isCreatePageModalOpen);
@@ -134,7 +146,14 @@ const CreatePageModal = () => {
             {(field) => (
               <PageNicknameField
                 value={field.state.value}
-                onChange={field.handleChange}
+                onChange={(value) => {
+                  field.handleChange(value);
+
+                  if (form.getFieldMeta("pathSegment")?.isDirty) return;
+                  form.setFieldValue("pathSegment", slugifyPathSegment(value), {
+                    dontUpdateMeta: true,
+                  });
+                }}
                 autoFocus
               />
             )}
