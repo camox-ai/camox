@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.29.0](https://github.com/camox-ai/camox/compare/camox-v0.28.6...camox-sdk-v0.29.0) (2026-05-22)
+
+
+### Features
+
+* prefill page path on creation using nickname ([cea4d99](https://github.com/camox-ai/camox/commit/cea4d99619b4c7bd4c88093d317834057943814d))
+
+
+### Miscellaneous
+
+* move page status next to nickname in PagePicker ([4de5067](https://github.com/camox-ai/camox/commit/4de5067031480f855578f7028d34cc626f831d95))
+
 ## [0.28.6](https://github.com/camox-ai/camox/compare/camox-v0.28.5...camox-sdk-v0.28.6) (2026-05-22)
 
 
