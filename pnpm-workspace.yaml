@@ -26,3 +26,8 @@ allowBuilds:
   protobufjs: true
   sharp: true
   workerd: true
+minimumReleaseAgeExclude:
+  - "@tanstack/ai-event-client@0.3.10"
+  - "@tanstack/ai@0.21.3"
+  - "@tanstack/ai-client@0.11.7"
+  - "@tanstack/ai-react@0.11.7"

@@ -32,7 +32,7 @@
     "build": "node build.mjs"
   },
   "dependencies": {
-    "@tanstack/ai": "0.9.1"
+    "@tanstack/ai": "0.21.3"
   },
   "devDependencies": {
     "dts-bundle-generator": "^9.5.1",

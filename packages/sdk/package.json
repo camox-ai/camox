@@ -118,6 +118,7 @@
     "@sinclair/typebox": "^0.34.49",
     "@takumi-rs/image-response": "^0.70.4",
     "@takumi-rs/wasm": "^0.70.4",
+    "@tanstack/ai-react": "^0.11.7",
     "@tanstack/react-form": "^1.32.0",
     "@tanstack/react-query-devtools": "^5.100.11",
     "@xstate/store": "3.17.1",
