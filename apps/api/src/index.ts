@@ -4,6 +4,7 @@ import { partyserverMiddleware } from "hono-party";
 import { cors } from "hono/cors";
 
 import { createDb } from "./db";
+import { agentChatHonoRoutes } from "./domains/agent/chat-routes";
 import { authRoutes, createAuth } from "./domains/auth/routes";
 import { fileHonoRoutes } from "./domains/files/routes";
 import { pageHonoRoutes } from "./domains/pages/og-image-routes";
@@ -99,6 +100,7 @@ app.use(
 // ---------------------------------------------------------------------------
 
 app.route("/api/auth", authRoutes);
+app.route("/agent", agentChatHonoRoutes);
 app.route("/files", fileHonoRoutes);
 app.route("/favicons", faviconHonoRoutes);
 app.route("/pages", pageHonoRoutes);

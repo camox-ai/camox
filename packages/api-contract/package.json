@@ -31,6 +31,9 @@
   "scripts": {
     "build": "node build.mjs"
   },
+  "dependencies": {
+    "@tanstack/ai": "0.9.1"
+  },
   "devDependencies": {
     "dts-bundle-generator": "^9.5.1",
     "esbuild": "^0.25.12"
