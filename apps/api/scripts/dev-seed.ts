@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { createClient } from "@libsql/client";
 import { betterAuth } from "better-auth";
@@ -31,10 +32,26 @@ import {
 // ---------------------------------------------------------------------------
 
 function getLocalD1Db(): string {
-  const d1Dir = path.resolve(".wrangler/state/v3/d1/miniflare-D1DatabaseObject");
-  if (!fs.existsSync(d1Dir)) return "";
-  const dbFiles = fs.readdirSync(d1Dir).filter((f) => f.endsWith(".sqlite"));
-  return dbFiles.length > 0 ? path.join(d1Dir, dbFiles[0]) : "";
+  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+  const packageDir = path.resolve(scriptDir, "..");
+  const candidateDirs = [
+    path.resolve(packageDir, ".wrangler/state/v3/d1/miniflare-D1DatabaseObject"),
+    path.resolve(process.cwd(), ".wrangler/state/v3/d1/miniflare-D1DatabaseObject"),
+  ];
+
+  for (const d1Dir of new Set(candidateDirs)) {
+    if (!fs.existsSync(d1Dir)) continue;
+
+    const dbFiles = fs
+      .readdirSync(d1Dir)
+      .filter((f) => f.endsWith(".sqlite") && f !== "metadata.sqlite");
+
+    if (dbFiles.length === 0) continue;
+
+    return path.join(d1Dir, dbFiles[0]);
+  }
+
+  return "";
 }
 
 // ---------------------------------------------------------------------------
