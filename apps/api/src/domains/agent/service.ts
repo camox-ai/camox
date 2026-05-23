@@ -25,7 +25,10 @@ export const listToolsInput = z.object({ projectId: z.number() });
 
 // --- Helpers ---
 
-async function buildToolContext(ctx: ServiceContext, projectId: number): Promise<ToolContext> {
+export async function buildToolContext(
+  ctx: ServiceContext,
+  projectId: number,
+): Promise<ToolContext> {
   if (!ctx.user) throw new ORPCError("UNAUTHORIZED");
   const project = await getAuthorizedProject(ctx.db, projectId, ctx.user.id);
   if (!project) throw new ORPCError("NOT_FOUND");
@@ -60,6 +63,56 @@ function findTool(tools: ToolDefinition[], name: string) {
   return tools.find((t) => t.name === name) ?? null;
 }
 
+export type ToolExecutionResponse =
+  | { ok: true; result: unknown }
+  | { ok: false; error: { code: string; message: string; details?: unknown } };
+
+export async function executeTool(params: {
+  toolCtx: ToolContext;
+  tools: ToolDefinition[];
+  name: string;
+  args: unknown;
+}): Promise<ToolExecutionResponse> {
+  const { toolCtx, tools, name, args } = params;
+  const tool = findTool(tools, name);
+  if (!tool) {
+    return {
+      ok: false,
+      error: {
+        code: "UNKNOWN_TOOL",
+        message: `Unknown tool: ${name}`,
+        details: { available: tools.map((t) => t.name) },
+      },
+    };
+  }
+
+  try {
+    const parsed = tool.inputSchema.parse(args ?? {});
+    const result = await tool.handler(parsed, toolCtx);
+
+    const mapping = TOOL_EVENT_MAP[name];
+    if (mapping && toolCtx.user && !toolCtx.telemetryDisabled) {
+      toolCtx.waitUntil(
+        trackEvent({
+          event: mapping.event,
+          distinctId: toolCtx.user.id,
+          projectId: toolCtx.projectId,
+          properties: {
+            ...mapping.getProps(parsed),
+            surface: deriveSurface(toolCtx.client),
+            client: toolCtx.client,
+            environmentName: toolCtx.environmentName,
+          },
+        }),
+      );
+    }
+
+    return { ok: true, result };
+  } catch (err) {
+    return { ok: false, error: formatToolError(err) };
+  }
+}
+
 // --- Procedures ---
 
 /**
@@ -86,41 +139,5 @@ export async function callTool(ctx: ServiceContext, rawInput: z.input<typeof cal
   const toolCtx = await buildToolContext(ctx, projectId);
 
   const tools = await resolveTools(toolProviders, toolCtx);
-  const tool = findTool(tools, name);
-  if (!tool) {
-    return {
-      ok: false as const,
-      error: {
-        code: "UNKNOWN_TOOL",
-        message: `Unknown tool: ${name}`,
-        details: { available: tools.map((t) => t.name) },
-      },
-    };
-  }
-
-  try {
-    const parsed = tool.inputSchema.parse(args ?? {});
-    const result = await tool.handler(parsed, toolCtx);
-
-    const mapping = TOOL_EVENT_MAP[name];
-    if (mapping && ctx.user && !ctx.telemetryDisabled) {
-      ctx.waitUntil(
-        trackEvent({
-          event: mapping.event,
-          distinctId: ctx.user.id,
-          projectId,
-          properties: {
-            ...mapping.getProps(parsed),
-            surface: deriveSurface(ctx.client),
-            client: ctx.client,
-            environmentName: ctx.environmentName,
-          },
-        }),
-      );
-    }
-
-    return { ok: true as const, result };
-  } catch (err) {
-    return { ok: false as const, error: formatToolError(err) };
-  }
+  return executeTool({ toolCtx, tools, name, args });
 }

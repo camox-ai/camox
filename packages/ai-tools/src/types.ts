@@ -9,12 +9,21 @@ export type ToolContext = ServiceContext & {
   projectId: number;
 };
 
+export type ToolSurface = "cli" | "agentChat";
+
+export type ToolRisk = "safe" | "requiresApproval";
+
 export type ToolDefinition = {
   name: string;
   description: string;
   inputSchema: ZodType;
   outputSchema?: ZodType;
   handler: (input: unknown, ctx: ToolContext) => Promise<unknown>;
+  meta: {
+    kind: "read" | "write";
+    risk: ToolRisk;
+    surfaces: ToolSurface[];
+  };
 };
 
 export type ToolProvider = (ctx: ToolContext) => ToolDefinition[] | Promise<ToolDefinition[]>;

@@ -42,6 +42,7 @@ export const environmentsProvider: ToolProvider = (ctx): ToolDefinition[] => [
       "Returns `{ push: { compatible, reasons }, pull: { compatible, reasons } }`. " +
       "Each `reasons` array lists the block-definition / layout divergences blocking that direction (empty when compatible).",
     inputSchema: checkInput,
+    meta: { kind: "read", risk: "safe", surfaces: ["cli"] },
     handler: async () => {
       const push = resolvePair(ctx, "push");
       const pull = resolvePair(ctx, "pull");
@@ -60,6 +61,7 @@ export const environmentsProvider: ToolProvider = (ctx): ToolDefinition[] => [
       "Destructive — every page, block, and file in the target environment is replaced. " +
       "Fails with FAILED_PRECONDITION (and a `data.reasons` array) when the environments are incompatible; call checkEnvironmentCompatibility first if you want to inspect divergences without attempting the copy.",
     inputSchema: replicateInput,
+    meta: { kind: "write", risk: "requiresApproval", surfaces: ["cli"] },
     handler: async (input) => {
       const { direction } = replicateInput.parse(input);
       const pair = resolvePair(ctx, direction);
