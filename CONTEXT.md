@@ -20,6 +20,10 @@ _Avoid_: Library, framework package
 The Camox editing UI for visually managing pages, blocks, content, metadata, assets, and publishing workflows.
 _Avoid_: Admin, dashboard, editor
 
+**Agent Chat**:
+A Camox Studio surface where a user describes desired page, layout, or content changes and an agent uses Camox tools to inspect and modify the current Project Environment.
+_Avoid_: AI editor, in-app interface
+
 **Dashboard**:
 The Camox web app for account-level and project-level workflows outside the in-site editing experience.
 _Avoid_: Studio, editor
