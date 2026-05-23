@@ -20,12 +20,33 @@ import type { ServiceContext } from "../_shared/service-context";
 import { getPage } from "../pages/service";
 import { buildToolContext, executeTool } from "./service";
 
-const agentChatRequestInput = z.object({
-  messages: z.array(z.unknown()),
+const agentChatContextInput = z.object({
   projectId: z.number(),
   currentPath: z.string(),
   source: z.enum(["draft", "live"]),
 });
+
+const agentChatRequestInput = z.object({
+  messages: z.array(z.unknown()),
+  projectId: z.number().optional(),
+  currentPath: z.string().optional(),
+  source: z.enum(["draft", "live"]).optional(),
+  forwardedProps: z.record(z.string(), z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
+});
+
+function parseAgentChatRequest(raw: unknown): AgentChatRequest {
+  const parsed = agentChatRequestInput.parse(raw);
+  const context = agentChatContextInput.parse({
+    ...parsed.data,
+    ...parsed.forwardedProps,
+    projectId: parsed.projectId ?? parsed.forwardedProps?.projectId ?? parsed.data?.projectId,
+    currentPath:
+      parsed.currentPath ?? parsed.forwardedProps?.currentPath ?? parsed.data?.currentPath,
+    source: parsed.source ?? parsed.forwardedProps?.source ?? parsed.data?.source,
+  });
+  return { ...context, messages: parsed.messages as AgentChatRequest["messages"] };
+}
 
 function serviceContextFromHono(c: Context<AppEnv>): ServiceContext {
   return {
@@ -90,7 +111,7 @@ export const agentChatHonoRoutes = new Hono<AppEnv>().post("/chat", async (c) =>
   if (!c.var.user) return c.text("Unauthorized", 401);
 
   const raw = await c.req.json();
-  const input = agentChatRequestInput.parse(raw) as AgentChatRequest;
+  const input = parseAgentChatRequest(raw);
   const ctx = serviceContextFromHono(c);
   const toolCtx = await buildToolContext(ctx, input.projectId);
   const resolvedTools = await resolveTools(toolProviders, toolCtx);

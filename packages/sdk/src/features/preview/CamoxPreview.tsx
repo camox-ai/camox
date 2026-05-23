@@ -48,11 +48,11 @@ import {
 import { trackClientEvent } from "@/lib/telemetry-client";
 import { cn } from "@/lib/utils";
 
+import { AgentChatSheet } from "../agent-chat/components/AgentChatSheet";
 import { type Action, actionsStore } from "../provider/actionsStore";
 import { useCamoxApp } from "../provider/components/CamoxAppContext";
 import { Navbar } from "../studio/components/Navbar";
 import { AddBlockSheet } from "./components/AddBlockSheet";
-import { AgentChatSheet } from "./components/AgentChatSheet";
 import { BlockErrorBoundary } from "./components/BlockErrorBoundary";
 import { CreatePageModal } from "./components/CreatePageModal";
 import { DraftSwitchDialog } from "./components/DraftSwitchDialog";
