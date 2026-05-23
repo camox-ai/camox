@@ -19,6 +19,7 @@ export const blockTypesProvider: ToolProvider = (ctx): ToolDefinition[] => [
       "to fetch the JSON Schemas needed to construct arguments for createBlock / editBlock. " +
       "Block types whose `layoutOnly` is true can only appear inside layouts and are not valid for createBlock on a page.",
     inputSchema: listBlockTypesToolInput,
+    meta: { kind: "read", risk: "safe", surfaces: ["cli", "agentChat"] },
     handler: async () => {
       const defs = await listBlockDefinitions(ctx, { projectId: ctx.projectId });
       return defs.map((d) => ({
@@ -37,6 +38,7 @@ export const blockTypesProvider: ToolProvider = (ctx): ToolDefinition[] => [
       "this right before calling createBlock or editBlock to know what `content` and `settings` " +
       "arguments to construct. Unknown ids are reported in `notFound`.",
     inputSchema: describeBlockTypesToolInput,
+    meta: { kind: "read", risk: "safe", surfaces: ["cli", "agentChat"] },
     handler: async (input) => {
       const { types } = describeBlockTypesToolInput.parse(input);
       const defs = await listBlockDefinitions(ctx, { projectId: ctx.projectId });
