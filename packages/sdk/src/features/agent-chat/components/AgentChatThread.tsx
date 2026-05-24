@@ -6,11 +6,11 @@ import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
 import { Bot, Info, Send, User } from "lucide-react";
 import * as React from "react";
 
-import { getApiUrl, getEnvironmentName } from "@/lib/api-client";
+import { getApiClient, getApiUrl, getEnvironmentName } from "@/lib/api-client";
 import { getAuthCookieHeader } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-import { AgentToolCallCard, type ToolCallPart } from "./AgentToolCallCard";
+import { AgentToolCallCard, type ToolCallPart, type ToolResultPart } from "./AgentToolCallCard";
 
 declare const __CAMOX_TELEMETRY_DISABLED__: boolean;
 
@@ -23,10 +23,23 @@ function getTextPartContent(part: { type: string; content?: unknown }) {
   return typeof part.content === "string" ? part.content : null;
 }
 
+function findToolResult(parts: readonly { type: string }[], toolCallId: string) {
+  return parts.find(
+    (part): part is ToolResultPart =>
+      part.type === "tool-result" &&
+      "toolCallId" in part &&
+      (part as { toolCallId: unknown }).toolCallId === toolCallId,
+  );
+}
+
 const MessageBubble = ({
   message,
+  source,
+  onApprovalResponse,
 }: {
   message: ReturnType<typeof useChat>["messages"][number];
+  source: AgentChatRequestContext["source"];
+  onApprovalResponse: (part: ToolCallPart, approved: boolean) => void;
 }) => {
   const isUser = message.role === "user";
 
@@ -54,7 +67,20 @@ const MessageBubble = ({
               );
             }
             if (part.type === "tool-call") {
-              return <AgentToolCallCard key={part.id} part={part as ToolCallPart} />;
+              return (
+                <AgentToolCallCard
+                  key={part.id}
+                  part={part as ToolCallPart}
+                  result={findToolResult(message.parts, part.id)}
+                  requiresApprovalFallback={
+                    source === "draft" &&
+                    (part as ToolCallPart).metadata?.risk === "requiresApproval"
+                  }
+                  onApprovalResponse={(approved) =>
+                    onApprovalResponse(part as ToolCallPart, approved)
+                  }
+                />
+              );
             }
             if (part.type === "tool-result") {
               return null;
@@ -96,14 +122,75 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
     [currentPath, projectId, source],
   );
 
-  const { messages, sendMessage, isLoading, error } = useChat({
-    connection,
-    body: { projectId, currentPath, source },
-  });
+  const { messages, sendMessage, isLoading, error, addToolApprovalResponse, addToolResult } =
+    useChat({
+      connection,
+      body: { projectId, currentPath, source },
+    });
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end" });
   }, [messages]);
+
+  const handleApprovalResponse = async (part: ToolCallPart, approved: boolean) => {
+    const errorText = "User declined tool execution";
+    if (!approved) {
+      if (part.approval) await addToolApprovalResponse({ id: part.approval.id, approved: false });
+      await addToolResult({
+        toolCallId: part.id,
+        tool: part.name,
+        output: { error: errorText },
+        state: "output-error",
+        errorText,
+      });
+      return;
+    }
+
+    if (source !== "draft") {
+      await addToolResult({
+        toolCallId: part.id,
+        tool: part.name,
+        output: { error: "This tool cannot be approved from the current source." },
+        state: "output-error",
+        errorText: "This tool cannot be approved from the current source.",
+      });
+      return;
+    }
+
+    let args: unknown = {};
+    try {
+      args = part.input ?? (part.arguments ? JSON.parse(part.arguments) : {});
+    } catch {
+      await addToolResult({
+        toolCallId: part.id,
+        tool: part.name,
+        output: { error: "Could not parse tool arguments." },
+        state: "output-error",
+        errorText: "Could not parse tool arguments.",
+      });
+      return;
+    }
+
+    const response = await getApiClient().agent.callTool({
+      projectId,
+      name: part.name,
+      arguments: args,
+    });
+
+    if (response.ok) {
+      if (part.approval) await addToolApprovalResponse({ id: part.approval.id, approved: true });
+      await addToolResult({ toolCallId: part.id, tool: part.name, output: response.result });
+      return;
+    }
+
+    await addToolResult({
+      toolCallId: part.id,
+      tool: part.name,
+      output: response.error,
+      state: "output-error",
+      errorText: response.error.message,
+    });
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -126,7 +213,12 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
           </Alert>
         )}
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+            source={source}
+            onApprovalResponse={(part, approved) => void handleApprovalResponse(part, approved)}
+          />
         ))}
         {error && (
           <Alert variant="destructive">
