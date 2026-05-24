@@ -1281,9 +1281,10 @@ export async function deleteBlock(ctx: ServiceContext, rawInput: z.input<typeof 
     projectRoomNamespace: ctx.env.ProjectRoom,
     projectId: access.projectId,
     targets: [
-      ...(access.pagePath
-        ? [queryKeys.pages.getByPath(access.pagePath, "draft")]
-        : [queryKeys.pages.getByPathAll]),
+      // Deleting a block restructures the page. Invalidate all active page path
+      // reads so Studio preview updates even when the browser path and stored
+      // fullPath differ in normalization (for example trailing-slash redirects).
+      queryKeys.pages.getByPathAll,
       queryKeys.pages.list,
       ...(access.block.pageId ? [queryKeys.blocks.getPageMarkdown(access.block.pageId)] : []),
       queryKeys.blocks.getUsageCounts,

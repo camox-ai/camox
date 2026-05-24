@@ -157,7 +157,7 @@ export const blocksProvider: ToolProvider = (ctx): ToolDefinition[] => [
     name: "deleteBlock",
     description: "Delete a block by id.",
     inputSchema: deleteBlockInput,
-    meta: { kind: "write", risk: "requiresApproval", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "write", risk: "safe", surfaces: ["cli", "agentChat"] },
     handler: (input) => deleteBlock(ctx, deleteBlockInput.parse(input)),
   },
 ];

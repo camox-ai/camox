@@ -216,6 +216,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
             "camox > @shikijs/themes/github-light",
             "camox > @sinclair/typebox",
             "camox > @takumi-rs/image-response",
+            "camox > @tanstack/ai-react",
             "camox > @tanstack/react-form",
             "camox > @xstate/store-react",
             "camox > better-auth > @better-auth/core/env",
