@@ -3,7 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from "@camox/ui/alert";
 import { Button } from "@camox/ui/button";
 import { Textarea } from "@camox/ui/textarea";
 import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
-import { Bot, Info, Send, User } from "lucide-react";
+import { Info, ArrowUp } from "lucide-react";
 import * as React from "react";
 import { Streamdown, type Components } from "streamdown";
 
@@ -68,16 +68,13 @@ const MessageBubble = ({
 
   return (
     <div className={cn("flex gap-3", isUser && "justify-end")}>
-      {!isUser && (
-        <div className="bg-primary text-primary-foreground mt-1 flex size-7 shrink-0 items-center justify-center rounded-full">
-          <Bot className="size-4" />
-        </div>
-      )}
-      <div className={cn("max-w-[85%] space-y-1", isUser && "order-first")}>
+      <div className={cn("space-y-1", isUser ? "max-w-[85%]" : "max-w-full")}>
         <div
           className={cn(
-            "rounded-lg px-3 py-2 text-sm",
-            isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground",
+            "text-sm",
+            isUser
+              ? "bg-primary text-primary-foreground rounded-lg px-3 py-2"
+              : "text-foreground space-y-2",
           )}
         >
           {message.parts.map((part, index) => {
@@ -118,11 +115,6 @@ const MessageBubble = ({
           })}
         </div>
       </div>
-      {isUser && (
-        <div className="bg-muted text-muted-foreground mt-1 flex size-7 shrink-0 items-center justify-center rounded-full">
-          <User className="size-4" />
-        </div>
-      )}
     </div>
   );
 };
@@ -235,9 +227,9 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
         {messages.length === 0 && (
           <Alert>
             <Info className="size-4" />
-            <AlertTitle>Ask Agent Chat to inspect this page</AlertTitle>
+            <AlertTitle>Camox is most powerful in your coding agent</AlertTitle>
             <AlertDescription>
-              Try “What blocks are on this page?” or “Summarize the current draft.”
+              Use Claude Code or Codex to manage your site with both code and content access.
             </AlertDescription>
           </Alert>
         )}
@@ -258,7 +250,7 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
         <div ref={messagesEndRef} />
       </div>
       <form onSubmit={handleSubmit} className="border-border border-t p-4">
-        <div className="flex gap-2">
+        <div className="border-input focus-within:border-ring focus-within:ring-ring/50 flex items-center gap-2 rounded-2xl border px-3 py-2 transition-colors focus-within:ring-[3px]">
           <Textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
@@ -272,10 +264,16 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
             placeholder={
               disabled ? "Switch to draft to chat" : "Ask for changes or inspect this page…"
             }
-            className="max-h-32 min-h-10 resize-none"
+            className="max-h-32 min-h-10 resize-none border-0 bg-inherit! px-0 py-2 shadow-none focus-visible:ring-0"
           />
-          <Button type="submit" disabled={disabled || isLoading || !input.trim()} size="icon">
-            <Send className="size-4" />
+          <Button
+            type="submit"
+            disabled={disabled || isLoading || !input.trim()}
+            size="icon"
+            className="shrink-0"
+          >
+            <span className="sr-only">Send message</span>
+            <ArrowUp className="size-4" />
           </Button>
         </div>
       </form>
