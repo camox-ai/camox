@@ -2,7 +2,7 @@ import type { AgentChatRequestContext } from "@camox/api-contract";
 import { Alert, AlertDescription, AlertTitle } from "@camox/ui/alert";
 import { Button } from "@camox/ui/button";
 import { Textarea } from "@camox/ui/textarea";
-import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
+import { fetchServerSentEvents, useChat, type UseChatReturn } from "@tanstack/ai-react";
 import { Info, ArrowUp } from "lucide-react";
 import * as React from "react";
 import { Streamdown, type Components } from "streamdown";
@@ -11,7 +11,13 @@ import { getApiClient, getApiUrl, getEnvironmentName } from "@/lib/api-client";
 import { getAuthCookieHeader } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-import { AgentToolCallCard, type ToolCallPart, type ToolResultPart } from "./AgentToolCallCard";
+import { previewStore } from "../../preview/previewStore";
+import {
+  AgentToolCallCard,
+  type AgentChatMessagePart,
+  type ToolCallPart,
+  type ToolResultPart,
+} from "./AgentToolCallCard";
 
 declare const __CAMOX_TELEMETRY_DISABLED__: boolean;
 
@@ -19,18 +25,39 @@ type AgentChatThreadProps = AgentChatRequestContext & {
   disabled?: boolean;
 };
 
-function getTextPartContent(part: { type: string; content?: unknown }) {
+type AgentChatMessage = UseChatReturn["messages"][number];
+
+function getTextPartContent(part: AgentChatMessagePart) {
   if (part.type !== "text") return null;
-  return typeof part.content === "string" ? part.content : null;
+  return part.content;
 }
 
-function findToolResult(parts: readonly { type: string }[], toolCallId: string) {
+function findToolResult(parts: readonly AgentChatMessagePart[], toolCallId: string) {
   return parts.find(
-    (part): part is ToolResultPart =>
-      part.type === "tool-result" &&
-      "toolCallId" in part &&
-      (part as { toolCallId: unknown }).toolCallId === toolCallId,
+    (part): part is ToolResultPart => part.type === "tool-result" && part.toolCallId === toolCallId,
   );
+}
+
+function getToolResultOutput(result: ToolResultPart) {
+  try {
+    return JSON.parse(result.content) as unknown;
+  } catch {
+    return result.content;
+  }
+}
+
+function getSelectedBlockIdFromToolOutput(params: {
+  toolName: string | undefined;
+  output: unknown;
+  isError?: boolean;
+}) {
+  const { toolName, output, isError } = params;
+  if (toolName !== "createBlock" && toolName !== "editBlock") return null;
+  if (isError) return null;
+  if (!output || typeof output !== "object") return null;
+
+  const id = (output as { id?: unknown }).id;
+  return typeof id === "number" ? id : null;
 }
 
 const markdownComponents = {
@@ -57,11 +84,9 @@ const markdownComponents = {
 
 const MessageBubble = ({
   message,
-  source,
   onApprovalResponse,
 }: {
-  message: ReturnType<typeof useChat>["messages"][number];
-  source: AgentChatRequestContext["source"];
+  message: AgentChatMessage;
   onApprovalResponse: (part: ToolCallPart, approved: boolean) => void;
 }) => {
   const isUser = message.role === "user";
@@ -83,7 +108,7 @@ const MessageBubble = ({
               return (
                 <Streamdown
                   key={index}
-                  className="space-y-2 break-words"
+                  className="wrap-break-words space-y-2"
                   components={markdownComponents}
                   controls={false}
                   isAnimating={!isUser}
@@ -96,15 +121,9 @@ const MessageBubble = ({
               return (
                 <AgentToolCallCard
                   key={part.id}
-                  part={part as ToolCallPart}
+                  part={part}
                   result={findToolResult(message.parts, part.id)}
-                  requiresApprovalFallback={
-                    source === "draft" &&
-                    (part as ToolCallPart).metadata?.risk === "requiresApproval"
-                  }
-                  onApprovalResponse={(approved) =>
-                    onApprovalResponse(part as ToolCallPart, approved)
-                  }
+                  onApprovalResponse={(approved) => onApprovalResponse(part, approved)}
                 />
               );
             }
@@ -122,6 +141,7 @@ const MessageBubble = ({
 const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChatThreadProps) => {
   const [input, setInput] = React.useState("");
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
+  const selectedToolResultIdsRef = React.useRef(new Set<string>());
 
   const connection = React.useMemo(
     () =>
@@ -151,6 +171,48 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end" });
+  }, [messages]);
+
+  React.useEffect(() => {
+    for (const message of messages) {
+      const toolNameByCallId = new Map<string, string>();
+      for (const part of message.parts) {
+        if (part.type !== "tool-call") continue;
+        toolNameByCallId.set(part.id, part.name);
+      }
+
+      for (const part of message.parts) {
+        if (part.type === "tool-call") {
+          if (part.output === undefined) continue;
+          if (selectedToolResultIdsRef.current.has(part.id)) continue;
+
+          const blockId = getSelectedBlockIdFromToolOutput({
+            toolName: part.name,
+            output: part.output,
+          });
+          if (!blockId) continue;
+
+          selectedToolResultIdsRef.current.add(part.id);
+          previewStore.send({ type: "setFocusedBlock", blockId });
+          continue;
+        }
+
+        if (part.type !== "tool-result") continue;
+
+        const toolName = toolNameByCallId.get(part.toolCallId);
+        if (selectedToolResultIdsRef.current.has(part.toolCallId)) continue;
+
+        const blockId = getSelectedBlockIdFromToolOutput({
+          toolName,
+          output: getToolResultOutput(part),
+          isError: part.state === "error" || !!part.error,
+        });
+        if (!blockId) continue;
+
+        selectedToolResultIdsRef.current.add(part.toolCallId);
+        previewStore.send({ type: "setFocusedBlock", blockId });
+      }
+    }
   }, [messages]);
 
   const handleApprovalResponse = async (part: ToolCallPart, approved: boolean) => {
@@ -237,7 +299,6 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
           <MessageBubble
             key={message.id}
             message={message}
-            source={source}
             onApprovalResponse={(part, approved) => void handleApprovalResponse(part, approved)}
           />
         ))}
