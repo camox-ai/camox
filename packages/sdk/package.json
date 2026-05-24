@@ -136,6 +136,7 @@
     "react-dom": "^19.2.6",
     "react-og-preview": "^0.2.0",
     "shiki": "^4.1.0",
+    "streamdown": "^2.5.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

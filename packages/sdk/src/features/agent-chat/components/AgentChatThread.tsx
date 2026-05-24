@@ -5,6 +5,7 @@ import { Textarea } from "@camox/ui/textarea";
 import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
 import { Bot, Info, Send, User } from "lucide-react";
 import * as React from "react";
+import { Streamdown, type Components } from "streamdown";
 
 import { getApiClient, getApiUrl, getEnvironmentName } from "@/lib/api-client";
 import { getAuthCookieHeader } from "@/lib/auth";
@@ -31,6 +32,28 @@ function findToolResult(parts: readonly { type: string }[], toolCallId: string) 
       (part as { toolCallId: unknown }).toolCallId === toolCallId,
   );
 }
+
+const markdownComponents = {
+  p: ({ children }) => <p className="leading-relaxed">{children}</p>,
+  a: ({ children, ...props }) => (
+    <a {...props} className="break-words underline underline-offset-2">
+      {children}
+    </a>
+  ),
+  ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
+  ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
+  blockquote: ({ children }) => (
+    <blockquote className="my-2 border-l-2 border-current/30 pl-3">{children}</blockquote>
+  ),
+  code: ({ children }) => (
+    <code className="bg-background/60 rounded px-1 py-0.5 font-mono text-[0.9em]">{children}</code>
+  ),
+  pre: ({ children }) => (
+    <pre className="bg-background/60 my-2 max-w-full overflow-x-auto rounded-md p-3 text-xs">
+      {children}
+    </pre>
+  ),
+} satisfies Components;
 
 const MessageBubble = ({
   message,
@@ -61,9 +84,15 @@ const MessageBubble = ({
             const text = getTextPartContent(part);
             if (text != null) {
               return (
-                <p key={index} className="whitespace-pre-wrap">
+                <Streamdown
+                  key={index}
+                  className="space-y-2 break-words"
+                  components={markdownComponents}
+                  controls={false}
+                  isAnimating={!isUser}
+                >
                   {text}
-                </p>
+                </Streamdown>
               );
             }
             if (part.type === "tool-call") {
