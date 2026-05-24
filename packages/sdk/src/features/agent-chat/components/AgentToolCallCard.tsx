@@ -1,8 +1,5 @@
-import { Badge } from "@camox/ui/badge";
 import { Button } from "@camox/ui/button";
 import { CheckCircle2, Loader2, Wrench, XCircle } from "lucide-react";
-
-import { cn } from "@/lib/utils";
 
 import { getToolLabel } from "../agent-chat-labels";
 
@@ -53,42 +50,34 @@ const AgentToolCallCard = ({
   const label = getToolLabel(part.name);
 
   return (
-    <div className="bg-muted/50 text-muted-foreground my-2 rounded-md border p-2 text-xs">
-      <div className="flex items-center gap-2">
+    <div className="text-muted-foreground my-2 flex flex-wrap items-center gap-2 text-xs">
+      <span className="flex items-center gap-2">
         {status === "running" && <Loader2 className="size-3 animate-spin" />}
-        {status === "complete" && <CheckCircle2 className="size-3 text-green-600" />}
-        {status === "approval" && <Wrench className="size-3 text-amber-600" />}
-        {status === "denied" && <XCircle className="size-3 text-red-600" />}
-        {status === "error" && <XCircle className="size-3 text-red-600" />}
-        <span className="text-foreground font-medium">
-          {status === "running" ? `Running ${label}…` : label}
-        </span>
-        <Badge
-          variant="secondary"
-          size="sm"
-          className={cn("ml-auto font-mono", status === "approval" && "text-amber-700")}
-        >
-          {part.name}
-        </Badge>
-      </div>
+        {status === "complete" && <CheckCircle2 className="size-3" />}
+        {status === "approval" && <Wrench className="size-3" />}
+        {status === "denied" && <XCircle className="size-3" />}
+        {status === "error" && <XCircle className="size-3" />}
+        <span>{label}</span>
+      </span>
       {status === "approval" && (
-        <div className="mt-2 flex items-center gap-2">
-          <Button type="button" size="sm" onClick={() => onApprovalResponse?.(true)}>
+        <span className="flex items-center gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => onApprovalResponse?.(true)}
+          >
             Approve
           </Button>
           <Button
             type="button"
             size="sm"
-            variant="outline"
+            variant="ghost"
             onClick={() => onApprovalResponse?.(false)}
           >
             Deny
           </Button>
-        </div>
-      )}
-      {status === "denied" && <div className="mt-2 text-red-600">Denied</div>}
-      {status === "error" && (
-        <div className="mt-2 text-red-600">{result?.error ?? "Tool call failed"}</div>
+        </span>
       )}
     </div>
   );

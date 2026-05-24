@@ -33,10 +33,6 @@ const AgentChatSheet = () => {
         <SheetParts.SheetDescription>
           Ask Camox to inspect or update the current page.
         </SheetParts.SheetDescription>
-        <div className="text-muted-foreground mt-2 text-xs">
-          Target: <span className="text-foreground font-mono">{pathname}</span> · Source:{" "}
-          {previewSource}
-        </div>
       </SheetParts.SheetHeader>
       <div className="flex min-h-0 flex-1 flex-col">
         {isLiveSource && (
