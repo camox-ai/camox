@@ -21,7 +21,7 @@ const PageNicknameField = ({ value, onChange, autoFocus }: PageNicknameFieldProp
       autoFocus={autoFocus}
     />
     <p className="text-muted-foreground text-xs">
-      A short internal name used in Camox Studio. It does not affect the public page or SEO.
+      A short internal name used in Camox Studio. Does not affect SEO.
     </p>
   </div>
 );

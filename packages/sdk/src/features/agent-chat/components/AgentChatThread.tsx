@@ -140,6 +140,7 @@ const MessageBubble = ({
 
 const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChatThreadProps) => {
   const [input, setInput] = React.useState("");
+  const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
   const selectedToolResultIdsRef = React.useRef(new Set<string>());
 
@@ -281,6 +282,7 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
     if (!message || isLoading || disabled) return;
     setInput("");
     void sendMessage(message);
+    requestAnimationFrame(() => inputRef.current?.focus());
   };
 
   return (
@@ -311,8 +313,9 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
         <div ref={messagesEndRef} />
       </div>
       <form onSubmit={handleSubmit} className="border-border border-t p-4">
-        <div className="border-input focus-within:border-ring focus-within:ring-ring/50 flex items-center gap-2 rounded-2xl border px-3 py-2 transition-colors focus-within:ring-[3px]">
+        <div className="border-input focus-within:border-ring focus-within:ring-ring/50 flex items-center gap-2 rounded-2xl border px-3 transition-colors focus-within:ring-[3px]">
           <Textarea
+            ref={inputRef}
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {
@@ -321,11 +324,11 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
                 event.currentTarget.form?.requestSubmit();
               }
             }}
-            disabled={disabled || isLoading}
+            disabled={disabled}
             placeholder={
               disabled ? "Switch to draft to chat" : "Ask for changes or inspect this page…"
             }
-            className="max-h-32 min-h-10 resize-none border-0 bg-inherit! px-0 py-2 shadow-none focus-visible:ring-0"
+            className="max-h-32 min-h-10 resize-none border-0 bg-inherit! px-0 py-4 leading-6 shadow-none focus-visible:ring-0"
           />
           <Button
             type="submit"
