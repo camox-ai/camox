@@ -4,7 +4,7 @@ import { Button } from "@camox/ui/button";
 import { Textarea } from "@camox/ui/textarea";
 import { fetchServerSentEvents, useChat, type UseChatReturn } from "@tanstack/ai-react";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowUp, Info, Square } from "lucide-react";
+import { ArrowUp, Square } from "lucide-react";
 import * as React from "react";
 import { Streamdown, type Components } from "streamdown";
 import { z } from "zod";
@@ -25,6 +25,7 @@ declare const __CAMOX_TELEMETRY_DISABLED__: boolean;
 
 type AgentChatThreadProps = AgentChatRequestContext & {
   disabled?: boolean;
+  focusKey?: number;
 };
 
 type AgentChatMessage = UseChatReturn["messages"][number];
@@ -171,7 +172,13 @@ const MessageBubble = ({
   );
 };
 
-const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChatThreadProps) => {
+const AgentChatThread = ({
+  projectId,
+  currentPath,
+  source,
+  disabled,
+  focusKey = 0,
+}: AgentChatThreadProps) => {
   const [input, setInput] = React.useState("");
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
@@ -204,6 +211,15 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
       connection,
       body: { projectId, currentPath, source },
     });
+
+  React.useEffect(() => {
+    if (focusKey === 0) return;
+    const frame = requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [focusKey]);
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end" });
@@ -354,15 +370,6 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-        {messages.length === 0 && (
-          <Alert>
-            <Info className="size-4" />
-            <AlertTitle>Camox is most powerful in your coding agent</AlertTitle>
-            <AlertDescription>
-              Use Claude Code or Codex to manage your site with both code and content access.
-            </AlertDescription>
-          </Alert>
-        )}
         {messages.map((message) => (
           <MessageBubble
             key={message.id}

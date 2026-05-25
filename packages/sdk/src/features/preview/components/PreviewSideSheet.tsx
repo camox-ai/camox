@@ -14,6 +14,7 @@ interface PreviewSideSheetProps {
   children: React.ReactNode;
   className?: string;
   keepMounted?: boolean;
+  showCloseButton?: boolean;
 }
 
 const PreviewSideSheet = ({
@@ -23,6 +24,7 @@ const PreviewSideSheet = ({
   children,
   className,
   keepMounted,
+  showCloseButton,
 }: PreviewSideSheetProps) => {
   return (
     <Sheet.Sheet open={open} onOpenChange={onOpenChange}>
@@ -33,6 +35,7 @@ const PreviewSideSheet = ({
         style={{ minWidth: SHEET_WIDTH }}
         initialFocus={initialFocus}
         keepMounted={keepMounted}
+        showCloseButton={showCloseButton}
       >
         {children}
       </Sheet.SheetContent>
