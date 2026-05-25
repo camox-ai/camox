@@ -13,6 +13,7 @@ interface PreviewSideSheetProps {
   initialFocus?: InitialFocus;
   children: React.ReactNode;
   className?: string;
+  keepMounted?: boolean;
 }
 
 const PreviewSideSheet = ({
@@ -21,6 +22,7 @@ const PreviewSideSheet = ({
   initialFocus,
   children,
   className,
+  keepMounted,
 }: PreviewSideSheetProps) => {
   return (
     <Sheet.Sheet open={open} onOpenChange={onOpenChange}>
@@ -30,6 +32,7 @@ const PreviewSideSheet = ({
         showOverlay={false}
         style={{ minWidth: SHEET_WIDTH }}
         initialFocus={initialFocus}
+        keepMounted={keepMounted}
       >
         {children}
       </Sheet.SheetContent>

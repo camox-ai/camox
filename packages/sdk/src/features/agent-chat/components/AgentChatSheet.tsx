@@ -27,7 +27,7 @@ const AgentChatSheet = () => {
   };
 
   return (
-    <PreviewSideSheet open={isOpen} onOpenChange={handleOpenChange}>
+    <PreviewSideSheet open={isOpen} onOpenChange={handleOpenChange} keepMounted>
       <SheetParts.SheetHeader>
         <SheetParts.SheetTitle>Agent Chat</SheetParts.SheetTitle>
         <SheetParts.SheetDescription>
