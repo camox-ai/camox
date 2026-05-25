@@ -4,7 +4,7 @@ import { Button } from "@camox/ui/button";
 import { Textarea } from "@camox/ui/textarea";
 import { fetchServerSentEvents, useChat, type UseChatReturn } from "@tanstack/ai-react";
 import { useNavigate } from "@tanstack/react-router";
-import { Info, ArrowUp } from "lucide-react";
+import { ArrowUp, Info, Square } from "lucide-react";
 import * as React from "react";
 import { Streamdown, type Components } from "streamdown";
 import { z } from "zod";
@@ -199,7 +199,7 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
     [currentPath, projectId, source],
   );
 
-  const { messages, sendMessage, isLoading, error, addToolApprovalResponse, addToolResult } =
+  const { messages, sendMessage, isLoading, error, stop, addToolApprovalResponse, addToolResult } =
     useChat({
       connection,
       body: { projectId, currentPath, source },
@@ -396,15 +396,27 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
             }
             className="max-h-32 min-h-10 resize-none border-0 bg-inherit! px-0 py-4 leading-6 shadow-none focus-visible:ring-0"
           />
-          <Button
-            type="submit"
-            disabled={disabled || isLoading || !input.trim()}
-            size="icon"
-            className="shrink-0"
-          >
-            <span className="sr-only">Send message</span>
-            <ArrowUp className="size-4" />
-          </Button>
+          {isLoading ? (
+            <Button
+              type="button"
+              size="icon"
+              className="shrink-0"
+              aria-label="Stop response"
+              onClick={stop}
+            >
+              <Square className="size-4 fill-current" />
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              disabled={disabled || !input.trim()}
+              size="icon"
+              className="shrink-0"
+            >
+              <span className="sr-only">Send message</span>
+              <ArrowUp className="size-4" />
+            </Button>
+          )}
         </div>
       </form>
     </div>
