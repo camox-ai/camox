@@ -3,9 +3,11 @@ import { Alert, AlertDescription, AlertTitle } from "@camox/ui/alert";
 import { Button } from "@camox/ui/button";
 import { Textarea } from "@camox/ui/textarea";
 import { fetchServerSentEvents, useChat, type UseChatReturn } from "@tanstack/ai-react";
+import { useNavigate } from "@tanstack/react-router";
 import { Info, ArrowUp } from "lucide-react";
 import * as React from "react";
 import { Streamdown, type Components } from "streamdown";
+import { z } from "zod";
 
 import { getApiClient, getApiUrl, getEnvironmentName } from "@/lib/api-client";
 import { getAuthCookieHeader } from "@/lib/auth";
@@ -27,6 +29,15 @@ type AgentChatThreadProps = AgentChatRequestContext & {
 
 type AgentChatMessage = UseChatReturn["messages"][number];
 
+const absolutePathSchema = z.string().refine((value) => value.startsWith("/"));
+const blockToolOutputSchema = z.object({ id: z.number() }).passthrough();
+const createdPagePathOutputSchema = z.object({ fullPath: absolutePathSchema }).passthrough();
+const createdPageNestedOutputSchema = z
+  .object({
+    page: z.object({ fullPath: absolutePathSchema }).passthrough(),
+  })
+  .passthrough();
+
 function getTextPartContent(part: AgentChatMessagePart) {
   if (part.type !== "text") return null;
   return part.content;
@@ -39,10 +50,16 @@ function findToolResult(parts: readonly AgentChatMessagePart[], toolCallId: stri
 }
 
 function getToolResultOutput(result: ToolResultPart) {
+  return parseToolOutput(result.content);
+}
+
+function parseToolOutput(output: unknown) {
+  if (typeof output !== "string") return output;
+
   try {
-    return JSON.parse(result.content) as unknown;
+    return JSON.parse(output) as unknown;
   } catch {
-    return result.content;
+    return output;
   }
 }
 
@@ -50,14 +67,30 @@ function getSelectedBlockIdFromToolOutput(params: {
   toolName: string | undefined;
   output: unknown;
   isError?: boolean;
-}) {
+}): number | null {
   const { toolName, output, isError } = params;
   if (toolName !== "createBlock" && toolName !== "editBlock") return null;
   if (isError) return null;
-  if (!output || typeof output !== "object") return null;
 
-  const id = (output as { id?: unknown }).id;
-  return typeof id === "number" ? id : null;
+  const parsed = blockToolOutputSchema.safeParse(parseToolOutput(output));
+  return parsed.success ? parsed.data.id : null;
+}
+
+function getCreatedPagePathFromToolOutput(params: {
+  toolName: string | undefined;
+  output: unknown;
+  isError?: boolean;
+}): string | null {
+  const { toolName, isError } = params;
+  if (toolName !== "createPage") return null;
+  if (isError) return null;
+
+  const output = parseToolOutput(params.output);
+  const pathOutput = createdPagePathOutputSchema.safeParse(output);
+  if (pathOutput.success) return pathOutput.data.fullPath;
+
+  const nestedOutput = createdPageNestedOutputSchema.safeParse(output);
+  return nestedOutput.success ? nestedOutput.data.page.fullPath : null;
 }
 
 const markdownComponents = {
@@ -143,6 +176,8 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
   const selectedToolResultIdsRef = React.useRef(new Set<string>());
+  const navigatedPageToolResultIdsRef = React.useRef(new Set<string>());
+  const navigate = useNavigate();
 
   const connection = React.useMemo(
     () =>
@@ -185,6 +220,21 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
       for (const part of message.parts) {
         if (part.type === "tool-call") {
           if (part.output === undefined) continue;
+
+          if (!navigatedPageToolResultIdsRef.current.has(part.id)) {
+            const fullPath = getCreatedPagePathFromToolOutput({
+              toolName: part.name,
+              output: part.output,
+            });
+
+            if (fullPath) {
+              navigatedPageToolResultIdsRef.current.add(part.id);
+              if (fullPath !== currentPath) {
+                void navigate({ to: fullPath });
+              }
+            }
+          }
+
           if (selectedToolResultIdsRef.current.has(part.id)) continue;
 
           const blockId = getSelectedBlockIdFromToolOutput({
@@ -201,6 +251,22 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
         if (part.type !== "tool-result") continue;
 
         const toolName = toolNameByCallId.get(part.toolCallId);
+
+        if (!navigatedPageToolResultIdsRef.current.has(part.toolCallId)) {
+          const fullPath = getCreatedPagePathFromToolOutput({
+            toolName,
+            output: getToolResultOutput(part),
+            isError: part.state === "error" || !!part.error,
+          });
+
+          if (fullPath) {
+            navigatedPageToolResultIdsRef.current.add(part.toolCallId);
+            if (fullPath !== currentPath) {
+              void navigate({ to: fullPath });
+            }
+          }
+        }
+
         if (selectedToolResultIdsRef.current.has(part.toolCallId)) continue;
 
         const blockId = getSelectedBlockIdFromToolOutput({
@@ -214,7 +280,7 @@ const AgentChatThread = ({ projectId, currentPath, source, disabled }: AgentChat
         previewStore.send({ type: "setFocusedBlock", blockId });
       }
     }
-  }, [messages]);
+  }, [currentPath, messages, navigate]);
 
   const handleApprovalResponse = async (part: ToolCallPart, approved: boolean) => {
     const errorText = "User declined tool execution";
