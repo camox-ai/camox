@@ -44,6 +44,11 @@ function getTextPartContent(part: AgentChatMessagePart) {
   return part.content;
 }
 
+function hasRequiresApprovalMetadata(part: ToolCallPart) {
+  const metadata = (part as { metadata?: { risk?: unknown } }).metadata;
+  return metadata?.risk === "requiresApproval";
+}
+
 function findToolResult(parts: readonly AgentChatMessagePart[], toolCallId: string) {
   return parts.find(
     (part): part is ToolResultPart => part.type === "tool-result" && part.toolCallId === toolCallId,
@@ -118,9 +123,11 @@ const markdownComponents = {
 
 const MessageBubble = ({
   message,
+  source,
   onApprovalResponse,
 }: {
   message: AgentChatMessage;
+  source: AgentChatRequestContext["source"];
   onApprovalResponse: (part: ToolCallPart, approved: boolean) => void;
 }) => {
   const isUser = message.role === "user";
@@ -157,6 +164,7 @@ const MessageBubble = ({
                   key={part.id}
                   part={part}
                   result={findToolResult(message.parts, part.id)}
+                  requiresApprovalFallback={source === "draft" && hasRequiresApprovalMetadata(part)}
                   onApprovalResponse={(approved) => onApprovalResponse(part, approved)}
                 />
               );
@@ -374,6 +382,7 @@ const AgentChatThread = ({
           <MessageBubble
             key={message.id}
             message={message}
+            source={source}
             onApprovalResponse={(part, approved) => void handleApprovalResponse(part, approved)}
           />
         ))}

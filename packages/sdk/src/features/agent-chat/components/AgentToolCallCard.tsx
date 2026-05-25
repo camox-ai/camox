@@ -8,12 +8,17 @@ type AgentChatMessagePart = UIMessage["parts"][number];
 type ToolCallPart = Extract<AgentChatMessagePart, { type: "tool-call" }>;
 type ToolResultPart = Extract<AgentChatMessagePart, { type: "tool-result" }>;
 
-function getStatus(part: ToolCallPart, result?: ToolResultPart | null) {
+function getStatus(
+  part: ToolCallPart,
+  requiresApprovalFallback: boolean,
+  result?: ToolResultPart | null,
+) {
   if (part.approval?.approved === false) return "denied";
   if (result?.state === "error") return "error";
   if (result?.state === "complete") return "complete";
   if (part.output !== undefined) return "complete";
   if (part.approval?.needsApproval && part.approval.approved === undefined) return "approval";
+  if (requiresApprovalFallback && part.state === "input-complete") return "approval";
   if (part.state === "complete") return "complete";
   if (part.state === "approval-responded") return "complete";
   return "running";
@@ -22,13 +27,15 @@ function getStatus(part: ToolCallPart, result?: ToolResultPart | null) {
 const AgentToolCallCard = ({
   part,
   result,
+  requiresApprovalFallback,
   onApprovalResponse,
 }: {
   part: ToolCallPart;
   result?: ToolResultPart | null;
+  requiresApprovalFallback?: boolean;
   onApprovalResponse?: (approved: boolean) => void;
 }) => {
-  const status = getStatus(part, result);
+  const status = getStatus(part, requiresApprovalFallback ?? false, result);
   const label = getToolLabel(part.name);
   const needsApproval = status === "approval";
 
