@@ -30,3 +30,12 @@ if [ -f "$settings_file" ]; then
   cp "$settings_file" "$current_dir/.claude/settings.local.json"
   echo "Copied .claude/settings.local.json"
 fi
+
+echo "Applying local API database migrations"
+(cd "$current_dir" && pnpm --filter @camox/api db:migrate:local)
+
+echo "Seeding local API database"
+(cd "$current_dir" && pnpm --filter @camox/api seed)
+
+echo "Building camox package"
+(cd "$current_dir" && pnpm --filter camox build)
