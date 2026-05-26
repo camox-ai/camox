@@ -147,7 +147,7 @@ const MessageBubble = ({
             "text-sm",
             isUser
               ? "bg-primary text-primary-foreground rounded-lg px-3 py-2"
-              : "text-foreground space-y-2",
+              : "text-foreground space-y-3",
           )}
         >
           {shouldShowMessageThinkingIndicator && (
@@ -156,10 +156,12 @@ const MessageBubble = ({
           {message.parts.map((part, index) => {
             const text = getTextPartContent(part);
             if (text != null) {
+              if (text.trim().length === 0) return null;
+
               return (
                 <Streamdown
                   key={index}
-                  className="wrap-break-words space-y-2"
+                  className={cn("wrap-break-words space-y-2", !isUser && "pl-6")}
                   components={markdownComponents}
                   controls={false}
                   isAnimating={!isUser}
@@ -207,16 +209,16 @@ const MessageBubble = ({
 const AgentThinkingIndicator = ({ durationSeconds }: { durationSeconds?: number }) => {
   if (durationSeconds !== undefined) {
     return (
-      <div className="text-muted-foreground flex items-center gap-2 text-sm">
-        <Brain className="size-3" />
+      <div className="text-muted-foreground grid grid-cols-[1rem_minmax(0,1fr)] items-center gap-2 text-sm">
+        <Brain className="size-3 justify-self-center" />
         <span>Thought for {formatThinkingDuration(durationSeconds)}s</span>
       </div>
     );
   }
 
   return (
-    <div className="text-muted-foreground flex items-center gap-2 text-sm">
-      <Loader2 className="size-3 animate-spin" />
+    <div className="text-muted-foreground grid grid-cols-[1rem_minmax(0,1fr)] items-center gap-2 text-sm">
+      <Loader2 className="size-3 animate-spin justify-self-center" />
       <span>Thinking...</span>
     </div>
   );
@@ -460,24 +462,40 @@ const AgentChatThread = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto border-t p-4">
-        {messages.map((message) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            source={source}
-            isThinkingActive={activeThinkingMessageId === message.id}
-            activeThinkingDurationKeys={activeThinkingDurationKeys}
-            thinkingDurations={thinkingDurations}
-            onApprovalResponse={(part, approved) => void handleApprovalResponse(part, approved)}
-          />
-        ))}
-        {shouldShowThinkingFallback && <AgentThinkingIndicator />}
+      <div className="min-h-0 flex-1 overflow-y-auto border-t p-4">
+        {messages.map((message, index) => {
+          const previousMessage = messages[index - 1];
+          const isConsecutiveAssistantMessage =
+            message.role === "assistant" && previousMessage?.role === "assistant";
+
+          return (
+            <div
+              key={message.id}
+              className={cn(index > 0 && "mt-4", isConsecutiveAssistantMessage && "mt-3")}
+            >
+              <MessageBubble
+                message={message}
+                source={source}
+                isThinkingActive={activeThinkingMessageId === message.id}
+                activeThinkingDurationKeys={activeThinkingDurationKeys}
+                thinkingDurations={thinkingDurations}
+                onApprovalResponse={(part, approved) => void handleApprovalResponse(part, approved)}
+              />
+            </div>
+          );
+        })}
+        {shouldShowThinkingFallback && (
+          <div className={cn(messages.length > 0 && "mt-3")}>
+            <AgentThinkingIndicator />
+          </div>
+        )}
         {error && (
-          <Alert variant="destructive">
-            <AlertTitle>Agent Chat failed</AlertTitle>
-            <AlertDescription>{error.message}</AlertDescription>
-          </Alert>
+          <div className={cn((messages.length > 0 || shouldShowThinkingFallback) && "mt-4")}>
+            <Alert variant="destructive">
+              <AlertTitle>Agent Chat failed</AlertTitle>
+              <AlertDescription>{error.message}</AlertDescription>
+            </Alert>
+          </div>
         )}
         <div ref={messagesEndRef} />
       </div>
