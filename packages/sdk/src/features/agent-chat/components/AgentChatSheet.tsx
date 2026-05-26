@@ -16,6 +16,10 @@ import { AgentChatThread } from "./AgentChatThread";
 const AgentChatSheet = () => {
   const isOpen = useSelector(previewStore, (state) => state.context.isAgentChatSheetOpen);
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
+  const pageScaffoldContext = useSelector(
+    previewStore,
+    (state) => state.context.agentChatPageScaffoldContext,
+  );
   const [agentChatKey, setAgentChatKey] = React.useState(0);
   const [composerFocusKey, setComposerFocusKey] = React.useState(0);
   const { pathname } = useLocation();
@@ -51,6 +55,7 @@ const AgentChatSheet = () => {
             size="icon-sm"
             aria-label="Start a new Agent Chat"
             onClick={() => {
+              previewStore.send({ type: "clearAgentChatPageScaffoldContext" });
               setAgentChatKey((key) => key + 1);
               setComposerFocusKey((key) => key + 1);
             }}
@@ -94,11 +99,12 @@ const AgentChatSheet = () => {
         )}
         {project ? (
           <AgentChatThread
-            key={agentChatKey}
+            key={`${agentChatKey}:${pageScaffoldContext?.id ?? 0}`}
             projectId={project.id}
             currentPath={pathname}
             source={previewSource}
             focusKey={composerFocusKey}
+            pageScaffoldContext={pageScaffoldContext ?? undefined}
           />
         ) : (
           <div className="text-muted-foreground flex flex-1 items-center justify-center p-6 text-sm">

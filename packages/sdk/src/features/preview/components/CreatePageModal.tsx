@@ -13,7 +13,6 @@ import {
 import { Label } from "@camox/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { Spinner } from "@camox/ui/spinner";
-import { Textarea } from "@camox/ui/textarea";
 import { toast } from "@camox/ui/toaster";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -64,7 +63,6 @@ const CreatePageModal = () => {
       parentPageId: undefined as number | undefined,
       pathSegment: "",
       layoutId: "" as string,
-      contentDescription: "",
     },
     onSubmit: async (values) => {
       try {
@@ -85,7 +83,6 @@ const CreatePageModal = () => {
           pathSegment: values.value.pathSegment,
           parentPageId: values.value.parentPageId,
           layoutId: Number(values.value.layoutId),
-          contentDescription: values.value.contentDescription || undefined,
         });
 
         toast.promise(createPagePromise, {
@@ -99,7 +96,6 @@ const CreatePageModal = () => {
           projectId: project.id,
           pathSegment: values.value.pathSegment,
           layoutId: values.value.layoutId,
-          hasContentDescription: !!values.value.contentDescription,
         });
         previewStore.send({ type: "closeCreatePageModal" });
         form.reset();
@@ -107,6 +103,10 @@ const CreatePageModal = () => {
         // Small delay to allow database to sync before navigation
         await new Promise((resolve) => setTimeout(resolve, 50));
         await navigate({ to: fullPath });
+        previewStore.send({
+          type: "openAgentChatSheet",
+          pageScaffoldContext: { nickname, fullPath },
+        });
       } catch (error) {
         console.error("Failed to create page:", error);
         toast.error("Could not create page");
@@ -199,22 +199,6 @@ const CreatePageModal = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            )}
-          </form.Field>
-          <form.Field name="contentDescription">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="contentDescription">Content description</Label>
-                <Textarea
-                  id="contentDescription"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="What your page will be about"
-                />
-                <p className="text-muted-foreground text-xs">
-                  Used to generate a first draft of the page with AI.
-                </p>
               </div>
             )}
           </form.Field>

@@ -84,7 +84,6 @@ const create = command(
     pathSegment: option("--path-segment", string({ metavar: "SEGMENT" })),
     layoutId: option("--layout-id", integer({ metavar: "ID" })),
     parentPageId: optional(option("--parent-page-id", integer({ metavar: "ID" }))),
-    contentDescription: optional(option("--content-description", string({ metavar: "TEXT" }))),
     project: projectFlag,
     production: productionFlag,
     json: jsonFlag,
@@ -144,7 +143,6 @@ type Args =
       pathSegment: string;
       layoutId: number;
       parentPageId?: number;
-      contentDescription?: string;
     } & CommonFlags)
   | ({
       command: "pages.update";
@@ -203,7 +201,6 @@ export async function handler(args: Args): Promise<never> {
           pathSegment: args.pathSegment,
           layoutId: args.layoutId,
           parentPageId: args.parentPageId,
-          contentDescription: args.contentDescription,
         },
         projectFlag,
         production,

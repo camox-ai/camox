@@ -75,10 +75,6 @@ function normalizeAgentChatToolArgs(
   source: AgentChatRequest["source"],
 ) {
   if (!args || typeof args !== "object" || Array.isArray(args)) return args;
-  if (toolName === "createPage") {
-    const { contentDescription: _contentDescription, ...rest } = args as Record<string, unknown>;
-    return rest;
-  }
   if (!["getPage", "getBlock", "getBlocks"].includes(toolName)) return args;
   if ("source" in args) return args;
   return { ...args, source };
@@ -205,15 +201,6 @@ const positioningProperties = {
   position: { enum: ["first", "last"] },
 } satisfies Record<string, JSONSchema>;
 
-function createPageAgentChatInputSchema(): SchemaInput {
-  return z.object({
-    nickname: z.string().optional(),
-    pathSegment: z.string(),
-    parentPageId: z.number().optional(),
-    layoutId: z.number(),
-  });
-}
-
 function createBlockAgentChatInputSchema(defs: BlockDefinitionForAgent[]): SchemaInput | null {
   if (defs.length === 0) return null;
   return {
@@ -275,20 +262,11 @@ function getAgentChatInputSchema(
   tool: Awaited<ReturnType<typeof resolveTools>>[number],
   blockDefs: BlockDefinitionForAgent[],
 ): SchemaInput {
-  if (tool.name === "createPage") return createPageAgentChatInputSchema();
   if (tool.name === "createBlock")
     return createBlockAgentChatInputSchema(blockDefs) ?? tool.inputSchema;
   if (tool.name === "editBlock")
     return editBlockAgentChatInputSchema(blockDefs) ?? tool.inputSchema;
   return tool.inputSchema;
-}
-
-function getAgentChatToolDescription(tool: Awaited<ReturnType<typeof resolveTools>>[number]) {
-  if (tool.name !== "createPage") return tool.description;
-  return (
-    "Create a new page shell. `layoutId` is required — call listLayouts to discover available layouts. " +
-    "`nickname` is the short internal Studio name for the page. After creating the page, create blocks explicitly with createBlock. Do not pass contentDescription."
-  );
 }
 
 function buildSystemPrompt(input: AgentChatRequest, pageContext: string) {
@@ -313,7 +291,8 @@ function buildSystemPrompt(input: AgentChatRequest, pageContext: string) {
     - Use tools to inspect current Camox content when needed; do not guess block ids or page structure.
     - Prefer precise, minimal changes.
     - Use listBlockTypes and describeBlockTypes before creating or editing blocks.
-    - When creating a page, create the page shell first, then create blocks explicitly. Do not use or ask for contentDescription.
+    - When creating a page, create the page shell first, then create blocks explicitly.
+    - When the user asks to scaffold or populate an empty page, focus on page structure: choose an appropriate set of Blocks, compose them in order, and then write fitting draft Content for each Block. Do not reduce the task to editing copy in a single Block unless the user explicitly asks for a single-Block change.
     - If a tool call fails validation, retry with corrected arguments when the fix is clear; otherwise ask a concise clarifying question.
     - Risky actions such as publishing, deleting, unpublishing, or discarding changes require explicit approval through the tool approval UI.
     - Do not claim to edit code files or install dependencies. For code-level changes, suggest using a coding agent with the Camox CLI/skills.
@@ -348,7 +327,7 @@ export const agentChatHonoRoutes = new Hono<AppEnv>().post("/chat", async (c) =>
   const tools = allowedTools.map((tool) => {
     const definition = toolDefinition({
       name: tool.name,
-      description: getAgentChatToolDescription(tool),
+      description: tool.description,
       inputSchema: getAgentChatInputSchema(tool, blockDefs),
       metadata: tool.meta,
     });

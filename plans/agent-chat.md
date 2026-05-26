@@ -16,7 +16,7 @@ Replace the placeholder Agent Chat sheet with a first-class Camox Studio chat su
 - In Draft Source, Agent Chat can run curated content tools.
 - In Live Source, Agent Chat is read-only; write tools are unavailable and approval is not a bypass. The UI offers a regular “Switch to draft” button outside the agent loop.
 - Risky tools use TanStack AI tool approval flow per tool call. There is no plan approval UI.
-- The agent creates Pages and Blocks itself. Agent Chat must not use the legacy `createPage(contentDescription)` page-generation path.
+- The agent creates Pages and Blocks itself. Page creation creates an empty Page shell; Blocks are added explicitly afterward.
 - No client-side tools, file tools, environment tools, or navigation tools in v1.
 
 See also: `docs/adr/0001-tanstack-ai-agent-chat.md`.
@@ -148,7 +148,7 @@ Keep the global registry schemas generic, but dynamically narrow tool schemas in
 - `editBlock`: use deep partial schemas for `content`/`settings` patches.
 - Repeatable fields are special: the agent must call `getBlock` before editing repeatables and preserve `_itemId` markers.
 
-Agent Chat-specific `createPage` schema should omit `contentDescription` so the agent creates the Page shell, then creates Blocks explicitly.
+Agent Chat-specific `createPage` schema should create the Page shell, then create Blocks explicitly.
 
 ## System Prompt Requirements
 
@@ -237,7 +237,7 @@ Move the implementation out of `packages/sdk/src/features/preview/components/Age
 ### 5. Dynamic Block Schema Strictness
 
 - Add dynamic schema narrowing for `createBlock` and `editBlock`.
-- Omit `contentDescription` from Agent Chat `createPage`.
+- Keep Agent Chat `createPage` focused on Page shell creation.
 - Add retry behavior for validation failures within iteration limits.
 
 ## Validation

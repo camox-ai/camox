@@ -94,7 +94,7 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
     name: "createPage",
     description:
       "Create a new page. `layoutId` is required — call listLayouts to discover available layouts. " +
-      "`nickname` is the short internal Studio name for the page. If `contentDescription` is provided, the AI generates initial blocks from it; otherwise the page starts with a default hero block.",
+      "`nickname` is the short internal Studio name for the page. The page starts empty; create blocks explicitly after creating it.",
     inputSchema: createPageToolInput,
     meta: { kind: "write", risk: "safe", surfaces: ["cli", "agentChat"] },
     handler: (input) => {

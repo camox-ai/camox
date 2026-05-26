@@ -26,9 +26,42 @@ declare const __CAMOX_TELEMETRY_DISABLED__: boolean;
 type AgentChatThreadProps = AgentChatRequestContext & {
   disabled?: boolean;
   focusKey?: number;
+  pageScaffoldContext?: {
+    nickname: string;
+    fullPath: string;
+  };
 };
 
 type AgentChatMessage = UseChatReturn["messages"][number];
+
+function createTextMessage(id: string, role: AgentChatMessage["role"], content: string) {
+  return {
+    id,
+    role,
+    parts: [{ type: "text" as const, content }],
+  } satisfies AgentChatMessage;
+}
+
+function createPageScaffoldMessages({
+  nickname,
+  fullPath,
+}: {
+  nickname: string;
+  fullPath: string;
+}) {
+  return [
+    createTextMessage(
+      `page-scaffold-user:${fullPath}`,
+      "user",
+      `I just created an empty _${nickname}_ page at \`${fullPath}\`.`,
+    ),
+    createTextMessage(
+      `page-scaffold-assistant:${fullPath}`,
+      "assistant",
+      "I can create a draft of the page structure and content.<br/>**What should this page be about?**",
+    ),
+  ];
+}
 
 function getTextPartContent(part: AgentChatMessagePart) {
   if (part.type !== "text") return null;
@@ -99,7 +132,7 @@ function findToolResult(parts: readonly AgentChatMessagePart[], toolCallId: stri
 const markdownComponents = {
   p: ({ children }) => <p className="leading-relaxed">{children}</p>,
   a: ({ children, ...props }) => (
-    <a {...props} className="break-words underline underline-offset-2">
+    <a {...props} className="wrap-break-words underline underline-offset-2">
       {children}
     </a>
   ),
@@ -109,10 +142,10 @@ const markdownComponents = {
     <blockquote className="my-2 border-l-2 border-current/30 pl-3">{children}</blockquote>
   ),
   code: ({ children }) => (
-    <code className="bg-background/60 rounded px-1 py-0.5 font-mono text-[0.9em]">{children}</code>
+    <code className="bg-background/50 rounded px-1 py-0.5 font-mono text-[0.9em]">{children}</code>
   ),
   pre: ({ children }) => (
-    <pre className="bg-background/60 my-2 max-w-full overflow-x-auto rounded-md p-3 text-xs">
+    <pre className="bg-background/50 my-2 max-w-full overflow-x-auto rounded-md p-3 text-xs">
       {children}
     </pre>
   ),
@@ -234,6 +267,7 @@ const AgentChatThread = ({
   source,
   disabled,
   focusKey = 0,
+  pageScaffoldContext,
 }: AgentChatThreadProps) => {
   const [input, setInput] = React.useState("");
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
@@ -248,6 +282,10 @@ const AgentChatThread = ({
     () => new Set<string>(),
   );
   const navigate = useNavigate();
+  const initialMessages = React.useMemo(() => {
+    if (!pageScaffoldContext) return [];
+    return createPageScaffoldMessages(pageScaffoldContext);
+  }, [pageScaffoldContext]);
 
   const connection = React.useMemo(
     () =>
@@ -296,6 +334,7 @@ const AgentChatThread = ({
     useChat({
       connection,
       body: { projectId, currentPath, source },
+      initialMessages,
       onCustomEvent: handleCustomEvent,
     });
   const lastMessage = messages[messages.length - 1];

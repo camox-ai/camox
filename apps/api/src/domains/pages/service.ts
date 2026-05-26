@@ -1,7 +1,6 @@
 import { queryKeys } from "@camox/api-contract/query-keys";
 import { ORPCError } from "@orpc/server";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { generateKeyBetween } from "fractional-indexing";
 import { z } from "zod";
 
 import { assertPageAccess, getAuthorizedProject } from "../../authorization";
@@ -9,7 +8,6 @@ import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
 import { resolveEnvironment } from "../../lib/resolve-environment";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
 import {
-  blockDefinitions,
   blocks,
   layoutCheckpoints,
   layouts,
@@ -28,24 +26,8 @@ import {
   type SnapshotBlock,
   type SnapshotRepeatableItem,
 } from "../_shared/snapshot-schemas";
-import { normalizeBlockContent } from "../blocks/normalize-content";
 import { writeLayoutCheckpointAndPoint } from "../layouts/service";
-import {
-  buildFileMap,
-  collectFileIds,
-  executePageSeo,
-  generatePageDraftFromAi,
-  sortByPosition,
-} from "./ai";
-
-const DEFAULT_HERO_BLOCK = {
-  type: "hero",
-  content: {
-    title: "A page title",
-    description: "An engaging block description",
-    cta: { type: "external", text: "Get started", href: "/", newTab: false },
-  },
-};
+import { buildFileMap, collectFileIds, executePageSeo, sortByPosition } from "./ai";
 
 const PAGE_NICKNAME_MAX_LENGTH = 80;
 const pageNicknameSchema = z.string().trim().min(1).max(PAGE_NICKNAME_MAX_LENGTH);
@@ -99,7 +81,6 @@ export const createPageInput = z.object({
   pathSegment: z.string(),
   parentPageId: z.number().optional(),
   layoutId: z.number(),
-  contentDescription: z.string().optional(),
 });
 export const updatePageInput = z.object({
   id: z.number(),
@@ -810,49 +791,11 @@ export async function getPage(ctx: ServiceContext, rawInput: z.input<typeof getP
 
 export async function createPage(ctx: ServiceContext, rawInput: z.input<typeof createPageInput>) {
   const user = assertUser(ctx);
-  const { projectId, nickname, pathSegment, parentPageId, layoutId, contentDescription } =
+  const { projectId, nickname, pathSegment, parentPageId, layoutId } =
     createPageInput.parse(rawInput);
   const project = await getAuthorizedProject(ctx.db, projectId, user.id);
   if (!project) throw new ORPCError("NOT_FOUND");
   const environment = await resolveEnvironment(ctx.db, projectId, ctx.environmentName);
-
-  let generatedBlocks: {
-    type: string;
-    content: Record<string, unknown>;
-    settings?: Record<string, unknown>;
-  }[] = [DEFAULT_HERO_BLOCK];
-  // Lookup used by the seed-insertion loop below to normalize each generated
-  // block's content (extract Repeater arrays into seeds, sanitize asset
-  // leaks). Empty when contentDescription is unset — the default hero block
-  // has no asset fields, so a no-op normalization is fine.
-  const schemaByType = new Map<string, unknown>();
-
-  if (contentDescription) {
-    try {
-      const allDefs = await ctx.db
-        .select()
-        .from(blockDefinitions)
-        .where(eq(blockDefinitions.projectId, projectId));
-      for (const d of allDefs) schemaByType.set(d.blockId, d.contentSchema);
-      const defs = allDefs.filter((d) => !d.layoutOnly);
-
-      if (defs.length > 0) {
-        generatedBlocks = await generatePageDraftFromAi(ctx.env.OPEN_ROUTER_API_KEY, {
-          contentDescription,
-          blockDefs: defs.map((d) => ({
-            blockId: d.blockId,
-            title: d.title,
-            description: d.description ?? "",
-            contentSchema: d.contentSchema,
-            settingsSchema: d.settingsSchema ?? undefined,
-          })),
-        });
-      }
-    } catch (error) {
-      console.error("AI generation failed, using default block:", error);
-      generatedBlocks = [DEFAULT_HERO_BLOCK];
-    }
-  }
 
   let fullPath = `/${pathSegment}`;
   if (parentPageId) {
@@ -879,65 +822,6 @@ export async function createPage(ctx: ServiceContext, rawInput: z.input<typeof c
     })
     .returning()
     .get();
-
-  let prevPosition: string | null = null;
-  for (const genBlock of generatedBlocks) {
-    const position = generateKeyBetween(prevPosition, null);
-    prevPosition = position;
-
-    const { content: normalizedContent, seeds } = normalizeBlockContent(
-      genBlock.content,
-      schemaByType.get(genBlock.type) ?? null,
-    );
-
-    const block = await ctx.db
-      .insert(blocks)
-      .values({
-        pageId: page.id,
-        type: genBlock.type,
-        content: normalizedContent,
-        settings: genBlock.settings ?? null,
-        summary: "",
-        position,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning()
-      .get();
-
-    if (seeds.length > 0) {
-      const tempIdToRealId = new Map<string, number>();
-      for (const seed of seeds) {
-        const parentItemId = seed.parentTempId
-          ? (tempIdToRealId.get(seed.parentTempId) ?? null)
-          : null;
-        const inserted = await ctx.db
-          .insert(repeatableItems)
-          .values({
-            blockId: block.id,
-            parentItemId,
-            fieldName: seed.fieldName,
-            content: seed.content,
-            summary: "",
-            position: seed.position,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .returning()
-          .get();
-        tempIdToRealId.set(seed.tempId, inserted.id);
-      }
-    }
-
-    ctx.waitUntil(
-      scheduleAiJob(ctx.env.AI_JOB_SCHEDULER, {
-        entityTable: "blocks",
-        entityId: block.id,
-        type: "summary",
-        delayMs: 0,
-      }),
-    );
-  }
 
   invalidatePage(ctx, projectId, page.id);
 

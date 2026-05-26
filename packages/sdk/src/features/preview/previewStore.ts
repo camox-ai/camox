@@ -66,6 +66,11 @@ interface PreviewContext {
   /** Source label for the in-progress add-block flow (popover, shortcut, page-tree, overlay). */
   addBlockSource: string | null;
   isAgentChatSheetOpen: boolean;
+  agentChatPageScaffoldContext: {
+    id: number;
+    nickname: string;
+    fullPath: string;
+  } | null;
   isCreatePageModalOpen: boolean;
   editingPageId: number | null;
   isContentLocked: boolean;
@@ -96,6 +101,7 @@ export const previewStore = createStore({
     isAddBlockSheetOpen: false,
     addBlockSource: null,
     isAgentChatSheetOpen: false,
+    agentChatPageScaffoldContext: null,
     isCreatePageModalOpen: false,
     editingPageId: null,
     isContentLocked: false,
@@ -284,14 +290,41 @@ export const previewStore = createStore({
       ...context,
       isPageContentSheetOpen: false,
     }),
-    openAgentChatSheet: (context, _, enqueue) => {
-      if (context.isAgentChatSheetOpen) return context;
+    openAgentChatSheet: (
+      context,
+      event:
+        | {
+            pageScaffoldContext?: {
+              nickname: string;
+              fullPath: string;
+            };
+          }
+        | undefined,
+      enqueue,
+    ) => {
+      const pageScaffoldContext = event?.pageScaffoldContext;
+      if (context.isAgentChatSheetOpen && !pageScaffoldContext) return context;
       enqueue.effect(() => trackClientEvent("agent_chat_opened"));
-      return { ...context, isAgentChatSheetOpen: true };
+      return {
+        ...context,
+        isAgentChatSheetOpen: true,
+        agentChatPageScaffoldContext: pageScaffoldContext
+          ? {
+              id: Date.now(),
+              nickname: pageScaffoldContext.nickname,
+              fullPath: pageScaffoldContext.fullPath,
+            }
+          : context.agentChatPageScaffoldContext,
+      };
     },
     closeAgentChatSheet: (context) => ({
       ...context,
       isAgentChatSheetOpen: false,
+      agentChatPageScaffoldContext: null,
+    }),
+    clearAgentChatPageScaffoldContext: (context) => ({
+      ...context,
+      agentChatPageScaffoldContext: null,
     }),
     openCreatePageModal: (context) => ({
       ...context,

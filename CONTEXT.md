@@ -29,7 +29,7 @@ The Camox web app for account-level and project-level workflows outside the in-s
 _Avoid_: Studio, editor
 
 **Page**:
-A routable website document with a full path, optional parent page, metadata, a selected **Layout**, and ordered **Blocks**.
+A routable website document with a full path, optional parent page, metadata, a selected **Layout**, and zero or more ordered **Blocks**.
 _Avoid_: Route, screen, view
 
 **Layout**:

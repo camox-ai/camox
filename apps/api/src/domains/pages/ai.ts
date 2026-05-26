@@ -1,9 +1,3 @@
-// Deep import (not from the package barrel) to keep the @camox/ai-tools tool
-// providers — which transitively import back into apps/api/src/domains —
-// out of this module's bundler init chain. Importing from the barrel here
-// created a circular evaluation that left `pageSourceSchema` / `createBlockInput`
-// undefined inside blocks/service.ts at runtime.
-import { rewriteAssetSchema } from "@camox/ai-tools/rewrite-asset-schema";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import { eq, inArray } from "drizzle-orm";
@@ -102,72 +96,6 @@ async function generatePageSeoFromAi(
       },
     ],
   });
-}
-
-export async function generatePageDraftFromAi(
-  apiKey: string,
-  options: {
-    contentDescription: string;
-    blockDefs: {
-      blockId: string;
-      title: string;
-      description: string;
-      contentSchema: unknown;
-      settingsSchema?: unknown;
-    }[];
-  },
-) {
-  const blockDefsForPrompt = options.blockDefs.map((def) => ({
-    blockId: def.blockId,
-    title: def.title,
-    description: def.description,
-    contentSchema: rewriteAssetSchema(def.contentSchema),
-    ...(def.settingsSchema ? { settingsSchema: rewriteAssetSchema(def.settingsSchema) } : {}),
-  }));
-
-  const text = await chat({
-    adapter: createOpenRouterText("google/gemini-3-flash-preview", apiKey),
-    stream: false,
-    messages: [
-      {
-        role: "user",
-        content: outdent`
-          <instruction>
-            Generate a page layout with blocks based on the user's description.
-          </instruction>
-
-          <available_blocks>
-            ${JSON.stringify(blockDefsForPrompt)}
-          </available_blocks>
-
-          <page_description>
-            ${options.contentDescription}
-          </page_description>
-
-          <output_format>
-            Return a JSON array of blocks. Each block must have:
-            - "type": the blockId from available_blocks
-            - "content": an object matching the contentSchema for that block type
-            - "settings" (optional): an object matching the settingsSchema for that block type, if it has one
-
-            Only use blocks from available_blocks. Ensure content matches schema constraints (maxLength, etc.).
-            For Repeater fields (arrays), provide an array of objects matching the nested schema.
-            For settings, pick values from the enum options or boolean values defined in the settingsSchema.
-            For String fields, you may use markdown formatting: **bold** and *italic*.
-            For Image/File fields, return either { "_fileId": <integer> } matching an existing file id or null — never invent URLs.
-
-            IMPORTANT: Return ONLY the raw JSON array. Do NOT wrap it in markdown code fences or any other formatting. The response must be valid JSON that can be parsed directly.
-          </output_format>
-        `,
-      },
-    ],
-  });
-
-  return JSON.parse(text) as {
-    type: string;
-    content: Record<string, unknown>;
-    settings?: Record<string, unknown>;
-  }[];
 }
 
 export async function executePageSeo(db: Database, apiKey: string, pageId: number) {
