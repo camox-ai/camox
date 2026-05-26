@@ -13,6 +13,7 @@ import { getAuthCookieHeader } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 import { previewStore } from "../../preview/previewStore";
+import { buildAgentChatToolLabelContext, getToolCallLabel } from "../agent-chat-labels";
 import {
   AgentToolCallCard,
   type AgentChatMessagePart,
@@ -123,6 +124,7 @@ const MessageBubble = ({
   isThinkingActive,
   activeThinkingDurationKeys,
   thinkingDurations,
+  toolLabelContext,
   onApprovalResponse,
 }: {
   message: AgentChatMessage;
@@ -130,6 +132,7 @@ const MessageBubble = ({
   isThinkingActive?: boolean;
   activeThinkingDurationKeys: ReadonlySet<string>;
   thinkingDurations: Record<string, number>;
+  toolLabelContext: ReturnType<typeof buildAgentChatToolLabelContext>;
   onApprovalResponse: (part: ToolCallPart, approved: boolean) => void;
 }) => {
   const isUser = message.role === "user";
@@ -189,6 +192,7 @@ const MessageBubble = ({
                 <AgentToolCallCard
                   key={part.id}
                   part={part}
+                  label={getToolCallLabel(part, toolLabelContext)}
                   result={findToolResult(message.parts, part.id)}
                   requiresApprovalFallback={source === "draft" && hasRequiresApprovalMetadata(part)}
                   onApprovalResponse={(approved) => onApprovalResponse(part, approved)}
@@ -236,6 +240,9 @@ const AgentChatThread = ({
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
   const thinkingStartedAtRef = React.useRef<number | null>(null);
   const thinkingSegmentStartsRef = React.useRef(new Map<string, number>());
+  const toolCallContextByIdRef = React.useRef(
+    new Map<string, { currentPath: string; source: AgentChatRequestContext["source"] }>(),
+  );
   const [thinkingDurations, setThinkingDurations] = React.useState<Record<string, number>>({});
   const [activeThinkingDurationKeys, setActiveThinkingDurationKeys] = React.useState(
     () => new Set<string>(),
@@ -309,6 +316,27 @@ const AgentChatThread = ({
     (!lastMessage ||
       lastMessage.role === "user" ||
       (lastMessage.role === "assistant" && !hasVisibleAssistantOutput(lastMessage)));
+  const toolCallContextById = React.useMemo(() => {
+    for (const message of messages) {
+      for (const part of message.parts) {
+        if (part.type !== "tool-call") continue;
+        if (toolCallContextByIdRef.current.has(part.id)) continue;
+        toolCallContextByIdRef.current.set(part.id, { currentPath, source });
+      }
+    }
+
+    return new Map(toolCallContextByIdRef.current);
+  }, [currentPath, messages, source]);
+  const toolLabelContext = React.useMemo(
+    () =>
+      buildAgentChatToolLabelContext({
+        messages,
+        currentPath,
+        source,
+        toolCallContextById,
+      }),
+    [currentPath, messages, source, toolCallContextById],
+  );
 
   React.useEffect(() => {
     const now = Date.now();
@@ -393,6 +421,7 @@ const AgentChatThread = ({
 
   const handleApprovalResponse = async (part: ToolCallPart, approved: boolean) => {
     const errorText = "User declined tool execution";
+    const refocusInput = () => requestAnimationFrame(() => inputRef.current?.focus());
     if (!approved) {
       if (part.approval) await addToolApprovalResponse({ id: part.approval.id, approved: false });
       await addToolResult({
@@ -402,6 +431,7 @@ const AgentChatThread = ({
         state: "output-error",
         errorText,
       });
+      refocusInput();
       return;
     }
 
@@ -413,6 +443,7 @@ const AgentChatThread = ({
         state: "output-error",
         errorText: "This tool cannot be approved from the current source.",
       });
+      refocusInput();
       return;
     }
 
@@ -427,6 +458,7 @@ const AgentChatThread = ({
         state: "output-error",
         errorText: "Could not parse tool arguments.",
       });
+      refocusInput();
       return;
     }
 
@@ -439,6 +471,7 @@ const AgentChatThread = ({
     if (response.ok) {
       if (part.approval) await addToolApprovalResponse({ id: part.approval.id, approved: true });
       await addToolResult({ toolCallId: part.id, tool: part.name, output: response.result });
+      refocusInput();
       return;
     }
 
@@ -449,6 +482,7 @@ const AgentChatThread = ({
       state: "output-error",
       errorText: response.error.message,
     });
+    refocusInput();
   };
 
   const handleSubmit = (event: React.SubmitEvent) => {
@@ -479,6 +513,7 @@ const AgentChatThread = ({
                 isThinkingActive={activeThinkingMessageId === message.id}
                 activeThinkingDurationKeys={activeThinkingDurationKeys}
                 thinkingDurations={thinkingDurations}
+                toolLabelContext={toolLabelContext}
                 onApprovalResponse={(part, approved) => void handleApprovalResponse(part, approved)}
               />
             </div>
