@@ -2,8 +2,6 @@ import { Button } from "@camox/ui/button";
 import type { UIMessage } from "@tanstack/ai-react";
 import { Check, CheckCircle2, CircleHelp, Loader2, XCircle } from "lucide-react";
 
-import { getToolLabel } from "../agent-chat-labels";
-
 type AgentChatMessagePart = UIMessage["parts"][number];
 type ToolCallPart = Extract<AgentChatMessagePart, { type: "tool-call" }>;
 type ToolResultPart = Extract<AgentChatMessagePart, { type: "tool-result" }>;
@@ -26,17 +24,18 @@ function getStatus(
 
 const AgentToolCallCard = ({
   part,
+  label,
   result,
   requiresApprovalFallback,
   onApprovalResponse,
 }: {
   part: ToolCallPart;
+  label: string;
   result?: ToolResultPart | null;
   requiresApprovalFallback?: boolean;
   onApprovalResponse?: (approved: boolean) => void;
 }) => {
   const status = getStatus(part, requiresApprovalFallback ?? false, result);
-  const label = getToolLabel(part.name);
   const needsApproval = status === "approval";
 
   return (
