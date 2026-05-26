@@ -9,7 +9,7 @@ import {
   toolDefinition,
   untilFinishReason,
 } from "@tanstack/ai";
-import type { JSONSchema, SchemaInput } from "@tanstack/ai";
+import type { JSONSchema, SchemaInput, ToolExecutionContext } from "@tanstack/ai";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { outdent } from "outdent";
@@ -35,6 +35,13 @@ const agentChatRequestInput = z.object({
   source: z.enum(["draft", "live"]).optional(),
   forwardedProps: z.record(z.string(), z.unknown()).optional(),
   data: z.record(z.string(), z.unknown()).optional(),
+});
+
+const absolutePathSchema = z.string().refine((value) => value.startsWith("/"));
+const blockToolOutputSchema = z.looseObject({ id: z.number() });
+const createdPagePathOutputSchema = z.looseObject({ fullPath: absolutePathSchema });
+const createdPageNestedOutputSchema = z.looseObject({
+  page: z.looseObject({ fullPath: absolutePathSchema }),
 });
 
 function parseAgentChatRequest(raw: unknown): AgentChatRequest {
@@ -75,6 +82,51 @@ function normalizeAgentChatToolArgs(
   if (!["getPage", "getBlock", "getBlocks"].includes(toolName)) return args;
   if ("source" in args) return args;
   return { ...args, source };
+}
+
+function getSelectedBlockIdFromToolOutput(params: {
+  toolName: string;
+  output: unknown;
+}): number | null {
+  const { toolName, output } = params;
+  if (toolName !== "createBlock" && toolName !== "editBlock") return null;
+
+  const parsed = blockToolOutputSchema.safeParse(output);
+  return parsed.success ? parsed.data.id : null;
+}
+
+function getCreatedPagePathFromToolOutput(params: {
+  toolName: string;
+  output: unknown;
+}): string | null {
+  const { toolName, output } = params;
+  if (toolName !== "createPage") return null;
+
+  const pathOutput = createdPagePathOutputSchema.safeParse(output);
+  if (pathOutput.success) return pathOutput.data.fullPath;
+
+  const nestedOutput = createdPageNestedOutputSchema.safeParse(output);
+  return nestedOutput.success ? nestedOutput.data.page.fullPath : null;
+}
+
+function emitAgentChatToolUiAction(params: {
+  context: ToolExecutionContext | undefined;
+  toolName: string;
+  output: unknown;
+}) {
+  const { context, toolName, output } = params;
+  if (!context?.emitCustomEvent) return;
+
+  const fullPath = getCreatedPagePathFromToolOutput({ toolName, output });
+  if (fullPath) {
+    context.emitCustomEvent("agent-chat-ui-action", { action: "navigate", fullPath });
+    return;
+  }
+
+  const blockId = getSelectedBlockIdFromToolOutput({ toolName, output });
+  if (!blockId) return;
+
+  context.emitCustomEvent("agent-chat-ui-action", { action: "focusBlock", blockId });
 }
 
 function isAllowedAgentChatTool(
@@ -303,14 +355,21 @@ export const agentChatHonoRoutes = new Hono<AppEnv>().post("/chat", async (c) =>
 
     if (requiresClientApproval(tool, input.source)) return definition;
 
-    return definition.server(async (args) => {
+    return definition.server(async (args, context) => {
       const response = await executeTool({
         toolCtx,
         tools: allowedTools,
         name: tool.name,
         args: normalizeAgentChatToolArgs(tool.name, args, input.source),
       });
-      if (response.ok) return response.result;
+      if (response.ok) {
+        emitAgentChatToolUiAction({
+          context,
+          toolName: tool.name,
+          output: response.result,
+        });
+        return response.result;
+      }
       throw new Error(JSON.stringify(response.error));
     });
   });
