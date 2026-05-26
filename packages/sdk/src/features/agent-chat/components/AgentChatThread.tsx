@@ -271,7 +271,7 @@ const AgentChatThread = ({
 }: AgentChatThreadProps) => {
   const [input, setInput] = React.useState("");
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
-  const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
+  const messagesScrollRef = React.useRef<HTMLDivElement | null>(null);
   const thinkingStartedAtRef = React.useRef<number | null>(null);
   const thinkingSegmentStartsRef = React.useRef(new Map<string, number>());
   const toolCallContextByIdRef = React.useRef(
@@ -455,7 +455,10 @@ const AgentChatThread = ({
   }, [focusKey]);
 
   React.useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ block: "end" });
+    const scrollContainer = messagesScrollRef.current;
+    if (!scrollContainer) return;
+
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
   }, [messages]);
 
   const handleApprovalResponse = async (part: ToolCallPart, approved: boolean) => {
@@ -535,43 +538,46 @@ const AgentChatThread = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto border-t p-4">
-        {messages.map((message, index) => {
-          const previousMessage = messages[index - 1];
-          const isConsecutiveAssistantMessage =
-            message.role === "assistant" && previousMessage?.role === "assistant";
+      <div ref={messagesScrollRef} className="min-h-0 flex-1 overflow-y-auto border-t p-4">
+        <div className="flex min-h-full flex-col justify-end">
+          {messages.map((message, index) => {
+            const previousMessage = messages[index - 1];
+            const isConsecutiveAssistantMessage =
+              message.role === "assistant" && previousMessage?.role === "assistant";
 
-          return (
-            <div
-              key={message.id}
-              className={cn(index > 0 && "mt-4", isConsecutiveAssistantMessage && "mt-3")}
-            >
-              <MessageBubble
-                message={message}
-                source={source}
-                isThinkingActive={activeThinkingMessageId === message.id}
-                activeThinkingDurationKeys={activeThinkingDurationKeys}
-                thinkingDurations={thinkingDurations}
-                toolLabelContext={toolLabelContext}
-                onApprovalResponse={(part, approved) => void handleApprovalResponse(part, approved)}
-              />
+            return (
+              <div
+                key={message.id}
+                className={cn(index > 0 && "mt-4", isConsecutiveAssistantMessage && "mt-3")}
+              >
+                <MessageBubble
+                  message={message}
+                  source={source}
+                  isThinkingActive={activeThinkingMessageId === message.id}
+                  activeThinkingDurationKeys={activeThinkingDurationKeys}
+                  thinkingDurations={thinkingDurations}
+                  toolLabelContext={toolLabelContext}
+                  onApprovalResponse={(part, approved) =>
+                    void handleApprovalResponse(part, approved)
+                  }
+                />
+              </div>
+            );
+          })}
+          {shouldShowThinkingFallback && (
+            <div className={cn(messages.length > 0 && "mt-3")}>
+              <AgentThinkingIndicator />
             </div>
-          );
-        })}
-        {shouldShowThinkingFallback && (
-          <div className={cn(messages.length > 0 && "mt-3")}>
-            <AgentThinkingIndicator />
-          </div>
-        )}
-        {error && (
-          <div className={cn((messages.length > 0 || shouldShowThinkingFallback) && "mt-4")}>
-            <Alert variant="destructive">
-              <AlertTitle>Agent Chat failed</AlertTitle>
-              <AlertDescription>{error.message}</AlertDescription>
-            </Alert>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
+          )}
+          {error && (
+            <div className={cn((messages.length > 0 || shouldShowThinkingFallback) && "mt-4")}>
+              <Alert variant="destructive">
+                <AlertTitle>Agent Chat failed</AlertTitle>
+                <AlertDescription>{error.message}</AlertDescription>
+              </Alert>
+            </div>
+          )}
+        </div>
       </div>
       <form onSubmit={handleSubmit} className="border-border border-t p-4">
         <div className="border-input focus-within:border-ring focus-within:ring-ring/50 flex items-center gap-2 rounded-2xl border px-3 transition-colors focus-within:ring-[3px]">

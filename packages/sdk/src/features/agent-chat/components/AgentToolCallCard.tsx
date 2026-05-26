@@ -1,6 +1,6 @@
 import { Button } from "@camox/ui/button";
 import type { UIMessage } from "@tanstack/ai-react";
-import { Check, CheckCircle2, CircleHelp, Loader2, XCircle } from "lucide-react";
+import { Check, CircleHelp, Loader2, Wrench, XCircle } from "lucide-react";
 
 type AgentChatMessagePart = UIMessage["parts"][number];
 type ToolCallPart = Extract<AgentChatMessagePart, { type: "tool-call" }>;
@@ -42,7 +42,7 @@ const AgentToolCallCard = ({
     <div className="flex flex-col gap-3">
       <span className="text-muted-foreground grid grid-cols-[1rem_minmax(0,1fr)] items-center gap-2">
         {status === "running" && <Loader2 className="size-3 animate-spin justify-self-center" />}
-        {status === "complete" && <CheckCircle2 className="size-3 justify-self-center" />}
+        {status === "complete" && <Wrench className="size-3 justify-self-center" />}
         {status === "approval" && <CircleHelp className="size-3 justify-self-center" />}
         {status === "denied" && <XCircle className="size-3 justify-self-center" />}
         {status === "error" && <XCircle className="size-3 justify-self-center" />}
