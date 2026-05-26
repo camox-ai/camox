@@ -33,12 +33,16 @@ interface StoredCookie {
 
 const SERVER_AUTH_COOKIE_NAME = "camox_auth_cookie";
 
+export function buildClearServerAuthCookieHeader() {
+  return `${SERVER_AUTH_COOKIE_NAME}=; Path=/; SameSite=Lax; Max-Age=0`;
+}
+
 function writeServerAuthCookie(cookie: string) {
   if (typeof document === "undefined") return;
 
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
   if (!cookie) {
-    document.cookie = `${SERVER_AUTH_COOKIE_NAME}=; Path=/; SameSite=Lax; Max-Age=0${secure}`;
+    document.cookie = `${buildClearServerAuthCookieHeader()}${secure}`;
     return;
   }
 

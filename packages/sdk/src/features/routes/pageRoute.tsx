@@ -6,10 +6,14 @@ import type { RouterClient } from "@orpc/server";
 import type { QueryClient } from "@tanstack/react-query";
 import { notFound } from "@tanstack/react-router";
 import { createMiddleware, createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
+import { getRequest, setResponseHeader } from "@tanstack/react-start/server";
 
 import type { CamoxApp } from "../../core/createApp";
-import { getAuthCookieHeader, getServerAuthCookieHeader } from "../../lib/auth";
+import {
+  buildClearServerAuthCookieHeader,
+  getAuthCookieHeader,
+  getServerAuthCookieHeader,
+} from "../../lib/auth";
 import { seedBlockCaches } from "../../lib/normalized-data";
 import type { PageStructure } from "../../lib/queries";
 import { trackEvent } from "../../lib/telemetry";
@@ -57,6 +61,146 @@ function createServerApiClient(
       },
     }),
   );
+}
+
+type PageSource = "draft" | "live";
+
+interface LoadPageOptions {
+  apiUrl: string;
+  authCookieHeader?: string;
+  context: { queryClient: QueryClient };
+  environmentName?: string;
+  pathname: string;
+  projectSlug: string;
+  source: PageSource;
+}
+
+interface ErrorDetails {
+  code?: string;
+  status?: number;
+  message: string;
+}
+
+function getErrorDetails(error: unknown): ErrorDetails {
+  if (!error || typeof error !== "object") {
+    return { message: String(error) };
+  }
+
+  const errorRecord = error as Record<string, unknown>;
+  return {
+    code: typeof errorRecord.code === "string" ? errorRecord.code : undefined,
+    status: typeof errorRecord.status === "number" ? errorRecord.status : undefined,
+    message:
+      error instanceof Error
+        ? error.message
+        : typeof errorRecord.message === "string"
+          ? errorRecord.message
+          : "",
+  };
+}
+
+function isAuthSessionError(error: unknown): boolean {
+  const { code, status, message } = getErrorDetails(error);
+  if (code === "UNAUTHORIZED" || code === "FORBIDDEN") return true;
+  if (status === 401 || status === 403) return true;
+
+  const lowerMessage = message.toLowerCase();
+  return (
+    lowerMessage.includes("unauthorized") ||
+    lowerMessage.includes("forbidden") ||
+    lowerMessage.includes("invalid session") ||
+    lowerMessage.includes("session expired") ||
+    lowerMessage.includes("expired session")
+  );
+}
+
+function isNotFoundError(error: unknown): boolean {
+  const { code, status } = getErrorDetails(error);
+  return code === "NOT_FOUND" || status === 404;
+}
+
+function clearServerAuthCookie() {
+  if (typeof window !== "undefined") return;
+  setResponseHeader("Set-Cookie", buildClearServerAuthCookieHeader());
+}
+
+async function loadPage({
+  apiUrl,
+  authCookieHeader,
+  context,
+  environmentName,
+  pathname,
+  projectSlug,
+  source,
+}: LoadPageOptions): Promise<PageStructure> {
+  const serverApi = createServerApiClient(apiUrl, environmentName, { authCookieHeader });
+  return context.queryClient.ensureQueryData({
+    queryKey: queryKeys.pages.getByPath(pathname, source),
+    queryFn: async () => {
+      const [data, pagesList] = await Promise.all([
+        // Public visitors read from the live (published) snapshot.
+        // Authenticated studio navigation reads the draft so newly
+        // created, unpublished pages can mount their editing UI.
+        serverApi.pages.getByPath({
+          path: pathname,
+          projectSlug,
+          source,
+        }),
+        serverApi.pages.listBySlug({ projectSlug }).catch(() => null),
+      ]);
+      seedBlockCaches(context.queryClient, data, source);
+      context.queryClient.setQueryData(queryKeys.pages.getByPath(pathname, source), {
+        page: data.page,
+        layout: data.layout,
+        projectName: data.projectName,
+        project: data.project,
+      });
+      if (source === "live") {
+        // Public visitors render through the preview store's default
+        // draft slot, but they should only ever see published content.
+        seedBlockCaches(context.queryClient, data, "draft");
+        context.queryClient.setQueryData(queryKeys.pages.getByPath(pathname, "draft"), {
+          page: data.page,
+          layout: data.layout,
+          projectName: data.projectName,
+          project: data.project,
+        });
+      }
+      if (pagesList) {
+        context.queryClient.setQueryData(queryKeys.pages.list, pagesList);
+      }
+      return {
+        page: data.page,
+        layout: data.layout,
+        projectName: data.projectName,
+        project: data.project,
+      };
+    },
+    staleTime: Infinity,
+  });
+}
+
+function throwNotFoundOrRethrow(error: unknown): never {
+  if (isNotFoundError(error)) throw notFound();
+  throw error;
+}
+
+async function loadLivePage(
+  options: Omit<LoadPageOptions, "authCookieHeader" | "source">,
+): Promise<PageStructure> {
+  try {
+    return await loadPage({ ...options, source: "live" });
+  } catch (error) {
+    throwNotFoundOrRethrow(error);
+  }
+}
+
+async function buildLoaderData(apiUrl: string, page: PageStructure) {
+  const origin = await getOrigin();
+  // Built here (not in the head factory) so the API URL stays a loader
+  // closure detail — the head function reads it straight from loaderData.
+  const faviconUrl = `${apiUrl}/favicons/${page.project.id}?v=${page.project.updatedAt}`;
+  return { page, origin, faviconUrl };
 }
 
 /* -------------------------------------------------------------------------------------------------
@@ -120,69 +264,36 @@ export function createPageLoader(apiUrl: string, projectSlug: string, environmen
     location: { pathname: string };
     context: { queryClient: QueryClient };
   }) => {
+    const authCookieHeader =
+      typeof window !== "undefined"
+        ? getAuthCookieHeader()
+        : await getServerLoaderAuthCookieHeader();
+    const loadOptions = {
+      apiUrl,
+      context,
+      environmentName,
+      pathname: location.pathname,
+      projectSlug,
+    };
+
+    if (!authCookieHeader) {
+      const page = await loadLivePage(loadOptions);
+      return buildLoaderData(apiUrl, page);
+    }
+
     try {
-      const authCookieHeader =
-        typeof window !== "undefined"
-          ? getAuthCookieHeader()
-          : await getServerLoaderAuthCookieHeader();
-      const source = authCookieHeader ? "draft" : "live";
-      const serverApi = createServerApiClient(apiUrl, environmentName, { authCookieHeader });
-      const [page, origin] = await Promise.all([
-        context.queryClient.ensureQueryData({
-          queryKey: queryKeys.pages.getByPath(location.pathname, source),
-          queryFn: async () => {
-            const [data, pagesList] = await Promise.all([
-              // Public visitors read from the live (published) snapshot.
-              // Authenticated studio navigation reads the draft so newly
-              // created, unpublished pages can mount their editing UI.
-              serverApi.pages.getByPath({
-                path: location.pathname,
-                projectSlug,
-                source,
-              }),
-              serverApi.pages.listBySlug({ projectSlug }).catch(() => null),
-            ]);
-            seedBlockCaches(context.queryClient, data, source);
-            context.queryClient.setQueryData(queryKeys.pages.getByPath(location.pathname, source), {
-              page: data.page,
-              layout: data.layout,
-              projectName: data.projectName,
-              project: data.project,
-            });
-            if (source === "live") {
-              // Public visitors render through the preview store's default
-              // draft slot, but they should only ever see published content.
-              seedBlockCaches(context.queryClient, data, "draft");
-              context.queryClient.setQueryData(
-                queryKeys.pages.getByPath(location.pathname, "draft"),
-                {
-                  page: data.page,
-                  layout: data.layout,
-                  projectName: data.projectName,
-                  project: data.project,
-                },
-              );
-            }
-            if (pagesList) {
-              context.queryClient.setQueryData(queryKeys.pages.list, pagesList);
-            }
-            return {
-              page: data.page,
-              layout: data.layout,
-              projectName: data.projectName,
-              project: data.project,
-            };
-          },
-          staleTime: Infinity,
-        }),
-        getOrigin(),
-      ]);
-      // Built here (not in the head factory) so the API URL stays a loader
-      // closure detail — the head function reads it straight from loaderData.
-      const faviconUrl = `${apiUrl}/favicons/${page.project.id}?v=${page.project.updatedAt}`;
-      return { page, origin, faviconUrl };
-    } catch {
-      throw notFound();
+      const page = await loadPage({ ...loadOptions, authCookieHeader, source: "draft" });
+      return buildLoaderData(apiUrl, page);
+    } catch (error) {
+      if (!isAuthSessionError(error)) {
+        throwNotFoundOrRethrow(error);
+      }
+
+      clearServerAuthCookie();
+      console.warn("[camox] Ignoring stale camox_auth_cookie and retrying published page load.");
+
+      const page = await loadLivePage(loadOptions);
+      return buildLoaderData(apiUrl, page);
     }
   };
 }
