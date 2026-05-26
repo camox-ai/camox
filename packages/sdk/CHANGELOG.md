@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.0](https://github.com/camox-ai/camox/compare/camox-v0.30.0...camox-sdk-v0.31.0) (2026-05-26)
+
+
+### Features
+
+* add aliases to command palette actions ([ebdc132](https://github.com/camox-ai/camox/commit/ebdc1322db6d2a35279f502f72c0033fcfb5ce5d))
+
 ## [0.30.0](https://github.com/camox-ai/camox/compare/camox-v0.29.1...camox-sdk-v0.30.0) (2026-05-26)
 
 
