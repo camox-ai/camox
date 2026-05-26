@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.1](https://github.com/camox-ai/camox/compare/camox-v0.31.0...camox-sdk-v0.31.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* expired cookie triggering 404 ([1005498](https://github.com/camox-ai/camox/commit/10054985bf4f03c3c597571233aee48b164b0ca4))
+
 ## [0.31.0](https://github.com/camox-ai/camox/compare/camox-v0.30.0...camox-sdk-v0.31.0) (2026-05-26)
 
 
