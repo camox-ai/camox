@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.0](https://github.com/camox-ai/camox/compare/camox-v0.29.1...@camox/ui-v0.30.0) (2026-05-26)
+
+
+### Bug Fixes
+
+* persist agent chat state when toggling sheet ([af1f742](https://github.com/camox-ai/camox/commit/af1f742d778df26f79744b56977dd70f22cfe3df))
+
 ## [0.29.1](https://github.com/camox-ai/camox/compare/camox-v0.29.0...@camox/ui-v0.29.1) (2026-05-22)
 
 
