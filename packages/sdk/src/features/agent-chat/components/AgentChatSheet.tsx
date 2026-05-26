@@ -42,7 +42,7 @@ const AgentChatSheet = () => {
       showCloseButton={false}
       initialFocus={false}
     >
-      <SheetParts.SheetHeader className="border-border gap-4 border-b">
+      <SheetParts.SheetHeader className="gap-4 pb-0">
         <div className="flex items-center gap-1">
           <SheetParts.SheetTitle className="flex-1">Agent Chat</SheetParts.SheetTitle>
           <Button

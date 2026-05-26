@@ -4,7 +4,7 @@ import { Button } from "@camox/ui/button";
 import { Textarea } from "@camox/ui/textarea";
 import { fetchServerSentEvents, useChat, type UseChatReturn } from "@tanstack/ai-react";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowUp, Square } from "lucide-react";
+import { ArrowUp, Brain, Loader2, Square } from "lucide-react";
 import * as React from "react";
 import { Streamdown, type Components } from "streamdown";
 import { z } from "zod";
@@ -42,6 +42,56 @@ const createdPageNestedOutputSchema = z
 function getTextPartContent(part: AgentChatMessagePart) {
   if (part.type !== "text") return null;
   return part.content;
+}
+
+function hasVisibleAssistantOutput(message: AgentChatMessage) {
+  return message.parts.some((part) => {
+    if (part.type === "text") return part.content.trim().length > 0;
+    if (part.type === "thinking") return true;
+    if (part.type === "tool-call") return true;
+    return false;
+  });
+}
+
+function isAssistantResponseOutputPart(part: AgentChatMessagePart) {
+  if (part.type === "text") return part.content.trim().length > 0;
+  if (part.type === "tool-call") return true;
+  return false;
+}
+
+function getAssistantResponseOutputKey(message: AgentChatMessage) {
+  const outputParts = message.parts.flatMap((part) => {
+    if (part.type === "text" && isAssistantResponseOutputPart(part)) {
+      return [`text:${part.content.length}`];
+    }
+    if (part.type === "tool-call") return [`tool:${part.id}:${part.state}`];
+    return [];
+  });
+  return outputParts.length > 0 ? outputParts.join("|") : null;
+}
+
+function hasLaterAssistantResponseOutput(
+  parts: readonly AgentChatMessagePart[],
+  partIndex: number,
+) {
+  return parts.slice(partIndex + 1).some(isAssistantResponseOutputPart);
+}
+
+function hasThinkingPart(message: AgentChatMessage) {
+  return message.parts.some((part) => part.type === "thinking");
+}
+
+function getThinkingPartDurationKey(
+  message: AgentChatMessage,
+  part: AgentChatMessagePart,
+  partIndex: number,
+) {
+  const stepId = (part as { stepId?: unknown }).stepId;
+  return `${message.id}:${typeof stepId === "string" ? stepId : partIndex}`;
+}
+
+function formatThinkingDuration(seconds: number) {
+  return Math.max(1, Math.round(seconds)).toString();
 }
 
 function hasRequiresApprovalMetadata(part: ToolCallPart) {
@@ -124,13 +174,24 @@ const markdownComponents = {
 const MessageBubble = ({
   message,
   source,
+  isThinkingActive,
+  activeThinkingDurationKeys,
+  thinkingDurations,
   onApprovalResponse,
 }: {
   message: AgentChatMessage;
   source: AgentChatRequestContext["source"];
+  isThinkingActive?: boolean;
+  activeThinkingDurationKeys: ReadonlySet<string>;
+  thinkingDurations: Record<string, number>;
   onApprovalResponse: (part: ToolCallPart, approved: boolean) => void;
 }) => {
   const isUser = message.role === "user";
+  const fallbackThinkingDurationSeconds = thinkingDurations[message.id];
+  const shouldShowMessageThinkingIndicator =
+    !isUser &&
+    !hasThinkingPart(message) &&
+    (isThinkingActive || fallbackThinkingDurationSeconds !== undefined);
 
   return (
     <div className={cn("flex gap-3", isUser && "justify-end")}>
@@ -143,6 +204,9 @@ const MessageBubble = ({
               : "text-foreground space-y-2",
           )}
         >
+          {shouldShowMessageThinkingIndicator && (
+            <AgentThinkingIndicator durationSeconds={fallbackThinkingDurationSeconds} />
+          )}
           {message.parts.map((part, index) => {
             const text = getTextPartContent(part);
             if (text != null) {
@@ -157,6 +221,20 @@ const MessageBubble = ({
                   {text}
                 </Streamdown>
               );
+            }
+            if (part.type === "thinking") {
+              const durationKey = getThinkingPartDurationKey(message, part, index);
+              const durationSeconds =
+                thinkingDurations[durationKey] ??
+                (hasLaterAssistantResponseOutput(message.parts, index)
+                  ? fallbackThinkingDurationSeconds
+                  : undefined);
+              if (durationSeconds !== undefined || activeThinkingDurationKeys.has(durationKey)) {
+                return (
+                  <AgentThinkingIndicator key={durationKey} durationSeconds={durationSeconds} />
+                );
+              }
+              return null;
             }
             if (part.type === "tool-call") {
               return (
@@ -180,6 +258,24 @@ const MessageBubble = ({
   );
 };
 
+const AgentThinkingIndicator = ({ durationSeconds }: { durationSeconds?: number }) => {
+  if (durationSeconds !== undefined) {
+    return (
+      <div className="text-muted-foreground flex items-center gap-2 text-sm">
+        <Brain className="size-3" />
+        <span>Thought for {formatThinkingDuration(durationSeconds)}s</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-muted-foreground flex items-center gap-2 text-sm">
+      <Loader2 className="size-3 animate-spin" />
+      <span>Thinking...</span>
+    </div>
+  );
+};
+
 const AgentChatThread = ({
   projectId,
   currentPath,
@@ -192,6 +288,12 @@ const AgentChatThread = ({
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
   const selectedToolResultIdsRef = React.useRef(new Set<string>());
   const navigatedPageToolResultIdsRef = React.useRef(new Set<string>());
+  const thinkingStartedAtRef = React.useRef<number | null>(null);
+  const thinkingSegmentStartsRef = React.useRef(new Map<string, number>());
+  const [thinkingDurations, setThinkingDurations] = React.useState<Record<string, number>>({});
+  const [activeThinkingDurationKeys, setActiveThinkingDurationKeys] = React.useState(
+    () => new Set<string>(),
+  );
   const navigate = useNavigate();
 
   const connection = React.useMemo(
@@ -219,6 +321,92 @@ const AgentChatThread = ({
       connection,
       body: { projectId, currentPath, source },
     });
+  const lastMessage = messages[messages.length - 1];
+  const lastAssistantMessage =
+    lastMessage?.role === "assistant"
+      ? lastMessage
+      : [...messages].reverse().find((message) => message.role === "assistant");
+  const activeThinkingMessageId =
+    isLoading && thinkingStartedAtRef.current !== null && lastMessage?.role === "assistant"
+      ? lastMessage.id
+      : undefined;
+  const lastMessageResponseOutputKey =
+    lastMessage?.role === "assistant" ? getAssistantResponseOutputKey(lastMessage) : null;
+  const shouldShowThinkingFallback =
+    isLoading &&
+    thinkingStartedAtRef.current !== null &&
+    !error &&
+    (!lastMessage ||
+      lastMessage.role === "user" ||
+      (lastMessage.role === "assistant" && !hasVisibleAssistantOutput(lastMessage)));
+
+  React.useEffect(() => {
+    const now = Date.now();
+    const activeDurationKeys = new Set<string>();
+    setThinkingDurations((durations) => {
+      let nextDurations = durations;
+
+      for (const message of messages) {
+        if (message.role !== "assistant") continue;
+
+        message.parts.forEach((part, index) => {
+          if (part.type !== "thinking") return;
+
+          const durationKey = getThinkingPartDurationKey(message, part, index);
+          if (durations[durationKey] !== undefined) return;
+
+          const startedAt = thinkingSegmentStartsRef.current.get(durationKey) ?? now;
+          thinkingSegmentStartsRef.current.set(durationKey, startedAt);
+          if (!hasLaterAssistantResponseOutput(message.parts, index)) {
+            activeDurationKeys.add(durationKey);
+            return;
+          }
+
+          if (nextDurations === durations) nextDurations = { ...durations };
+          nextDurations[durationKey] = Math.max(0, (now - startedAt) / 1000);
+          thinkingSegmentStartsRef.current.delete(durationKey);
+        });
+      }
+
+      return nextDurations;
+    });
+    setActiveThinkingDurationKeys(activeDurationKeys);
+  }, [messages]);
+
+  React.useEffect(() => {
+    if (!isLoading) return;
+    if (thinkingStartedAtRef.current !== null) return;
+    thinkingStartedAtRef.current = Date.now();
+  }, [isLoading]);
+
+  React.useEffect(() => {
+    const startedAt = thinkingStartedAtRef.current;
+    if (startedAt === null) return;
+    if (lastMessage?.role !== "assistant") return;
+    if (!lastMessageResponseOutputKey) return;
+
+    thinkingStartedAtRef.current = null;
+    const durationSeconds = Math.max(0, (Date.now() - startedAt) / 1000);
+    setThinkingDurations((durations) => ({
+      ...durations,
+      [lastMessage.id]: durations[lastMessage.id] ?? durationSeconds,
+    }));
+  }, [lastMessage?.id, lastMessage?.role, lastMessageResponseOutputKey]);
+
+  React.useEffect(() => {
+    if (isLoading) return;
+    const startedAt = thinkingStartedAtRef.current;
+    if (startedAt === null) return;
+
+    thinkingStartedAtRef.current = null;
+    if (!lastAssistantMessage) return;
+
+    const durationSeconds = Math.max(0, (Date.now() - startedAt) / 1000);
+    setThinkingDurations((durations) => ({
+      ...durations,
+      [lastAssistantMessage.id]: durationSeconds,
+    }));
+  }, [isLoading, lastAssistantMessage]);
 
   React.useEffect(() => {
     if (focusKey === 0) return;
@@ -366,7 +554,7 @@ const AgentChatThread = ({
     });
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = (event: React.SubmitEvent) => {
     event.preventDefault();
     const message = input.trim();
     if (!message || isLoading || disabled) return;
@@ -377,15 +565,19 @@ const AgentChatThread = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto border-t p-4">
         {messages.map((message) => (
           <MessageBubble
             key={message.id}
             message={message}
             source={source}
+            isThinkingActive={activeThinkingMessageId === message.id}
+            activeThinkingDurationKeys={activeThinkingDurationKeys}
+            thinkingDurations={thinkingDurations}
             onApprovalResponse={(part, approved) => void handleApprovalResponse(part, approved)}
           />
         ))}
+        {shouldShowThinkingFallback && <AgentThinkingIndicator />}
         {error && (
           <Alert variant="destructive">
             <AlertTitle>Agent Chat failed</AlertTitle>

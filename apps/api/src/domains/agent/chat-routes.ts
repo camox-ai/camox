@@ -15,7 +15,7 @@ import type { Context } from "hono";
 import { outdent } from "outdent";
 import { z } from "zod";
 
-import { createAgentChatAdapter } from "../../lib/ai";
+import { AGENT_CHAT_MODEL_OPTIONS, createAgentChatAdapter } from "../../lib/ai";
 import type { AppEnv } from "../../types";
 import type { ServiceContext } from "../_shared/service-context";
 import { listBlockDefinitions } from "../block-definitions/service";
@@ -320,6 +320,7 @@ export const agentChatHonoRoutes = new Hono<AppEnv>().post("/chat", async (c) =>
     adapter: createAgentChatAdapter(c.env.OPEN_ROUTER_API_KEY),
     messages: convertMessagesToModelMessages(input.messages) as never,
     systemPrompts: [buildSystemPrompt(input, pageContext)],
+    modelOptions: AGENT_CHAT_MODEL_OPTIONS,
     tools,
     middleware: [
       {
