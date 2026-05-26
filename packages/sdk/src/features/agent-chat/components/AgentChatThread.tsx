@@ -325,7 +325,7 @@ const AgentChatThread = ({
       const blockId = (data as { blockId?: unknown }).blockId;
       if (typeof blockId !== "number") return;
 
-      previewStore.send({ type: "setFocusedBlock", blockId });
+      previewStore.send({ type: "focusAgentBlock", blockId });
     },
     [currentPath, navigate],
   );

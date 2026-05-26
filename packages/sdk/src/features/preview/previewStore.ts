@@ -89,6 +89,7 @@ interface PreviewContext {
   peekedPagePathname: string | null;
   skipPeekedBlockExitAnimation: boolean;
   selection: Selection | null;
+  pendingAgentBlockFocus: { blockId: number; requestId: number } | null;
   iframeElement: HTMLIFrameElement | null;
   previewSource: PreviewSource;
 }
@@ -113,6 +114,7 @@ export const previewStore = createStore({
     peekedPagePathname: null,
     skipPeekedBlockExitAnimation: false,
     selection: null,
+    pendingAgentBlockFocus: null,
     iframeElement: null,
     previewSource: "draft",
   } as PreviewContext,
@@ -179,17 +181,38 @@ export const previewStore = createStore({
     setSelection: (context, event: { selection: Selection | null }) => ({
       ...context,
       selection: event.selection,
+      pendingAgentBlockFocus: null,
     }),
     setFocusedBlock: (context, event: { blockId: number }) => ({
       ...context,
       selection: { type: "block" as const, blockId: event.blockId },
+      pendingAgentBlockFocus: null,
       peekedBlock: null,
       peekedBlockPosition: null,
       isAddBlockSheetOpen: false,
     }),
+    focusAgentBlock: (context, event: { blockId: number }) => ({
+      ...context,
+      selection: { type: "block" as const, blockId: event.blockId },
+      pendingAgentBlockFocus: {
+        blockId: event.blockId,
+        requestId: (context.pendingAgentBlockFocus?.requestId ?? 0) + 1,
+      },
+      peekedBlock: null,
+      peekedBlockPosition: null,
+      isAddBlockSheetOpen: false,
+    }),
+    clearPendingAgentBlockFocus: (context, event: { requestId: number }) => {
+      if (context.pendingAgentBlockFocus?.requestId !== event.requestId) return context;
+      return {
+        ...context,
+        pendingAgentBlockFocus: null,
+      };
+    },
     selectItem: (context, event: { blockId: number; itemId: number }) => ({
       ...context,
       selection: { type: "item" as const, blockId: event.blockId, itemId: event.itemId },
+      pendingAgentBlockFocus: null,
     }),
     selectBlockField: (
       context,
@@ -202,6 +225,7 @@ export const previewStore = createStore({
         fieldName: event.fieldName,
         fieldType: event.fieldType,
       },
+      pendingAgentBlockFocus: null,
     }),
     selectItemField: (
       context,
@@ -215,6 +239,7 @@ export const previewStore = createStore({
         fieldName: event.fieldName,
         fieldType: event.fieldType,
       },
+      pendingAgentBlockFocus: null,
     }),
     selectParent: (context) => {
       const sel = context.selection;
@@ -236,10 +261,12 @@ export const previewStore = createStore({
     clearSelection: (context) => ({
       ...context,
       selection: null,
+      pendingAgentBlockFocus: null,
     }),
     setPeekedPage: (context, event: { pathname: string }) => ({
       ...context,
       selection: null,
+      pendingAgentBlockFocus: null,
       peekedPagePathname: event.pathname,
     }),
     clearPeekedPage: (context) => ({
@@ -263,6 +290,7 @@ export const previewStore = createStore({
     focusCreatedBlock: (context, event: { blockId: number }) => ({
       ...context,
       selection: { type: "block" as const, blockId: event.blockId },
+      pendingAgentBlockFocus: null,
       isAddBlockSheetOpen: false,
       peekedBlock: null,
       peekedBlockPosition: null,
@@ -320,7 +348,6 @@ export const previewStore = createStore({
     closeAgentChatSheet: (context) => ({
       ...context,
       isAgentChatSheetOpen: false,
-      agentChatPageScaffoldContext: null,
     }),
     clearAgentChatPageScaffoldContext: (context) => ({
       ...context,
