@@ -119,6 +119,7 @@ export function CommandPalette() {
                 return (
                   <CommandItem
                     key={action.id}
+                    keywords={action.aliases}
                     onSelect={() => handleSelect(action.id)}
                     className="justify-between"
                   >
@@ -145,6 +146,7 @@ export function useCommandPaletteActions() {
       action: {
         id: "toggle-command-palette",
         label: "Toggle command palette",
+        aliases: ["Commands", "Search commands"],
         groupLabel: "Invisible",
         checkIfAvailable: () => true,
         execute: () => {

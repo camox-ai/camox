@@ -5,6 +5,7 @@ export type ActionGroupLabel = "Preview" | "Studio" | "Navigation" | "Invisible"
 export interface Action {
   id: string;
   label: string;
+  aliases?: string[];
   groupLabel: ActionGroupLabel;
   shortcut?: { key: string; withMeta?: boolean; withAlt?: boolean; withShift?: boolean };
   parentActionId?: string;

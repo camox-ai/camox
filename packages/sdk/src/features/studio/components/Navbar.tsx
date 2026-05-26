@@ -30,6 +30,7 @@ const links = [
       </>
     ),
     icon: "Globe",
+    aliases: ["Preview", "Website"],
   },
   {
     to: "/cmx-studio/content" as LinkProps["to"],
@@ -41,12 +42,14 @@ const links = [
       </>
     ),
     icon: "FileText",
+    aliases: ["Content", "Pages", "CMS"],
   },
 ] satisfies Array<{
   to: LinkProps["to"];
   title: string;
   children: React.ReactNode;
   icon: keyof typeof icons;
+  aliases: string[];
 }>;
 
 const Navbar = () => {
@@ -127,6 +130,7 @@ function useNavbarActions() {
       },
       shortcut: { key: String(index + 1) },
       icon: link.icon,
+      aliases: link.aliases,
     })) satisfies Action[];
 
     actionsStore.send({ type: "registerManyActions", actions });

@@ -372,6 +372,7 @@ export function useAuthActions() {
         {
           id: "manage-account",
           label: "Manage account",
+          aliases: ["Account settings", "Profile", "User settings"],
           groupLabel: "Studio",
           checkIfAvailable: () => true,
           execute: () => {
@@ -381,6 +382,7 @@ export function useAuthActions() {
         {
           id: "log-out",
           label: "Log out",
+          aliases: ["Sign out", "Logout"],
           groupLabel: "Studio",
           checkIfAvailable: () => true,
           execute: () => authClient.signOut(),

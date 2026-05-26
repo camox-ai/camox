@@ -411,6 +411,7 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
       {
         id: "publish-current-page",
         label: publishLabel,
+        aliases: ["Publish", "Publish page", "Make live"],
         groupLabel: "Preview",
         checkIfAvailable: () => canPublish,
         execute: () => setIsPublishDialogOpen(true),
@@ -418,6 +419,7 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
       {
         id: "unpublish-current-page",
         label: "Unpublish page",
+        aliases: ["Take offline", "Remove from live", "Hide page"],
         groupLabel: "Preview",
         checkIfAvailable: () => hasLiveCheckpoint && !isHomePage && !unpublishPage.isPending,
         execute: () => setIsUnpublishDialogOpen(true),
@@ -425,6 +427,7 @@ const SidebarPublishRow = ({ page }: { page: PreviewedPage }) => {
       {
         id: "discard-current-page-changes",
         label: "Discard page changes",
+        aliases: ["Revert page", "Reset page", "Discard draft"],
         groupLabel: "Preview",
         checkIfAvailable: () => canDiscardChanges && !discardChanges.isPending,
         execute: () => setIsDiscardDialogOpen(true),
@@ -693,6 +696,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       {
         id: "enter-presentation-mode",
         label: "Hide Camox Studio",
+        aliases: ["Hide studio", "Preview only", "Presentation mode"],
         groupLabel: "Preview",
         checkIfAvailable: () => isAuthenticated && !isPresentationMode,
         execute: () => previewStore.send({ type: "enterPresentationMode" }),
@@ -701,6 +705,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       {
         id: "exit-presentation-mode",
         label: "Show Camox Studio",
+        aliases: ["Show studio", "Exit presentation", "Edit mode"],
         groupLabel: "Preview",
         checkIfAvailable: () => isAuthenticated && isPresentationMode,
         execute: () => previewStore.send({ type: "exitPresentationMode" }),
@@ -709,6 +714,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       {
         id: "preview-live-content",
         label: "Preview live content",
+        aliases: ["Live", "View live", "Published content"],
         groupLabel: "Preview",
         checkIfAvailable: () => isAuthenticated && previewSource === "draft" && hasLiveCheckpoint,
         execute: () => previewStore.send({ type: "setPreviewSource", source: "live" }),
@@ -717,6 +723,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       {
         id: "preview-draft-content",
         label: "Preview draft content",
+        aliases: ["Draft", "View draft", "Unpublished content"],
         groupLabel: "Preview",
         checkIfAvailable: () => isAuthenticated && previewSource === "live",
         execute: () => previewStore.send({ type: "setPreviewSource", source: "draft" }),
@@ -725,6 +732,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       {
         id: "clear-selection",
         label: "Clear selection",
+        aliases: ["Deselect", "Unselect"],
         groupLabel: "Preview",
         checkIfAvailable: () => true,
         execute: () => {
@@ -824,6 +832,7 @@ export function usePreviewPagesActions() {
       {
         id: "create-page",
         label: "Create page",
+        aliases: ["New page", "Add page"],
         groupLabel: "Preview",
         checkIfAvailable: () => true,
         execute: () => previewStore.send({ type: "openCreatePageModal" }),
@@ -831,6 +840,7 @@ export function usePreviewPagesActions() {
       {
         id: "edit-current-page",
         label: "Edit current page",
+        aliases: ["Page settings", "Edit page settings", "Page metadata"],
         groupLabel: "Preview",
         checkIfAvailable: () => !!currentPage,
         execute: () => {
@@ -844,6 +854,7 @@ export function usePreviewPagesActions() {
       {
         id: GO_TO_PAGE_ID,
         label: "Go to page",
+        aliases: ["Open page", "Navigate page", "Switch page"],
         groupLabel: "Preview",
         checkIfAvailable: () => !!pages,
         hasChildren: true,

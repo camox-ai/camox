@@ -159,6 +159,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
       {
         id: "toggle-editing-panel",
         label: "Toggle editing panel",
+        aliases: ["Sidebar", "Toggle sidebar", "Show sidebar", "Hide sidebar"],
         groupLabel: "Preview",
         checkIfAvailable: () => true,
         execute: () => previewStore.send({ type: "toggleSidebar" }),
@@ -167,6 +168,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
       {
         id: "toggle-lock-content",
         label: "Toggle lock content",
+        aliases: ["Lock editing", "Unlock content", "Lock page"],
         groupLabel: "Preview",
         checkIfAvailable: () => true,
         execute: () => previewStore.send({ type: "toggleLockContent" }),
@@ -174,6 +176,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
       {
         id: "toggle-mobile-mode",
         label: "Toggle mobile mode",
+        aliases: ["Mobile preview", "Responsive preview", "Phone preview"],
         groupLabel: "Preview",
         checkIfAvailable: () => true,
         execute: () => previewStore.send({ type: "toggleMobileMode" }),
@@ -182,6 +185,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
       {
         id: "toggle-agent-chat",
         label: "Toggle agent chat",
+        aliases: ["AI chat", "Assistant", "Ask AI", "Open chat"],
         groupLabel: "Preview",
         checkIfAvailable: () => true,
         execute: () => {
@@ -195,6 +199,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
       {
         id: "clear-selection",
         label: "Clear selection",
+        aliases: ["Deselect", "Unselect"],
         groupLabel: "Preview",
         checkIfAvailable: () => true,
         execute: () => {
