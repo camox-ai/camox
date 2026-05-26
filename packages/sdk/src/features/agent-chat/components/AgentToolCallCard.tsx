@@ -1,6 +1,6 @@
 import { Button } from "@camox/ui/button";
 import type { UIMessage } from "@tanstack/ai-react";
-import { Check, CheckCircle2, Loader2, Wrench, XCircle } from "lucide-react";
+import { Check, CheckCircle2, CircleHelp, Loader2, XCircle } from "lucide-react";
 
 import { getToolLabel } from "../agent-chat-labels";
 
@@ -40,17 +40,17 @@ const AgentToolCallCard = ({
   const needsApproval = status === "approval";
 
   return (
-    <div className="border-border flex flex-col gap-2 rounded-md border px-2.5 py-2">
-      <span className="text-muted-foreground flex items-center gap-2">
-        {status === "running" && <Loader2 className="size-3 animate-spin" />}
-        {status === "complete" && <CheckCircle2 className="size-3" />}
-        {status === "approval" && <Wrench className="size-3" />}
-        {status === "denied" && <XCircle className="size-3" />}
-        {status === "error" && <XCircle className="size-3" />}
+    <div className="flex flex-col gap-3">
+      <span className="text-muted-foreground grid grid-cols-[1rem_minmax(0,1fr)] items-center gap-2">
+        {status === "running" && <Loader2 className="size-3 animate-spin justify-self-center" />}
+        {status === "complete" && <CheckCircle2 className="size-3 justify-self-center" />}
+        {status === "approval" && <CircleHelp className="size-3 justify-self-center" />}
+        {status === "denied" && <XCircle className="size-3 justify-self-center" />}
+        {status === "error" && <XCircle className="size-3 justify-self-center" />}
         <span className="text-sm">{label}</span>
       </span>
       {needsApproval && (
-        <>
+        <div className="space-y-2 pl-6">
           <p className="text-sm">This immediately impacts your live website</p>
           <span className="flex items-center gap-1">
             <Button
@@ -71,7 +71,7 @@ const AgentToolCallCard = ({
               Deny
             </Button>
           </span>
-        </>
+        </div>
       )}
     </div>
   );
