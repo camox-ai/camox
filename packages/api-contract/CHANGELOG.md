@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.30.0](https://github.com/camox-ai/camox/compare/camox-v0.29.1...@camox/api-contract-v0.30.0) (2026-05-26)
+
+
+### Features
+
+* add streaming agent endpoint ([1031a4a](https://github.com/camox-ai/camox/commit/1031a4adec4d4c1b7ab18ff9e8b3497618b68a50))
+* **sdk:** add rough agent chat ui ([80b150d](https://github.com/camox-ai/camox/commit/80b150dd2ebc3573d0409497b4a5a9afcff251d5))
+
 ## [0.29.1](https://github.com/camox-ai/camox/compare/camox-v0.29.0...@camox/api-contract-v0.29.1) (2026-05-22)
 
 

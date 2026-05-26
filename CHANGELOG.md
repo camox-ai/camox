@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.30.0](https://github.com/camox-ai/camox/compare/camox-v0.29.1...camox-v0.30.0) (2026-05-26)
+
+
+### Features
+
+* add reasoning to agent chat ([155ad15](https://github.com/camox-ai/camox/commit/155ad156574c6eddfa81e88b5acb02cba7f9ff2e))
+* add stop button to agent chat ([f89b9a2](https://github.com/camox-ai/camox/commit/f89b9a27e8836b71bb0802b52aaa3cb3b56a38c2))
+* add streaming agent endpoint ([1031a4a](https://github.com/camox-ai/camox/commit/1031a4adec4d4c1b7ab18ff9e8b3497618b68a50))
+* add validation ui for agent chat tool calls ([827de84](https://github.com/camox-ai/camox/commit/827de844c964dd0891a277f2673968ca5033aabb))
+* auto-navigate to pages created by agent ([083041c](https://github.com/camox-ai/camox/commit/083041cc4814e3cbc507fa2369c7989135d5e49f))
+* move initial page scaffolding to agent chat ([1dc9f66](https://github.com/camox-ai/camox/commit/1dc9f6663fc059f4b8e36c7179441987fa8568b9))
+* new agent thread button ([3c95bbb](https://github.com/camox-ai/camox/commit/3c95bbbdc76308747ebcbd73bcf16ddd4fcff810))
+* render agent chat markdown with streamdown ([1986bb2](https://github.com/camox-ai/camox/commit/1986bb298f9580f6e61f6c689090eec7f614e77c))
+* richer tool call labels ([a2440e3](https://github.com/camox-ai/camox/commit/a2440e3a390110004ee66bc42a7ff1cd5b4d763e))
+* **sdk:** add rough agent chat ui ([80b150d](https://github.com/camox-ai/camox/commit/80b150dd2ebc3573d0409497b4a5a9afcff251d5))
+
+
+### Bug Fixes
+
+* agent chat tool calls ui consistency ([35f5de1](https://github.com/camox-ai/camox/commit/35f5de1d9bef63690326e470018356347f351a9c))
+* align agent chat messages to bottom ([96ff72c](https://github.com/camox-ai/camox/commit/96ff72ceaa3e4e27484915199a95edf6efb02457))
+* don't lose agent chat input focus on submit ([0395b8e](https://github.com/camox-ai/camox/commit/0395b8e37895e128181cd2a532f7b5855693e344))
+* git hook worktree setup ([3c05c92](https://github.com/camox-ai/camox/commit/3c05c92b4b37dec9bc82bcb4e5277e03be1f8546))
+* git hook worktree setup ([5fe21ad](https://github.com/camox-ai/camox/commit/5fe21adff82335a5d20df6587e25dadb56212d8c))
+* isolate database per worktree ([fee3677](https://github.com/camox-ai/camox/commit/fee3677be66a4182c18a18eaab18cfa11032870f))
+* persist agent chat state when toggling sheet ([af1f742](https://github.com/camox-ai/camox/commit/af1f742d778df26f79744b56977dd70f22cfe3df))
+* scroll preview to blocks mutated by agent ([8b3a212](https://github.com/camox-ai/camox/commit/8b3a2124602782963a00169a71db02f688dd3916))
+* tool approval ui ([5ac0762](https://github.com/camox-ai/camox/commit/5ac076203619f6331f4dd6167716cdd23f208af3))
+
+
+### Documentation
+
+* prepare agent chat feature ([18cf68f](https://github.com/camox-ai/camox/commit/18cf68f4e7a1fe8e1b94aa7050cd84447959afb7))
+
+
+### Miscellaneous
+
+* agent chat ui improvements ([24acf9b](https://github.com/camox-ai/camox/commit/24acf9b681f9a7030f9d2680f66e0935a586f3e5))
+* improve agent chat type safety ([ba5087d](https://github.com/camox-ai/camox/commit/ba5087d00b38ed475b9d9e45431a57fbc9448cdd))
+* prepare ai tools for new agent chat surface ([81e2086](https://github.com/camox-ai/camox/commit/81e2086e1938e3c996d1e39736f147db062ccdcb))
+* use emitCustomEvent for frontend side effects ([21cc759](https://github.com/camox-ai/camox/commit/21cc759d6f25145b661e3e7b42f8bfaf96231902))
+
 ## [0.29.1](https://github.com/camox-ai/camox/compare/camox-v0.29.0...camox-v0.29.1) (2026-05-22)
 
 

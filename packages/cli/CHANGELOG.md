@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.0](https://github.com/camox-ai/camox/compare/camox-v0.29.1...@camox/cli-v0.30.0) (2026-05-26)
+
+
+### Features
+
+* move initial page scaffolding to agent chat ([1dc9f66](https://github.com/camox-ai/camox/commit/1dc9f6663fc059f4b8e36c7179441987fa8568b9))
+
 ## [0.29.1](https://github.com/camox-ai/camox/compare/camox-v0.29.0...@camox/cli-v0.29.1) (2026-05-22)
 
 
