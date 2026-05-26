@@ -7,7 +7,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowUp, Brain, Loader2, Square } from "lucide-react";
 import * as React from "react";
 import { Streamdown, type Components } from "streamdown";
-import { z } from "zod";
 
 import { getApiClient, getApiUrl, getEnvironmentName } from "@/lib/api-client";
 import { getAuthCookieHeader } from "@/lib/auth";
@@ -29,15 +28,6 @@ type AgentChatThreadProps = AgentChatRequestContext & {
 };
 
 type AgentChatMessage = UseChatReturn["messages"][number];
-
-const absolutePathSchema = z.string().refine((value) => value.startsWith("/"));
-const blockToolOutputSchema = z.object({ id: z.number() }).passthrough();
-const createdPagePathOutputSchema = z.object({ fullPath: absolutePathSchema }).passthrough();
-const createdPageNestedOutputSchema = z
-  .object({
-    page: z.object({ fullPath: absolutePathSchema }).passthrough(),
-  })
-  .passthrough();
 
 function getTextPartContent(part: AgentChatMessagePart) {
   if (part.type !== "text") return null;
@@ -103,50 +93,6 @@ function findToolResult(parts: readonly AgentChatMessagePart[], toolCallId: stri
   return parts.find(
     (part): part is ToolResultPart => part.type === "tool-result" && part.toolCallId === toolCallId,
   );
-}
-
-function getToolResultOutput(result: ToolResultPart) {
-  return parseToolOutput(result.content);
-}
-
-function parseToolOutput(output: unknown) {
-  if (typeof output !== "string") return output;
-
-  try {
-    return JSON.parse(output) as unknown;
-  } catch {
-    return output;
-  }
-}
-
-function getSelectedBlockIdFromToolOutput(params: {
-  toolName: string | undefined;
-  output: unknown;
-  isError?: boolean;
-}): number | null {
-  const { toolName, output, isError } = params;
-  if (toolName !== "createBlock" && toolName !== "editBlock") return null;
-  if (isError) return null;
-
-  const parsed = blockToolOutputSchema.safeParse(parseToolOutput(output));
-  return parsed.success ? parsed.data.id : null;
-}
-
-function getCreatedPagePathFromToolOutput(params: {
-  toolName: string | undefined;
-  output: unknown;
-  isError?: boolean;
-}): string | null {
-  const { toolName, isError } = params;
-  if (toolName !== "createPage") return null;
-  if (isError) return null;
-
-  const output = parseToolOutput(params.output);
-  const pathOutput = createdPagePathOutputSchema.safeParse(output);
-  if (pathOutput.success) return pathOutput.data.fullPath;
-
-  const nestedOutput = createdPageNestedOutputSchema.safeParse(output);
-  return nestedOutput.success ? nestedOutput.data.page.fullPath : null;
 }
 
 const markdownComponents = {
@@ -286,8 +232,6 @@ const AgentChatThread = ({
   const [input, setInput] = React.useState("");
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
-  const selectedToolResultIdsRef = React.useRef(new Set<string>());
-  const navigatedPageToolResultIdsRef = React.useRef(new Set<string>());
   const thinkingStartedAtRef = React.useRef<number | null>(null);
   const thinkingSegmentStartsRef = React.useRef(new Map<string, number>());
   const [thinkingDurations, setThinkingDurations] = React.useState<Record<string, number>>({});
@@ -316,10 +260,34 @@ const AgentChatThread = ({
     [currentPath, projectId, source],
   );
 
+  const handleCustomEvent = React.useCallback(
+    (eventType: string, data: unknown) => {
+      if (eventType !== "agent-chat-ui-action") return;
+      if (!data || typeof data !== "object") return;
+
+      const action = (data as { action?: unknown }).action;
+      if (action === "navigate") {
+        const fullPath = (data as { fullPath?: unknown }).fullPath;
+        if (typeof fullPath !== "string" || !fullPath.startsWith("/")) return;
+        if (fullPath === currentPath) return;
+        void navigate({ to: fullPath });
+        return;
+      }
+
+      if (action !== "focusBlock") return;
+      const blockId = (data as { blockId?: unknown }).blockId;
+      if (typeof blockId !== "number") return;
+
+      previewStore.send({ type: "setFocusedBlock", blockId });
+    },
+    [currentPath, navigate],
+  );
+
   const { messages, sendMessage, isLoading, error, stop, addToolApprovalResponse, addToolResult } =
     useChat({
       connection,
       body: { projectId, currentPath, source },
+      onCustomEvent: handleCustomEvent,
     });
   const lastMessage = messages[messages.length - 1];
   const lastAssistantMessage =
@@ -420,79 +388,6 @@ const AgentChatThread = ({
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end" });
   }, [messages]);
-
-  React.useEffect(() => {
-    for (const message of messages) {
-      const toolNameByCallId = new Map<string, string>();
-      for (const part of message.parts) {
-        if (part.type !== "tool-call") continue;
-        toolNameByCallId.set(part.id, part.name);
-      }
-
-      for (const part of message.parts) {
-        if (part.type === "tool-call") {
-          if (part.output === undefined) continue;
-
-          if (!navigatedPageToolResultIdsRef.current.has(part.id)) {
-            const fullPath = getCreatedPagePathFromToolOutput({
-              toolName: part.name,
-              output: part.output,
-            });
-
-            if (fullPath) {
-              navigatedPageToolResultIdsRef.current.add(part.id);
-              if (fullPath !== currentPath) {
-                void navigate({ to: fullPath });
-              }
-            }
-          }
-
-          if (selectedToolResultIdsRef.current.has(part.id)) continue;
-
-          const blockId = getSelectedBlockIdFromToolOutput({
-            toolName: part.name,
-            output: part.output,
-          });
-          if (!blockId) continue;
-
-          selectedToolResultIdsRef.current.add(part.id);
-          previewStore.send({ type: "setFocusedBlock", blockId });
-          continue;
-        }
-
-        if (part.type !== "tool-result") continue;
-
-        const toolName = toolNameByCallId.get(part.toolCallId);
-
-        if (!navigatedPageToolResultIdsRef.current.has(part.toolCallId)) {
-          const fullPath = getCreatedPagePathFromToolOutput({
-            toolName,
-            output: getToolResultOutput(part),
-            isError: part.state === "error" || !!part.error,
-          });
-
-          if (fullPath) {
-            navigatedPageToolResultIdsRef.current.add(part.toolCallId);
-            if (fullPath !== currentPath) {
-              void navigate({ to: fullPath });
-            }
-          }
-        }
-
-        if (selectedToolResultIdsRef.current.has(part.toolCallId)) continue;
-
-        const blockId = getSelectedBlockIdFromToolOutput({
-          toolName,
-          output: getToolResultOutput(part),
-          isError: part.state === "error" || !!part.error,
-        });
-        if (!blockId) continue;
-
-        selectedToolResultIdsRef.current.add(part.toolCallId);
-        previewStore.send({ type: "setFocusedBlock", blockId });
-      }
-    }
-  }, [currentPath, messages, navigate]);
 
   const handleApprovalResponse = async (part: ToolCallPart, approved: boolean) => {
     const errorText = "User declined tool execution";
