@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.4](https://github.com/camox-ai/camox/compare/camox-v0.31.3...camox-sdk-v0.31.4) (2026-05-27)
+
+
+### Bug Fixes
+
+* server import in client ([294153a](https://github.com/camox-ai/camox/commit/294153ac437f7377f4824a25056f84dc9de78a54))
+
 ## [0.31.3](https://github.com/camox-ai/camox/compare/camox-v0.31.2...camox-sdk-v0.31.3) (2026-05-27)
 
 

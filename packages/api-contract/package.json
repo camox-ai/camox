@@ -1,6 +1,6 @@
 {
   "name": "@camox/api-contract",
-  "version": "0.31.3",
+  "version": "0.31.4",
   "files": [
     "src",
     "dist"
