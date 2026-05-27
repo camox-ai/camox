@@ -6,7 +6,6 @@ import type { RouterClient } from "@orpc/server";
 import type { QueryClient } from "@tanstack/react-query";
 import { notFound } from "@tanstack/react-router";
 import { createMiddleware, createServerFn } from "@tanstack/react-start";
-import { getRequest, setResponseHeader } from "@tanstack/react-start/server";
 
 import type { CamoxApp } from "../../core/createApp";
 import {
@@ -119,8 +118,9 @@ function isNotFoundError(error: unknown): boolean {
   return code === "NOT_FOUND" || status === 404;
 }
 
-function clearServerAuthCookie() {
+async function clearServerAuthCookie() {
   if (typeof window !== "undefined") return;
+  const { setResponseHeader } = await import("@tanstack/react-start/server");
   setResponseHeader("Set-Cookie", buildClearServerAuthCookieHeader());
 }
 
@@ -208,6 +208,7 @@ async function buildLoaderData(apiUrl: string, page: PageStructure) {
  * -----------------------------------------------------------------------------------------------*/
 
 export const getOrigin = createServerFn({ method: "GET" }).handler(async () => {
+  const { getRequest } = await import("@tanstack/react-start/server");
   const request = getRequest();
   const url = new URL(request.url);
   return url.origin;
@@ -215,6 +216,7 @@ export const getOrigin = createServerFn({ method: "GET" }).handler(async () => {
 
 export const getServerLoaderAuthCookieHeader = createServerFn({ method: "GET" }).handler(
   async () => {
+    const { getRequest } = await import("@tanstack/react-start/server");
     return getServerAuthCookieHeader(getRequest().headers);
   },
 );
@@ -289,7 +291,7 @@ export function createPageLoader(apiUrl: string, projectSlug: string, environmen
         throwNotFoundOrRethrow(error);
       }
 
-      clearServerAuthCookie();
+      await clearServerAuthCookie();
       console.warn("[camox] Ignoring stale camox_auth_cookie and retrying published page load.");
 
       const page = await loadLivePage(loadOptions);
