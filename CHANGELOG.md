@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.2](https://github.com/camox-ai/camox/compare/camox-v0.31.1...camox-v0.31.2) (2026-05-27)
+
+
+### Bug Fixes
+
+* hydration error on created apps ([ff8cd51](https://github.com/camox-ai/camox/commit/ff8cd5111f7744a002e6f8df021d74781b15412a))
+
 ## [0.31.1](https://github.com/camox-ai/camox/compare/camox-v0.31.0...camox-v0.31.1) (2026-05-26)
 
 
