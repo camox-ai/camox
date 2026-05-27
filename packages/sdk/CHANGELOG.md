@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.3](https://github.com/camox-ai/camox/compare/camox-v0.31.2...camox-sdk-v0.31.3) (2026-05-27)
+
+
+### Bug Fixes
+
+* remove tanstack router from vite optimizDeps ([987a1d1](https://github.com/camox-ai/camox/commit/987a1d12b902bd5188c3bfb97432fceb7e943551))
+
 ## [0.31.2](https://github.com/camox-ai/camox/compare/camox-v0.31.1...camox-sdk-v0.31.2) (2026-05-27)
 
 
