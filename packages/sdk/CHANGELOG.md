@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.5](https://github.com/camox-ai/camox/compare/camox-v0.31.4...camox-sdk-v0.31.5) (2026-06-09)
+
+
+### Miscellaneous
+
+* migrate all but api to mit license ([07e31a2](https://github.com/camox-ai/camox/commit/07e31a2298d0537bb228246ce9fc7e97cbbc83dd))
+
 ## [0.31.4](https://github.com/camox-ai/camox/compare/camox-v0.31.3...camox-sdk-v0.31.4) (2026-05-27)
 
 
