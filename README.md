@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="./art/logo-banner.webp" alt="Camox logo" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./art/logo-banner-dark.webp" />
+    <source media="(prefers-color-scheme: light)" srcset="./art/logo-banner-light.webp" />
+    <img src="./art/logo-banner-light.webp" alt="Camox logo" />
+  </picture>
 </p>
 
 ## The open-source CMS for coding agents
