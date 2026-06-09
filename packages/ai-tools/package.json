@@ -2,6 +2,7 @@
   "name": "@camox/ai-tools",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "files": [
     "src"
   ],

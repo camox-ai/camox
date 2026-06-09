@@ -1,6 +1,7 @@
 {
   "name": "create-camox",
   "version": "0.31.4",
+  "license": "MIT",
   "bin": {
     "create-camox": "./bin/create-camox.mjs"
   },

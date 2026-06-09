@@ -2,6 +2,7 @@
   "name": "@camox/api",
   "version": "0.7.0",
   "private": true,
+  "license": "FSL-1.1-MIT",
   "files": [
     "src"
   ],

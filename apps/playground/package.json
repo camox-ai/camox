@@ -1,6 +1,7 @@
 {
   "name": "playground",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vp dev --port 3000",

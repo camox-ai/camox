@@ -2,6 +2,7 @@
   "name": "camox-monorepo",
   "version": "0.31.4",
   "private": true,
+  "license": "MIT",
   "author": "",
   "type": "module",
   "scripts": {
