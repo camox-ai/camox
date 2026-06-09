@@ -1,24 +1,14 @@
 <p align="center">
-  <img src="./art/logo-banner.png" alt="Camox" />
+  <img src="./art/logo-banner.webp" alt="Camox logo" />
 </p>
 
-<p align="center">
-  <strong>The agentic page builder framework</strong><br/>
-  Define blocks and layouts in code. Edit content visually, or with agents.
-</p>
+## The open-source CMS for coding agents
 
-<p align="center">
-  <a href="https://camox.ai">Website</a>
-  &nbsp;·&nbsp;
-  <a href="https://youtu.be/sftAaNrrfR8">Product overview</a>
-</p>
+Camox is an open-source page builder framework. It lets developers build quality websites fast by using tools like Claude Code while getting the best parts of a CMS (visual editing, drafts...)
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/camox"><img src="https://img.shields.io/npm/last-update/camox" alt="npm" /></a>
-  <a href="https://github.com/camox-ai/camox"><img src="https://img.shields.io/github/commit-activity/w/camox-ai/camox" alt="github" /></a>
-</p>
-
----
+- [Website](https://camox.ai)
+- [Video product overview](https://youtu.be/sftAaNrrfR8)
+- [GitHub](https://github.com/camox-ai/camox)
 
 ## Quick start
 
@@ -26,15 +16,50 @@
 npm create camox@latest
 ```
 
-## Built for agents
+## How it works
 
-- **Skills included** — Agents discover Camox capabilities without polluting context, and updates auto-sync.
-- **Type-safe APIs** — Inferred TypeScript types and structured output give agents tight feedback loops to self-correct.
-- **Powerful CLI** — Browse content, manage blocks, and create pages from the terminal. Agents can operate entirely in bash.
+1. **Create a Camox project**
+   Start from the CLI and get a base Camox application on your computer.
 
-## Built for the web
+2. **Define blocks and layouts in code**
+   Blocks are typed React components with content schemas. Layouts describe how
+   pages are wrapped with shared structure such as navigation and footers.
 
-- SEO metadata auto-generation
-- Markdown served to LLMs for token-efficient crawling
-- Optimized image compression with AI-generated metadata
-- Automatic OpenGraph image generation
+3. **Edit content visually**
+   Camox Studio lets you inspect pages, select blocks, edit fields, update
+   assets, and preview changes in context.
+
+4. **Let agents work through structured tools**
+   The Camox CLI and bundled skills let coding agents list pages, inspect block
+   types, create sections, update content, and manage draft/live state from the
+   terminal.
+
+5. **Publish website-friendly output**
+   Camox includes support for SEO metadata, optimized images, Open Graph images,
+   and markdown representations of pages for LLM crawlers.
+
+## Features
+
+- **Visual editing** — Use Camox Studio to inspect available blocks, edit their
+  content and assets, and preview changes in context.
+- **Automatic SEO management** — Camox watches page content changes and can
+  generate updated titles and descriptions optimized for search.
+- **Draft and publish workflow** — Work on draft content, review changes, then
+  publish pages when they are ready to go live.
+- **Asset optimization** — Uploaded assets are compressed and served efficiently,
+  with AI-generated filenames and alt text for accessibility.
+- **Markdown for agents** — Serve token-efficient markdown to LLMs instead of
+  raw HTML, with block-to-markdown templates so content keeps its structure.
+
+## Core pieces
+
+- **SDK** — React components, Vite integration, preview tooling, metadata helpers, and the runtime used by Camox apps.
+- **CLI** — Terminal commands for inspecting pages, describing block types, editing content, and publishing changes.
+- **Studio** — A visual editing interface for the pages and blocks defined by your application.
+- **Skills** — Agent-facing instructions that teach coding agents how to create blocks, manage content, and use the CLI.
+
+## License
+
+The Camox framework is MIT-licensed: `camox`, `@camox/cli`, `create-camox`,
+`@camox/ui`, `@camox/api-contract`, templates, and supporting packages. The
+hosted API implementation in `apps/api` is source-available under [FSL-1.1-MIT](https://fsl.software/).
