@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.31.5](https://github.com/camox-ai/camox/compare/camox-v0.31.4...camox-v0.31.5) (2026-06-09)
+
+
+### Documentation
+
+* add mcp server plan ([e794fd3](https://github.com/camox-ai/camox/commit/e794fd393990ac455d060e7bcd9eafe47144e332))
+* revamp readme ([5427fe7](https://github.com/camox-ai/camox/commit/5427fe7621661238849f7428dcfd48fbc09addef))
+* simplify readme ([a54ddab](https://github.com/camox-ai/camox/commit/a54ddab6685df8fd22ee3881dcf699b5f35b6a0f))
+
+
+### Miscellaneous
+
+* migrate all but api to mit license ([07e31a2](https://github.com/camox-ai/camox/commit/07e31a2298d0537bb228246ce9fc7e97cbbc83dd))
+
 ## [0.31.4](https://github.com/camox-ai/camox/compare/camox-v0.31.3...camox-v0.31.4) (2026-05-27)
 
 
