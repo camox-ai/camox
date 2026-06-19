@@ -122,7 +122,8 @@ function resolveField(schema: any, value: unknown, ctx: SettingsContext): string
   if (fieldType === "Link") {
     const link = value as Record<string, unknown>;
     const text = asString(link.text);
-    const href = asString(link.href) || asString(link.pageId);
+    const pageId = asString(link.pageId);
+    const href = pageId ? `camox:page:${pageId}` : asString(link.href);
     if (!text && !href) return undefined;
     return `[${text}](${href})`;
   }

@@ -1,3 +1,4 @@
+import { LinkNode } from "@lexical/link";
 import type { InitialConfigType } from "@lexical/react/LexicalComposer";
 import { ParagraphNode } from "lexical";
 
@@ -24,7 +25,11 @@ export function createEditorConfig(
     onError: (error) => {
       console.error("Lexical error:", error);
     },
+    theme: {
+      link: "camox-text-link",
+    },
     nodes: [
+      LinkNode,
       InlineParagraphNode,
       {
         replace: ParagraphNode,

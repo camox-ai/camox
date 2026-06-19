@@ -28,9 +28,17 @@ export type OverlayMessage =
       afterPosition?: string | null;
     }
   // Text selection (Iframe → Parent)
-  | { type: "CAMOX_TEXT_SELECTION_STATE"; hasSelection: boolean; activeFormats: number }
+  | {
+      type: "CAMOX_TEXT_SELECTION_STATE";
+      hasSelection: boolean;
+      activeFormats: number;
+      linkTarget: string | null;
+      selectedText: string;
+    }
+  | { type: "CAMOX_OPEN_TEXT_LINK_POPOVER"; target: string; text: string }
   // Text formatting (Parent → Iframe)
-  | { type: "CAMOX_FORMAT_TEXT"; formatKey: string };
+  | { type: "CAMOX_FORMAT_TEXT"; formatKey: string }
+  | { type: "CAMOX_TOGGLE_TEXT_LINK"; target: string | null; text?: string };
 
 export function isOverlayMessage(data: unknown): data is OverlayMessage {
   return (

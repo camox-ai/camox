@@ -52,6 +52,10 @@ _Avoid_: List item, child block
 The user-editable data that determines what a **Block** or **Repeatable Item** says or shows.
 _Avoid_: Props, data
 
+**Text Link**:
+Linked text embedded inside string **Content**. A **Text Link** has display text and a destination that points either to an external URL or to a **Page**.
+_Avoid_: Hypertext link, inline Link
+
 **Settings**:
 Configuration that changes how a **Block** or **Repeatable Item** behaves or appears without being the primary content.
 _Avoid_: Options, config
@@ -75,6 +79,9 @@ Domain expert: "Yes, define it as a Block in the Layout so Pages using that Layo
 
 Developer: "The hero copy is different on the homepage."
 Domain expert: "That belongs in the Page's Block content, not in the Block Definition."
+
+Developer: "Can the body copy link to another page without breaking when the page path changes?"
+Domain expert: "Yes, add a Text Link that points to the Page, not to the Page's current path."
 
 Developer: "Can we publish this Page without changing the shared footer?"
 Domain expert: "Yes, publish the Page's Live Source from its current draft without publishing the Layout."

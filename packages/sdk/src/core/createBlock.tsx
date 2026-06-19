@@ -724,6 +724,13 @@ export function createBlock<
     const isContentEditable = useIsEditable(mode);
     const elementRef = React.useRef<HTMLElement>(null);
     const { window: iframeWindow } = useFrame();
+    const projectSlug = useProjectSlug();
+    const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
+    const { data: pages } = useQuery({
+      ...pageQueries.list(project?.id ?? 0),
+      enabled: !!project,
+    });
+    const currentPathname = useLocation({ select: (l) => l.pathname });
 
     // Check if we're inside a Repeater
     const repeaterContext = React.use(RepeaterItemContext);
@@ -839,7 +846,12 @@ export function createBlock<
       return (
         <>
           {children(
-            { children: markdownToReactNodes(fieldValue) } satisfies FieldRenderProps,
+            {
+              children: markdownToReactNodes(fieldValue, {
+                pages: pages as Page[] | undefined,
+                fallbackHref: currentPathname,
+              }),
+            } satisfies FieldRenderProps,
             fieldData,
           )}
         </>

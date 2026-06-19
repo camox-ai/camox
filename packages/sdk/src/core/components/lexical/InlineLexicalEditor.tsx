@@ -1,6 +1,8 @@
+import { TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import type { EditorState } from "lexical";
@@ -9,11 +11,15 @@ import {
   INSERT_LINE_BREAK_COMMAND,
   KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND,
+  PASTE_COMMAND,
+  $getSelection,
+  $isRangeSelection,
 } from "lexical";
 import * as React from "react";
 
 import { useFrame } from "../../../features/preview/components/Frame";
 import { lexicalStateToMarkdown } from "../../lib/lexicalState";
+import { isHttpTextLinkTarget } from "../../lib/textLinks";
 import { createEditorConfig, normalizeLexicalState } from "./editorConfig";
 import { InlineContentEditable } from "./InlineContentEditable";
 import { SelectionBroadcaster } from "./SelectionBroadcaster";
@@ -99,6 +105,32 @@ function EnterAsLineBreakHandler() {
   return null;
 }
 
+function PasteUrlAsLinkHandler() {
+  const [editor] = useLexicalComposerContext();
+
+  React.useEffect(() => {
+    return editor.registerCommand(
+      PASTE_COMMAND,
+      (event) => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection) || selection.isCollapsed()) return false;
+
+        if (!("clipboardData" in event) || !event.clipboardData) return false;
+
+        const url = event.clipboardData.getData("text/plain").trim();
+        if (!url || !isHttpTextLinkTarget(url)) return false;
+
+        event.preventDefault();
+        editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
+        return true;
+      },
+      COMMAND_PRIORITY_LOW,
+    );
+  }, [editor]);
+
+  return null;
+}
+
 function FocusBlurHandler({ onFocus, onBlur }: { onFocus: () => void; onBlur: () => void }) {
   const [editor] = useLexicalComposerContext();
 
@@ -113,6 +145,27 @@ function FocusBlurHandler({ onFocus, onBlur }: { onFocus: () => void; onBlur: ()
       };
     });
   }, [editor, onFocus, onBlur]);
+
+  return null;
+}
+
+function LinkStyleInjector() {
+  const [editor] = useLexicalComposerContext();
+
+  React.useEffect(() => {
+    return editor.registerRootListener((root) => {
+      if (!root) return;
+
+      const doc = root.ownerDocument;
+      const styleId = "camox-editable-text-link-styles";
+      if (doc.getElementById(styleId)) return;
+
+      const style = doc.createElement("style");
+      style.id = styleId;
+      style.textContent = `.camox-text-link { text-decoration-line: underline; }`;
+      doc.head.appendChild(style);
+    });
+  }, [editor]);
 
   return null;
 }
@@ -177,10 +230,13 @@ export function InlineLexicalEditor({
       />
       <OnChangePlugin onChange={handleChange} ignoreSelectionChange />
       <HistoryPlugin />
+      <LinkPlugin />
       <ExternalStateSync externalState={externalState} />
       <EscapeHandler />
       <EnterAsLineBreakHandler />
+      <PasteUrlAsLinkHandler />
       <FocusBlurHandler onFocus={handleFocus} onBlur={handleBlur} />
+      <LinkStyleInjector />
       {iframeWindow && <SelectionBroadcaster targetWindow={iframeWindow} />}
     </LexicalComposer>
   );

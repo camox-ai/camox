@@ -1,4 +1,5 @@
 import { lexicalTextToMarkdown, FORMAT_FLAGS } from "./modifierFormats";
+import { isValidTextLinkTarget } from "./textLinks";
 
 export function isLexicalState(value: unknown): boolean {
   if (typeof value === "object" && value !== null) {
@@ -86,6 +87,12 @@ function extractMarkdownFromNode(node: any): string {
   if (node.type === "text") {
     return lexicalTextToMarkdown(node.text ?? "", node.format ?? 0);
   }
+  if (node.type === "link") {
+    const text = (node.children ?? []).map(extractMarkdownFromNode).join("");
+    const url = typeof node.url === "string" ? node.url : "";
+    if (!url) return text;
+    return `[${text}](${url})`;
+  }
   if (node.type === "linebreak") return "\n";
   if (!node.children) return "";
 
@@ -153,6 +160,46 @@ function parseParagraphWithLineBreaks(para: string): any[] {
 }
 
 function parseInlineMarkdown(text: string): any[] {
+  const nodes: any[] = [];
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  let lastLinkIndex = 0;
+  let linkMatch;
+
+  while ((linkMatch = linkRegex.exec(text)) !== null) {
+    if (linkMatch.index > lastLinkIndex) {
+      nodes.push(...parseFormattedText(text.slice(lastLinkIndex, linkMatch.index)));
+    }
+
+    const [, label, target] = linkMatch;
+    if (isValidTextLinkTarget(target)) {
+      nodes.push({
+        children: parseFormattedText(label),
+        direction: "ltr",
+        format: "",
+        indent: 0,
+        rel: null,
+        target: null,
+        title: null,
+        type: "link",
+        url: target,
+        version: 1,
+      });
+    } else {
+      nodes.push(...parseFormattedText(label));
+    }
+
+    lastLinkIndex = linkMatch.index + linkMatch[0].length;
+  }
+
+  if (lastLinkIndex < text.length) {
+    nodes.push(...parseFormattedText(text.slice(lastLinkIndex)));
+  }
+
+  if (nodes.length === 0) return parseFormattedText(text);
+  return nodes;
+}
+
+function parseFormattedText(text: string): any[] {
   const segments: TextSegment[] = [];
   // Match **bold**, *italic*, and ***bold+italic***
   const regex = /(\*{1,3})((?:(?!\1).)+)\1/g;

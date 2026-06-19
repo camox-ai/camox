@@ -213,6 +213,7 @@ function topoSortItems<T extends { id: number; parentItemId: number | null }>(it
 }
 
 type IdMap = Map<number, number>;
+const PAGE_TEXT_LINK_PREFIX = "camox:page:";
 
 function remapNullableId(id: number | null, map: IdMap): number | null {
   if (id === null) return null;
@@ -224,8 +225,41 @@ function remapMaybeNullableId(id: number | null, map: IdMap): number | null {
   return map.get(id) ?? null;
 }
 
-function remapCheckpointContent(value: unknown, filesMap: IdMap) {
-  return remapFileReferences(value as JsonValue, filesMap);
+function remapMarkdownPageReferences(value: string, pagesMap: IdMap): string {
+  return value.replaceAll(/camox:page:(\d+)/g, (match, pageId: string) => {
+    const remapped = pagesMap.get(Number(pageId));
+    if (remapped === undefined) return match;
+    return `${PAGE_TEXT_LINK_PREFIX}${remapped}`;
+  });
+}
+
+function remapPageReferences(value: JsonValue, pagesMap: IdMap): JsonValue {
+  if (typeof value === "string") return remapMarkdownPageReferences(value, pagesMap);
+  if (value === null || typeof value !== "object") return value;
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => remapPageReferences(entry, pagesMap));
+  }
+
+  const out: Record<string, JsonValue> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (key === "pageId" && typeof entry === "string") {
+      const remapped = pagesMap.get(Number(entry));
+      out[key] = remapped === undefined ? entry : String(remapped);
+      continue;
+    }
+    out[key] = remapPageReferences(entry, pagesMap);
+  }
+  return out;
+}
+
+function remapContentReferences(value: unknown, filesMap: IdMap, pagesMap: IdMap) {
+  const withFiles = remapFileReferences(value as JsonValue, filesMap);
+  return remapPageReferences(withFiles, pagesMap);
+}
+
+function remapCheckpointContent(value: unknown, filesMap: IdMap, pagesMap: IdMap) {
+  return remapContentReferences(value, filesMap, pagesMap);
 }
 
 // --- replicateEnvironment ---
@@ -432,10 +466,10 @@ export async function replicateEnvironment(
     const { id, pageId, layoutId, content, settings, ...rest } = row;
     const newPageId = pageId !== null ? (pagesMap.get(pageId) ?? null) : null;
     const newLayoutId = layoutId !== null ? (layoutsMap.get(layoutId) ?? null) : null;
-    const newContent = remapFileReferences(content as JsonValue, filesMap);
+    const newContent = remapContentReferences(content, filesMap, pagesMap);
     const newSettings =
       settings !== null && settings !== undefined
-        ? remapFileReferences(settings as JsonValue, filesMap)
+        ? remapContentReferences(settings, filesMap, pagesMap)
         : settings;
     const inserted = await ctx.db
       .insert(blocks)
@@ -461,10 +495,10 @@ export async function replicateEnvironment(
       });
     }
     const newParentItemId = parentItemId !== null ? (itemsMap.get(parentItemId) ?? null) : null;
-    const newContent = remapFileReferences(content as JsonValue, filesMap);
+    const newContent = remapContentReferences(content, filesMap, pagesMap);
     const newSettings =
       settings !== null && settings !== undefined
-        ? remapFileReferences(settings as JsonValue, filesMap)
+        ? remapContentReferences(settings, filesMap, pagesMap)
         : settings;
     const inserted = await ctx.db
       .insert(repeatableItems)
@@ -499,10 +533,10 @@ export async function replicateEnvironment(
         id: blocksMap.get(block.id) ?? block.id,
         pageId: remapMaybeNullableId(block.pageId, pagesMap),
         layoutId: remapMaybeNullableId(block.layoutId, layoutsMap),
-        content: remapCheckpointContent(block.content, filesMap),
+        content: remapCheckpointContent(block.content, filesMap, pagesMap),
         settings:
           block.settings !== null
-            ? remapCheckpointContent(block.settings, filesMap)
+            ? remapCheckpointContent(block.settings, filesMap, pagesMap)
             : block.settings,
       })),
       repeatableItems: parsed.repeatableItems.map((item) => ({
@@ -510,9 +544,11 @@ export async function replicateEnvironment(
         id: itemsMap.get(item.id) ?? item.id,
         blockId: blocksMap.get(item.blockId) ?? item.blockId,
         parentItemId: remapNullableId(item.parentItemId, itemsMap),
-        content: remapCheckpointContent(item.content, filesMap),
+        content: remapCheckpointContent(item.content, filesMap, pagesMap),
         settings:
-          item.settings !== null ? remapCheckpointContent(item.settings, filesMap) : item.settings,
+          item.settings !== null
+            ? remapCheckpointContent(item.settings, filesMap, pagesMap)
+            : item.settings,
       })),
     };
 
@@ -545,10 +581,10 @@ export async function replicateEnvironment(
         id: blocksMap.get(block.id) ?? block.id,
         pageId: remapMaybeNullableId(block.pageId, pagesMap),
         layoutId: remapMaybeNullableId(block.layoutId, layoutsMap),
-        content: remapCheckpointContent(block.content, filesMap),
+        content: remapCheckpointContent(block.content, filesMap, pagesMap),
         settings:
           block.settings !== null
-            ? remapCheckpointContent(block.settings, filesMap)
+            ? remapCheckpointContent(block.settings, filesMap, pagesMap)
             : block.settings,
       })),
       repeatableItems: parsed.repeatableItems.map((item) => ({
@@ -556,9 +592,11 @@ export async function replicateEnvironment(
         id: itemsMap.get(item.id) ?? item.id,
         blockId: blocksMap.get(item.blockId) ?? item.blockId,
         parentItemId: remapNullableId(item.parentItemId, itemsMap),
-        content: remapCheckpointContent(item.content, filesMap),
+        content: remapCheckpointContent(item.content, filesMap, pagesMap),
         settings:
-          item.settings !== null ? remapCheckpointContent(item.settings, filesMap) : item.settings,
+          item.settings !== null
+            ? remapCheckpointContent(item.settings, filesMap, pagesMap)
+            : item.settings,
       })),
     };
 

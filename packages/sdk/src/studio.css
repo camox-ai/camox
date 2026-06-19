@@ -28,6 +28,10 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
+.camox-text-link {
+  text-decoration-line: underline;
+}
+
 :root {
   --preview-background: oklch(0.98 0.005 264.531);
   --color-checker-bg: #f8f9fa;
