@@ -1,14 +1,37 @@
 import * as React from "react";
 
 import {
+  getPageIdFromTextLinkTarget,
+  isHttpTextLinkTarget,
   isValidTextLinkTarget,
   resolveTextLinkHref,
   shouldOpenTextLinkInNewTab,
 } from "./textLinks";
 
+export interface MarkdownLinkRenderProps {
+  href: string;
+  target?: string;
+  rel?: string;
+  children: React.ReactNode;
+}
+
+export interface MarkdownLinkRenderData {
+  target: string;
+  href: string;
+  external: boolean;
+  pageId?: string;
+}
+
+export interface MarkdownInlineComponents {
+  link?: (props: MarkdownLinkRenderProps, data: MarkdownLinkRenderData) => React.ReactNode;
+  strong?: (props: { children: React.ReactNode }) => React.ReactNode;
+  emphasis?: (props: { children: React.ReactNode }) => React.ReactNode;
+}
+
 interface MarkdownToReactNodesOptions {
   pages?: Array<{ id: number; fullPath: string }>;
   fallbackHref?: string;
+  components?: MarkdownInlineComponents;
 }
 
 /**
@@ -49,15 +72,26 @@ export function markdownToReactNodes(
       const content = match[2];
 
       if (stars === 3) {
+        const emphasis = options.components?.emphasis?.({ children: content }) ?? (
+          <em>{content}</em>
+        );
         parts.push(
-          <strong key={key++}>
-            <em>{content}</em>
-          </strong>,
+          <React.Fragment key={key++}>
+            {options.components?.strong?.({ children: emphasis }) ?? <strong>{emphasis}</strong>}
+          </React.Fragment>,
         );
       } else if (stars === 2) {
-        parts.push(<strong key={key++}>{content}</strong>);
+        parts.push(
+          <React.Fragment key={key++}>
+            {options.components?.strong?.({ children: content }) ?? <strong>{content}</strong>}
+          </React.Fragment>,
+        );
       } else {
-        parts.push(<em key={key++}>{content}</em>);
+        parts.push(
+          <React.Fragment key={key++}>
+            {options.components?.emphasis?.({ children: content }) ?? <em>{content}</em>}
+          </React.Fragment>,
+        );
       }
 
       lastIndex = match.index + match[0].length;
@@ -84,16 +118,25 @@ export function markdownToReactNodes(
 
     if (href) {
       const openInNewTab = shouldOpenTextLinkInNewTab(target);
+      const linkProps = {
+        href,
+        target: openInNewTab ? "_blank" : undefined,
+        rel: openInNewTab ? "noreferrer" : undefined,
+        children: label,
+      } satisfies MarkdownLinkRenderProps;
+      const linkData = {
+        target,
+        href,
+        external: isHttpTextLinkTarget(target),
+        pageId: getPageIdFromTextLinkTarget(target) ?? undefined,
+      } satisfies MarkdownLinkRenderData;
+
       parts.push(
-        <a
-          key={key++}
-          href={href}
-          style={{ textDecorationLine: "underline" }}
-          target={openInNewTab ? "_blank" : undefined}
-          rel={openInNewTab ? "noreferrer" : undefined}
-        >
-          {label}
-        </a>,
+        <React.Fragment key={key++}>
+          {options.components?.link?.(linkProps, linkData) ?? (
+            <a {...linkProps} style={{ textDecorationLine: "underline" }} />
+          )}
+        </React.Fragment>,
       );
     } else {
       pushFormatted(label);

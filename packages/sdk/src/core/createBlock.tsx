@@ -52,9 +52,14 @@ import {
   getDefaultImageWidth,
   transformImageUrl,
 } from "./lib/imageTransform";
-import { markdownToReactNodes } from "./lib/lexicalReact";
+import { markdownToReactNodes, type MarkdownInlineComponents } from "./lib/lexicalReact";
 
 export { Type };
+export type {
+  MarkdownInlineComponents,
+  MarkdownLinkRenderData,
+  MarkdownLinkRenderProps,
+} from "./lib/lexicalReact";
 
 /** Normalize legacy links (no `type` field) to the new union shape */
 const normalizeLinkValue = (value: Record<string, unknown>): LinkValue => {
@@ -710,9 +715,11 @@ export function createBlock<
 
   const Field = <K extends keyof StringFields>({
     name,
+    components,
     children,
   }: {
     name: K;
+    components?: MarkdownInlineComponents;
     children: (props: FieldRenderProps, data: FieldRenderData) => React.ReactNode;
   }): React.ReactNode => {
     const blockContext = React.use(Context);
@@ -850,6 +857,7 @@ export function createBlock<
               children: markdownToReactNodes(fieldValue, {
                 pages: pages as Page[] | undefined,
                 fallbackHref: currentPathname,
+                components,
               }),
             } satisfies FieldRenderProps,
             fieldData,
@@ -1536,6 +1544,7 @@ export function createBlock<
       item: {
         Field: <F extends keyof ItemStringFields<K>>(props: {
           name: F;
+          components?: MarkdownInlineComponents;
           children: (props: FieldRenderProps, data: FieldRenderData) => React.ReactNode;
         }) => React.ReactNode;
         Link: <F extends keyof ItemLinkFields<K>>(props: {
@@ -1568,6 +1577,7 @@ export function createBlock<
             item: {
               Field: (props: {
                 name: string;
+                components?: MarkdownInlineComponents;
                 children: (props: FieldRenderProps, data: FieldRenderData) => React.ReactNode;
               }) => React.ReactNode;
               Link: (props: {
