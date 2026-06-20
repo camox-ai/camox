@@ -1,8 +1,8 @@
 {
-  ".": "0.31.5",
-  "packages/sdk": "0.31.5",
-  "packages/cli": "0.31.5",
-  "packages/ui": "0.31.5",
-  "packages/api-contract": "0.31.5",
-  "packages/create-camox": "0.31.5"
+  ".": "0.32.0",
+  "packages/sdk": "0.32.0",
+  "packages/cli": "0.32.0",
+  "packages/ui": "0.32.0",
+  "packages/api-contract": "0.32.0",
+  "packages/create-camox": "0.32.0"
 }
