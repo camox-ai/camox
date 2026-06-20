@@ -1,7 +1,7 @@
 import { Button } from "@camox/ui/button";
 import { FloatingToolbar } from "@camox/ui/floating-toolbar";
 import { Toggle } from "@camox/ui/toggle";
-import { TOGGLE_LINK_COMMAND } from "@lexical/link";
+import { $createLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -11,6 +11,7 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import type { EditorState, RangeSelection } from "lexical";
 import {
+  $createTextNode,
   $getSelection,
   $isRangeSelection,
   $setSelection,
@@ -86,6 +87,11 @@ function SidebarFloatingTextToolbar() {
   const [editor] = useLexicalComposerContext();
   const [open, setOpen] = React.useState(false);
   const [selectedText, setSelectedText] = React.useState("");
+  const [linkTarget, setLinkTarget] = React.useState<string | null>(null);
+  const [linkClickAnchor, setLinkClickAnchor] = React.useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const [toolbarState, setToolbarState] = React.useState({
     visible: false,
     top: 0,
@@ -117,6 +123,7 @@ function SidebarFloatingTextToolbar() {
     if (rect.width === 0 && rect.height === 0) return;
 
     let activeFormats = 0;
+    let currentLinkTarget: string | null = null;
     editor.getEditorState().read(() => {
       const selection = $getSelection();
       if (!$isRangeSelection(selection) || selection.isCollapsed()) return;
@@ -124,7 +131,18 @@ function SidebarFloatingTextToolbar() {
       setSelectedText(selection.getTextContent());
       if (selection.hasFormat("bold")) activeFormats |= FORMAT_FLAGS.bold;
       if (selection.hasFormat("italic")) activeFormats |= FORMAT_FLAGS.italic;
+
+      let node: any = selection.anchor.getNode();
+      while (node) {
+        if (node.getType?.() === "link") {
+          const url = node.getURL?.();
+          currentLinkTarget = typeof url === "string" ? url : null;
+          break;
+        }
+        node = node.getParent?.();
+      }
     });
+    setLinkTarget(currentLinkTarget);
 
     setToolbarState({
       visible: true,
@@ -151,6 +169,48 @@ function SidebarFloatingTextToolbar() {
     return editor.registerUpdateListener(() => updateToolbar());
   }, [editor, updateToolbar]);
 
+  React.useEffect(() => {
+    return editor.registerRootListener((root) => {
+      if (!root) return;
+
+      const handleLinkClick = (event: MouseEvent) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+
+        const anchor = target.closest("a");
+        if (!anchor || !root.contains(anchor)) return;
+
+        const href = anchor.getAttribute("href");
+        if (!href) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const rect = anchor.getBoundingClientRect();
+        setLinkClickAnchor({
+          top: rect.bottom + 8,
+          left: rect.left + rect.width / 2,
+        });
+
+        const doc = root.ownerDocument;
+        const range = doc.createRange();
+        range.selectNodeContents(anchor);
+        const selection = doc.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        root.focus();
+
+        setSelectedText(selection?.toString() ?? "");
+        setLinkTarget(href);
+        setOpen(true);
+        updateToolbar();
+      };
+
+      root.addEventListener("click", handleLinkClick);
+      return () => root.removeEventListener("click", handleLinkClick);
+    });
+  }, [editor, updateToolbar]);
+
   const restoreSelection = () => {
     const selection = $getSelection();
     if ($isRangeSelection(selection) && !selection.isCollapsed()) return;
@@ -163,10 +223,34 @@ function SidebarFloatingTextToolbar() {
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, formatKey);
   };
 
-  const applyTarget = (target: string | null) => {
-    editor.update(restoreSelection);
-    editor.dispatchCommand(TOGGLE_LINK_COMMAND, target);
+  const applyTarget = (target: string | null, text?: string) => {
+    editor.update(() => {
+      restoreSelection();
+
+      if (target === null) {
+        editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+        return;
+      }
+
+      if (typeof text !== "string") {
+        editor.dispatchCommand(TOGGLE_LINK_COMMAND, target);
+        return;
+      }
+
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) return;
+
+      const linkNode = $createLinkNode(target);
+      linkNode.append($createTextNode(text));
+      selection.insertNodes([linkNode]);
+    });
     setOpen(false);
+    setLinkClickAnchor(null);
+  };
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) setLinkClickAnchor(null);
   };
 
   const handleMouseDown = (event: React.MouseEvent) => {
@@ -174,6 +258,30 @@ function SidebarFloatingTextToolbar() {
     if (target instanceof HTMLElement && target.closest("input, select, textarea")) return;
     event.preventDefault();
   };
+
+  if (linkClickAnchor) {
+    return (
+      <TextLinkPopover
+        open={open}
+        onOpenChange={handleOpenChange}
+        trigger={
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-hidden="true"
+            tabIndex={-1}
+            className="fixed size-1 min-w-0 p-0 opacity-0"
+            style={{ top: linkClickAnchor.top, left: linkClickAnchor.left }}
+          />
+        }
+        text={selectedText}
+        target={linkTarget}
+        onSave={applyTarget}
+        onUnlink={() => applyTarget(null)}
+      />
+    );
+  }
 
   if (!toolbarState.visible) return null;
 
@@ -207,7 +315,7 @@ function SidebarFloatingTextToolbar() {
       </Toggle>
       <TextLinkPopover
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={handleOpenChange}
         trigger={
           <Button
             type="button"
@@ -217,7 +325,7 @@ function SidebarFloatingTextToolbar() {
           />
         }
         text={selectedText}
-        target={null}
+        target={linkTarget}
         onSave={applyTarget}
         onUnlink={() => applyTarget(null)}
       />
