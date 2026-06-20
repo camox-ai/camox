@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.32.0](https://github.com/camox-ai/camox/compare/camox-v0.31.5...camox-sdk-v0.32.0) (2026-06-20)
+
+
+### Features
+
+* add components prop to Field component ([e2d42c4](https://github.com/camox-ai/camox/commit/e2d42c499a357793d3281a7bf13cf8780ce7fab0))
+* add text links support ([1ba98ee](https://github.com/camox-ai/camox/commit/1ba98eea74c6e4eed5e98eb2ea4fecb9f3791279))
+
+
+### Bug Fixes
+
+* link popover editor ([edc0f15](https://github.com/camox-ai/camox/commit/edc0f15fea0a56e5215010fc10541c4a037b02aa))
+
 ## [0.31.5](https://github.com/camox-ai/camox/compare/camox-v0.31.4...camox-sdk-v0.31.5) (2026-06-09)
 
 

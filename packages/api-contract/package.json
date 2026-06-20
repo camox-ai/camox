@@ -1,6 +1,6 @@
 {
   "name": "@camox/api-contract",
-  "version": "0.31.5",
+  "version": "0.32.0",
   "license": "MIT",
   "files": [
     "src",
