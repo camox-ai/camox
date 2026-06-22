@@ -1,9 +1,10 @@
 /* -------------------------------------------------------------------------------------------------
- * PageMetadataModal
+ * Page metadata sidebar pieces
  * -----------------------------------------------------------------------------------------------*/
 
 import { Alert, AlertDescription, AlertTitle } from "@camox/ui/alert";
 import { Button } from "@camox/ui/button";
+import { ButtonGroup, ButtonGroupText } from "@camox/ui/button-group";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@camox/ui/dialog";
+import { Input } from "@camox/ui/input";
 import { Label } from "@camox/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { Spinner } from "@camox/ui/spinner";
@@ -20,10 +22,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useSelector } from "@xstate/store-react";
-import { Globe, Info, Trash2, Upload } from "lucide-react";
+import { Globe, Info, Pencil, Trash2, Upload } from "lucide-react";
 import * as React from "react";
 
+import { useDebouncedField } from "@/hooks/use-debounced-field";
 import { useProjectSlug } from "@/lib/auth";
 import type { Page } from "@/lib/queries";
 import {
@@ -37,26 +39,17 @@ import { trackClientEvent } from "@/lib/telemetry-client";
 
 import { UploadDropZone } from "../../content/components/UploadDropZone";
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
-import { previewStore } from "../previewStore";
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
 import { PageLocationFieldset } from "./PageLocationFieldset";
-import { PageNicknameField } from "./PageNicknameField";
+import { PAGE_NICKNAME_MAX_LENGTH, PageNicknameField } from "./PageNicknameField";
 import { ShikiMarkdown } from "./ShikiMarkdown";
 
-const PageMetadataModal = () => {
-  const editingPageId = useSelector(previewStore, (state) => state.context.editingPageId);
+type PageMetadataData = ReturnType<typeof usePageMetadataData>;
 
-  return <PageMetadataModalContent pageId={editingPageId} />;
-};
-
-const PageMetadataModalContent = ({ pageId }: { pageId: number | null }) => {
+const usePageMetadataData = (pageId: number) => {
   const projectSlug = useProjectSlug();
-  const updatePage = useMutation(pageMutations.update());
-  const setLayout = useMutation(pageMutations.setLayout());
-  const setAiSeo = useMutation(pageMutations.setAiSeo());
-  const setMetaTitle = useMutation(pageMutations.setMetaTitle());
-  const setMetaDescription = useMutation(pageMutations.setMetaDescription());
-  const { data: page } = useQuery({ ...pageQueries.getById(pageId!), enabled: pageId != null });
+  const camoxApp = useCamoxApp();
+  const { data: page } = useQuery(pageQueries.getById(pageId));
   const { data: project } = useQuery(projectQueries.getBySlug(projectSlug));
   const { data: pages } = useQuery({
     ...pageQueries.list(project?.id ?? 0),
@@ -66,7 +59,277 @@ const PageMetadataModalContent = ({ pageId }: { pageId: number | null }) => {
     ...layoutQueries.list(project?.id ?? 0),
     enabled: !!project,
   });
-  const camoxApp = useCamoxApp();
+
+  const pageLayoutRecord = layouts?.find((l) => l.id === page?.layoutId);
+  const layoutDef = pageLayoutRecord
+    ? camoxApp.getLayoutById(pageLayoutRecord.layoutId)
+    : undefined;
+  const metaTitle =
+    layoutDef && page
+      ? layoutDef._internal.buildMetaTitle({
+          pageMetaTitle: page.metaTitle ?? "",
+          projectName: project?.name ?? "",
+          pageFullPath: page.fullPath,
+        })
+      : (page?.metaTitle ?? "");
+
+  return { page, project, pages, layouts, pageLayoutRecord, metaTitle, camoxApp };
+};
+
+const PageInfoSidebar = ({ pageId }: { pageId: number }) => {
+  const data = usePageMetadataData(pageId);
+  const { page, metaTitle } = data;
+  const [isStructureModalOpen, setIsStructureModalOpen] = React.useState(false);
+  const [isSeoModalOpen, setIsSeoModalOpen] = React.useState(false);
+  const [isMarkdownModalOpen, setIsMarkdownModalOpen] = React.useState(false);
+
+  if (!page) {
+    return (
+      <div className="text-muted-foreground flex flex-1 items-center justify-center px-6 text-sm">
+        <Spinner className="mr-2 size-3.5" /> Loading page info...
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex-1 space-y-4 overflow-auto p-4">
+        <section className="space-y-4">
+          <p className="text-base font-semibold">About this page</p>
+          <PageNicknameSidebarEditor data={data} />
+          <div className="space-y-2">
+            <Label>Page path</Label>
+            <ButtonGroup className="w-full">
+              <ButtonGroupText className="text-muted-foreground min-h-9 flex-1 justify-start font-mono font-normal break-all">
+                {page.fullPath}
+              </ButtonGroupText>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setIsStructureModalOpen(true)}
+                aria-label="Edit page structure"
+              >
+                <Pencil className="size-4" />
+              </Button>
+            </ButtonGroup>
+          </div>
+          <PageLayoutSidebarSelect data={data} />
+        </section>
+        <div className="space-y-2">
+          <Label>SEO</Label>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => setIsSeoModalOpen(true)}
+          >
+            Manage SEO metadata
+          </Button>
+        </div>
+        <div className="space-y-2">
+          <Label>Markdown</Label>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => setIsMarkdownModalOpen(true)}
+          >
+            View page markdown
+          </Button>
+        </div>
+      </div>
+      <PageStructureModal
+        open={isStructureModalOpen}
+        onOpenChange={setIsStructureModalOpen}
+        pageId={page.id}
+      />
+      <PageSeoModal open={isSeoModalOpen} onOpenChange={setIsSeoModalOpen} pageId={page.id} />
+      <PageMarkdownModal
+        open={isMarkdownModalOpen}
+        onOpenChange={setIsMarkdownModalOpen}
+        pageId={page.id}
+        metaTitle={metaTitle}
+        metaDescription={page.metaDescription ?? ""}
+      />
+    </>
+  );
+};
+
+const PageNicknameSidebarEditor = ({ data }: { data: PageMetadataData }) => {
+  const { page } = data;
+  const updatePage = useMutation(pageMutations.update());
+  const inputId = React.useId();
+
+  const saveNickname = React.useCallback(
+    (value: string) => {
+      if (!page) return;
+
+      const nickname = value.trim();
+      if (nickname === page.nickname) return;
+      if (!nickname) {
+        toast.error("Page nickname is required");
+        return;
+      }
+
+      updatePage.mutate(
+        {
+          id: page.id,
+          nickname,
+          pathSegment: page.pathSegment,
+          parentPageId: page.parentPageId,
+        },
+        {
+          onSuccess: () => {
+            trackClientEvent("page_updated", {
+              projectId: page.projectId,
+              changes: {
+                nickname: true,
+                path: false,
+                layout: false,
+                parent: false,
+              },
+            });
+          },
+          onError: () => {
+            toast.error("Could not update page");
+          },
+        },
+      );
+    },
+    [page, updatePage],
+  );
+
+  const { value, setValue, onFocus, onBlur } = useDebouncedField(
+    page?.nickname ?? "",
+    saveNickname,
+  );
+
+  if (!page) return null;
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={inputId}>Page nickname</Label>
+      <Input
+        id={inputId}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        placeholder="e.g. Home, Pricing, About"
+        maxLength={PAGE_NICKNAME_MAX_LENGTH}
+      />
+      <p className="text-muted-foreground text-xs">A short internal name. Does not affect SEO.</p>
+    </div>
+  );
+};
+
+const PageLayoutSidebarSelect = ({ data }: { data: PageMetadataData }) => {
+  const { page, layouts, camoxApp } = data;
+  const setLayout = useMutation(pageMutations.setLayout());
+
+  if (!page || !layouts || layouts.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <Label>Layout</Label>
+      <Select
+        value={page.layoutId ? String(page.layoutId) : ""}
+        onValueChange={(value) => {
+          const layoutId = Number(value);
+          if (layoutId === page.layoutId) return;
+          setLayout.mutate(
+            { id: page.id, layoutId },
+            {
+              onSuccess: () => {
+                trackClientEvent("page_updated", {
+                  projectId: page.projectId,
+                  changes: {
+                    nickname: false,
+                    path: false,
+                    layout: true,
+                    parent: false,
+                  },
+                });
+              },
+              onError: () => {
+                toast.error("Could not update page layout");
+              },
+            },
+          );
+        }}
+        items={layouts.map((t) => ({
+          value: String(t.id),
+          label: camoxApp.getLayoutById(t.layoutId)?._internal.title ?? t.layoutId,
+        }))}
+      >
+        <SelectTrigger disabled={setLayout.isPending}>
+          <SelectValue placeholder="Select a layout" />
+        </SelectTrigger>
+        <SelectContent>
+          {layouts.map((t) => (
+            <SelectItem key={t.id} value={String(t.id)}>
+              {camoxApp.getLayoutById(t.layoutId)?._internal.title ?? t.layoutId}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
+
+const PageStructureModal = ({
+  open,
+  onOpenChange,
+  pageId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  pageId: number;
+}) => {
+  const data = usePageMetadataData(pageId);
+  const { page } = data;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Page structure</DialogTitle>
+          <DialogDescription>
+            Update the URL path and layout used to render this page.
+          </DialogDescription>
+        </DialogHeader>
+        {page ? (
+          <PageStructureEditor
+            data={data}
+            includeNickname={false}
+            includeLayout={false}
+            onSaved={() => onOpenChange(false)}
+          />
+        ) : (
+          <div className="text-muted-foreground flex items-center gap-2 py-6 text-sm">
+            <Spinner className="size-3.5" /> Loading...
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const PageStructureEditor = ({
+  data,
+  includeNickname = true,
+  includeLayout = true,
+  onSaved,
+}: {
+  data: PageMetadataData;
+  includeNickname?: boolean;
+  includeLayout?: boolean;
+  onSaved?: () => void;
+}) => {
+  const { page, project, pages, layouts, camoxApp } = data;
+  const updatePage = useMutation(pageMutations.update());
+  const setLayout = useMutation(pageMutations.setLayout());
   const navigate = useNavigate();
 
   const form = useForm({
@@ -92,7 +355,7 @@ const PageMetadataModalContent = ({ pageId }: { pageId: number | null }) => {
           parentPageId: values.value.parentPageId,
         });
 
-        if (values.value.layoutId) {
+        if (includeLayout && values.value.layoutId) {
           await setLayout.mutateAsync({ id: page.id, layoutId: values.value.layoutId });
         }
 
@@ -101,15 +364,13 @@ const PageMetadataModalContent = ({ pageId }: { pageId: number | null }) => {
           changes: {
             nickname: nickname !== page.nickname,
             path: values.value.pathSegment !== page.pathSegment,
-            layout: values.value.layoutId !== page.layoutId,
+            layout: includeLayout && values.value.layoutId !== page.layoutId,
             parent: values.value.parentPageId !== page.parentPageId,
           },
         });
-        const displayName = nickname;
-        toast.success(`Updated ${displayName} page`);
-        previewStore.send({ type: "closeEditPageModal" });
+        toast.success(`Updated ${nickname} page`);
         form.reset();
-
+        onSaved?.();
         await navigate({ to: fullPath });
       } catch (error) {
         console.error("Failed to update page:", error);
@@ -118,219 +379,237 @@ const PageMetadataModalContent = ({ pageId }: { pageId: number | null }) => {
     },
   });
 
-  // Reset form when opening with a different page
-  const prevPageId = React.useRef<number | null>(null);
   React.useEffect(() => {
-    if (prevPageId.current === pageId || !page) return;
-    prevPageId.current = pageId;
+    if (!page) return;
     form.reset({
       nickname: page.nickname,
       pathSegment: page.pathSegment,
       parentPageId: page.parentPageId ?? undefined,
       layoutId: page.layoutId ?? 0,
     });
-  }, [pageId, page, form]);
+  }, [page?.id]);
 
-  const isOpen = pageId != null && !!page;
-  const isRootPage = page?.fullPath === "/";
-  const pageLayoutRecord = layouts?.find((l) => l.id === page?.layoutId);
-  const layoutDef = pageLayoutRecord
-    ? camoxApp.getLayoutById(pageLayoutRecord.layoutId)
-    : undefined;
-  const metaTitle =
-    layoutDef && page
-      ? layoutDef._internal.buildMetaTitle({
-          pageMetaTitle: page.metaTitle ?? "",
-          projectName: project?.name ?? "",
-          pageFullPath: page.fullPath,
-        })
-      : (page?.metaTitle ?? "");
+  if (!page || !project) return null;
+
+  const isRootPage = page.fullPath === "/";
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(value) => {
-        if (!value) previewStore.send({ type: "closeEditPageModal" });
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void form.handleSubmit();
       }}
+      className="space-y-4"
     >
-      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl">
-        <DialogHeader className="border-border border-b p-4">
-          <DialogTitle>Page metadata</DialogTitle>
+      {includeNickname && (
+        <form.Field name="nickname">
+          {(field) => <PageNicknameField value={field.state.value} onChange={field.handleChange} />}
+        </form.Field>
+      )}
+      {isRootPage ? (
+        <Alert>
+          <Info className="size-4" />
+          <AlertTitle>Homepage</AlertTitle>
+          <AlertDescription>You can't change the path of the home page.</AlertDescription>
+        </Alert>
+      ) : (
+        <form.Field name="parentPageId">
+          {(parentField) => (
+            <form.Field name="pathSegment">
+              {(pathField) => (
+                <PageLocationFieldset
+                  parentPageId={parentField.state.value}
+                  onParentPageIdChange={parentField.handleChange}
+                  pathSegment={pathField.state.value}
+                  onPathSegmentChange={pathField.handleChange}
+                  pages={pages}
+                  excludePageId={page.id}
+                />
+              )}
+            </form.Field>
+          )}
+        </form.Field>
+      )}
+      {includeLayout && layouts && layouts.length > 0 && (
+        <form.Field name="layoutId">
+          {(field) => (
+            <div className="space-y-2">
+              <Label>Layout</Label>
+              <Select
+                value={field.state.value ? String(field.state.value) : ""}
+                onValueChange={(value) => field.handleChange(Number(value))}
+                items={layouts.map((t) => ({
+                  value: String(t.id),
+                  label: camoxApp.getLayoutById(t.layoutId)?._internal.title ?? t.layoutId,
+                }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a layout" />
+                </SelectTrigger>
+                <SelectContent>
+                  {layouts.map((t) => (
+                    <SelectItem key={t.id} value={String(t.id)}>
+                      {camoxApp.getLayoutById(t.layoutId)?._internal.title ?? t.layoutId}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </form.Field>
+      )}
+      <form.Subscribe
+        selector={(s) => ({ isSubmitting: s.isSubmitting, isPristine: s.isPristine })}
+      >
+        {({ isSubmitting, isPristine }) => (
+          <Button type="submit" disabled={isSubmitting || isPristine}>
+            {isSubmitting && <Spinner />}
+            Save changes{isSubmitting && "..."}
+          </Button>
+        )}
+      </form.Subscribe>
+    </form>
+  );
+};
+
+const PageSeoModal = ({
+  open,
+  onOpenChange,
+  pageId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  pageId: number;
+}) => {
+  const data = usePageMetadataData(pageId);
+  const { page, metaTitle, pageLayoutRecord, project } = data;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>SEO metadata</DialogTitle>
           <DialogDescription>
-            Update the page structure, SEO and markdown content.
+            Control how this page appears in search and social previews.
           </DialogDescription>
         </DialogHeader>
-        {page && (
-          <div className="flex-1 overflow-y-auto">
-            <div className="border-border grid grid-cols-[200px_1fr] gap-x-16 border-b px-4 py-4">
-              <div>
-                <p className="text-sm font-medium">Page structure</p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  URL path and layout used to render the page
-                </p>
-              </div>
-              <div className="space-y-4">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    void form.handleSubmit();
-                  }}
-                  className="-mx-1 space-y-4 px-1"
-                >
-                  <form.Field name="nickname">
-                    {(field) => (
-                      <PageNicknameField value={field.state.value} onChange={field.handleChange} />
-                    )}
-                  </form.Field>
-                  {isRootPage ? (
-                    <Alert>
-                      <Info className="size-4" />
-                      <AlertTitle>Homepage</AlertTitle>
-                      <AlertDescription>
-                        You can't change the path of the home page.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <form.Field name="parentPageId">
-                      {(parentField) => (
-                        <form.Field name="pathSegment">
-                          {(pathField) => (
-                            <PageLocationFieldset
-                              parentPageId={parentField.state.value}
-                              onParentPageIdChange={parentField.handleChange}
-                              pathSegment={pathField.state.value}
-                              onPathSegmentChange={pathField.handleChange}
-                              pages={pages}
-                              excludePageId={page.id}
-                            />
-                          )}
-                        </form.Field>
-                      )}
-                    </form.Field>
-                  )}
-                  {layouts && layouts.length > 0 && (
-                    <form.Field name="layoutId">
-                      {(field) => (
-                        <div className="space-y-2">
-                          <Label>Layout</Label>
-                          <Select
-                            value={field.state.value ? String(field.state.value) : ""}
-                            onValueChange={(value) => field.handleChange(Number(value))}
-                            items={layouts.map((t) => ({
-                              value: String(t.id),
-                              label:
-                                camoxApp.getLayoutById(t.layoutId)?._internal.title ?? t.layoutId,
-                            }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a layout" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {layouts.map((t) => (
-                                <SelectItem key={t.id} value={String(t.id)}>
-                                  {camoxApp.getLayoutById(t.layoutId)?._internal.title ??
-                                    t.layoutId}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                    </form.Field>
-                  )}
-                  <form.Subscribe
-                    selector={(s) => ({
-                      isSubmitting: s.isSubmitting,
-                      isPristine: s.isPristine,
-                    })}
-                  >
-                    {({ isSubmitting, isPristine }) => (
-                      <Button type="submit" disabled={isSubmitting || isPristine}>
-                        {isSubmitting && <Spinner />}
-                        Save changes
-                        {isSubmitting && "..."}
-                      </Button>
-                    )}
-                  </form.Subscribe>
-                </form>
-              </div>
-            </div>
-            <div className="grid grid-cols-[200px_1fr] gap-x-16 px-4 py-4">
-              <div>
-                <p className="text-sm font-medium">SEO data</p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  How the page appears when shared across the web
-                </p>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="ai-seo"
-                    checked={page.aiSeoEnabled !== false}
-                    onCheckedChange={(checked) => {
-                      setAiSeo.mutate({ id: page.id, enabled: checked });
-                      trackClientEvent("ai_metadata_toggled", {
-                        target: "page",
-                        enabled: checked,
-                        pageId: page.id,
-                      });
-                    }}
-                  />
-                  <Label htmlFor="ai-seo">AI metadata</Label>
-                </div>
-                <DebouncedFieldEditor
-                  label="Page title"
-                  placeholder="Page title..."
-                  initialValue={page.metaTitle ?? ""}
-                  disabled={page.aiSeoEnabled !== false}
-                  onSave={(value) => setMetaTitle.mutate({ id: page.id, metaTitle: value })}
-                />
-                <DebouncedFieldEditor
-                  label="Page description"
-                  placeholder="Page description..."
-                  initialValue={page.metaDescription ?? ""}
-                  disabled={page.aiSeoEnabled !== false}
-                  rows={2}
-                  onSave={(value) =>
-                    setMetaDescription.mutate({ id: page.id, metaDescription: value })
-                  }
-                />
-                <SearchEnginePreview
-                  page={page}
-                  metaTitle={metaTitle}
-                  metaDescription={page.metaDescription ?? ""}
-                />
-                <SocialPreviewSection
-                  page={page}
-                  metaTitle={metaTitle}
-                  metaDescription={page.metaDescription ?? ""}
-                  layoutId={pageLayoutRecord?.layoutId}
-                  projectName={project?.name}
-                />
-              </div>
-            </div>
-            <div className="border-border grid grid-cols-[200px_1fr] gap-x-16 border-t px-4 py-4">
-              <div>
-                <p className="text-sm font-medium">Markdown content</p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  How your content will be served to AI agents
-                </p>
-              </div>
-              <div>
-                <PageMarkdownPreview
-                  pageId={page.id}
-                  metaTitle={metaTitle}
-                  metaDescription={page.metaDescription ?? ""}
-                />
-              </div>
-            </div>
+        {page ? (
+          <PageSeoEditor
+            page={page}
+            metaTitle={metaTitle}
+            layoutId={pageLayoutRecord?.layoutId}
+            projectName={project?.name}
+          />
+        ) : (
+          <div className="text-muted-foreground flex items-center gap-2 py-6 text-sm">
+            <Spinner className="size-3.5" /> Loading...
           </div>
         )}
       </DialogContent>
     </Dialog>
   );
 };
+
+const PageSeoEditor = ({
+  page,
+  metaTitle,
+  layoutId,
+  projectName,
+}: {
+  page: Pick<
+    Page,
+    | "id"
+    | "aiSeoEnabled"
+    | "metaTitle"
+    | "metaDescription"
+    | "fullPath"
+    | "pathSegment"
+    | "customOgImageUrl"
+  >;
+  metaTitle: string;
+  layoutId?: string;
+  projectName?: string;
+}) => {
+  const setAiSeo = useMutation(pageMutations.setAiSeo());
+  const setMetaTitle = useMutation(pageMutations.setMetaTitle());
+  const setMetaDescription = useMutation(pageMutations.setMetaDescription());
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Switch
+          id="ai-seo"
+          checked={page.aiSeoEnabled !== false}
+          onCheckedChange={(checked) => {
+            setAiSeo.mutate({ id: page.id, enabled: checked });
+            trackClientEvent("ai_metadata_toggled", {
+              target: "page",
+              enabled: checked,
+              pageId: page.id,
+            });
+          }}
+        />
+        <Label htmlFor="ai-seo">AI metadata</Label>
+      </div>
+      <DebouncedFieldEditor
+        label="Page title"
+        placeholder="Page title..."
+        initialValue={page.metaTitle ?? ""}
+        disabled={page.aiSeoEnabled !== false}
+        onSave={(value) => setMetaTitle.mutate({ id: page.id, metaTitle: value })}
+      />
+      <DebouncedFieldEditor
+        label="Page description"
+        placeholder="Page description..."
+        initialValue={page.metaDescription ?? ""}
+        disabled={page.aiSeoEnabled !== false}
+        rows={2}
+        onSave={(value) => setMetaDescription.mutate({ id: page.id, metaDescription: value })}
+      />
+      <SearchEnginePreview
+        page={page}
+        metaTitle={metaTitle}
+        metaDescription={page.metaDescription ?? ""}
+      />
+      <SocialPreviewSection
+        page={page}
+        metaTitle={metaTitle}
+        metaDescription={page.metaDescription ?? ""}
+        layoutId={layoutId}
+        projectName={projectName}
+      />
+    </div>
+  );
+};
+
+const PageMarkdownModal = ({
+  open,
+  onOpenChange,
+  pageId,
+  metaTitle,
+  metaDescription,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  pageId: number;
+  metaTitle: string;
+  metaDescription: string;
+}) => (
+  <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+      <DialogHeader>
+        <DialogTitle>Markdown content</DialogTitle>
+        <DialogDescription>How your content will be served to AI agents.</DialogDescription>
+      </DialogHeader>
+      <PageMarkdownPreview
+        pageId={pageId}
+        metaTitle={metaTitle}
+        metaDescription={metaDescription}
+      />
+    </DialogContent>
+  </Dialog>
+);
 
 function truncateText(text: string, maxLen: number) {
   if (text.length <= maxLen) return text;
@@ -355,7 +634,6 @@ const SearchEnginePreview = ({
         <Label>Search engine preview</Label>
         <Tooltip>
           <TooltipTrigger delay={50} render={<Info className="text-muted-foreground size-3.5" />} />
-
           <TooltipContent>
             Titles are cropped after 60 characters and descriptions after 155, like on Google Search
             results.
@@ -453,7 +731,6 @@ const SocialPreviewSection = ({
           <Button
             type="button"
             variant="ghost"
-            // size="icon"
             disabled={isBusy}
             onClick={() => deleteCustomOgImage.mutate({ pageId: page.id })}
             aria-label="Remove custom image"
@@ -536,4 +813,4 @@ const PageMarkdownPreview = ({
   return <ShikiMarkdown code={fullMarkdown} />;
 };
 
-export { PageMetadataModal };
+export { PageInfoSidebar };

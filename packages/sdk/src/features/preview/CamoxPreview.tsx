@@ -21,7 +21,6 @@ import { Label } from "@camox/ui/label";
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
 import { Switch } from "@camox/ui/switch";
 import { toast } from "@camox/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import {
   keepPreviousData,
   useMutation,
@@ -31,7 +30,7 @@ import {
 } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
-import { Info, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import * as React from "react";
 
 import { getApiClient } from "@/lib/api-client";
@@ -57,7 +56,6 @@ import { BlockErrorBoundary } from "./components/BlockErrorBoundary";
 import { CreatePageModal } from "./components/CreatePageModal";
 import { DraftSwitchDialog } from "./components/DraftSwitchDialog";
 import { PageContentSheet } from "./components/PageContentSheet";
-import { PageMetadataModal } from "./components/PageMetadataModal";
 import { PagePicker } from "./components/PagePicker";
 import { PageTree } from "./components/PageTree";
 import { PeekedBlock } from "./components/PeekedBlock";
@@ -771,26 +769,9 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         {isSidebarOpen && (
           <div className="flex shrink-0 flex-col border-r-2" style={{ width: CMS_SIDEBAR_WIDTH }}>
             <PanelHeader className={cn("flex flex-col gap-2 px-2 pt-2 pb-3")}>
-              <ButtonGroup className="w-full">
+              <div className="flex w-full">
                 <PagePicker />
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() =>
-                          previewStore.send({ type: "openEditPageModal", pageId: pageData.page.id })
-                        }
-                      />
-                    }
-                  >
-                    <Info className="text-muted-foreground size-4" />
-                  </TooltipTrigger>
-                  <TooltipContent>Page metadata</TooltipContent>
-                </Tooltip>
-              </ButtonGroup>
+              </div>
               <SidebarPublishRow page={pageData.page} />
             </PanelHeader>
             <PanelContent className="flex grow basis-0 flex-col gap-2 overflow-auto p-2">
@@ -804,12 +785,11 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
             <div style={{ height: "80px", background: "transparent" }} />
           )}
         </PreviewPanel>
-        <PageContentSheet />
+        <PageContentSheet pageId={pageData.page.id} />
       </div>
       <AddBlockSheet />
       <AgentChatSheet />
       <CreatePageModal />
-      <PageMetadataModal />
       <DraftSwitchDialog />
     </div>
   );

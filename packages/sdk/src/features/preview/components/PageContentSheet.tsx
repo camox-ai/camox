@@ -39,6 +39,7 @@ import { type SchemaField, formatFieldName } from "./ItemFieldsEditor";
 import { ItemFieldsEditor } from "./ItemFieldsEditor";
 import { LinkFieldEditor } from "./LinkFieldEditor";
 import { MultipleAssetFieldEditor } from "./MultipleAssetFieldEditor";
+import { PageInfoSidebar } from "./PageMetadataModal";
 import { type RepeatableArraySchema, useRepeatableItemActions } from "./useRepeatableItemActions";
 
 /* -------------------------------------------------------------------------------------------------
@@ -139,7 +140,7 @@ const buildAncestorChain = (
  * PageContentSheet
  * -----------------------------------------------------------------------------------------------*/
 
-const PageContentSheet = () => {
+const PageContentSheet = ({ pageId }: { pageId: number }) => {
   const camoxApp = useCamoxApp();
   const updateContent = useMutation(blockMutations.updateContent());
   const updateSettings = useMutation(blockMutations.updateSettings());
@@ -400,9 +401,7 @@ const PageContentSheet = () => {
         className="bg-background flex shrink-0 flex-col border-l-2"
         style={{ width: CMS_SIDEBAR_WIDTH }}
       >
-        <div className="text-muted-foreground flex flex-1 items-center justify-center px-6 text-center text-sm">
-          Select content in the preview to edit it here.
-        </div>
+        <PageInfoSidebar pageId={pageId} />
       </aside>
     );
   }
