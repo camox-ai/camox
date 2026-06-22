@@ -25,7 +25,6 @@ import * as React from "react";
 
 import { useRequireDraftSource } from "@/core/hooks/useRequireDraftSource";
 import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
-import { actionsStore, type Action } from "@/features/provider/actionsStore";
 import { isFileMarker, type NormalizedItem } from "@/lib/normalized-data";
 import { blockMutations, blockQueries, fileQueries, repeatableItemMutations } from "@/lib/queries";
 import { trackClientEvent } from "@/lib/telemetry-client";
@@ -33,13 +32,13 @@ import { cn } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import type { OverlayMessage } from "../overlayMessages";
+import { CMS_SIDEBAR_WIDTH } from "../previewConstants";
 import { previewStore, selectionBlockId, selectionField, selectionItemId } from "../previewStore";
 import { SingleAssetFieldEditor } from "./AssetFieldEditor";
 import { type SchemaField, formatFieldName } from "./ItemFieldsEditor";
 import { ItemFieldsEditor } from "./ItemFieldsEditor";
 import { LinkFieldEditor } from "./LinkFieldEditor";
 import { MultipleAssetFieldEditor } from "./MultipleAssetFieldEditor";
-import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
 import { type RepeatableArraySchema, useRepeatableItemActions } from "./useRepeatableItemActions";
 
 /* -------------------------------------------------------------------------------------------------
@@ -149,7 +148,7 @@ const PageContentSheet = () => {
   const requireDraft = useRequireDraftSource();
 
   // Get state from store
-  const isOpen = useSelector(previewStore, (state) => state.context.isPageContentSheetOpen);
+  const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
   const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
@@ -305,20 +304,32 @@ const PageContentSheet = () => {
     return prop?.fieldType === "ImageList" || prop?.fieldType === "FileList";
   }, [isViewingAsset, assetFieldName, currentSchema]);
 
-  // Track open (once per session) + reset dirty flag for block_edited
+  // Track sidebar visibility (once per selected block) + reset dirty flag for block_edited
   const sessionDirtyRef = React.useRef(false);
-  const trackedOpenRef = React.useRef(false);
+  const trackedBlockIdRef = React.useRef<number | null>(null);
   React.useEffect(() => {
-    if (!isOpen) {
-      trackedOpenRef.current = false;
+    if (!block || isPresentationMode) {
+      trackedBlockIdRef.current = null;
       return;
     }
-    if (trackedOpenRef.current) return;
-    if (!block) return;
-    trackedOpenRef.current = true;
+    if (trackedBlockIdRef.current === block.id) return;
+    trackedBlockIdRef.current = block.id;
     sessionDirtyRef.current = false;
     trackClientEvent("content_sheet_opened", { blockType: block.type });
-  }, [isOpen, block]);
+  }, [block, isPresentationMode]);
+
+  React.useEffect(() => {
+    if (!block || isPresentationMode) return;
+
+    return () => {
+      if (!sessionDirtyRef.current) return;
+      trackClientEvent("block_edited", {
+        via: "content-sheet",
+        blockType: block.type,
+      });
+      sessionDirtyRef.current = false;
+    };
+  }, [block, isPresentationMode]);
 
   // Scope field DOM ids with useId so label-input pairs and imperative focus
   // lookups don't collide if this sheet is ever rendered more than once.
@@ -342,27 +353,10 @@ const PageContentSheet = () => {
     return null;
   }, [selection, currentSchema]);
 
-  const getInitialFocus = React.useCallback((): HTMLElement | null => {
-    if (!autoFocusFieldName) return null;
-    return document.getElementById(`${fieldIdPrefix}-${autoFocusFieldName}`);
-  }, [autoFocusFieldName, fieldIdPrefix]);
-
-  // Register action to toggle content sheet for current selection
   React.useEffect(() => {
-    const action: Action = {
-      id: "toggle-content-sheet",
-      label: isOpen ? "Close form" : "Open in form",
-      groupLabel: "Preview",
-      shortcut: { key: "j", withAlt: true },
-      checkIfAvailable: () => blockId != null,
-      execute: () => {
-        previewStore.send({ type: "toggleContentSheet" });
-      },
-    };
-
-    actionsStore.send({ type: "registerAction", action });
-    return () => actionsStore.send({ type: "unregisterAction", id: action.id });
-  }, [blockId, isOpen]);
+    if (!autoFocusFieldName || isPresentationMode) return;
+    document.getElementById(`${fieldIdPrefix}-${autoFocusFieldName}`)?.focus();
+  }, [autoFocusFieldName, fieldIdPrefix, isPresentationMode]);
 
   const handleBlockFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
@@ -390,56 +384,40 @@ const PageContentSheet = () => {
   const activeFieldChangeHandler =
     currentItemId != null ? handleItemFieldChange : handleBlockFieldChange;
 
-  const handleOpenChange = (open: boolean) => {
-    if (open) return;
-    if (block && sessionDirtyRef.current) {
-      trackClientEvent("block_edited", {
-        via: "content-sheet",
-        blockType: block.type,
-      });
-    }
-    sessionDirtyRef.current = false;
-    if (block && autoFocusFieldName) {
-      const fieldId =
-        currentItemId != null
-          ? `${block.id}__${currentItemId}__${autoFocusFieldName}`
-          : `${block.id}__${autoFocusFieldName}`;
-      postToIframe({ type: "CAMOX_FOCUS_FIELD_END", fieldId });
-    }
-    // Clear any lingering hover/focus overlays for the current item
-    if (block && currentItemId != null) {
-      postToIframe({
-        type: "CAMOX_HOVER_REPEATER_ITEM_END",
-        blockId: String(block.id),
-        itemId: String(currentItemId),
-      });
-    }
-    previewStore.send({ type: "closeBlockContentSheet" });
-  };
-
   // Build breadcrumb display from the ancestor chain
   const ancestorChain = React.useMemo(
     () => (currentItemId != null ? buildAncestorChain(currentItemId, itemsMap) : []),
     [currentItemId, itemsMap],
   );
 
-  if (!block || !blockDef || !currentSchema) {
+  if (isPresentationMode) {
     return null;
+  }
+
+  if (!block || !blockDef || !currentSchema) {
+    return (
+      <aside
+        className="bg-background flex shrink-0 flex-col border-l-2"
+        style={{ width: CMS_SIDEBAR_WIDTH }}
+      >
+        <div className="text-muted-foreground flex flex-1 items-center justify-center px-6 text-center text-sm">
+          Select content in the preview to edit it here.
+        </div>
+      </aside>
+    );
   }
 
   const fieldHasOwnView = fieldInfo ? fieldTypesDictionary[fieldInfo.fieldType].hasOwnView : false;
   const isAtBlockLevel = ancestorChain.length === 0 && !fieldHasOwnView;
 
   return (
-    <PreviewSideSheet
-      open={isOpen}
-      onOpenChange={handleOpenChange}
-      initialFocus={getInitialFocus}
-      className="flex flex-col gap-0"
+    <aside
+      className="bg-background flex shrink-0 flex-col border-l-2"
+      style={{ width: CMS_SIDEBAR_WIDTH }}
     >
-      <SheetParts.SheetHeader className="border-border border-b">
-        <SheetParts.SheetTitle>{block.summary}</SheetParts.SheetTitle>
-        <SheetParts.SheetDescription render={<Breadcrumb />}>
+      <div className="border-border flex flex-col gap-1.5 border-b p-4">
+        <h2 className="text-foreground font-medium">{block.summary}</h2>
+        <Breadcrumb className="text-muted-foreground text-sm">
           <BreadcrumbList className="flex-nowrap">
             {/* Block title — always shown */}
             <BreadcrumbItem className="min-w-0">
@@ -529,8 +507,8 @@ const PageContentSheet = () => {
               </>
             )}
           </BreadcrumbList>
-        </SheetParts.SheetDescription>
-      </SheetParts.SheetHeader>
+        </Breadcrumb>
+      </div>
       <div className="relative flex-1 overflow-auto">
         {isReadOnly && (
           <button
@@ -796,7 +774,7 @@ const PageContentSheet = () => {
           )}
         </div>
       </div>
-    </PreviewSideSheet>
+    </aside>
   );
 };
 

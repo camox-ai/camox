@@ -63,6 +63,7 @@ import { PageTree } from "./components/PageTree";
 import { PeekedBlock } from "./components/PeekedBlock";
 import { PreviewFrame, PreviewPanel } from "./components/PreviewPanel";
 import { PublishDialog } from "./components/PublishDialog";
+import { CMS_SIDEBAR_WIDTH } from "./previewConstants";
 import { previewStore } from "./previewStore";
 
 /* -------------------------------------------------------------------------------------------------
@@ -768,7 +769,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       <Navbar />
       <div className="flex h-full flex-row items-stretch">
         {isSidebarOpen && (
-          <div className="flex w-[300px] flex-col border-r-2">
+          <div className="flex shrink-0 flex-col border-r-2" style={{ width: CMS_SIDEBAR_WIDTH }}>
             <PanelHeader className={cn("flex flex-col gap-2 px-2 pt-2 pb-3")}>
               <ButtonGroup className="w-full">
                 <PagePicker />
@@ -803,8 +804,8 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
             <div style={{ height: "80px", background: "transparent" }} />
           )}
         </PreviewPanel>
+        <PageContentSheet />
       </div>
-      <PageContentSheet />
       <AddBlockSheet />
       <AgentChatSheet />
       <CreatePageModal />

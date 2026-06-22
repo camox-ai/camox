@@ -18,10 +18,6 @@ export const PreviewToolbar = () => {
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
   const isPreviewingNonDraft = previewSource !== "draft";
-  const isPageContentSheetOpen = useSelector(
-    previewStore,
-    (state) => state.context.isPageContentSheetOpen,
-  );
   const isAddBlockSheetOpen = useSelector(
     previewStore,
     (state) => state.context.isAddBlockSheetOpen,
@@ -30,7 +26,7 @@ export const PreviewToolbar = () => {
     previewStore,
     (state) => state.context.isAgentChatSheetOpen,
   );
-  const isAnySideSheetOpen = isPageContentSheetOpen || isAddBlockSheetOpen || isAgentChatSheetOpen;
+  const isAnySideSheetOpen = isAddBlockSheetOpen || isAgentChatSheetOpen;
   const actions = useSelector(actionsStore, (state) => state.context.actions);
   const isMobileMode = useSelector(previewStore, (state) => state.context.isMobileMode);
 
