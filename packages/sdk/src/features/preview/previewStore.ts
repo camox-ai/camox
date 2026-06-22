@@ -302,13 +302,13 @@ export const previewStore = createStore({
     }),
     toggleContentSheet: (context) => ({
       ...context,
-      isPageContentSheetOpen: !context.isPageContentSheetOpen,
+      isPageContentSheetOpen: false,
     }),
     openBlockContentSheet: (context, event: { blockId: number }) => {
       const currentBlockMatches = context.selection?.blockId === event.blockId;
       return {
         ...context,
-        isPageContentSheetOpen: true,
+        isPageContentSheetOpen: false,
         selection: currentBlockMatches
           ? context.selection
           : { type: "block" as const, blockId: event.blockId },
