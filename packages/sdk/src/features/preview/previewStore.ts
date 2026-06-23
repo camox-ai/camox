@@ -50,11 +50,7 @@ export function selectionField(
 /**
  * Which side of the draft/publish split the studio is currently previewing.
  * 'draft' (default) shows in-flight editor changes; 'live' shows visitors'
- * view (the page's live published checkpoint snapshot). While previewing
- * anything other than draft, content is fully read-only: `isContentLocked`
- * is forced true (so in-canvas overlays vanish) and every external edit
- * entry point gates on `useRequireDraftSource` — an attempt opens the
- * "Switch to draft to edit?" dialog instead of mutating.
+ * view (the page's live published checkpoint snapshot).
  */
 export type PreviewSource = "draft" | "live";
 
@@ -74,12 +70,6 @@ interface PreviewContext {
   isCreatePageModalOpen: boolean;
   editingPageId: number | null;
   isContentLocked: boolean;
-  /**
-   * Remembered value of `isContentLocked` from before the user switched away
-   * from `'draft'`. While previewing anything other than draft, lock is
-   * forced true; on return to draft we restore this so a user who'd manually
-   * locked stays locked, and one who hadn't goes back to editable.
-   */
   prePreviewLockState: boolean | null;
   /** Open/closed state of the "Switch to draft to edit?" confirmation dialog. */
   isDraftSwitchDialogOpen: boolean;
@@ -96,7 +86,7 @@ interface PreviewContext {
 
 export const previewStore = createStore({
   context: {
-    isPresentationMode: false,
+    isPresentationMode: true,
     isSidebarOpen: true,
     isPageContentSheetOpen: false,
     isAddBlockSheetOpen: false,
@@ -127,29 +117,17 @@ export const previewStore = createStore({
         });
         trackClientEvent("presentation_mode_toggled", { enabled: true });
       });
-      return { ...context, isPresentationMode: true };
+      return { ...context, isPresentationMode: true, isContentLocked: false };
     },
     exitPresentationMode: (context, _, enqueue) => {
       if (!context.isPresentationMode) return context;
       enqueue.effect(() => {
         trackClientEvent("presentation_mode_toggled", { enabled: false });
       });
-      return { ...context, isPresentationMode: false };
+      return { ...context, isPresentationMode: false, isSidebarOpen: true, isContentLocked: false };
     },
-    toggleSidebar: (context) => {
-      if (context.isPresentationMode) return context;
-      return { ...context, isSidebarOpen: !context.isSidebarOpen };
-    },
-    toggleLockContent: (context, _, enqueue) => {
-      // Manual lock toggle is reserved for the 'draft' source. While
-      // previewing a non-draft source, lock is forced true and the user
-      // cannot manually flip it — they have to switch back to draft first.
-      if (context.previewSource !== "draft") return context;
-      enqueue.effect(() => {
-        toast(context.isContentLocked ? "Enabling edits" : "Preventing edits");
-      });
-      return { ...context, isContentLocked: !context.isContentLocked };
-    },
+    toggleSidebar: (context) => ({ ...context, isSidebarOpen: true }),
+    toggleLockContent: (context) => ({ ...context, isContentLocked: false }),
     toggleMobileMode: (context, _, enqueue) => {
       enqueue.effect(() => {
         toast(context.isMobileMode ? "Leaving mobile mode" : "Entering mobile mode");
@@ -381,29 +359,7 @@ export const previewStore = createStore({
           duration: 2500,
         });
       });
-      // Entering a non-draft preview: remember the user's prior lock state
-      // and force-lock. Overlays vanish (existing `isContentLocked` plumbing)
-      // and the lock toggle UI/shortcut go disabled (see PreviewToolbar,
-      // useAdminShortcuts).
-      if (event.source !== "draft" && context.previewSource === "draft") {
-        return {
-          ...context,
-          previewSource: event.source,
-          prePreviewLockState: context.isContentLocked,
-          isContentLocked: true,
-        };
-      }
-      // Returning to draft: restore the prior lock state so a user who'd
-      // manually locked before peeking stays locked.
-      if (event.source === "draft" && context.previewSource !== "draft") {
-        return {
-          ...context,
-          previewSource: "draft" as const,
-          isContentLocked: context.prePreviewLockState ?? false,
-          prePreviewLockState: null,
-        };
-      }
-      return { ...context, previewSource: event.source };
+      return { ...context, previewSource: event.source, isContentLocked: false };
     },
     requestDraftSwitch: (context) => {
       if (context.previewSource === "draft") return context;

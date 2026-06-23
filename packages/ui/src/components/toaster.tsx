@@ -1,11 +1,13 @@
 import type { ToasterProps } from "sonner";
 import { Toaster as Sonner, toast } from "sonner";
 
-const Toaster = ({ theme = "system", ...props }: ToasterProps) => {
+import { cn } from "../lib/utils";
+
+const Toaster = ({ theme = "system", className, ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
-      className="toaster group"
+      className={cn("toaster group camox-studio-theme", theme === "dark" && "dark", className)}
       style={
         {
           "--normal-bg": "var(--popover)",

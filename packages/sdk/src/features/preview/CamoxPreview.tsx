@@ -59,7 +59,7 @@ import { PageContentSheet } from "./components/PageContentSheet";
 import { PagePicker } from "./components/PagePicker";
 import { PageTree } from "./components/PageTree";
 import { PeekedBlock } from "./components/PeekedBlock";
-import { PreviewFrame, PreviewPanel } from "./components/PreviewPanel";
+import { PreviewPanel } from "./components/PreviewPanel";
 import { PublishDialog } from "./components/PublishDialog";
 import { CMS_SIDEBAR_WIDTH } from "./previewConstants";
 import { previewStore } from "./previewStore";
@@ -680,7 +680,6 @@ function useHydrateDraftCache() {
 export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useIsAuthenticated();
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
-  const isSidebarOpen = useSelector(previewStore, (state) => state.context.isSidebarOpen);
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
   const pageData = usePreviewedPage();
   useHydrateDraftCache();
@@ -754,19 +753,22 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
     };
   }, [isPresentationMode, isAuthenticated, previewSource, hasLiveCheckpoint]);
 
-  if (isPresentationMode) {
-    return <PreviewFrame className="h-screen w-full">{children}</PreviewFrame>;
-  }
-
   if (!isAuthenticated) {
     return <>{children}</>;
   }
 
+  const shouldShowStudioChrome = !isPresentationMode;
+
   return (
-    <div className="bg-background flex h-screen flex-col overflow-hidden">
-      <Navbar />
+    <div
+      className={cn(
+        "bg-background flex h-screen flex-col overflow-hidden",
+        isPresentationMode && "bg-black",
+      )}
+    >
+      {shouldShowStudioChrome && <Navbar />}
       <div className="flex h-full flex-row items-stretch">
-        {isSidebarOpen && (
+        {shouldShowStudioChrome && (
           <div className="flex shrink-0 flex-col border-r-2" style={{ width: CMS_SIDEBAR_WIDTH }}>
             <PanelHeader className={cn("flex flex-col gap-2 px-2 pt-2 pb-3")}>
               <div className="flex w-full">
@@ -781,16 +783,18 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         )}
         <PreviewPanel>
           {children}
-          {!isPresentationMode && isAuthenticated && (
-            <div style={{ height: "80px", background: "transparent" }} />
-          )}
+          {shouldShowStudioChrome && <div style={{ height: "80px", background: "transparent" }} />}
         </PreviewPanel>
-        <PageContentSheet pageId={pageData.page.id} />
+        {shouldShowStudioChrome && <PageContentSheet pageId={pageData.page.id} />}
       </div>
-      <AddBlockSheet />
-      <AgentChatSheet />
-      <CreatePageModal />
-      <DraftSwitchDialog />
+      {shouldShowStudioChrome && (
+        <>
+          <AddBlockSheet />
+          <AgentChatSheet />
+          <CreatePageModal />
+          <DraftSwitchDialog />
+        </>
+      )}
     </div>
   );
 };
