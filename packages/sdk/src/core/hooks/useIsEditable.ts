@@ -5,6 +5,6 @@ import { useIsAuthenticated } from "@/lib/auth";
 
 export function useIsEditable(mode: "site" | "peek" | "layout") {
   const isAuthenticated = useIsAuthenticated();
-  const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
-  return isAuthenticated && (mode === "site" || mode === "layout") && !isPresentationMode;
+  const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
+  return isAuthenticated && (mode === "site" || mode === "layout") && isEditMode;
 }

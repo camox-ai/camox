@@ -404,13 +404,7 @@ function useBlockActionsShortcuts() {
         shortcut: { key: "Backspace", withMeta: true },
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
-          // A *manual* lock on the draft source disables the shortcut
-          // silently — the existing behavior. While previewing a non-draft
-          // source `isContentLocked` is also forced true, but the shortcut
-          // stays "available" so its `execute` can open the draft-switch
-          // dialog instead of silently swallowing the key.
-          if (ctx.isContentLocked && ctx.previewSource === "draft") return false;
-          if (ctx.isPresentationMode) return false;
+          if (!ctx.isEditMode) return false;
           const sel = ctx.selection;
           if (!sel) return false;
           if (isLayoutBlockId(page, sel.blockId)) return false;
@@ -462,13 +456,7 @@ function useBlockActionsShortcuts() {
         shortcut: { key: "d", withMeta: true },
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
-          // A *manual* lock on the draft source disables the shortcut
-          // silently — the existing behavior. While previewing a non-draft
-          // source `isContentLocked` is also forced true, but the shortcut
-          // stays "available" so its `execute` can open the draft-switch
-          // dialog instead of silently swallowing the key.
-          if (ctx.isContentLocked && ctx.previewSource === "draft") return false;
-          if (ctx.isPresentationMode) return false;
+          if (!ctx.isEditMode) return false;
           const sel = ctx.selection;
           if (!sel) return false;
           if (isLayoutBlockId(page, sel.blockId)) return false;
@@ -502,13 +490,7 @@ function useBlockActionsShortcuts() {
         shortcut: { key: "ArrowUp", withAlt: true },
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
-          // A *manual* lock on the draft source disables the shortcut
-          // silently — the existing behavior. While previewing a non-draft
-          // source `isContentLocked` is also forced true, but the shortcut
-          // stays "available" so its `execute` can open the draft-switch
-          // dialog instead of silently swallowing the key.
-          if (ctx.isContentLocked && ctx.previewSource === "draft") return false;
-          if (ctx.isPresentationMode) return false;
+          if (!ctx.isEditMode) return false;
           const sel = ctx.selection;
           if (!sel || !page) return false;
           if (isLayoutBlockId(page, sel.blockId)) return false;
@@ -540,13 +522,7 @@ function useBlockActionsShortcuts() {
         shortcut: { key: "ArrowDown", withAlt: true },
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
-          // A *manual* lock on the draft source disables the shortcut
-          // silently — the existing behavior. While previewing a non-draft
-          // source `isContentLocked` is also forced true, but the shortcut
-          // stays "available" so its `execute` can open the draft-switch
-          // dialog instead of silently swallowing the key.
-          if (ctx.isContentLocked && ctx.previewSource === "draft") return false;
-          if (ctx.isPresentationMode) return false;
+          if (!ctx.isEditMode) return false;
           const sel = ctx.selection;
           if (!sel || !page) return false;
           if (isLayoutBlockId(page, sel.blockId)) return false;
@@ -579,13 +555,7 @@ function useBlockActionsShortcuts() {
         shortcut: { key: "o" },
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
-          // A *manual* lock on the draft source disables the shortcut
-          // silently — the existing behavior. While previewing a non-draft
-          // source `isContentLocked` is also forced true, but the shortcut
-          // stays "available" so its `execute` can open the draft-switch
-          // dialog instead of silently swallowing the key.
-          if (ctx.isContentLocked && ctx.previewSource === "draft") return false;
-          if (ctx.isPresentationMode) return false;
+          if (!ctx.isEditMode) return false;
           return ctx.selection !== null;
         },
         execute: () => {
@@ -609,13 +579,7 @@ function useBlockActionsShortcuts() {
         shortcut: { key: "o", withShift: true },
         checkIfAvailable: () => {
           const ctx = previewStore.getSnapshot().context;
-          // A *manual* lock on the draft source disables the shortcut
-          // silently — the existing behavior. While previewing a non-draft
-          // source `isContentLocked` is also forced true, but the shortcut
-          // stays "available" so its `execute` can open the draft-switch
-          // dialog instead of silently swallowing the key.
-          if (ctx.isContentLocked && ctx.previewSource === "draft") return false;
-          if (ctx.isPresentationMode) return false;
+          if (!ctx.isEditMode) return false;
           return ctx.selection !== null;
         },
         execute: () => {

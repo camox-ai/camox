@@ -56,7 +56,7 @@ export type PreviewSource = "draft" | "live";
 export type ViewportMode = "full" | "tablet" | "mobile";
 
 interface PreviewContext {
-  isPresentationMode: boolean;
+  isEditMode: boolean;
   isToolbarHidden: boolean;
   isSidebarOpen: boolean;
   isPageContentSheetOpen: boolean;
@@ -71,8 +71,6 @@ interface PreviewContext {
   } | null;
   isCreatePageModalOpen: boolean;
   editingPageId: number | null;
-  isContentLocked: boolean;
-  prePreviewLockState: boolean | null;
   /** Open/closed state of the "Switch to draft to edit?" confirmation dialog. */
   isDraftSwitchDialogOpen: boolean;
   viewportMode: ViewportMode;
@@ -88,7 +86,7 @@ interface PreviewContext {
 
 export const previewStore = createStore({
   context: {
-    isPresentationMode: true,
+    isEditMode: false,
     isToolbarHidden: false,
     isSidebarOpen: true,
     isPageContentSheetOpen: false,
@@ -98,8 +96,6 @@ export const previewStore = createStore({
     agentChatPageScaffoldContext: null,
     isCreatePageModalOpen: false,
     editingPageId: null,
-    isContentLocked: false,
-    prePreviewLockState: null,
     isDraftSwitchDialogOpen: false,
     viewportMode: "full",
     peekedBlock: null,
@@ -112,26 +108,22 @@ export const previewStore = createStore({
     previewSource: "draft",
   } as PreviewContext,
   on: {
-    enterPresentationMode: (context, _, enqueue) => {
-      if (context.isPresentationMode) return context;
+    exitEditMode: (context, _, enqueue) => {
+      if (!context.isEditMode) return context;
       enqueue.effect(() => {
-        toast("Press ⌘ + Enter to restore Camox Studio", {
-          duration: 2500,
-        });
-        trackClientEvent("presentation_mode_toggled", { enabled: true });
+        trackClientEvent("edit_mode_toggled", { enabled: false });
       });
-      return { ...context, isPresentationMode: true, isContentLocked: false };
+      return { ...context, isEditMode: false };
     },
-    exitPresentationMode: (context, _, enqueue) => {
-      if (!context.isPresentationMode) return context;
+    enterEditMode: (context, _, enqueue) => {
+      if (context.isEditMode) return context;
       enqueue.effect(() => {
-        trackClientEvent("presentation_mode_toggled", { enabled: false });
+        trackClientEvent("edit_mode_toggled", { enabled: true });
       });
-      return { ...context, isPresentationMode: false, isSidebarOpen: true, isContentLocked: false };
+      return { ...context, isEditMode: true, isSidebarOpen: true };
     },
     hideToolbar: (context) => ({ ...context, isToolbarHidden: true }),
     toggleSidebar: (context) => ({ ...context, isSidebarOpen: true }),
-    toggleLockContent: (context) => ({ ...context, isContentLocked: false }),
     setViewportMode: (context, event: { mode: ViewportMode }, enqueue) => {
       if (context.viewportMode === event.mode) return context;
       enqueue.effect(() => {
@@ -376,7 +368,7 @@ export const previewStore = createStore({
           duration: 2500,
         });
       });
-      return { ...context, previewSource: event.source, isContentLocked: false };
+      return { ...context, previewSource: event.source };
     },
     requestDraftSwitch: (context) => {
       if (context.previewSource === "draft") return context;

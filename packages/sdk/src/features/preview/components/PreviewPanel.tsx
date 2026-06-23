@@ -122,7 +122,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
     previewStore.send({ type: "setIframeElement", element });
   }, []);
   const viewportMode = useSelector(previewStore, (state) => state.context.viewportMode);
-  const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
+  const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
   const isAnySideSheetOpen = useIsPreviewSheetOpen();
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const [panelWidth, setPanelWidth] = React.useState(0);
@@ -234,30 +234,30 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
               <PreviewFrame className="checkered h-full w-full" onIframeReady={handleIframeReady}>
                 {children}
               </PreviewFrame>
-              {!isPresentationMode && <Overlays iframeElement={iframeElement} />}
-              {!isPresentationMode && <FieldToolbar />}
+              {isEditMode && <Overlays iframeElement={iframeElement} />}
+              {isEditMode && <FieldToolbar />}
               <PreviewToolbar />
             </>
           ) : (
             <div
               className={cn(
                 "checkered flex h-full justify-center",
-                isPresentationMode ? "items-center" : "items-start",
+                isEditMode ? "items-start" : "items-center",
               )}
             >
               <div
                 className={cn(
                   "relative overflow-hidden",
                   viewportClassName[viewportMode],
-                  !isPresentationMode && "mt-8",
+                  isEditMode && "mt-8",
                 )}
               >
                 <PreviewFrame className="overflow-auto" onIframeReady={handleIframeReady}>
                   {children}
                 </PreviewFrame>
-                {!isPresentationMode && <Overlays iframeElement={iframeElement} />}
+                {isEditMode && <Overlays iframeElement={iframeElement} />}
               </div>
-              {!isPresentationMode && <FieldToolbar />}
+              {isEditMode && <FieldToolbar />}
               <PreviewToolbar />
             </div>
           )}

@@ -679,7 +679,7 @@ function useHydrateDraftCache() {
 
 export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useIsAuthenticated();
-  const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
+  const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
   const pageData = usePreviewedPage();
   useHydrateDraftCache();
@@ -692,21 +692,21 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
   React.useEffect(() => {
     const actions = [
       {
-        id: "enter-presentation-mode",
-        label: "Hide Camox Studio",
-        aliases: ["Hide studio", "Preview only", "Presentation mode"],
+        id: "exit-edit-mode",
+        label: "Exit edit mode",
+        aliases: ["Hide Camox Studio", "Hide studio", "Preview only", "View mode"],
         groupLabel: "Preview",
-        checkIfAvailable: () => isAuthenticated && !isPresentationMode,
-        execute: () => previewStore.send({ type: "enterPresentationMode" }),
+        checkIfAvailable: () => isAuthenticated && isEditMode,
+        execute: () => previewStore.send({ type: "exitEditMode" }),
         shortcut: { key: "Enter", withMeta: true },
       },
       {
-        id: "exit-presentation-mode",
-        label: "Show Camox Studio",
-        aliases: ["Show studio", "Exit presentation", "Edit mode"],
+        id: "enter-edit-mode",
+        label: "Enter edit mode",
+        aliases: ["Show Camox Studio", "Show studio", "Edit mode"],
         groupLabel: "Preview",
-        checkIfAvailable: () => isAuthenticated && isPresentationMode,
-        execute: () => previewStore.send({ type: "exitPresentationMode" }),
+        checkIfAvailable: () => isAuthenticated && !isEditMode,
+        execute: () => previewStore.send({ type: "enterEditMode" }),
         shortcut: { key: "Enter", withMeta: true },
       },
       {
@@ -751,19 +751,19 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         ids: actions.map((a) => a.id),
       });
     };
-  }, [isPresentationMode, isAuthenticated, previewSource, hasLiveCheckpoint]);
+  }, [isEditMode, isAuthenticated, previewSource, hasLiveCheckpoint]);
 
   if (!isAuthenticated) {
     return <>{children}</>;
   }
 
-  const shouldShowStudioChrome = !isPresentationMode;
+  const shouldShowStudioChrome = isEditMode;
 
   return (
     <div
       className={cn(
         "bg-background flex h-screen flex-col overflow-hidden",
-        isPresentationMode && "bg-black",
+        !isEditMode && "bg-black",
       )}
     >
       {shouldShowStudioChrome && <Navbar />}
