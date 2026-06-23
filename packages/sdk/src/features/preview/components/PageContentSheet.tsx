@@ -336,29 +336,6 @@ const PageContentSheet = ({ pageId }: { pageId: number }) => {
   // lookups don't collide if this sheet is ever rendered more than once.
   const fieldIdPrefix = React.useId();
 
-  // Auto-focus the selected field when the sheet opens — or fall back to the
-  // first text field in the current schema so the sheet is ready to type into.
-  const autoFocusFieldName = React.useMemo(() => {
-    if (
-      (selection?.type === "block-field" || selection?.type === "item-field") &&
-      (selection.fieldType === "String" || selection.fieldType === "Embed")
-    ) {
-      return selection.fieldName;
-    }
-    const properties = (currentSchema as any)?.properties;
-    if (!properties) return null;
-    for (const name of Object.keys(properties)) {
-      const ft = properties[name]?.fieldType;
-      if (ft === "String" || ft === "Embed") return name;
-    }
-    return null;
-  }, [selection, currentSchema]);
-
-  React.useEffect(() => {
-    if (!autoFocusFieldName || isPresentationMode) return;
-    document.getElementById(`${fieldIdPrefix}-${autoFocusFieldName}`)?.focus();
-  }, [autoFocusFieldName, fieldIdPrefix, isPresentationMode]);
-
   const handleBlockFieldChange = React.useCallback(
     (fieldName: string, value: unknown) => {
       if (!block) return;
@@ -720,7 +697,6 @@ const PageContentSheet = ({ pageId }: { pageId: number }) => {
                   filesMap={filesMap}
                   itemsMap={itemsMap}
                   fieldIdPrefix={fieldIdPrefix}
-                  autoFocusFieldName={autoFocusFieldName}
                 />
               )}
               {!isViewingAsset && !isViewingLink && currentItemId != null && currentItem && (
