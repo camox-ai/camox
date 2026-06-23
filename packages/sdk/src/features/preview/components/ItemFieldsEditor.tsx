@@ -131,9 +131,6 @@ interface ItemFieldsEditorProps {
   /** Prefix used to scope DOM ids for each field so label-input pairs and
    * imperative focus lookups don't collide across sheet instances. */
   fieldIdPrefix: string;
-  /** When this editor mounts, focus this field. Used to auto-focus on navigation
-   * between block/item levels (which remount this component via a `key`). */
-  autoFocusFieldName?: string | null;
 }
 
 const ItemFieldsEditor = ({
@@ -146,7 +143,6 @@ const ItemFieldsEditor = ({
   filesMap,
   itemsMap,
   fieldIdPrefix,
-  autoFocusFieldName,
 }: ItemFieldsEditorProps) => {
   const fields = React.useMemo(() => getSchemaFieldsInOrder(schema), [schema]);
   const timerRef = React.useRef<number | null>(null);
@@ -159,18 +155,6 @@ const ItemFieldsEditor = ({
   };
 
   const getFieldElementId = (fieldName: string) => `${fieldIdPrefix}-${fieldName}`;
-
-  // Auto-focus the target field once on mount. This runs both when the sheet
-  // opens and when the parent remounts us via `key` on block↔item navigation.
-  const initialAutoFocusRef = React.useRef({
-    fieldName: autoFocusFieldName,
-    prefix: fieldIdPrefix,
-  });
-  React.useLayoutEffect(() => {
-    const { fieldName, prefix } = initialAutoFocusRef.current;
-    if (!fieldName) return;
-    document.getElementById(`${prefix}-${fieldName}`)?.focus();
-  }, []);
 
   const scalarFields = React.useMemo(() => {
     return fields
