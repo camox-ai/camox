@@ -53,6 +53,7 @@ export function selectionField(
  * view (the page's live published checkpoint snapshot).
  */
 export type PreviewSource = "draft" | "live";
+export type ViewportMode = "full" | "tablet" | "mobile";
 
 interface PreviewContext {
   isPresentationMode: boolean;
@@ -73,7 +74,7 @@ interface PreviewContext {
   prePreviewLockState: boolean | null;
   /** Open/closed state of the "Switch to draft to edit?" confirmation dialog. */
   isDraftSwitchDialogOpen: boolean;
-  isMobileMode: boolean;
+  viewportMode: ViewportMode;
   peekedBlock: Block | null;
   peekedBlockPosition: string | null;
   peekedPagePathname: string | null;
@@ -98,7 +99,7 @@ export const previewStore = createStore({
     isContentLocked: false,
     prePreviewLockState: null,
     isDraftSwitchDialogOpen: false,
-    isMobileMode: false,
+    viewportMode: "full",
     peekedBlock: null,
     peekedBlockPosition: null,
     peekedPagePathname: null,
@@ -128,11 +129,24 @@ export const previewStore = createStore({
     },
     toggleSidebar: (context) => ({ ...context, isSidebarOpen: true }),
     toggleLockContent: (context) => ({ ...context, isContentLocked: false }),
-    toggleMobileMode: (context, _, enqueue) => {
+    setViewportMode: (context, event: { mode: ViewportMode }, enqueue) => {
+      if (context.viewportMode === event.mode) return context;
       enqueue.effect(() => {
-        toast(context.isMobileMode ? "Leaving mobile mode" : "Entering mobile mode");
+        toast(`Previewing ${event.mode} viewport`);
       });
-      return { ...context, isMobileMode: !context.isMobileMode };
+      return { ...context, viewportMode: event.mode };
+    },
+    cycleViewportMode: (context, _, enqueue) => {
+      const nextMode: ViewportMode =
+        context.viewportMode === "full"
+          ? "tablet"
+          : context.viewportMode === "tablet"
+            ? "mobile"
+            : "full";
+      enqueue.effect(() => {
+        toast(`Previewing ${nextMode} viewport`);
+      });
+      return { ...context, viewportMode: nextMode };
     },
     setPeekedBlock: (context, event: { block: Block; afterPosition?: string | null }) => {
       if (!event.block) return context;

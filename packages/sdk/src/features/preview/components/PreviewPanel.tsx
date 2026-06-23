@@ -7,7 +7,7 @@ import { checkIfInputFocused, cn } from "@/lib/utils";
 import type { Action } from "../../provider/actionsStore";
 import { actionsStore } from "../../provider/actionsStore";
 import { SHEET_WIDTH } from "../previewConstants";
-import { previewStore } from "../previewStore";
+import { previewStore, type ViewportMode } from "../previewStore";
 import { useBlockActionsShortcuts } from "./BlockActionsPopover";
 import { FieldOverlayStyles } from "./FieldOverlayStyles";
 import { FieldToolbar } from "./FieldToolbar";
@@ -109,6 +109,11 @@ const KeyDownForwarder = () => {
  * PreviewPanel
  * -----------------------------------------------------------------------------------------------*/
 
+const viewportClassName: Record<Exclude<ViewportMode, "full">, string> = {
+  tablet: "h-[1024px] w-[768px] max-h-full max-w-full",
+  mobile: "h-175 w-[393px] max-h-full max-w-full",
+};
+
 const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
   useBlockActionsShortcuts();
 
@@ -116,7 +121,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
   const handleIframeReady = React.useCallback((element: HTMLIFrameElement) => {
     previewStore.send({ type: "setIframeElement", element });
   }, []);
-  const isMobileMode = useSelector(previewStore, (state) => state.context.isMobileMode);
+  const viewportMode = useSelector(previewStore, (state) => state.context.viewportMode);
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
   const isAnySideSheetOpen = useIsPreviewSheetOpen();
   const wrapperRef = React.useRef<HTMLDivElement>(null);
@@ -143,13 +148,37 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
   React.useEffect(() => {
     const actions = [
       {
-        id: "toggle-mobile-mode",
-        label: "Toggle mobile mode",
-        aliases: ["Mobile preview", "Responsive preview", "Phone preview"],
+        id: "cycle-viewport-mode",
+        label: "Cycle viewport mode",
+        aliases: ["Responsive preview", "Viewport preview", "Device preview"],
         groupLabel: "Preview",
         checkIfAvailable: () => true,
-        execute: () => previewStore.send({ type: "toggleMobileMode" }),
+        execute: () => previewStore.send({ type: "cycleViewportMode" }),
         shortcut: { key: "m" },
+      },
+      {
+        id: "set-viewport-full",
+        label: "Set full viewport",
+        aliases: ["Full preview", "Desktop preview", "Full width preview"],
+        groupLabel: "Preview",
+        checkIfAvailable: () => true,
+        execute: () => previewStore.send({ type: "setViewportMode", mode: "full" }),
+      },
+      {
+        id: "set-viewport-tablet",
+        label: "Set tablet viewport",
+        aliases: ["Tablet preview", "Responsive preview"],
+        groupLabel: "Preview",
+        checkIfAvailable: () => true,
+        execute: () => previewStore.send({ type: "setViewportMode", mode: "tablet" }),
+      },
+      {
+        id: "set-viewport-mobile",
+        label: "Set mobile viewport",
+        aliases: ["Mobile preview", "Phone preview", "Responsive preview"],
+        groupLabel: "Preview",
+        checkIfAvailable: () => true,
+        execute: () => previewStore.send({ type: "setViewportMode", mode: "mobile" }),
       },
       {
         id: "toggle-agent-chat",
@@ -200,7 +229,16 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
             transform: isAnySideSheetOpen ? `scale(${sheetOpenScale})` : "scale(1)",
           }}
         >
-          {isMobileMode ? (
+          {viewportMode === "full" ? (
+            <>
+              <PreviewFrame className="checkered h-full w-full" onIframeReady={handleIframeReady}>
+                {children}
+              </PreviewFrame>
+              {!isPresentationMode && <Overlays iframeElement={iframeElement} />}
+              {!isPresentationMode && <FieldToolbar />}
+              <PreviewToolbar />
+            </>
+          ) : (
             <div
               className={cn(
                 "checkered flex h-full justify-center",
@@ -209,7 +247,8 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
             >
               <div
                 className={cn(
-                  "relative h-175 w-[393px] overflow-hidden",
+                  "relative overflow-hidden",
+                  viewportClassName[viewportMode],
                   !isPresentationMode && "mt-8",
                 )}
               >
@@ -221,15 +260,6 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
               {!isPresentationMode && <FieldToolbar />}
               <PreviewToolbar />
             </div>
-          ) : (
-            <>
-              <PreviewFrame className="checkered h-full w-full" onIframeReady={handleIframeReady}>
-                {children}
-              </PreviewFrame>
-              {!isPresentationMode && <Overlays iframeElement={iframeElement} />}
-              {!isPresentationMode && <FieldToolbar />}
-              <PreviewToolbar />
-            </>
           )}
         </div>
       </PanelContent>

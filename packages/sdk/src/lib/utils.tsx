@@ -63,7 +63,7 @@ export function formatShortcut(shortcut: Action["shortcut"]) {
  * @example
  * ```tsx
  * const actions = useSelector(actionsStore, (state) => state.context.actions);
- * getActionShortcut(actions, "toggle-mobile-mode") // Returns formatted shortcut component
+ * getActionShortcut(actions, "cycle-viewport-mode") // Returns formatted shortcut component
  * ```
  */
 export function getActionShortcut(actions: Action[], actionId: string) {
