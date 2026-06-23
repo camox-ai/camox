@@ -14,7 +14,7 @@ import { actionsStore } from "../../provider/actionsStore";
 import { previewStore } from "../previewStore";
 
 export const PreviewToolbar = () => {
-  const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
+  const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
   const isToolbarHidden = useSelector(previewStore, (state) => state.context.isToolbarHidden);
   const isAddBlockSheetOpen = useSelector(
     previewStore,
@@ -24,12 +24,10 @@ export const PreviewToolbar = () => {
     previewStore,
     (state) => state.context.isAgentChatSheetOpen,
   );
-  const isAnySideSheetOpen = !isPresentationMode && (isAddBlockSheetOpen || isAgentChatSheetOpen);
+  const isAnySideSheetOpen = isEditMode && (isAddBlockSheetOpen || isAgentChatSheetOpen);
   const actions = useSelector(actionsStore, (state) => state.context.actions);
   const viewportMode = useSelector(previewStore, (state) => state.context.viewportMode);
-  const presentationModeActionId = isPresentationMode
-    ? "exit-presentation-mode"
-    : "enter-presentation-mode";
+  const editModeActionId = isEditMode ? "exit-edit-mode" : "enter-edit-mode";
 
   if (isToolbarHidden) return null;
 
@@ -43,15 +41,15 @@ export const PreviewToolbar = () => {
       <div className="flex items-center gap-2 px-2">
         <Switch
           id="edit-mode"
-          checked={!isPresentationMode}
+          checked={isEditMode}
           onCheckedChange={(checked) => {
             previewStore.send({
-              type: checked ? "exitPresentationMode" : "enterPresentationMode",
+              type: checked ? "enterEditMode" : "exitEditMode",
             });
           }}
         />
         <Label htmlFor="edit-mode" className="flex items-center gap-2">
-          Edit mode {getActionShortcut(actions, presentationModeActionId)}
+          Edit mode {getActionShortcut(actions, editModeActionId)}
         </Label>
       </div>
       <div className="flex items-center gap-2">
@@ -118,7 +116,7 @@ export const PreviewToolbar = () => {
                 type="button"
                 variant="ghost"
                 size="icon"
-                disabled={!isPresentationMode}
+                disabled={isEditMode}
                 onClick={() => previewStore.send({ type: "hideToolbar" })}
                 aria-label="Hide toolbar"
               />

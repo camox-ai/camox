@@ -149,7 +149,7 @@ const PageContentSheet = ({ pageId }: { pageId: number }) => {
   const requireDraft = useRequireDraftSource();
 
   // Get state from store
-  const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
+  const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
   const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
@@ -309,7 +309,7 @@ const PageContentSheet = ({ pageId }: { pageId: number }) => {
   const sessionDirtyRef = React.useRef(false);
   const trackedBlockIdRef = React.useRef<number | null>(null);
   React.useEffect(() => {
-    if (!block || isPresentationMode) {
+    if (!block || !isEditMode) {
       trackedBlockIdRef.current = null;
       return;
     }
@@ -317,10 +317,10 @@ const PageContentSheet = ({ pageId }: { pageId: number }) => {
     trackedBlockIdRef.current = block.id;
     sessionDirtyRef.current = false;
     trackClientEvent("content_sheet_opened", { blockType: block.type });
-  }, [block, isPresentationMode]);
+  }, [block, isEditMode]);
 
   React.useEffect(() => {
-    if (!block || isPresentationMode) return;
+    if (!block || !isEditMode) return;
 
     return () => {
       if (!sessionDirtyRef.current) return;
@@ -330,7 +330,7 @@ const PageContentSheet = ({ pageId }: { pageId: number }) => {
       });
       sessionDirtyRef.current = false;
     };
-  }, [block, isPresentationMode]);
+  }, [block, isEditMode]);
 
   // Scope field DOM ids with useId so label-input pairs and imperative focus
   // lookups don't collide if this sheet is ever rendered more than once.
@@ -368,7 +368,7 @@ const PageContentSheet = ({ pageId }: { pageId: number }) => {
     [currentItemId, itemsMap],
   );
 
-  if (isPresentationMode) {
+  if (!isEditMode) {
     return null;
   }
 
