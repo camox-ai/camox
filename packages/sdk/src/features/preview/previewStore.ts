@@ -57,6 +57,7 @@ export type ViewportMode = "full" | "tablet" | "mobile";
 
 interface PreviewContext {
   isPresentationMode: boolean;
+  isToolbarHidden: boolean;
   isSidebarOpen: boolean;
   isPageContentSheetOpen: boolean;
   isAddBlockSheetOpen: boolean;
@@ -88,6 +89,7 @@ interface PreviewContext {
 export const previewStore = createStore({
   context: {
     isPresentationMode: true,
+    isToolbarHidden: false,
     isSidebarOpen: true,
     isPageContentSheetOpen: false,
     isAddBlockSheetOpen: false,
@@ -127,6 +129,7 @@ export const previewStore = createStore({
       });
       return { ...context, isPresentationMode: false, isSidebarOpen: true, isContentLocked: false };
     },
+    hideToolbar: (context) => ({ ...context, isToolbarHidden: true }),
     toggleSidebar: (context) => ({ ...context, isSidebarOpen: true }),
     toggleLockContent: (context) => ({ ...context, isContentLocked: false }),
     setViewportMode: (context, event: { mode: ViewportMode }, enqueue) => {

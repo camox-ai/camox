@@ -1,3 +1,4 @@
+import { Button } from "@camox/ui/button";
 import { ButtonGroup } from "@camox/ui/button-group";
 import { FloatingToolbar } from "@camox/ui/floating-toolbar";
 import { Label } from "@camox/ui/label";
@@ -5,7 +6,7 @@ import { Switch } from "@camox/ui/switch";
 import { Toggle } from "@camox/ui/toggle";
 import * as Tooltip from "@camox/ui/tooltip";
 import { useSelector } from "@xstate/store-react";
-import { Monitor, Smartphone, Tablet } from "lucide-react";
+import { Monitor, Smartphone, Tablet, X } from "lucide-react";
 
 import { cn, getActionShortcut } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ import { previewStore } from "../previewStore";
 
 export const PreviewToolbar = () => {
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
+  const isToolbarHidden = useSelector(previewStore, (state) => state.context.isToolbarHidden);
   const isAddBlockSheetOpen = useSelector(
     previewStore,
     (state) => state.context.isAddBlockSheetOpen,
@@ -28,6 +30,8 @@ export const PreviewToolbar = () => {
   const presentationModeActionId = isPresentationMode
     ? "exit-presentation-mode"
     : "enter-presentation-mode";
+
+  if (isToolbarHidden) return null;
 
   return (
     <FloatingToolbar
@@ -50,62 +54,81 @@ export const PreviewToolbar = () => {
           Edit mode {getActionShortcut(actions, presentationModeActionId)}
         </Label>
       </div>
-      <ButtonGroup>
+      <div className="flex items-center gap-2">
+        <ButtonGroup>
+          <Tooltip.Tooltip>
+            <Tooltip.TooltipTrigger
+              render={
+                <Toggle
+                  data-state={viewportMode === "full" ? "on" : "off"}
+                  pressed={viewportMode === "full"}
+                  onPressedChange={() => {
+                    if (viewportMode === "full") return;
+                    previewStore.send({ type: "setViewportMode", mode: "full" });
+                  }}
+                  variant="outline"
+                />
+              }
+            >
+              <Monitor />
+            </Tooltip.TooltipTrigger>
+            <Tooltip.TooltipContent>Full view</Tooltip.TooltipContent>
+          </Tooltip.Tooltip>
+          <Tooltip.Tooltip>
+            <Tooltip.TooltipTrigger
+              render={
+                <Toggle
+                  data-state={viewportMode === "tablet" ? "on" : "off"}
+                  pressed={viewportMode === "tablet"}
+                  onPressedChange={() => {
+                    if (viewportMode === "tablet") return;
+                    previewStore.send({ type: "setViewportMode", mode: "tablet" });
+                  }}
+                  variant="outline"
+                />
+              }
+            >
+              <Tablet />
+            </Tooltip.TooltipTrigger>
+            <Tooltip.TooltipContent>Tablet view</Tooltip.TooltipContent>
+          </Tooltip.Tooltip>
+          <Tooltip.Tooltip>
+            <Tooltip.TooltipTrigger
+              render={
+                <Toggle
+                  data-state={viewportMode === "mobile" ? "on" : "off"}
+                  pressed={viewportMode === "mobile"}
+                  onPressedChange={() => {
+                    if (viewportMode === "mobile") return;
+                    previewStore.send({ type: "setViewportMode", mode: "mobile" });
+                  }}
+                  variant="outline"
+                />
+              }
+            >
+              <Smartphone />
+            </Tooltip.TooltipTrigger>
+            <Tooltip.TooltipContent>Mobile view</Tooltip.TooltipContent>
+          </Tooltip.Tooltip>
+        </ButtonGroup>
         <Tooltip.Tooltip>
           <Tooltip.TooltipTrigger
             render={
-              <Toggle
-                data-state={viewportMode === "full" ? "on" : "off"}
-                pressed={viewportMode === "full"}
-                onPressedChange={() => {
-                  if (viewportMode === "full") return;
-                  previewStore.send({ type: "setViewportMode", mode: "full" });
-                }}
-                variant="outline"
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={!isPresentationMode}
+                onClick={() => previewStore.send({ type: "hideToolbar" })}
+                aria-label="Hide toolbar"
               />
             }
           >
-            <Monitor />
+            <X />
           </Tooltip.TooltipTrigger>
-          <Tooltip.TooltipContent>Full view</Tooltip.TooltipContent>
+          <Tooltip.TooltipContent>Hide toolbar</Tooltip.TooltipContent>
         </Tooltip.Tooltip>
-        <Tooltip.Tooltip>
-          <Tooltip.TooltipTrigger
-            render={
-              <Toggle
-                data-state={viewportMode === "tablet" ? "on" : "off"}
-                pressed={viewportMode === "tablet"}
-                onPressedChange={() => {
-                  if (viewportMode === "tablet") return;
-                  previewStore.send({ type: "setViewportMode", mode: "tablet" });
-                }}
-                variant="outline"
-              />
-            }
-          >
-            <Tablet />
-          </Tooltip.TooltipTrigger>
-          <Tooltip.TooltipContent>Tablet view</Tooltip.TooltipContent>
-        </Tooltip.Tooltip>
-        <Tooltip.Tooltip>
-          <Tooltip.TooltipTrigger
-            render={
-              <Toggle
-                data-state={viewportMode === "mobile" ? "on" : "off"}
-                pressed={viewportMode === "mobile"}
-                onPressedChange={() => {
-                  if (viewportMode === "mobile") return;
-                  previewStore.send({ type: "setViewportMode", mode: "mobile" });
-                }}
-                variant="outline"
-              />
-            }
-          >
-            <Smartphone />
-          </Tooltip.TooltipTrigger>
-          <Tooltip.TooltipContent>Mobile view</Tooltip.TooltipContent>
-        </Tooltip.Tooltip>
-      </ButtonGroup>
+      </div>
     </FloatingToolbar>
   );
 };
