@@ -124,23 +124,17 @@ export const previewStore = createStore({
     },
     hideToolbar: (context) => ({ ...context, isToolbarHidden: true }),
     toggleSidebar: (context) => ({ ...context, isSidebarOpen: true }),
-    setViewportMode: (context, event: { mode: ViewportMode }, enqueue) => {
+    setViewportMode: (context, event: { mode: ViewportMode }) => {
       if (context.viewportMode === event.mode) return context;
-      enqueue.effect(() => {
-        toast(`Previewing ${event.mode} viewport`);
-      });
       return { ...context, viewportMode: event.mode };
     },
-    cycleViewportMode: (context, _, enqueue) => {
+    cycleViewportMode: (context) => {
       const nextMode: ViewportMode =
         context.viewportMode === "full"
           ? "tablet"
           : context.viewportMode === "tablet"
             ? "mobile"
             : "full";
-      enqueue.effect(() => {
-        toast(`Previewing ${nextMode} viewport`);
-      });
       return { ...context, viewportMode: nextMode };
     },
     setPeekedBlock: (context, event: { block: Block; afterPosition?: string | null }) => {
