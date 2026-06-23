@@ -1,4 +1,3 @@
-import { Accordion } from "@base-ui/react/accordion";
 import { Button } from "@camox/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import {
@@ -22,15 +21,12 @@ import {
   type AnimateLayoutChanges,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useQuery } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store-react";
-import { Ellipsis, GripVertical, LayoutTemplate, Plus, Type } from "lucide-react";
+import { Ellipsis, GripVertical, LayoutTemplate, Plus } from "lucide-react";
 import * as React from "react";
 
 import { useRequireDraftSource } from "@/core/hooks/useRequireDraftSource";
-import { fieldTypesDictionary } from "@/core/lib/fieldTypes";
 import { type NormalizedBlock, usePageBlocks } from "@/lib/normalized-data";
-import { blockQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
@@ -43,202 +39,6 @@ import { useUpdateBlockPosition } from "./useUpdateBlockPosition";
 const usePreviewSource = () => useSelector(previewStore, (state) => state.context.previewSource);
 
 /* -------------------------------------------------------------------------------------------------
- * useEmbedTitle
- * -----------------------------------------------------------------------------------------------*/
-
-function useEmbedTitle(url: string | null) {
-  const [title, setTitle] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (!url) return;
-    setTitle(null);
-    const controller = new AbortController();
-    fetch(url, { signal: controller.signal })
-      .then((res) => res.text())
-      .then((html) => {
-        const match = html.match(/<title[^>]*>([^<]*)<\/title>/i);
-        if (match?.[1]) setTitle(match[1].trim());
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, [url]);
-
-  return title;
-}
-
-/* -------------------------------------------------------------------------------------------------
- * FieldItem
- * -----------------------------------------------------------------------------------------------*/
-
-type FieldItemProps = {
-  fieldName: string;
-  value: unknown;
-  fieldType: string | undefined;
-  schemaTitle: string | undefined;
-  isSelected: boolean;
-  onFieldClick: () => void;
-  onFieldDoubleClick: () => void;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-};
-
-const FieldItem = ({
-  fieldName,
-  value,
-  fieldType,
-  schemaTitle,
-  isSelected,
-  onFieldClick,
-  onFieldDoubleClick,
-  onMouseEnter,
-  onMouseLeave,
-}: FieldItemProps) => {
-  const embedUrl = fieldType === "Embed" ? (value as string) : null;
-  const fetchedEmbedTitle = useEmbedTitle(embedUrl);
-
-  const fieldDef =
-    fieldType != null ? fieldTypesDictionary[fieldType as keyof typeof fieldTypesDictionary] : null;
-  const displayValue = fieldDef
-    ? fieldDef.getLabel(value, {
-        schemaTitle,
-        fieldName,
-        fetchedTitle: fetchedEmbedTitle,
-      })
-    : JSON.stringify(value);
-
-  const FieldIcon = fieldDef?.getIcon() ?? Type;
-
-  return (
-    <li
-      className={cn(
-        "flex items-center gap-1.5 rounded-lg pl-2 pr-1 py-2 cursor-default group/field",
-        isSelected ? "bg-accent" : "hover:bg-accent/75",
-      )}
-      onClick={() => fieldType && onFieldClick()}
-      onDoubleClick={() => fieldType && onFieldDoubleClick()}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
-      <FieldIcon className="size-4 shrink-0" />
-      <span className="text-accent-foreground truncate select-none">{displayValue}</span>
-    </li>
-  );
-};
-
-/* -------------------------------------------------------------------------------------------------
- * BlockFields
- * -----------------------------------------------------------------------------------------------*/
-
-type BlockFieldsProps = {
-  block: NormalizedBlock;
-};
-
-const BlockFields = ({ block }: BlockFieldsProps) => {
-  const camoxApp = useCamoxApp();
-  const blockDef = camoxApp.getBlockById(block.type);
-  const schemaProperties = blockDef?._internal.contentSchema.properties;
-
-  const selection = useSelector(previewStore, (state) => state.context.selection);
-  const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
-  const previewSource = usePreviewSource();
-  const { data: blockBundle } = useQuery(blockQueries.get(block.id, previewSource));
-
-  let selectedFieldName: string | null = null;
-  if (selection?.type === "block-field" && selection.blockId === block.id) {
-    selectedFieldName = selection.fieldName;
-  } else if (
-    (selection?.type === "item" || selection?.type === "item-field") &&
-    selection.blockId === block.id &&
-    blockBundle
-  ) {
-    const itemsById = new Map(blockBundle.repeatableItems.map((i) => [i.id, i]));
-    let current = itemsById.get(selection.itemId);
-    while (current?.parentItemId != null) {
-      current = itemsById.get(current.parentItemId);
-    }
-    selectedFieldName = current?.fieldName ?? null;
-  }
-
-  const handleFieldClick = (fieldName: string, fieldType: string) => {
-    previewStore.send({
-      type: "selectBlockField",
-      blockId: block.id,
-      fieldName,
-      fieldType: fieldType as "String" | "Repeater",
-    });
-  };
-
-  const handleFieldDoubleClick = (fieldName: string, fieldType: string) => {
-    const fieldDef = fieldTypesDictionary[fieldType as keyof typeof fieldTypesDictionary];
-    fieldDef.onTreeDoubleClick({ blockId: block.id, fieldName });
-  };
-
-  const handleFieldMouseEnter = (fieldName: string, isRepeatable: boolean) => {
-    if (!iframeElement?.contentWindow) return;
-    if (isRepeatable) {
-      const message: OverlayMessage = {
-        type: "CAMOX_HOVER_REPEATER",
-        blockId: String(block.id),
-        fieldName,
-      };
-      iframeElement.contentWindow.postMessage(message, "*");
-    } else {
-      const fieldId = `${String(block.id)}__${fieldName}`;
-      const message: OverlayMessage = {
-        type: "CAMOX_HOVER_FIELD",
-        fieldId,
-      };
-      iframeElement.contentWindow.postMessage(message, "*");
-    }
-  };
-
-  const handleFieldMouseLeave = (fieldName: string, isRepeatable: boolean) => {
-    if (!iframeElement?.contentWindow) return;
-    if (isRepeatable) {
-      const message: OverlayMessage = {
-        type: "CAMOX_HOVER_REPEATER_END",
-        blockId: String(block.id),
-        fieldName,
-      };
-      iframeElement.contentWindow.postMessage(message, "*");
-    } else {
-      const fieldId = `${String(block.id)}__${fieldName}`;
-      const message: OverlayMessage = {
-        type: "CAMOX_HOVER_FIELD_END",
-        fieldId,
-      };
-      iframeElement.contentWindow.postMessage(message, "*");
-    }
-  };
-
-  return (
-    <ul className="my-1 space-y-1 pl-7">
-      {Object.keys(schemaProperties ?? {}).map((fieldName) => {
-        const value = block.content[fieldName];
-        const fieldSchema = schemaProperties?.[fieldName];
-        if (!fieldSchema) return null;
-        const fieldType = fieldSchema.fieldType;
-        const isRepeatable = fieldType === "Repeater";
-        return (
-          <FieldItem
-            key={fieldName}
-            fieldName={fieldName}
-            value={value}
-            fieldType={fieldType}
-            schemaTitle={fieldSchema?.title}
-            isSelected={selectedFieldName === fieldName}
-            onFieldClick={() => handleFieldClick(fieldName, fieldType!)}
-            onFieldDoubleClick={() => handleFieldDoubleClick(fieldName, fieldType!)}
-            onMouseEnter={() => handleFieldMouseEnter(fieldName, isRepeatable)}
-            onMouseLeave={() => handleFieldMouseLeave(fieldName, isRepeatable)}
-          />
-        );
-      })}
-    </ul>
-  );
-};
-
-/* -------------------------------------------------------------------------------------------------
  * useBlockTreeItem
  * -----------------------------------------------------------------------------------------------*/
 
@@ -246,9 +46,10 @@ function useBlockTreeItem(block: NormalizedBlock, isDragging = false) {
   const [ellipsisPopoverOpen, setEllipsisPopoverOpen] = React.useState(false);
   const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
+  const isBlockActive = selection?.blockId === block.id;
   const isBlockSelected = selection?.type === "block" && selection.blockId === block.id;
-  const shouldShowHover = !isDragging && !isBlockSelected;
-  const shouldShowActive = isDragging || isBlockSelected;
+  const shouldShowHover = !isDragging && !isBlockActive;
+  const shouldShowActive = isDragging || isBlockActive;
 
   const handleBlockMouseEnter = () => {
     if (!iframeElement?.contentWindow) return;
@@ -311,7 +112,6 @@ const BlockTreeItemHeader = ({
       "flex flex-row justify-between items-center gap-1 px-1 max-w-full rounded-lg text-foreground transition-all hover:transition-none",
       shouldShowHover && "hover:bg-accent/75",
       shouldShowActive && "bg-accent text-accent-foreground",
-      "data-open:rounded-b-none",
       className,
     )}
     {...props}
@@ -327,18 +127,17 @@ const BlockTreeItemTrigger = ({
   displayText: string;
   onClick: () => void;
 }) => (
-  <div className="flex flex-1 items-center gap-1 overflow-x-hidden">
-    <Accordion.Trigger
-      className={cn(
-        "cursor-default flex-1 truncate py-2 text-sm text-left rounded-sm",
-        "focus-visible:underline outline-none focus-visible:decoration-ring/50 focus-visible:decoration-4",
-      )}
-      title={displayText}
-      onClick={onClick}
-    >
-      {displayText}
-    </Accordion.Trigger>
-  </div>
+  <button
+    type="button"
+    className={cn(
+      "cursor-default flex-1 truncate py-2 text-sm text-left rounded-sm min-w-0",
+      "focus-visible:underline outline-none focus-visible:decoration-ring/50 focus-visible:decoration-4",
+    )}
+    title={displayText}
+    onClick={onClick}
+  >
+    {displayText}
+  </button>
 );
 
 const BlockTreeItemEllipsis = ({
@@ -358,12 +157,6 @@ const BlockTreeItemEllipsis = ({
   >
     <Ellipsis className="size-4" />
   </Button>
-);
-
-const BlockTreeItemContent = ({ block }: { block: NormalizedBlock }) => (
-  <Accordion.Panel className="text-muted-foreground h-[var(--accordion-panel-height)] overflow-hidden rounded-b-lg text-sm transition-[height] duration-200 data-[ending-style]:h-0 data-[starting-style]:h-0">
-    <BlockFields block={block} />
-  </Accordion.Panel>
 );
 
 /* -------------------------------------------------------------------------------------------------
@@ -396,10 +189,6 @@ const SortableBlock = ({ block }: SortableBlockProps) => {
     opacity: isDragging ? 0 : 1,
   };
   const ctx = useBlockTreeItem(block, isDragging);
-  const isBlockFocused = useSelector(
-    previewStore,
-    (state) => state.context.selection?.blockId === block.id,
-  );
 
   const gripButton = (
     <Button
@@ -427,58 +216,45 @@ const SortableBlock = ({ block }: SortableBlockProps) => {
   );
 
   return (
-    <Accordion.Root value={isBlockFocused ? [String(block.id)] : []}>
-      <Accordion.Item
-        value={String(block.id)}
-        ref={setNodeRef}
-        style={style}
-        className="group"
-        onMouseEnter={ctx.handleBlockMouseEnter}
-        onMouseLeave={ctx.handleBlockMouseLeave}
-      >
-        <Accordion.Header render={<div />}>
-          <BlockTreeItemHeader
-            shouldShowHover={ctx.shouldShowHover}
-            shouldShowActive={ctx.shouldShowActive}
-          >
-            {isReadOnly ? (
-              gripButton
-            ) : (
-              <BlockActionsPopover
-                block={block}
-                open={gripPopoverOpen}
-                onOpenChange={setGripPopoverOpen}
-              >
-                {gripButton}
-              </BlockActionsPopover>
-            )}
-            <BlockTreeItemTrigger
-              displayText={block.summary || block.type}
-              onClick={ctx.toggleSelection}
-            />
-            {isReadOnly ? (
-              <BlockTreeItemEllipsis
-                open={false}
-                onClick={(e: React.MouseEvent) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  requireDraft();
-                }}
-              />
-            ) : (
-              <BlockActionsPopover
-                block={block}
-                open={ctx.ellipsisPopoverOpen}
-                onOpenChange={ctx.setEllipsisPopoverOpen}
-              >
-                <BlockTreeItemEllipsis open={ctx.ellipsisPopoverOpen} />
-              </BlockActionsPopover>
-            )}
-          </BlockTreeItemHeader>
-        </Accordion.Header>
-        <BlockTreeItemContent block={block} />
-      </Accordion.Item>
-    </Accordion.Root>
+    <BlockTreeItemHeader
+      ref={setNodeRef}
+      style={style}
+      className="group"
+      shouldShowHover={ctx.shouldShowHover}
+      shouldShowActive={ctx.shouldShowActive}
+      onMouseEnter={ctx.handleBlockMouseEnter}
+      onMouseLeave={ctx.handleBlockMouseLeave}
+    >
+      {isReadOnly ? (
+        gripButton
+      ) : (
+        <BlockActionsPopover block={block} open={gripPopoverOpen} onOpenChange={setGripPopoverOpen}>
+          {gripButton}
+        </BlockActionsPopover>
+      )}
+      <BlockTreeItemTrigger
+        displayText={block.summary || block.type}
+        onClick={ctx.toggleSelection}
+      />
+      {isReadOnly ? (
+        <BlockTreeItemEllipsis
+          open={false}
+          onClick={(e: React.MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            requireDraft();
+          }}
+        />
+      ) : (
+        <BlockActionsPopover
+          block={block}
+          open={ctx.ellipsisPopoverOpen}
+          onOpenChange={ctx.setEllipsisPopoverOpen}
+        >
+          <BlockTreeItemEllipsis open={ctx.ellipsisPopoverOpen} />
+        </BlockActionsPopover>
+      )}
+    </BlockTreeItemHeader>
   );
 };
 
@@ -499,62 +275,49 @@ const LayoutBlockItem = ({ block, layoutName }: LayoutBlockItemProps) => {
   const requireDraft = useRequireDraftSource();
   const isReadOnly = previewSource !== "draft";
   const displayText = blockDef?._internal.title ?? block.type;
-  const isBlockFocused = useSelector(
-    previewStore,
-    (state) => state.context.selection?.blockId === block.id,
-  );
 
   return (
-    <Accordion.Root value={isBlockFocused ? [String(block.id)] : []}>
-      <Accordion.Item
-        value={String(block.id)}
-        className="group"
-        onMouseEnter={ctx.handleBlockMouseEnter}
-        onMouseLeave={ctx.handleBlockMouseLeave}
-      >
-        <Accordion.Header render={<div />}>
-          <BlockTreeItemHeader
-            shouldShowHover={ctx.shouldShowHover}
-            shouldShowActive={ctx.shouldShowActive}
-          >
-            <div className="text-muted-foreground flex size-8 shrink-0 items-center justify-center">
-              <Tooltip>
-                <TooltipTrigger>
-                  <LayoutTemplate className="h-4 w-4" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  From <span className="font-semibold">{layoutName}</span> layout.
-                  <br />
-                  Changing the content may affect other pages
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <BlockTreeItemTrigger displayText={displayText} onClick={ctx.toggleSelection} />
-            {isReadOnly ? (
-              <BlockTreeItemEllipsis
-                open={false}
-                onClick={(e: React.MouseEvent) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  requireDraft();
-                }}
-              />
-            ) : (
-              <BlockActionsPopover
-                block={block}
-                open={ctx.ellipsisPopoverOpen}
-                onOpenChange={ctx.setEllipsisPopoverOpen}
-                isLayoutBlock
-                layoutPlacement={block.placement as "before" | "after"}
-              >
-                <BlockTreeItemEllipsis open={ctx.ellipsisPopoverOpen} />
-              </BlockActionsPopover>
-            )}
-          </BlockTreeItemHeader>
-        </Accordion.Header>
-        <BlockTreeItemContent block={block} />
-      </Accordion.Item>
-    </Accordion.Root>
+    <BlockTreeItemHeader
+      className="group"
+      shouldShowHover={ctx.shouldShowHover}
+      shouldShowActive={ctx.shouldShowActive}
+      onMouseEnter={ctx.handleBlockMouseEnter}
+      onMouseLeave={ctx.handleBlockMouseLeave}
+    >
+      <div className="text-muted-foreground flex size-8 shrink-0 items-center justify-center">
+        <Tooltip>
+          <TooltipTrigger>
+            <LayoutTemplate className="h-4 w-4" />
+          </TooltipTrigger>
+          <TooltipContent>
+            From <span className="font-semibold">{layoutName}</span> layout.
+            <br />
+            Changing the content may affect other pages
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      <BlockTreeItemTrigger displayText={displayText} onClick={ctx.toggleSelection} />
+      {isReadOnly ? (
+        <BlockTreeItemEllipsis
+          open={false}
+          onClick={(e: React.MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            requireDraft();
+          }}
+        />
+      ) : (
+        <BlockActionsPopover
+          block={block}
+          open={ctx.ellipsisPopoverOpen}
+          onOpenChange={ctx.setEllipsisPopoverOpen}
+          isLayoutBlock
+          layoutPlacement={block.placement as "before" | "after"}
+        >
+          <BlockTreeItemEllipsis open={ctx.ellipsisPopoverOpen} />
+        </BlockActionsPopover>
+      )}
+    </BlockTreeItemHeader>
   );
 };
 
