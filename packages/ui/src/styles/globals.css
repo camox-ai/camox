@@ -1,7 +1,8 @@
 @custom-variant dark (&:is(.dark *));
 @source "../";
 
-:root {
+:root,
+.camox-studio-theme {
   --background: oklch(1 0 0);
   --foreground: theme(--color-zinc-950);
   --card: oklch(1 0 0);
@@ -37,7 +38,8 @@
   --sidebar-ring: theme(--color-zinc-400);
 }
 
-.dark {
+.dark,
+.camox-studio-theme.dark {
   --background: theme(--color-zinc-950);
   --foreground: theme(--color-zinc-50);
   --card: theme(--color-zinc-900);

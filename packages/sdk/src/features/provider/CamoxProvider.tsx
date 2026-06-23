@@ -63,12 +63,12 @@ const AuthenticatedCamoxProvider = ({ children }: AuthenticatedCamoxProviderProp
     });
   }, [project, projectSlug, environmentName]);
 
-  const { theme } = useApplyTheme();
+  const { resolvedTheme } = useApplyTheme();
 
   return (
     <>
       {children}
-      <Toaster theme={theme} />
+      <Toaster theme={resolvedTheme} />
       <CommandPalette />
     </>
   );

@@ -1,11 +1,11 @@
-import { Button } from "@camox/ui/button";
 import { ButtonGroup } from "@camox/ui/button-group";
 import { FloatingToolbar } from "@camox/ui/floating-toolbar";
-import { Kbd } from "@camox/ui/kbd";
+import { Label } from "@camox/ui/label";
+import { Switch } from "@camox/ui/switch";
 import { Toggle } from "@camox/ui/toggle";
 import * as Tooltip from "@camox/ui/tooltip";
 import { useSelector } from "@xstate/store-react";
-import { Lock, MonitorPlay, PanelRight, TabletSmartphone } from "lucide-react";
+import { Monitor, Smartphone } from "lucide-react";
 
 import { cn, getActionShortcut } from "@/lib/utils";
 
@@ -13,11 +13,7 @@ import { actionsStore } from "../../provider/actionsStore";
 import { previewStore } from "../previewStore";
 
 export const PreviewToolbar = () => {
-  const isEditingLocked = useSelector(previewStore, (state) => state.context.isContentLocked);
-  const isEditingPanelOpen = useSelector(previewStore, (state) => state.context.isSidebarOpen);
   const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
-  const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
-  const isPreviewingNonDraft = previewSource !== "draft";
   const isAddBlockSheetOpen = useSelector(
     previewStore,
     (state) => state.context.isAddBlockSheetOpen,
@@ -26,57 +22,53 @@ export const PreviewToolbar = () => {
     previewStore,
     (state) => state.context.isAgentChatSheetOpen,
   );
-  const isAnySideSheetOpen = isAddBlockSheetOpen || isAgentChatSheetOpen;
+  const isAnySideSheetOpen = !isPresentationMode && (isAddBlockSheetOpen || isAgentChatSheetOpen);
   const actions = useSelector(actionsStore, (state) => state.context.actions);
   const isMobileMode = useSelector(previewStore, (state) => state.context.isMobileMode);
+  const presentationModeActionId = isPresentationMode
+    ? "exit-presentation-mode"
+    : "enter-presentation-mode";
 
   return (
     <FloatingToolbar
       className={cn(
-        "bottom-2 gap-4 justify-between",
+        "bottom-2 gap-8 justify-between",
         isAnySideSheetOpen && "opacity-0 pointer-events-none translate-y-full",
       )}
     >
+      <div className="flex items-center gap-2 px-2">
+        <Switch
+          id="edit-mode"
+          checked={!isPresentationMode}
+          onCheckedChange={(checked) => {
+            previewStore.send({
+              type: checked ? "exitPresentationMode" : "enterPresentationMode",
+            });
+          }}
+        />
+        <Label htmlFor="edit-mode" className="flex items-center gap-2">
+          Edit page {getActionShortcut(actions, presentationModeActionId)}
+        </Label>
+      </div>
       <ButtonGroup>
         <Tooltip.Tooltip>
           <Tooltip.TooltipTrigger
             render={
               <Toggle
-                data-state={isEditingPanelOpen ? "off" : "on"}
-                pressed={!isEditingPanelOpen}
-                variant="outline"
-                onClick={() => previewStore.send({ type: "toggleSidebar" })}
-              />
-            }
-          >
-            <PanelRight />
-          </Tooltip.TooltipTrigger>
-          <Tooltip.TooltipContent>
-            Toggle sidebar {getActionShortcut(actions, "toggle-editing-panel")}
-          </Tooltip.TooltipContent>
-        </Tooltip.Tooltip>
-        <Tooltip.Tooltip>
-          <Tooltip.TooltipTrigger
-            render={
-              <Toggle
-                data-state={isEditingLocked ? "on" : "off"}
-                pressed={isEditingLocked}
-                disabled={isPreviewingNonDraft}
-                onPressedChange={() => previewStore.send({ type: "toggleLockContent" })}
+                data-state={isMobileMode ? "off" : "on"}
+                pressed={!isMobileMode}
+                onPressedChange={() => {
+                  if (!isMobileMode) return;
+                  previewStore.send({ type: "toggleMobileMode" });
+                }}
                 variant="outline"
               />
             }
           >
-            <Lock />
+            <Monitor />
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent>
-            {isPreviewingNonDraft ? (
-              "Switch to draft to edit"
-            ) : (
-              <>
-                Toggle edit mode <Kbd>L</Kbd>
-              </>
-            )}
+            Desktop view {getActionShortcut(actions, "toggle-mobile-mode")}
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>
         <Tooltip.Tooltip>
@@ -85,44 +77,21 @@ export const PreviewToolbar = () => {
               <Toggle
                 data-state={isMobileMode ? "on" : "off"}
                 pressed={isMobileMode}
-                onPressedChange={() => previewStore.send({ type: "toggleMobileMode" })}
+                onPressedChange={() => {
+                  if (isMobileMode) return;
+                  previewStore.send({ type: "toggleMobileMode" });
+                }}
                 variant="outline"
               />
             }
           >
-            <TabletSmartphone />
+            <Smartphone />
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent>
-            Toggle mobile layout {getActionShortcut(actions, "toggle-mobile-mode")}
-          </Tooltip.TooltipContent>
-        </Tooltip.Tooltip>
-        <Tooltip.Tooltip>
-          <Tooltip.TooltipTrigger
-            render={
-              <Toggle
-                data-state={isPresentationMode ? "on" : "off"}
-                pressed={isPresentationMode}
-                variant="outline"
-                onClick={() => previewStore.send({ type: "enterPresentationMode" })}
-              />
-            }
-          >
-            <MonitorPlay />
-            Preview
-          </Tooltip.TooltipTrigger>
-          <Tooltip.TooltipContent>
-            Hide Camox Studio {getActionShortcut(actions, "enter-presentation-mode")}
+            Mobile view {getActionShortcut(actions, "toggle-mobile-mode")}
           </Tooltip.TooltipContent>
         </Tooltip.Tooltip>
       </ButtonGroup>
-      <Button
-        variant="outline"
-        className="bg-transparent dark:bg-transparent"
-        onClick={() => previewStore.send({ type: "openAgentChatSheet" })}
-      >
-        <span className="text-muted-foreground">Ask for changes...</span>
-        {getActionShortcut(actions, "toggle-agent-chat")}
-      </Button>
     </FloatingToolbar>
   );
 };

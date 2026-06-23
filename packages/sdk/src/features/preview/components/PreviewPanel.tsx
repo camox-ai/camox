@@ -2,7 +2,7 @@ import { PanelContent } from "@camox/ui/panel";
 import { useSelector } from "@xstate/store-react";
 import * as React from "react";
 
-import { checkIfInputFocused } from "@/lib/utils";
+import { checkIfInputFocused, cn } from "@/lib/utils";
 
 import type { Action } from "../../provider/actionsStore";
 import { actionsStore } from "../../provider/actionsStore";
@@ -57,13 +57,6 @@ const KeyDownForwarder = () => {
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Handle L key hold separately — forward as holdLockContent
-      if (e.key.toLowerCase() === "l" && !e.repeat && !checkIfInputFocused(iframeWindow.document)) {
-        e.preventDefault();
-        iframeWindow.parent.postMessage({ type: "holdLockContent" }, "*");
-        return;
-      }
-
       const matchingAction = actions.find((action) => {
         if (!action.shortcut) return false;
         if (!action.checkIfAvailable()) return false;
@@ -103,17 +96,9 @@ const KeyDownForwarder = () => {
       }
     };
 
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === "l") {
-        iframeWindow.parent.postMessage({ type: "releaseLockContent" }, "*");
-      }
-    };
-
     iframeWindow.addEventListener("keydown", handleKeyDown);
-    iframeWindow.addEventListener("keyup", handleKeyUp);
     return () => {
       iframeWindow.removeEventListener("keydown", handleKeyDown);
-      iframeWindow.removeEventListener("keyup", handleKeyUp);
     };
   }, [iframeWindow, actions]);
 
@@ -132,6 +117,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
     previewStore.send({ type: "setIframeElement", element });
   }, []);
   const isMobileMode = useSelector(previewStore, (state) => state.context.isMobileMode);
+  const isPresentationMode = useSelector(previewStore, (state) => state.context.isPresentationMode);
   const isAnySideSheetOpen = useIsPreviewSheetOpen();
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const [panelWidth, setPanelWidth] = React.useState(0);
@@ -156,23 +142,6 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
 
   React.useEffect(() => {
     const actions = [
-      {
-        id: "toggle-editing-panel",
-        label: "Toggle editing panel",
-        aliases: ["Sidebar", "Toggle sidebar", "Show sidebar", "Hide sidebar"],
-        groupLabel: "Preview",
-        checkIfAvailable: () => true,
-        execute: () => previewStore.send({ type: "toggleSidebar" }),
-        shortcut: { key: "b", withAlt: true },
-      },
-      {
-        id: "toggle-lock-content",
-        label: "Toggle lock content",
-        aliases: ["Lock editing", "Unlock content", "Lock page"],
-        groupLabel: "Preview",
-        checkIfAvailable: () => true,
-        execute: () => previewStore.send({ type: "toggleLockContent" }),
-      },
       {
         id: "toggle-mobile-mode",
         label: "Toggle mobile mode",
@@ -232,14 +201,24 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
           }}
         >
           {isMobileMode ? (
-            <div className="checkered flex h-full justify-center">
-              <div className="relative mt-8 h-175 w-[393px] overflow-hidden">
+            <div
+              className={cn(
+                "checkered flex h-full justify-center",
+                isPresentationMode ? "items-center" : "items-start",
+              )}
+            >
+              <div
+                className={cn(
+                  "relative h-175 w-[393px] overflow-hidden",
+                  !isPresentationMode && "mt-8",
+                )}
+              >
                 <PreviewFrame className="overflow-auto" onIframeReady={handleIframeReady}>
                   {children}
                 </PreviewFrame>
-                <Overlays iframeElement={iframeElement} />
+                {!isPresentationMode && <Overlays iframeElement={iframeElement} />}
               </div>
-              <FieldToolbar />
+              {!isPresentationMode && <FieldToolbar />}
               <PreviewToolbar />
             </div>
           ) : (
@@ -247,8 +226,8 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
               <PreviewFrame className="checkered h-full w-full" onIframeReady={handleIframeReady}>
                 {children}
               </PreviewFrame>
-              <Overlays iframeElement={iframeElement} />
-              <FieldToolbar />
+              {!isPresentationMode && <Overlays iframeElement={iframeElement} />}
+              {!isPresentationMode && <FieldToolbar />}
               <PreviewToolbar />
             </>
           )}
