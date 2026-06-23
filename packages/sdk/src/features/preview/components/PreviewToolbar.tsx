@@ -13,7 +13,11 @@ import { cn, getActionShortcut } from "@/lib/utils";
 import { actionsStore } from "../../provider/actionsStore";
 import { previewStore } from "../previewStore";
 
-export const PreviewToolbar = () => {
+interface PreviewToolbarProps {
+  onEditModeChange?: (checked: boolean) => void;
+}
+
+export const PreviewToolbar = ({ onEditModeChange }: PreviewToolbarProps) => {
   const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
   const isToolbarHidden = useSelector(previewStore, (state) => state.context.isToolbarHidden);
   const isAddBlockSheetOpen = useSelector(
@@ -43,6 +47,11 @@ export const PreviewToolbar = () => {
           id="edit-mode"
           checked={isEditMode}
           onCheckedChange={(checked) => {
+            if (onEditModeChange) {
+              onEditModeChange(checked);
+              return;
+            }
+
             previewStore.send({
               type: checked ? "enterEditMode" : "exitEditMode",
             });

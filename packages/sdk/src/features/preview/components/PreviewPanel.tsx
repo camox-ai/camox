@@ -114,7 +114,12 @@ const viewportClassName: Record<Exclude<ViewportMode, "full">, string> = {
   mobile: "h-175 w-[393px] max-h-full max-w-full",
 };
 
-const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
+interface PreviewPanelProps {
+  children: React.ReactNode;
+  toolbarProps?: React.ComponentProps<typeof PreviewToolbar>;
+}
+
+const PreviewPanel = ({ children, toolbarProps }: PreviewPanelProps) => {
   useBlockActionsShortcuts();
 
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
@@ -236,7 +241,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
               </PreviewFrame>
               {isEditMode && <Overlays iframeElement={iframeElement} />}
               {isEditMode && <FieldToolbar />}
-              <PreviewToolbar />
+              <PreviewToolbar {...toolbarProps} />
             </>
           ) : (
             <div
@@ -258,7 +263,7 @@ const PreviewPanel = ({ children }: { children: React.ReactNode }) => {
                 {isEditMode && <Overlays iframeElement={iframeElement} />}
               </div>
               {isEditMode && <FieldToolbar />}
-              <PreviewToolbar />
+              <PreviewToolbar {...toolbarProps} />
             </div>
           )}
         </div>
