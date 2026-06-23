@@ -11,9 +11,9 @@ import { useFrame } from "./Frame";
  */
 export const OverlayTracker = () => {
   const { window: iframeWindow } = useFrame();
-  const isPageContentSheetOpen = useSelector(
+  const isPageEditorSidebarOpen = useSelector(
     previewStore,
-    (state) => state.context.isPageContentSheetOpen,
+    (state) => state.context.isPageEditorSidebarOpen,
   );
   const isAddBlockSheetOpen = useSelector(
     previewStore,
@@ -42,7 +42,7 @@ export const OverlayTracker = () => {
       const { type } = event.data;
 
       if (type === "CAMOX_FOCUS_FIELD") {
-        if (isPageContentSheetOpen) return;
+        if (isPageEditorSidebarOpen) return;
 
         const { fieldId } = event.data;
         const element = iframeWindow.document.querySelector(
@@ -58,7 +58,7 @@ export const OverlayTracker = () => {
     // Listen on the iframe's window for messages from parent
     iframeWindow.addEventListener("message", handleMessage);
     return () => iframeWindow.removeEventListener("message", handleMessage);
-  }, [iframeWindow, isPageContentSheetOpen]);
+  }, [iframeWindow, isPageEditorSidebarOpen]);
 
   return null;
 };
