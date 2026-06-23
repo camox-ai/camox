@@ -128,6 +128,7 @@ export const PreviewToolbar = ({ onEditModeChange }: PreviewToolbarProps) => {
                 disabled={isEditMode}
                 onClick={() => previewStore.send({ type: "hideToolbar" })}
                 aria-label="Hide toolbar"
+                className="text-muted-foreground"
               />
             }
           >

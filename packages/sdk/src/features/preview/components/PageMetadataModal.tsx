@@ -4,7 +4,6 @@
 
 import { Alert, AlertDescription, AlertTitle } from "@camox/ui/alert";
 import { Button } from "@camox/ui/button";
-import { ButtonGroup, ButtonGroupText } from "@camox/ui/button-group";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +12,12 @@ import {
   DialogTitle,
 } from "@camox/ui/dialog";
 import { Input } from "@camox/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupText,
+} from "@camox/ui/input-group";
 import { Label } from "@camox/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { Spinner } from "@camox/ui/spinner";
@@ -99,20 +104,22 @@ const PageInfoSidebar = ({ pageId }: { pageId: number }) => {
           <PageNicknameSidebarEditor data={data} />
           <div className="space-y-2">
             <Label>Page path</Label>
-            <ButtonGroup className="w-full">
-              <ButtonGroupText className="text-muted-foreground min-h-9 flex-1 justify-start font-mono font-normal break-all">
+            <InputGroup className="h-auto min-h-9 px-1">
+              <InputGroupText className="min-w-0 flex-1 px-2 py-1.5 font-mono font-normal break-all">
                 {page.fullPath}
-              </ButtonGroupText>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setIsStructureModalOpen(true)}
-                aria-label="Edit page structure"
-              >
-                <Pencil className="size-4" />
-              </Button>
-            </ButtonGroup>
+              </InputGroupText>
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => setIsStructureModalOpen(true)}
+                  aria-label="Edit page structure"
+                >
+                  <Pencil className="size-4" />
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
           </div>
           <PageLayoutSidebarSelect data={data} />
         </section>
@@ -209,7 +216,13 @@ const PageNicknameSidebarEditor = ({ data }: { data: PageMetadataData }) => {
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={inputId}>Page nickname</Label>
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor={inputId}>Page nickname</Label>
+        <Tooltip>
+          <TooltipTrigger render={<Info className="text-muted-foreground size-3.5" />} />
+          <TooltipContent>A short internal name. Does not affect SEO.</TooltipContent>
+        </Tooltip>
+      </div>
       <Input
         id={inputId}
         value={value}
@@ -219,7 +232,6 @@ const PageNicknameSidebarEditor = ({ data }: { data: PageMetadataData }) => {
         placeholder="e.g. Home, Pricing, About"
         maxLength={PAGE_NICKNAME_MAX_LENGTH}
       />
-      <p className="text-muted-foreground text-xs">A short internal name. Does not affect SEO.</p>
     </div>
   );
 };
@@ -232,7 +244,16 @@ const PageLayoutSidebarSelect = ({ data }: { data: PageMetadataData }) => {
 
   return (
     <div className="space-y-2">
-      <Label>Layout</Label>
+      <div className="flex items-center gap-1.5">
+        <Label>Layout</Label>
+        <Tooltip>
+          <TooltipTrigger render={<Info className="text-muted-foreground size-3.5" />} />
+          <TooltipContent className="max-w-xs">
+            A layout wraps page content in shared structure, like navbars and footers, and controls
+            how metadata is generated.
+          </TooltipContent>
+        </Tooltip>
+      </div>
       <Select
         value={page.layoutId ? String(page.layoutId) : ""}
         onValueChange={(value) => {
@@ -263,7 +284,7 @@ const PageLayoutSidebarSelect = ({ data }: { data: PageMetadataData }) => {
           label: camoxApp.getLayoutById(t.layoutId)?._internal.title ?? t.layoutId,
         }))}
       >
-        <SelectTrigger disabled={setLayout.isPending}>
+        <SelectTrigger disabled={setLayout.isPending} className="w-full">
           <SelectValue placeholder="Select a layout" />
         </SelectTrigger>
         <SelectContent>
