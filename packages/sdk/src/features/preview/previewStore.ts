@@ -59,7 +59,7 @@ interface PreviewContext {
   isEditMode: boolean;
   isToolbarHidden: boolean;
   isSidebarOpen: boolean;
-  isPageContentSheetOpen: boolean;
+  isPageEditorSidebarOpen: boolean;
   isAddBlockSheetOpen: boolean;
   /** Source label for the in-progress add-block flow (popover, shortcut, page-tree, overlay). */
   addBlockSource: string | null;
@@ -89,7 +89,7 @@ export const previewStore = createStore({
     isEditMode: false,
     isToolbarHidden: false,
     isSidebarOpen: true,
-    isPageContentSheetOpen: false,
+    isPageEditorSidebarOpen: false,
     isAddBlockSheetOpen: false,
     addBlockSource: null,
     isAgentChatSheetOpen: false,
@@ -283,13 +283,13 @@ export const previewStore = createStore({
     }),
     toggleContentSheet: (context) => ({
       ...context,
-      isPageContentSheetOpen: false,
+      isPageEditorSidebarOpen: false,
     }),
     openBlockContentSheet: (context, event: { blockId: number }) => {
       const currentBlockMatches = context.selection?.blockId === event.blockId;
       return {
         ...context,
-        isPageContentSheetOpen: false,
+        isPageEditorSidebarOpen: false,
         selection: currentBlockMatches
           ? context.selection
           : { type: "block" as const, blockId: event.blockId },
@@ -297,7 +297,7 @@ export const previewStore = createStore({
     },
     closeBlockContentSheet: (context) => ({
       ...context,
-      isPageContentSheetOpen: false,
+      isPageEditorSidebarOpen: false,
     }),
     openAgentChatSheet: (
       context,

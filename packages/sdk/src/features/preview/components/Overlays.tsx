@@ -12,9 +12,9 @@ interface OverlaysProps {
 }
 
 export const Overlays = ({ iframeElement }: OverlaysProps) => {
-  const isPageContentSheetOpen = useSelector(
+  const isPageEditorSidebarOpen = useSelector(
     previewStore,
-    (state) => state.context.isPageContentSheetOpen,
+    (state) => state.context.isPageEditorSidebarOpen,
   );
   const selection = useSelector(previewStore, (state) => state.context.selection);
   const peekedBlock = useSelector(previewStore, (state) => state.context.peekedBlock);
@@ -70,7 +70,7 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
 
   // Send focus command to iframe when selection changes externally
   React.useEffect(() => {
-    if (isPageContentSheetOpen) return;
+    if (isPageEditorSidebarOpen) return;
     if (peekedBlock) return;
     if (!selection) return;
 
@@ -92,7 +92,7 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
       fieldId,
     };
     iframeElement?.contentWindow?.postMessage(message, "*");
-  }, [selection, isPageContentSheetOpen, peekedBlock, iframeElement]);
+  }, [selection, isPageEditorSidebarOpen, peekedBlock, iframeElement]);
 
   return null;
 };

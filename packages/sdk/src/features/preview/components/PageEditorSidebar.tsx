@@ -39,7 +39,7 @@ import { type SchemaField, formatFieldName } from "./ItemFieldsEditor";
 import { ItemFieldsEditor } from "./ItemFieldsEditor";
 import { LinkFieldEditor } from "./LinkFieldEditor";
 import { MultipleAssetFieldEditor } from "./MultipleAssetFieldEditor";
-import { PageInfoSidebar } from "./PageMetadataModal";
+import { PageInfoSidebar } from "./PageInfoSidebar";
 import { type RepeatableArraySchema, useRepeatableItemActions } from "./useRepeatableItemActions";
 
 /* -------------------------------------------------------------------------------------------------
@@ -137,10 +137,10 @@ const buildAncestorChain = (
 };
 
 /* -------------------------------------------------------------------------------------------------
- * PageContentSheet
+ * PageEditorSidebar
  * -----------------------------------------------------------------------------------------------*/
 
-const PageContentSheet = ({ pageId }: { pageId: number }) => {
+const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
   const camoxApp = useCamoxApp();
   const updateContent = useMutation(blockMutations.updateContent());
   const updateSettings = useMutation(blockMutations.updateSettings());
@@ -316,7 +316,7 @@ const PageContentSheet = ({ pageId }: { pageId: number }) => {
     if (trackedBlockIdRef.current === block.id) return;
     trackedBlockIdRef.current = block.id;
     sessionDirtyRef.current = false;
-    trackClientEvent("content_sheet_opened", { blockType: block.type });
+    trackClientEvent("page_editor_sidebar_opened", { blockType: block.type });
   }, [block, isEditMode]);
 
   React.useEffect(() => {
@@ -325,7 +325,7 @@ const PageContentSheet = ({ pageId }: { pageId: number }) => {
     return () => {
       if (!sessionDirtyRef.current) return;
       trackClientEvent("block_edited", {
-        via: "content-sheet",
+        via: "page-editor-sidebar",
         blockType: block.type,
       });
       sessionDirtyRef.current = false;
@@ -753,4 +753,4 @@ const PageContentSheet = ({ pageId }: { pageId: number }) => {
   );
 };
 
-export { PageContentSheet };
+export { PageEditorSidebar };

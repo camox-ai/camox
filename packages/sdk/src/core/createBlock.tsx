@@ -1,8 +1,6 @@
 import { Input } from "@camox/ui/input";
-import { Kbd } from "@camox/ui/kbd";
 import { Label } from "@camox/ui/label";
 import { Popover, PopoverTrigger, PopoverContent } from "@camox/ui/popover";
-import { toast } from "@camox/ui/toaster";
 import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
@@ -90,8 +88,6 @@ const resolveLinkHref = (
   }
   return link.href;
 };
-
-let hasShownEmbedLockToast = false;
 
 /* -------------------------------------------------------------------------------------------------
  * createBlock
@@ -1021,15 +1017,6 @@ export function createBlock<
                 inset: 0,
                 zIndex: 10,
               }}
-              onClick={() => {
-                if (hasShownEmbedLockToast) return;
-                hasShownEmbedLockToast = true;
-                toast(
-                  <span>
-                    Hold <Kbd>L</Kbd> to interact with the embed content
-                  </span>,
-                );
-              }}
             />
           )}
         </PopoverTrigger>
@@ -1799,9 +1786,9 @@ export function createBlock<
 
     // Scroll into view when editing in preview
     const selection = useSelector(previewStore, (state) => state.context.selection);
-    const isPageContentSheetOpen = useSelector(
+    const isPageEditorSidebarOpen = useSelector(
       previewStore,
-      (state) => state.context.isPageContentSheetOpen,
+      (state) => state.context.isPageEditorSidebarOpen,
     );
     const isAddBlockSheetOpen = useSelector(
       previewStore,
@@ -1836,7 +1823,7 @@ export function createBlock<
       blockData._id,
       isBlockSelected,
       isFirstRender,
-      isPageContentSheetOpen,
+      isPageEditorSidebarOpen,
       pendingAgentBlockFocus,
     ]);
 
@@ -1927,7 +1914,7 @@ export function createBlock<
       // When adding a block elsewhere
       (isAddBlockSheetOpen && mode !== "peek") ||
       // Another block is being edited in the sheet
-      (isPageContentSheetOpen && !isBlockSelected);
+      (isPageEditorSidebarOpen && !isBlockSelected);
 
     return (
       <div
@@ -2044,9 +2031,9 @@ export function createBlock<
       previewStore,
       (state) => state.context.isAddBlockSheetOpen,
     );
-    const isPageContentSheetOpen = useSelector(
+    const isPageEditorSidebarOpen = useSelector(
       previewStore,
-      (state) => state.context.isPageContentSheetOpen,
+      (state) => state.context.isPageEditorSidebarOpen,
     );
     const isBlockSelected = selection?.blockId === blockId;
 
@@ -2066,7 +2053,7 @@ export function createBlock<
       isContentEditable && (isHovered || isBlockSelected) && !isAddBlockSheetOpen;
 
     const shouldShowSheetOverlay =
-      (isAddBlockSheetOpen && mode !== "peek") || (isPageContentSheetOpen && !isBlockSelected);
+      (isAddBlockSheetOpen && mode !== "peek") || (isPageEditorSidebarOpen && !isBlockSelected);
 
     const handleClick = (e: React.MouseEvent) => {
       if (!isContentEditable) return;
