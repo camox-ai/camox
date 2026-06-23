@@ -5,7 +5,7 @@ import { Switch } from "@camox/ui/switch";
 import { Toggle } from "@camox/ui/toggle";
 import * as Tooltip from "@camox/ui/tooltip";
 import { useSelector } from "@xstate/store-react";
-import { Monitor, Smartphone } from "lucide-react";
+import { Monitor, Smartphone, Tablet } from "lucide-react";
 
 import { cn, getActionShortcut } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ export const PreviewToolbar = () => {
   );
   const isAnySideSheetOpen = !isPresentationMode && (isAddBlockSheetOpen || isAgentChatSheetOpen);
   const actions = useSelector(actionsStore, (state) => state.context.actions);
-  const isMobileMode = useSelector(previewStore, (state) => state.context.isMobileMode);
+  const viewportMode = useSelector(previewStore, (state) => state.context.viewportMode);
   const presentationModeActionId = isPresentationMode
     ? "exit-presentation-mode"
     : "enter-presentation-mode";
@@ -47,7 +47,7 @@ export const PreviewToolbar = () => {
           }}
         />
         <Label htmlFor="edit-mode" className="flex items-center gap-2">
-          Edit page {getActionShortcut(actions, presentationModeActionId)}
+          Edit mode {getActionShortcut(actions, presentationModeActionId)}
         </Label>
       </div>
       <ButtonGroup>
@@ -55,11 +55,11 @@ export const PreviewToolbar = () => {
           <Tooltip.TooltipTrigger
             render={
               <Toggle
-                data-state={isMobileMode ? "off" : "on"}
-                pressed={!isMobileMode}
+                data-state={viewportMode === "full" ? "on" : "off"}
+                pressed={viewportMode === "full"}
                 onPressedChange={() => {
-                  if (!isMobileMode) return;
-                  previewStore.send({ type: "toggleMobileMode" });
+                  if (viewportMode === "full") return;
+                  previewStore.send({ type: "setViewportMode", mode: "full" });
                 }}
                 variant="outline"
               />
@@ -67,19 +67,35 @@ export const PreviewToolbar = () => {
           >
             <Monitor />
           </Tooltip.TooltipTrigger>
-          <Tooltip.TooltipContent>
-            Desktop view {getActionShortcut(actions, "toggle-mobile-mode")}
-          </Tooltip.TooltipContent>
+          <Tooltip.TooltipContent>Full view</Tooltip.TooltipContent>
         </Tooltip.Tooltip>
         <Tooltip.Tooltip>
           <Tooltip.TooltipTrigger
             render={
               <Toggle
-                data-state={isMobileMode ? "on" : "off"}
-                pressed={isMobileMode}
+                data-state={viewportMode === "tablet" ? "on" : "off"}
+                pressed={viewportMode === "tablet"}
                 onPressedChange={() => {
-                  if (isMobileMode) return;
-                  previewStore.send({ type: "toggleMobileMode" });
+                  if (viewportMode === "tablet") return;
+                  previewStore.send({ type: "setViewportMode", mode: "tablet" });
+                }}
+                variant="outline"
+              />
+            }
+          >
+            <Tablet />
+          </Tooltip.TooltipTrigger>
+          <Tooltip.TooltipContent>Tablet view</Tooltip.TooltipContent>
+        </Tooltip.Tooltip>
+        <Tooltip.Tooltip>
+          <Tooltip.TooltipTrigger
+            render={
+              <Toggle
+                data-state={viewportMode === "mobile" ? "on" : "off"}
+                pressed={viewportMode === "mobile"}
+                onPressedChange={() => {
+                  if (viewportMode === "mobile") return;
+                  previewStore.send({ type: "setViewportMode", mode: "mobile" });
                 }}
                 variant="outline"
               />
@@ -87,9 +103,7 @@ export const PreviewToolbar = () => {
           >
             <Smartphone />
           </Tooltip.TooltipTrigger>
-          <Tooltip.TooltipContent>
-            Mobile view {getActionShortcut(actions, "toggle-mobile-mode")}
-          </Tooltip.TooltipContent>
+          <Tooltip.TooltipContent>Mobile view</Tooltip.TooltipContent>
         </Tooltip.Tooltip>
       </ButtonGroup>
     </FloatingToolbar>
