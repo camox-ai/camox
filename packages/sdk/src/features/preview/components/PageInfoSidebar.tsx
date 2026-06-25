@@ -90,7 +90,7 @@ const PageInfoSidebar = ({ pageId }: { pageId: number }) => {
 
   if (!page) {
     return (
-      <div className="text-muted-foreground flex flex-1 items-center justify-center px-6 text-sm">
+      <div className="text-muted-foreground flex flex-1 items-center justify-center px-2 text-sm">
         <Spinner className="mr-2 size-3.5" /> Loading page info...
       </div>
     );
@@ -98,7 +98,7 @@ const PageInfoSidebar = ({ pageId }: { pageId: number }) => {
 
   return (
     <>
-      <div className="flex-1 space-y-4 overflow-auto p-4">
+      <div className="flex-1 space-y-4 overflow-auto p-2">
         <section className="space-y-4">
           <p className="text-base font-semibold">About this page</p>
           <PageNicknameSidebarEditor data={data} />

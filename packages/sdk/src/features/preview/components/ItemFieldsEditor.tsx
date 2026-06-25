@@ -244,7 +244,7 @@ const ItemFieldsEditor = ({
   };
 
   return (
-    <form className="space-y-4 px-4 py-4">
+    <form className="space-y-4 px-2 py-4">
       {fields.map((field) => {
         const label = field.label ?? formatFieldName(field.name);
         const fieldId = getFieldId(field.name);

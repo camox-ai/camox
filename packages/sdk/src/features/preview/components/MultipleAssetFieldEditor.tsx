@@ -213,7 +213,7 @@ const MultipleAssetFieldEditor = ({
           onClose={() => setPickerOpen(false)}
         />
       ) : (
-        <div className="space-y-4 px-4 py-4">
+        <div className="space-y-4 px-2 py-4">
           {items.length > 0 && (
             <DndContext
               sensors={sensors}

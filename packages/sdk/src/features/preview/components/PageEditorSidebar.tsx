@@ -32,14 +32,12 @@ import { cn } from "@/lib/utils";
 
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import type { OverlayMessage } from "../overlayMessages";
-import { CMS_SIDEBAR_WIDTH } from "../previewConstants";
 import { previewStore, selectionBlockId, selectionField, selectionItemId } from "../previewStore";
 import { SingleAssetFieldEditor } from "./AssetFieldEditor";
 import { type SchemaField, formatFieldName } from "./ItemFieldsEditor";
 import { ItemFieldsEditor } from "./ItemFieldsEditor";
 import { LinkFieldEditor } from "./LinkFieldEditor";
 import { MultipleAssetFieldEditor } from "./MultipleAssetFieldEditor";
-import { PageInfoSidebar } from "./PageInfoSidebar";
 import { type RepeatableArraySchema, useRepeatableItemActions } from "./useRepeatableItemActions";
 
 /* -------------------------------------------------------------------------------------------------
@@ -140,7 +138,7 @@ const buildAncestorChain = (
  * PageEditorSidebar
  * -----------------------------------------------------------------------------------------------*/
 
-const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
+const PageEditorSidebar = () => {
   const camoxApp = useCamoxApp();
   const updateContent = useMutation(blockMutations.updateContent());
   const updateSettings = useMutation(blockMutations.updateSettings());
@@ -149,7 +147,6 @@ const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
   const requireDraft = useRequireDraftSource();
 
   // Get state from store
-  const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
   const selection = useSelector(previewStore, (state) => state.context.selection);
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
@@ -309,7 +306,7 @@ const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
   const sessionDirtyRef = React.useRef(false);
   const trackedBlockIdRef = React.useRef<number | null>(null);
   React.useEffect(() => {
-    if (!block || !isEditMode) {
+    if (!block) {
       trackedBlockIdRef.current = null;
       return;
     }
@@ -317,10 +314,10 @@ const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
     trackedBlockIdRef.current = block.id;
     sessionDirtyRef.current = false;
     trackClientEvent("page_editor_sidebar_opened", { blockType: block.type });
-  }, [block, isEditMode]);
+  }, [block]);
 
   React.useEffect(() => {
-    if (!block || !isEditMode) return;
+    if (!block) return;
 
     return () => {
       if (!sessionDirtyRef.current) return;
@@ -330,7 +327,7 @@ const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
       });
       sessionDirtyRef.current = false;
     };
-  }, [block, isEditMode]);
+  }, [block]);
 
   // Scope field DOM ids with useId so label-input pairs and imperative focus
   // lookups don't collide if this sheet is ever rendered more than once.
@@ -368,18 +365,11 @@ const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
     [currentItemId, itemsMap],
   );
 
-  if (!isEditMode) {
-    return null;
-  }
-
   if (!block || !blockDef || !currentSchema) {
     return (
-      <aside
-        className="bg-background flex shrink-0 flex-col border-l-2"
-        style={{ width: CMS_SIDEBAR_WIDTH }}
-      >
-        <PageInfoSidebar pageId={pageId} />
-      </aside>
+      <div className="text-muted-foreground flex flex-1 items-center justify-center px-2 text-sm">
+        <Spinner className="mr-2 size-3.5" /> Loading block...
+      </div>
     );
   }
 
@@ -387,11 +377,8 @@ const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
   const isAtBlockLevel = ancestorChain.length === 0 && !fieldHasOwnView;
 
   return (
-    <aside
-      className="bg-background flex shrink-0 flex-col border-l-2"
-      style={{ width: CMS_SIDEBAR_WIDTH }}
-    >
-      <div className="border-border flex flex-col gap-1.5 border-b p-4">
+    <>
+      <div className="border-border flex flex-col gap-1.5 border-b px-2 py-4">
         <h2 className="text-foreground font-medium">{block.summary}</h2>
         <Breadcrumb className="text-muted-foreground text-sm">
           <BreadcrumbList className="flex-nowrap">
@@ -502,7 +489,7 @@ const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
           ) : (
             <>
               {currentItemId == null && !fieldHasOwnView && settingsFields.length > 0 && (
-                <div className="border-border space-y-4 border-b px-4 py-4">
+                <div className="border-border space-y-4 border-b px-2 py-4">
                   <Label className="text-muted-foreground">Settings</Label>
                   {settingsFields.map((field) => {
                     const label = field.label ?? formatFieldName(field.name);
@@ -575,7 +562,7 @@ const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
                 </div>
               )}
               {currentItemId != null && !fieldHasOwnView && itemSettingsFields.length > 0 && (
-                <div className="border-border space-y-4 border-b px-4 py-4">
+                <div className="border-border space-y-4 border-b px-2 py-4">
                   <Label className="text-muted-foreground">Settings</Label>
                   {itemSettingsFields.map((field) => {
                     const label = field.label ?? formatFieldName(field.name);
@@ -667,7 +654,7 @@ const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
                 />
               )}
               {!isViewingAsset && isViewingLink && linkFieldName && (
-                <div className="px-4 py-4">
+                <div className="px-2 py-4">
                   <LinkFieldEditor
                     fieldName={linkFieldName}
                     linkValue={
@@ -700,7 +687,7 @@ const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
                 />
               )}
               {!isViewingAsset && !isViewingLink && currentItemId != null && currentItem && (
-                <div className="border-border flex items-center gap-1 border-t px-4 py-4">
+                <div className="border-border flex items-center gap-1 border-t px-2 py-4">
                   {canAddSibling && (
                     <Button
                       type="button"
@@ -749,7 +736,7 @@ const PageEditorSidebar = ({ pageId }: { pageId: number }) => {
           )}
         </div>
       </div>
-    </aside>
+    </>
   );
 };
 

@@ -139,7 +139,7 @@ const SingleAssetFieldEditor = ({
           onClose={() => setPickerOpen(false)}
         />
       ) : (
-        <div className="space-y-4 px-4 py-4">
+        <div className="space-y-4 px-2 py-4">
           {hasAsset && (
             <div className="text-foreground hover:bg-accent/75 flex max-w-full flex-row items-center gap-2 rounded-lg border-2 px-1 py-1">
               <button

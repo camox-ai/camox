@@ -155,7 +155,7 @@ Import `Type` from `"camox/createBlock"`. Every field requires a default value.
 
 ### Type.String
 
-Inline-editable text. The workhorse field type.
+Inline-editable text. The workhorse field type. String fields support inline markdown-style formatting in rendered site output: `**bold**`, `*italic*`, `***bold italic***`, and text links like `[label](https://example.com)` or internal page links inserted by the editor.
 
 ```tsx
 Type.String({
@@ -308,6 +308,28 @@ The component is a regular React function. It uses methods on the block constant
 ```
 
 The `name` must match a key in `content` that is a `Type.String`. Spread `props` onto the element — `props.children` contains the rendered content. This is what makes the field inline-editable in the CMS.
+
+In site output, `props.children` renders supported inline formatting (`**bold**`, `*italic*`, text links). By default, text links render as underlined `<a>` elements. Customize inline rendering with the optional `components` prop:
+
+```tsx
+<myBlock.Field
+  name="description"
+  components={{
+    link: (props, data) => (
+      <a
+        {...props}
+        className={data.external ? "text-blue-600 underline" : "text-primary font-medium"}
+      />
+    ),
+    strong: (props) => <strong {...props} className="font-semibold" />,
+    emphasis: (props) => <em {...props} className="italic text-muted-foreground" />,
+  }}
+>
+  {(props) => <p {...props} />}
+</myBlock.Field>
+```
+
+The `components.link` callback receives `(props, data)`. Spread `props` onto your link element; `data` exposes `{ target, href, external, pageId }` for styling external vs. internal links. `components.strong` customizes `**bold**`; `components.emphasis` customizes `*italic*`. The same `components` prop is available on `item.Field` inside repeaters.
 
 When the content needs to be placed inside a more complex structure, use `props.children` explicitly:
 
