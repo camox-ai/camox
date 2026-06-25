@@ -23,10 +23,10 @@ import { AddBlockSheet } from "./components/AddBlockSheet";
 import { BlockErrorBoundary } from "./components/BlockErrorBoundary";
 import { CreatePageModal } from "./components/CreatePageModal";
 import { DraftSwitchDialog } from "./components/DraftSwitchDialog";
-import { PageEditorSidebar } from "./components/PageEditorSidebar";
 import { PageNavigatorSidebar } from "./components/PageNavigatorSidebar";
 import { PeekedBlock } from "./components/PeekedBlock";
 import { PreviewPanel } from "./components/PreviewPanel";
+import { RightSidebar } from "./components/RightSidebar";
 import { pageFullQueryFn } from "./previewQueryFns";
 import { previewStore } from "./previewStore";
 
@@ -413,7 +413,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
           {children}
           {shouldShowStudioChrome && <div style={{ height: "80px", background: "transparent" }} />}
         </PreviewPanel>
-        {shouldShowStudioChrome && <PageEditorSidebar pageId={pageData.page.id} />}
+        {shouldShowStudioChrome && <RightSidebar pageId={pageData.page.id} />}
       </div>
       {shouldShowStudioChrome && (
         <>
