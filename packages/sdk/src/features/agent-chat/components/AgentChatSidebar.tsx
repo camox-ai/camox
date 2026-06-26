@@ -3,18 +3,16 @@ import { Button } from "@camox/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
-import { Info, Lock, Plus, X } from "lucide-react";
+import { Lock, Plus, X } from "lucide-react";
 import * as React from "react";
 
 import { useProjectSlug } from "@/lib/auth";
 import { projectQueries } from "@/lib/queries";
 
-import { PreviewSideSheet, SheetParts } from "../../preview/components/PreviewSideSheet";
 import { previewStore } from "../../preview/previewStore";
 import { AgentChatThread } from "./AgentChatThread";
 
-const AgentChatSheet = () => {
-  const isOpen = useSelector(previewStore, (state) => state.context.isAgentChatSheetOpen);
+const AgentChatSidebar = () => {
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
   const pageScaffoldContext = useSelector(
     previewStore,
@@ -28,57 +26,39 @@ const AgentChatSheet = () => {
   const isLiveSource = previewSource === "live";
 
   React.useEffect(() => {
-    if (!isOpen) return;
     setComposerFocusKey((key) => key + 1);
-  }, [isOpen]);
-
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      previewStore.send({ type: "closeAgentChatSheet" });
-    }
-  };
+  }, []);
 
   return (
-    <PreviewSideSheet
-      open={isOpen}
-      onOpenChange={handleOpenChange}
-      keepMounted
-      showCloseButton={false}
-      initialFocus={false}
-    >
-      <SheetParts.SheetHeader className="gap-4 pb-0">
-        <div className="flex items-center gap-1">
-          <SheetParts.SheetTitle className="flex-1">Agent Chat</SheetParts.SheetTitle>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Start a new Agent Chat"
-            onClick={() => {
-              previewStore.send({ type: "clearAgentChatPageScaffoldContext" });
-              setAgentChatKey((key) => key + 1);
-              setComposerFocusKey((key) => key + 1);
-            }}
-          >
-            <Plus className="size-4" />
-          </Button>
-          <SheetParts.SheetClose
-            render={<Button type="button" variant="ghost" size="icon-sm" aria-label="Close" />}
-          >
-            <X className="size-4" />
-          </SheetParts.SheetClose>
-        </div>
-        <Alert>
-          <Info className="size-4" />
-          <AlertTitle>Camox is most powerful in your coding agent</AlertTitle>
-          <AlertDescription>
-            Use Claude Code or Codex to manage your site with both code and content access.
-          </AlertDescription>
-        </Alert>
-      </SheetParts.SheetHeader>
+    <>
+      <div className="flex items-center gap-1 p-2">
+        <p className="flex-1 text-base font-semibold">Agent Chat</p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Start a new Agent Chat"
+          onClick={() => {
+            previewStore.send({ type: "clearAgentChatPageScaffoldContext" });
+            setAgentChatKey((key) => key + 1);
+            setComposerFocusKey((key) => key + 1);
+          }}
+        >
+          <Plus className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Close"
+          onClick={() => previewStore.send({ type: "closeAgentChatSidebar" })}
+        >
+          <X className="size-4" />
+        </Button>
+      </div>
       <div className="flex min-h-0 flex-1 flex-col">
         {isLiveSource && (
-          <div className="p-4 pb-0">
+          <div className="p-2 pb-0">
             <Alert>
               <Lock className="size-4" />
               <AlertTitle>Live Source is read-only</AlertTitle>
@@ -112,8 +92,8 @@ const AgentChatSheet = () => {
           </div>
         )}
       </div>
-    </PreviewSideSheet>
+    </>
   );
 };
 
-export { AgentChatSheet };
+export { AgentChatSidebar };

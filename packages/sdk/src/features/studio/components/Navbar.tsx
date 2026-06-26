@@ -7,7 +7,6 @@ import { Globe, SearchIcon, Database } from "lucide-react";
 import type * as icons from "lucide-react";
 import * as React from "react";
 
-import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet";
 import { useProjectSlug } from "@/lib/auth";
 import { pageQueries, projectQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -63,17 +62,8 @@ const Navbar = () => {
   const isMac = React.useMemo(() => navigator.userAgent.toUpperCase().indexOf("MAC") >= 0, []);
 
   const { pathname } = useLocation();
-  const isPreviewSheetOpen = useIsPreviewSheetOpen();
-
   return (
     <nav className="relative flex items-center justify-between gap-4 border-b-2 bg-transparent px-2 py-2">
-      {/* Preview sheet overlay */}
-      <div
-        className={cn(
-          "absolute top-0 left-0 w-full h-[calc(100%+2px)] bg-black/66 transition-opacity z-10 will-change-auto pointer-events-none",
-          isPreviewSheetOpen ? "opacity-100" : "opacity-0",
-        )}
-      />
       <div className="flex flex-row gap-2">
         <div className="flew-row flex gap-1">
           <ProjectMenu />

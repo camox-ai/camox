@@ -63,7 +63,7 @@ interface PreviewContext {
   isAddBlockSheetOpen: boolean;
   /** Source label for the in-progress add-block flow (popover, shortcut, page-tree, overlay). */
   addBlockSource: string | null;
-  isAgentChatSheetOpen: boolean;
+  isAgentChatSidebarOpen: boolean;
   agentChatPageScaffoldContext: {
     id: number;
     nickname: string;
@@ -92,7 +92,7 @@ export const previewStore = createStore({
     isPageEditorSidebarOpen: false,
     isAddBlockSheetOpen: false,
     addBlockSource: null,
-    isAgentChatSheetOpen: false,
+    isAgentChatSidebarOpen: false,
     agentChatPageScaffoldContext: null,
     isCreatePageModalOpen: false,
     editingPageId: null,
@@ -299,7 +299,7 @@ export const previewStore = createStore({
       ...context,
       isPageEditorSidebarOpen: false,
     }),
-    openAgentChatSheet: (
+    openAgentChatSidebar: (
       context,
       event:
         | {
@@ -312,11 +312,11 @@ export const previewStore = createStore({
       enqueue,
     ) => {
       const pageScaffoldContext = event?.pageScaffoldContext;
-      if (context.isAgentChatSheetOpen && !pageScaffoldContext) return context;
+      if (context.isAgentChatSidebarOpen && !pageScaffoldContext) return context;
       enqueue.effect(() => trackClientEvent("agent_chat_opened"));
       return {
         ...context,
-        isAgentChatSheetOpen: true,
+        isAgentChatSidebarOpen: true,
         agentChatPageScaffoldContext: pageScaffoldContext
           ? {
               id: Date.now(),
@@ -326,9 +326,9 @@ export const previewStore = createStore({
           : context.agentChatPageScaffoldContext,
       };
     },
-    closeAgentChatSheet: (context) => ({
+    closeAgentChatSidebar: (context) => ({
       ...context,
-      isAgentChatSheetOpen: false,
+      isAgentChatSidebarOpen: false,
     }),
     clearAgentChatPageScaffoldContext: (context) => ({
       ...context,

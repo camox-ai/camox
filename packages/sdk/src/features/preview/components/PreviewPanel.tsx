@@ -6,7 +6,6 @@ import { checkIfInputFocused, cn } from "@/lib/utils";
 
 import type { Action } from "../../provider/actionsStore";
 import { actionsStore } from "../../provider/actionsStore";
-import { SHEET_WIDTH } from "../previewConstants";
 import { previewStore, type ViewportMode } from "../previewStore";
 import { useBlockActionsShortcuts } from "./BlockActionsPopover";
 import { FieldOverlayStyles } from "./FieldOverlayStyles";
@@ -14,7 +13,6 @@ import { FieldToolbar } from "./FieldToolbar";
 import { Frame, useFrame } from "./Frame";
 import { Overlays } from "./Overlays";
 import { OverlayTracker } from "./OverlayTracker";
-import { useIsPreviewSheetOpen } from "./PreviewSideSheet";
 import { PreviewToolbar } from "./PreviewToolbar";
 
 /* -------------------------------------------------------------------------------------------------
@@ -128,28 +126,6 @@ const PreviewPanel = ({ children, toolbarProps }: PreviewPanelProps) => {
   }, []);
   const viewportMode = useSelector(previewStore, (state) => state.context.viewportMode);
   const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
-  const isAnySideSheetOpen = useIsPreviewSheetOpen();
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
-  const [panelWidth, setPanelWidth] = React.useState(0);
-  const [panelLeft, setPanelLeft] = React.useState(0);
-
-  React.useEffect(() => {
-    const el = wrapperRef.current?.parentElement;
-    if (!el) return;
-    const update = () => {
-      const rect = el.getBoundingClientRect();
-      setPanelWidth(rect.width);
-      setPanelLeft(rect.left);
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  const sheetOverlap = Math.max(0, SHEET_WIDTH - panelLeft);
-  const sheetOpenScale = panelWidth > 0 ? (panelWidth - sheetOverlap) / panelWidth : 1;
-
   React.useEffect(() => {
     const actions = [
       {
@@ -192,9 +168,9 @@ const PreviewPanel = ({ children, toolbarProps }: PreviewPanelProps) => {
         groupLabel: "Preview",
         checkIfAvailable: () => true,
         execute: () => {
-          const { isAgentChatSheetOpen } = previewStore.getSnapshot().context;
+          const { isAgentChatSidebarOpen } = previewStore.getSnapshot().context;
           previewStore.send({
-            type: isAgentChatSheetOpen ? "closeAgentChatSheet" : "openAgentChatSheet",
+            type: isAgentChatSidebarOpen ? "closeAgentChatSidebar" : "openAgentChatSidebar",
           });
         },
         shortcut: { key: "i", withAlt: true },
@@ -225,15 +201,7 @@ const PreviewPanel = ({ children, toolbarProps }: PreviewPanelProps) => {
   return (
     <>
       <PanelContent className="relative overflow-hidden bg-black">
-        <div
-          ref={wrapperRef}
-          className="absolute inset-0 transition-[transform,height] duration-500 ease-in-out will-change-transform"
-          style={{
-            height: isAnySideSheetOpen ? `${100 / sheetOpenScale}%` : "100%",
-            transformOrigin: "top right",
-            transform: isAnySideSheetOpen ? `scale(${sheetOpenScale})` : "scale(1)",
-          }}
-        >
+        <div className="absolute inset-0 transition-[transform,height] duration-500 ease-in-out will-change-transform">
           {viewportMode === "full" ? (
             <>
               <PreviewFrame className="checkered h-full w-full" onIframeReady={handleIframeReady}>

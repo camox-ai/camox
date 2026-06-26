@@ -197,7 +197,7 @@ const MessageBubble = ({
               return (
                 <Streamdown
                   key={index}
-                  className={cn("wrap-break-words space-y-2", !isUser && "pl-6")}
+                  className="wrap-break-words space-y-2"
                   components={markdownComponents}
                   controls={false}
                   isAnimating={!isUser}
@@ -538,7 +538,7 @@ const AgentChatThread = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div ref={messagesScrollRef} className="min-h-0 flex-1 overflow-y-auto border-t p-4">
+      <div ref={messagesScrollRef} className="min-h-0 flex-1 overflow-y-auto border-t px-2 py-4">
         <div className="flex min-h-full flex-col justify-end">
           {messages.map((message, index) => {
             const previousMessage = messages[index - 1];
@@ -579,7 +579,7 @@ const AgentChatThread = ({
           )}
         </div>
       </div>
-      <form onSubmit={handleSubmit} className="border-border border-t p-4">
+      <form onSubmit={handleSubmit} className="border-border border-t px-2 py-4">
         <div className="border-input focus-within:border-ring focus-within:ring-ring/50 flex items-center gap-2 rounded-2xl border px-3 transition-colors focus-within:ring-[3px]">
           <Textarea
             ref={inputRef}
@@ -592,9 +592,7 @@ const AgentChatThread = ({
               }
             }}
             disabled={disabled}
-            placeholder={
-              disabled ? "Switch to draft to chat" : "Ask for changes or inspect this page…"
-            }
+            placeholder={disabled ? "Switch to draft to chat" : "Ask for anything"}
             className="max-h-32 min-h-10 resize-none border-0 bg-inherit! px-0 py-4 leading-6 shadow-none focus-visible:ring-0"
           />
           {isLoading ? (
