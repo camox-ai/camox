@@ -44,13 +44,12 @@ const PreviewSideSheet = ({
 };
 
 export function useIsPreviewSheetOpen() {
-  const isPeekingBlock = useSelector(previewStore, (state) => state.context.peekedBlock != null);
   const isAgentChatSheetOpen = useSelector(
     previewStore,
     (state) => state.context.isAgentChatSheetOpen,
   );
 
-  return isPeekingBlock || isAgentChatSheetOpen;
+  return isAgentChatSheetOpen;
 }
 
 export { PreviewSideSheet, Sheet as SheetParts };

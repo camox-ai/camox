@@ -19,11 +19,10 @@ import { AgentChatSheet } from "../agent-chat/components/AgentChatSheet";
 import { type Action, actionsStore } from "../provider/actionsStore";
 import { useCamoxApp } from "../provider/components/CamoxAppContext";
 import { Navbar } from "../studio/components/Navbar";
-import { AddBlockSheet } from "./components/AddBlockSheet";
 import { BlockErrorBoundary } from "./components/BlockErrorBoundary";
 import { CreatePageModal } from "./components/CreatePageModal";
 import { DraftSwitchDialog } from "./components/DraftSwitchDialog";
-import { PageNavigatorSidebar } from "./components/PageNavigatorSidebar";
+import { LeftSidebar } from "./components/LeftSidebar";
 import { PeekedBlock } from "./components/PeekedBlock";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { RightSidebar } from "./components/RightSidebar";
@@ -408,7 +407,7 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
     >
       {shouldShowStudioChrome && <Navbar />}
       <div className="flex h-full flex-row items-stretch">
-        {shouldShowStudioChrome && <PageNavigatorSidebar page={pageData.page} />}
+        {shouldShowStudioChrome && <LeftSidebar page={pageData.page} />}
         <PreviewPanel>
           {children}
           {shouldShowStudioChrome && <div style={{ height: "80px", background: "transparent" }} />}
@@ -417,7 +416,6 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       </div>
       {shouldShowStudioChrome && (
         <>
-          <AddBlockSheet />
           <AgentChatSheet />
           <CreatePageModal />
           <DraftSwitchDialog />

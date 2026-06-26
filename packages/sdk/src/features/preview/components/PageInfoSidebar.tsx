@@ -315,10 +315,8 @@ const PageStructureModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Page structure</DialogTitle>
-          <DialogDescription>
-            Update the URL path and layout used to render this page.
-          </DialogDescription>
+          <DialogTitle>Page page</DialogTitle>
+          <DialogDescription>Update the URL path for this page.</DialogDescription>
         </DialogHeader>
         {page ? (
           <PageStructureEditor

@@ -1,4 +1,5 @@
 import { queryKeys } from "@camox/api-contract/query-keys";
+import { Button } from "@camox/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -7,10 +8,12 @@ import {
   CommandItem,
   CommandList,
 } from "@camox/ui/command";
+import { PanelContent } from "@camox/ui/panel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
 import { generateKeyBetween } from "fractional-indexing";
+import { ArrowLeft } from "lucide-react";
 import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
@@ -29,9 +32,8 @@ import { trackClientEvent } from "@/lib/telemetry-client";
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { usePreviewedPage } from "../CamoxPreview";
 import { previewStore } from "../previewStore";
-import { PreviewSideSheet, SheetParts } from "./PreviewSideSheet";
 
-const AddBlockSheet = () => {
+const AddBlockSidebar = () => {
   const [highlightedValue, setHighlightedValue] = React.useState<string>("");
   const queryClient = useQueryClient();
   const { pathname } = useLocation();
@@ -161,7 +163,6 @@ const AddBlockSheet = () => {
     return counts;
   }, [page, pageBlocks]);
 
-  const isOpen = useSelector(previewStore, (state) => state.context.isAddBlockSheetOpen);
   const peekedBlockPosition = useSelector(
     previewStore,
     (state) => state.context.peekedBlockPosition,
@@ -213,19 +214,6 @@ const AddBlockSheet = () => {
     }
   };
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      previewStore.send({ type: "closeAddBlockSheet" });
-    }
-  };
-
-  // Reset highlighted value when sheet opens
-  React.useEffect(() => {
-    if (isOpen) {
-      setHighlightedValue("");
-    }
-  }, [isOpen]);
-
   const displayCount = (blockId: Block["_internal"]["id"]) => {
     const total = totalCounts[blockId] ?? 0;
     if (total === 0) return "Never used";
@@ -234,28 +222,32 @@ const AddBlockSheet = () => {
   };
 
   return (
-    <PreviewSideSheet open={isOpen} onOpenChange={handleOpenChange} className="flex flex-col gap-0">
-      <SheetParts.SheetHeader className="border-border border-b">
-        <SheetParts.SheetTitle>Add new block</SheetParts.SheetTitle>
-        <SheetParts.SheetDescription>
-          Search and select a block to add to the page.
-        </SheetParts.SheetDescription>
-      </SheetParts.SheetHeader>
-      <div className="flex-1 overflow-auto p-2">
+    <>
+      <div className="px-2 pt-4">
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={() => previewStore.send({ type: "closeAddBlockSheet" })}
+        >
+          <ArrowLeft className="text-muted-foreground" />
+          Add new block
+        </Button>
+      </div>
+      <PanelContent className="flex grow basis-0 flex-col overflow-auto px-2 py-2">
         <Command
           value={highlightedValue}
           onValueChange={handleValueChange}
-          className="overflow-visible"
+          className="overflow-visible rounded-none! bg-transparent! p-0!"
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               previewStore.send({ type: "closeAddBlockSheet" });
             }
           }}
         >
-          <CommandInput placeholder="Search blocks..." autoFocus />
-          <CommandList className="mt-1 max-h-full">
+          <CommandInput placeholder="Search blocks..." className="px-0 pt-0" autoFocus />
+          <CommandList className="mt-2 max-h-full">
             <CommandEmpty>No blocks found.</CommandEmpty>
-            <CommandGroup>
+            <CommandGroup className="p-0">
               {availableBlocks
                 .sort(
                   (a, b) => (totalCounts[b._internal.id] ?? 0) - (totalCounts[a._internal.id] ?? 0),
@@ -280,9 +272,9 @@ const AddBlockSheet = () => {
             </CommandGroup>
           </CommandList>
         </Command>
-      </div>
-    </PreviewSideSheet>
+      </PanelContent>
+    </>
   );
 };
 
-export { AddBlockSheet };
+export { AddBlockSidebar };
