@@ -33,14 +33,13 @@ import { trackClientEvent } from "@/lib/telemetry-client";
 import { cn } from "@/lib/utils";
 
 import { type Action, actionsStore } from "../../provider/actionsStore";
-import { CMS_SIDEBAR_WIDTH } from "../previewConstants";
 import { pageFullQueryFn } from "../previewQueryFns";
 import { previewStore } from "../previewStore";
 import { PagePicker } from "./PagePicker";
 import { PageTree } from "./PageTree";
 import { PublishDialog } from "./PublishDialog";
 
-type PreviewedPage = {
+export type PreviewedPage = {
   id: number;
   metaTitle: string | null;
   pathSegment: string;
@@ -300,7 +299,7 @@ const PageNavigatorPublishRow = ({ page }: { page: PreviewedPage }) => {
 
 const PageNavigatorSidebar = ({ page }: { page: PreviewedPage }) => {
   return (
-    <aside className="flex shrink-0 flex-col border-r-2" style={{ width: CMS_SIDEBAR_WIDTH }}>
+    <>
       <PanelHeader className={cn("flex flex-col gap-2 px-2 pt-2 pb-3")}>
         <div className="flex w-full">
           <PagePicker />
@@ -310,7 +309,7 @@ const PageNavigatorSidebar = ({ page }: { page: PreviewedPage }) => {
       <PanelContent className="flex grow basis-0 flex-col gap-2 overflow-auto p-2">
         <PageTree />
       </PanelContent>
-    </aside>
+    </>
   );
 };
 
