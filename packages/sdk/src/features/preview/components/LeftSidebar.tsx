@@ -8,11 +8,11 @@ import { PageNavigatorSidebar, type PreviewedPage } from "./PageNavigatorSidebar
 type LeftSidebarRoute = { type: "add-block" } | { type: "page-navigator" };
 
 const getLeftSidebarRoute = ({
-  isAddBlockSheetOpen,
+  isAddBlockSidebarOpen,
 }: {
-  isAddBlockSheetOpen: boolean;
+  isAddBlockSidebarOpen: boolean;
 }): LeftSidebarRoute => {
-  if (isAddBlockSheetOpen) {
+  if (isAddBlockSidebarOpen) {
     return { type: "add-block" };
   }
 
@@ -20,11 +20,11 @@ const getLeftSidebarRoute = ({
 };
 
 const LeftSidebar = ({ page }: { page: PreviewedPage }) => {
-  const isAddBlockSheetOpen = useSelector(
+  const isAddBlockSidebarOpen = useSelector(
     previewStore,
-    (state) => state.context.isAddBlockSheetOpen,
+    (state) => state.context.isAddBlockSidebarOpen,
   );
-  const route = getLeftSidebarRoute({ isAddBlockSheetOpen });
+  const route = getLeftSidebarRoute({ isAddBlockSidebarOpen });
 
   return (
     <aside className="flex shrink-0 flex-col border-r-2" style={{ width: CMS_SIDEBAR_WIDTH }}>

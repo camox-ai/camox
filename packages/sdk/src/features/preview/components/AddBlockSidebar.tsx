@@ -227,7 +227,7 @@ const AddBlockSidebar = () => {
         <Button
           variant="ghost"
           className="w-full justify-start"
-          onClick={() => previewStore.send({ type: "closeAddBlockSheet" })}
+          onClick={() => previewStore.send({ type: "closeAddBlockSidebar" })}
         >
           <ArrowLeft className="text-muted-foreground" />
           Add new block
@@ -240,7 +240,7 @@ const AddBlockSidebar = () => {
           className="overflow-visible rounded-none! bg-transparent! p-0!"
           onKeyDown={(e) => {
             if (e.key === "Escape") {
-              previewStore.send({ type: "closeAddBlockSheet" });
+              previewStore.send({ type: "closeAddBlockSidebar" });
             }
           }}
         >

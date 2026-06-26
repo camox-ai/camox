@@ -15,14 +15,14 @@ export const OverlayTracker = () => {
     previewStore,
     (state) => state.context.isPageEditorSidebarOpen,
   );
-  const isAddBlockSheetOpen = useSelector(
+  const isAddBlockSidebarOpen = useSelector(
     previewStore,
-    (state) => state.context.isAddBlockSheetOpen,
+    (state) => state.context.isAddBlockSidebarOpen,
   );
 
   // Clear peeked block when clicking anywhere in the preview iframe while addBlock sheet is open.
   React.useEffect(() => {
-    if (!iframeWindow || !isAddBlockSheetOpen) return;
+    if (!iframeWindow || !isAddBlockSidebarOpen) return;
 
     const handleClick = () => {
       previewStore.send({ type: "exitPeekedBlock" });
@@ -30,7 +30,7 @@ export const OverlayTracker = () => {
 
     iframeWindow.document.addEventListener("click", handleClick);
     return () => iframeWindow.document.removeEventListener("click", handleClick);
-  }, [iframeWindow, isAddBlockSheetOpen]);
+  }, [iframeWindow, isAddBlockSidebarOpen]);
 
   // Listen for focus commands from parent
   React.useEffect(() => {

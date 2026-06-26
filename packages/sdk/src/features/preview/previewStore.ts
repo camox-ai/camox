@@ -60,7 +60,7 @@ interface PreviewContext {
   isToolbarHidden: boolean;
   isSidebarOpen: boolean;
   isPageEditorSidebarOpen: boolean;
-  isAddBlockSheetOpen: boolean;
+  isAddBlockSidebarOpen: boolean;
   /** Source label for the in-progress add-block flow (popover, shortcut, page-tree, overlay). */
   addBlockSource: string | null;
   isAgentChatSidebarOpen: boolean;
@@ -90,7 +90,7 @@ export const previewStore = createStore({
     isToolbarHidden: false,
     isSidebarOpen: true,
     isPageEditorSidebarOpen: false,
-    isAddBlockSheetOpen: false,
+    isAddBlockSidebarOpen: false,
     addBlockSource: null,
     isAgentChatSidebarOpen: false,
     agentChatPageScaffoldContext: null,
@@ -149,7 +149,7 @@ export const previewStore = createStore({
       ...context,
       peekedBlock: null,
       peekedBlockPosition: null,
-      isAddBlockSheetOpen: false,
+      isAddBlockSidebarOpen: false,
     }),
     clearPeekedBlock: (context) => ({
       ...context,
@@ -170,7 +170,7 @@ export const previewStore = createStore({
       pendingAgentBlockFocus: null,
       peekedBlock: null,
       peekedBlockPosition: null,
-      isAddBlockSheetOpen: false,
+      isAddBlockSidebarOpen: false,
     }),
     focusAgentBlock: (context, event: { blockId: number }) => ({
       ...context,
@@ -181,7 +181,7 @@ export const previewStore = createStore({
       },
       peekedBlock: null,
       peekedBlockPosition: null,
-      isAddBlockSheetOpen: false,
+      isAddBlockSidebarOpen: false,
     }),
     clearPendingAgentBlockFocus: (context, event: { requestId: number }) => {
       if (context.pendingAgentBlockFocus?.requestId !== event.requestId) return context;
@@ -254,16 +254,16 @@ export const previewStore = createStore({
       ...context,
       peekedPagePathname: null,
     }),
-    openAddBlockSheet: (context, event: { afterPosition?: string | null; via?: string }) => ({
+    openAddBlockSidebar: (context, event: { afterPosition?: string | null; via?: string }) => ({
       ...context,
-      isAddBlockSheetOpen: true,
+      isAddBlockSidebarOpen: true,
       addBlockSource: event.via ?? null,
       peekedBlock: null,
       peekedBlockPosition: event.afterPosition ?? null,
     }),
-    closeAddBlockSheet: (context) => ({
+    closeAddBlockSidebar: (context) => ({
       ...context,
-      isAddBlockSheetOpen: false,
+      isAddBlockSidebarOpen: false,
       addBlockSource: null,
       peekedBlock: null,
       peekedBlockPosition: null,
@@ -272,7 +272,7 @@ export const previewStore = createStore({
       ...context,
       selection: { type: "block" as const, blockId: event.blockId },
       pendingAgentBlockFocus: null,
-      isAddBlockSheetOpen: false,
+      isAddBlockSidebarOpen: false,
       peekedBlock: null,
       peekedBlockPosition: null,
       skipPeekedBlockExitAnimation: true,

@@ -476,7 +476,7 @@ const PageTree = () => {
         onClick={() => {
           if (!requireDraft()) return;
           previewStore.send({
-            type: "openAddBlockSheet",
+            type: "openAddBlockSidebar",
             via: "page-tree",
           });
         }}

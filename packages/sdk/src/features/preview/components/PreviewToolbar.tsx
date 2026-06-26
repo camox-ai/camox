@@ -8,7 +8,7 @@ import * as Tooltip from "@camox/ui/tooltip";
 import { useSelector } from "@xstate/store-react";
 import { Monitor, Smartphone, Tablet, X } from "lucide-react";
 
-import { cn, getActionShortcut } from "@/lib/utils";
+import { getActionShortcut } from "@/lib/utils";
 
 import { actionsStore } from "../../provider/actionsStore";
 import { previewStore } from "../previewStore";
@@ -20,11 +20,6 @@ interface PreviewToolbarProps {
 export const PreviewToolbar = ({ onEditModeChange }: PreviewToolbarProps) => {
   const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
   const isToolbarHidden = useSelector(previewStore, (state) => state.context.isToolbarHidden);
-  const isAddBlockSheetOpen = useSelector(
-    previewStore,
-    (state) => state.context.isAddBlockSheetOpen,
-  );
-  const isAnySideSheetOpen = isEditMode && isAddBlockSheetOpen;
   const actions = useSelector(actionsStore, (state) => state.context.actions);
   const viewportMode = useSelector(previewStore, (state) => state.context.viewportMode);
   const editModeActionId = isEditMode ? "exit-edit-mode" : "enter-edit-mode";
@@ -32,12 +27,7 @@ export const PreviewToolbar = ({ onEditModeChange }: PreviewToolbarProps) => {
   if (isToolbarHidden) return null;
 
   return (
-    <FloatingToolbar
-      className={cn(
-        "bottom-2 gap-8 justify-between",
-        isAnySideSheetOpen && "opacity-0 pointer-events-none translate-y-full",
-      )}
-    >
+    <FloatingToolbar className="bottom-2 justify-between gap-8">
       <div className="flex items-center gap-2 px-2">
         <Switch
           id="edit-mode"
