@@ -104,7 +104,7 @@ const CreatePageModal = () => {
         await new Promise((resolve) => setTimeout(resolve, 50));
         await navigate({ to: fullPath });
         previewStore.send({
-          type: "openAgentChatSheet",
+          type: "openAgentChatSidebar",
           pageScaffoldContext: { nickname, fullPath },
         });
       } catch (error) {

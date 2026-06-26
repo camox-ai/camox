@@ -15,7 +15,6 @@ import { FORMAT_FLAGS } from "../../../core/lib/modifierFormats";
 import type { OverlayMessage } from "../overlayMessages";
 import { isOverlayMessage } from "../overlayMessages";
 import { previewStore } from "../previewStore";
-import { useIsPreviewSheetOpen } from "./PreviewSideSheet";
 
 const FORMAT_BUTTONS = [
   { key: "bold", flag: FORMAT_FLAGS.bold, icon: Bold, label: "Bold", shortcut: "⌘ B" },
@@ -24,7 +23,6 @@ const FORMAT_BUTTONS = [
 
 export const FieldToolbar = () => {
   const iframeElement = useSelector(previewStore, (state) => state.context.iframeElement);
-  const isAnySideSheetOpen = useIsPreviewSheetOpen();
 
   const [hasSelection, setHasSelection] = React.useState(false);
   const [activeFormats, setActiveFormats] = React.useState(0);
@@ -80,7 +78,7 @@ export const FieldToolbar = () => {
     sendTextLink(null);
   };
 
-  const isVisible = (hasSelection || linkPopoverOpen) && !isAnySideSheetOpen;
+  const isVisible = hasSelection || linkPopoverOpen;
 
   const handleToolbarMouseDown = (event: React.MouseEvent) => {
     const target = event.target;

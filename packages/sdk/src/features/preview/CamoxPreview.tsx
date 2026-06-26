@@ -15,7 +15,6 @@ import { NormalizedDataProvider, seedBlockCaches, usePageBlocks } from "@/lib/no
 import { blockQueries, pageQueries, projectQueries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
-import { AgentChatSheet } from "../agent-chat/components/AgentChatSheet";
 import { type Action, actionsStore } from "../provider/actionsStore";
 import { useCamoxApp } from "../provider/components/CamoxAppContext";
 import { Navbar } from "../studio/components/Navbar";
@@ -416,7 +415,6 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       </div>
       {shouldShowStudioChrome && (
         <>
-          <AgentChatSheet />
           <CreatePageModal />
           <DraftSwitchDialog />
         </>

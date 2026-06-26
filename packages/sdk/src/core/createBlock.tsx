@@ -9,7 +9,6 @@ import { generateKeyBetween } from "fractional-indexing";
 import * as React from "react";
 import { createPortal } from "react-dom";
 
-import { useIsPreviewSheetOpen } from "@/features/preview/components/PreviewSideSheet.tsx";
 import { useProjectSlug } from "@/lib/auth";
 import {
   blockMutations,
@@ -1794,7 +1793,6 @@ export function createBlock<
       previewStore,
       (state) => state.context.isAddBlockSheetOpen,
     );
-    const isAnySideSheetOpen = useIsPreviewSheetOpen();
     const pendingAgentBlockFocus = useSelector(
       previewStore,
       (state) => state.context.pendingAgentBlockFocus,
@@ -1980,7 +1978,7 @@ export function createBlock<
                 {displayTop && (
                   <AddBlockControlBar
                     position="top"
-                    hidden={isAnySideSheetOpen}
+                    hidden={isAddBlockSheetOpen}
                     onMouseLeave={() => setIsHovered(false)}
                     onClick={() => handleAddBlockClick("before")}
                   />
@@ -1988,7 +1986,7 @@ export function createBlock<
                 {displayBottom && (
                   <AddBlockControlBar
                     position="bottom"
-                    hidden={isAnySideSheetOpen}
+                    hidden={isAddBlockSheetOpen}
                     onMouseLeave={() => setIsHovered(false)}
                     onClick={() => handleAddBlockClick("after")}
                   />

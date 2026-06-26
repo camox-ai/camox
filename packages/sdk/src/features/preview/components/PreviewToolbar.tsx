@@ -24,11 +24,7 @@ export const PreviewToolbar = ({ onEditModeChange }: PreviewToolbarProps) => {
     previewStore,
     (state) => state.context.isAddBlockSheetOpen,
   );
-  const isAgentChatSheetOpen = useSelector(
-    previewStore,
-    (state) => state.context.isAgentChatSheetOpen,
-  );
-  const isAnySideSheetOpen = isEditMode && (isAddBlockSheetOpen || isAgentChatSheetOpen);
+  const isAnySideSheetOpen = isEditMode && isAddBlockSheetOpen;
   const actions = useSelector(actionsStore, (state) => state.context.actions);
   const viewportMode = useSelector(previewStore, (state) => state.context.viewportMode);
   const editModeActionId = isEditMode ? "exit-edit-mode" : "enter-edit-mode";
