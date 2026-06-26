@@ -201,7 +201,7 @@ const PreviewPanel = ({ children, toolbarProps }: PreviewPanelProps) => {
   return (
     <>
       <PanelContent className="relative overflow-hidden bg-black">
-        <div className="absolute inset-0 transition-[transform,height] duration-500 ease-in-out will-change-transform">
+        <div className="absolute inset-0">
           {viewportMode === "full" ? (
             <>
               <PreviewFrame className="checkered h-full w-full" onIframeReady={handleIframeReady}>

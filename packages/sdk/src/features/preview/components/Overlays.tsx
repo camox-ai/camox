@@ -57,7 +57,7 @@ export const Overlays = ({ iframeElement }: OverlaysProps) => {
         }
 
         previewStore.send({
-          type: "openAddBlockSheet",
+          type: "openAddBlockSidebar",
           afterPosition,
           via: "overlay",
         });

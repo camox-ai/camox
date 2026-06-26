@@ -137,7 +137,7 @@ interface CreateBlockOptions<
    */
   settings?: TSettingsShape;
   /**
-   * When true, this block can only be used inside layouts and won't appear in the AddBlockSheet
+   * When true, this block can only be used inside layouts and won't appear in the AddBlockSidebar
    * or be available for AI page generation.
    */
   layoutOnly?: TLayoutOnly;
@@ -1789,9 +1789,9 @@ export function createBlock<
       previewStore,
       (state) => state.context.isPageEditorSidebarOpen,
     );
-    const isAddBlockSheetOpen = useSelector(
+    const isAddBlockSidebarOpen = useSelector(
       previewStore,
-      (state) => state.context.isAddBlockSheetOpen,
+      (state) => state.context.isAddBlockSidebarOpen,
     );
     const pendingAgentBlockFocus = useSelector(
       previewStore,
@@ -1905,14 +1905,8 @@ export function createBlock<
 
     // The bright colors overlays to show selection and editable content
     const shouldShowOverlay =
-      isContentEditable && (isHovered || isBlockSelected) && !isAddBlockSheetOpen;
-
-    // The overlay to darken everything but one block when a preview sheet is open
-    const shouldShowSheetOverlay =
-      // When adding a block elsewhere
-      (isAddBlockSheetOpen && mode !== "peek") ||
-      // Another block is being edited in the sheet
-      (isPageEditorSidebarOpen && !isBlockSelected);
+      isContentEditable && (isHovered || isBlockSelected) && !isAddBlockSidebarOpen;
+    const shouldShowAddBlockOverlay = isAddBlockSidebarOpen && mode !== "peek";
 
     return (
       <div
@@ -1962,10 +1956,9 @@ export function createBlock<
         >
           <options.component content={normalizedContent} />
         </Context.Provider>
-        {/* Sheet overlay */}
         <div
           className="camox-sheet-overlay"
-          {...(shouldShowSheetOverlay ? { "data-camox-visible": "" } : {})}
+          data-camox-visible={shouldShowAddBlockOverlay || undefined}
         />
         {/* AddBlock controls */}
         {shouldShowOverlay &&
@@ -1978,7 +1971,7 @@ export function createBlock<
                 {displayTop && (
                   <AddBlockControlBar
                     position="top"
-                    hidden={isAddBlockSheetOpen}
+                    hidden={isAddBlockSidebarOpen}
                     onMouseLeave={() => setIsHovered(false)}
                     onClick={() => handleAddBlockClick("before")}
                   />
@@ -1986,7 +1979,7 @@ export function createBlock<
                 {displayBottom && (
                   <AddBlockControlBar
                     position="bottom"
-                    hidden={isAddBlockSheetOpen}
+                    hidden={isAddBlockSidebarOpen}
                     onMouseLeave={() => setIsHovered(false)}
                     onClick={() => handleAddBlockClick("after")}
                   />
@@ -2025,13 +2018,9 @@ export function createBlock<
     const { window: iframeWindow } = useFrame();
 
     const selection = useSelector(previewStore, (state) => state.context.selection);
-    const isAddBlockSheetOpen = useSelector(
+    const isAddBlockSidebarOpen = useSelector(
       previewStore,
-      (state) => state.context.isAddBlockSheetOpen,
-    );
-    const isPageEditorSidebarOpen = useSelector(
-      previewStore,
-      (state) => state.context.isPageEditorSidebarOpen,
+      (state) => state.context.isAddBlockSidebarOpen,
     );
     const isBlockSelected = selection?.blockId === blockId;
 
@@ -2048,10 +2037,8 @@ export function createBlock<
     }, [isHoveredFromSidebar, setIsHovered]);
 
     const shouldShowOverlay =
-      isContentEditable && (isHovered || isBlockSelected) && !isAddBlockSheetOpen;
-
-    const shouldShowSheetOverlay =
-      (isAddBlockSheetOpen && mode !== "peek") || (isPageEditorSidebarOpen && !isBlockSelected);
+      isContentEditable && (isHovered || isBlockSelected) && !isAddBlockSidebarOpen;
+    const shouldHideForAddBlockSidebar = isAddBlockSidebarOpen && mode !== "peek";
 
     const handleClick = (e: React.MouseEvent) => {
       if (!isContentEditable) return;
@@ -2077,9 +2064,7 @@ export function createBlock<
       <>
         {children({
           ref: setContainer,
-          style: {
-            opacity: shouldShowSheetOverlay ? 0 : 1,
-          },
+          style: { opacity: shouldHideForAddBlockSidebar ? 0 : 1 },
           onClick: handleClick,
           onMouseEnter: handleMouseEnter,
           onMouseLeave: handleMouseLeave,

@@ -103,7 +103,7 @@ const BlockActionsPopover = ({
     const afterPosition = blockIndex > 0 ? pageBlocks[blockIndex - 1].position : "";
 
     previewStore.send({
-      type: "openAddBlockSheet",
+      type: "openAddBlockSidebar",
       afterPosition,
       via: "popover-above",
     });
@@ -111,7 +111,7 @@ const BlockActionsPopover = ({
 
   const handleAddBlockBelow = (block: NormalizedBlock) => {
     previewStore.send({
-      type: "openAddBlockSheet",
+      type: "openAddBlockSidebar",
       afterPosition: block.position,
       via: "popover-below",
     });
@@ -216,7 +216,7 @@ const BlockActionsPopover = ({
                       <CommandItem
                         onSelect={() => {
                           previewStore.send({
-                            type: "openAddBlockSheet",
+                            type: "openAddBlockSidebar",
                             afterPosition: "",
                             via: "layout-popover-below",
                           });
@@ -239,7 +239,7 @@ const BlockActionsPopover = ({
                         onSelect={() => {
                           const lastPageBlock = pageBlocks[pageBlocks.length - 1];
                           previewStore.send({
-                            type: "openAddBlockSheet",
+                            type: "openAddBlockSidebar",
                             afterPosition: lastPageBlock?.position,
                             via: "layout-popover-above",
                           });
@@ -566,7 +566,7 @@ function useBlockActionsShortcuts() {
           if (!block) return;
 
           previewStore.send({
-            type: "openAddBlockSheet",
+            type: "openAddBlockSidebar",
             afterPosition: block.position,
             via: "shortcut-below",
           });
@@ -592,7 +592,7 @@ function useBlockActionsShortcuts() {
           const afterPosition = blockIndex > 0 ? pageBlocks[blockIndex - 1].position : "";
 
           previewStore.send({
-            type: "openAddBlockSheet",
+            type: "openAddBlockSidebar",
             afterPosition,
             via: "shortcut-above",
           });

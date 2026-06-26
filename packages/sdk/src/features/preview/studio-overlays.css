@@ -138,7 +138,7 @@
   border-color: var(--camox-overlay-layout-color-selected);
 }
 
-/* ---- Sheet overlay (dims non-selected blocks) ---- */
+/* ---- Add-block overlay ---- */
 
 .camox-sheet-overlay {
   position: absolute;
