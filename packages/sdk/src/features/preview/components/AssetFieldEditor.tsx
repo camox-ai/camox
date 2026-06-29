@@ -40,7 +40,7 @@ const AssetActionButtons = ({
 }) => (
   <>
     <Button variant="default" className="mx-auto flex w-full" onClick={onPickerOpen}>
-      Add existing {assetLabel(isImage, multiple)}
+      Select existing {assetLabel(isImage, multiple)}
     </Button>
     <Button
       variant="secondary"
