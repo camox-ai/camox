@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 
 import { AssetActionButtons } from "./AssetFieldEditor";
 import { AssetLightbox } from "./AssetLightbox";
-import { AssetPickerGrid } from "./AssetPickerGrid";
+import { AssetPickerModal } from "./AssetPickerModal";
 import { UnlinkAssetButton } from "./UnlinkAssetButton";
 
 /* -------------------------------------------------------------------------------------------------
@@ -204,51 +204,49 @@ const MultipleAssetFieldEditor = ({
 
   return (
     <UploadDropZone onDrop={uploadFiles}>
-      {pickerOpen ? (
-        <AssetPickerGrid
-          assetType={assetType}
-          mode="multiple"
-          onSelectSingle={() => {}}
-          onSelectMultiple={handleSelectMultiple}
-          onClose={() => setPickerOpen(false)}
-        />
-      ) : (
-        <div className="space-y-4 px-2 py-4">
-          {items.length > 0 && (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-              modifiers={[restrictToVerticalAxis]}
+      <div className="space-y-4 px-2 py-4">
+        {items.length > 0 && (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+            modifiers={[restrictToVerticalAxis]}
+          >
+            <SortableContext
+              items={items.map((a) => String(a._fileId))}
+              strategy={verticalListSortingStrategy}
             >
-              <SortableContext
-                items={items.map((a) => String(a._fileId))}
-                strategy={verticalListSortingStrategy}
-              >
-                <ul className="flex flex-col gap-1">
-                  {items.map((asset) => (
-                    <SortableAssetItem
-                      key={asset._fileId}
-                      asset={asset}
-                      assetType={assetType}
-                      onRemove={handleRemove}
-                      onAssetOpen={setLightboxAsset}
-                    />
-                  ))}
-                </ul>
-              </SortableContext>
-            </DndContext>
-          )}
-          <AssetActionButtons
-            isImage={isImage}
-            multiple={true}
-            fileInputRef={fileInputRef}
-            onPickerOpen={() => setPickerOpen(true)}
-            onFilesSelected={uploadFiles}
-            uploads={uploads}
-          />
-        </div>
-      )}
+              <ul className="flex flex-col gap-1">
+                {items.map((asset) => (
+                  <SortableAssetItem
+                    key={asset._fileId}
+                    asset={asset}
+                    assetType={assetType}
+                    onRemove={handleRemove}
+                    onAssetOpen={setLightboxAsset}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
+        )}
+        <AssetActionButtons
+          isImage={isImage}
+          multiple={true}
+          fileInputRef={fileInputRef}
+          onPickerOpen={() => setPickerOpen(true)}
+          onFilesSelected={uploadFiles}
+          uploads={uploads}
+        />
+      </div>
+      <AssetPickerModal
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        assetType={assetType}
+        mode="multiple"
+        onSelectSingle={() => {}}
+        onSelectMultiple={handleSelectMultiple}
+      />
 
       {lightboxAsset && (
         <AssetLightbox

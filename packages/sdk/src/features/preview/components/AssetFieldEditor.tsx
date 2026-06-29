@@ -11,7 +11,7 @@ import { useProjectSlug } from "@/lib/auth";
 import { type File, projectQueries } from "@/lib/queries";
 
 import { AssetLightbox } from "./AssetLightbox";
-import { AssetPickerGrid } from "./AssetPickerGrid";
+import { AssetPickerModal } from "./AssetPickerModal";
 import { UnlinkAssetButton } from "./UnlinkAssetButton";
 
 function assetLabel(isImage: boolean, multiple: boolean) {
@@ -40,7 +40,7 @@ const AssetActionButtons = ({
 }) => (
   <>
     <Button variant="default" className="mx-auto flex w-full" onClick={onPickerOpen}>
-      Select existing {assetLabel(isImage, multiple)}
+      Add existing {assetLabel(isImage, multiple)}
     </Button>
     <Button
       variant="secondary"
@@ -130,70 +130,68 @@ const SingleAssetFieldEditor = ({
 
   return (
     <UploadDropZone onDrop={handleDrop}>
-      {pickerOpen ? (
-        <AssetPickerGrid
-          assetType={assetType}
-          mode="single"
-          onSelectSingle={handleSelectExisting}
-          onSelectMultiple={() => {}}
-          onClose={() => setPickerOpen(false)}
-        />
-      ) : (
-        <div className="space-y-4 px-2 py-4">
-          {hasAsset && (
-            <div className="text-foreground hover:bg-accent/75 flex max-w-full flex-row items-center gap-2 rounded-lg border-2 px-1 py-1">
-              <button
-                type="button"
-                className="flex min-w-0 flex-1 cursor-zoom-in items-center gap-2 rounded-sm p-1"
-                onClick={() => setLightboxOpen(true)}
-              >
-                {isImage ? (
-                  <div className="border-border h-10 w-10 shrink-0 overflow-hidden rounded border">
-                    <img
-                      src={transformImageUrl(asset.url, {
-                        width: 128,
-                        mimeType: asset.mimeType,
-                        size: asset.size,
-                      })}
-                      alt={asset.alt || asset.filename}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="border-border bg-muted flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border">
-                    <FileIcon className="text-muted-foreground h-5 w-5" />
-                  </div>
-                )}
-
-                <p className="flex-1 truncate text-left text-sm" title={asset.filename}>
-                  {asset.filename || "Untitled"}
-                </p>
-              </button>
-              <UnlinkAssetButton
-                fileId={asset._fileId != null ? Number(asset._fileId) : undefined}
-                onUnlink={() => {
-                  onFieldChange(fieldName, null);
-                }}
-              />
-              {asset._fileId && (
-                <AssetLightbox
-                  open={lightboxOpen}
-                  onOpenChange={setLightboxOpen}
-                  fileId={Number(asset._fileId)}
-                />
+      <div className="space-y-4 px-2 py-4">
+        {hasAsset && (
+          <div className="text-foreground hover:bg-accent/75 flex max-w-full flex-row items-center gap-2 rounded-lg border-2 px-1 py-1">
+            <button
+              type="button"
+              className="flex min-w-0 flex-1 cursor-zoom-in items-center gap-2 rounded-sm p-1"
+              onClick={() => setLightboxOpen(true)}
+            >
+              {isImage ? (
+                <div className="border-border h-10 w-10 shrink-0 overflow-hidden rounded border">
+                  <img
+                    src={transformImageUrl(asset.url, {
+                      width: 128,
+                      mimeType: asset.mimeType,
+                      size: asset.size,
+                    })}
+                    alt={asset.alt || asset.filename}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="border-border bg-muted flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border">
+                  <FileIcon className="text-muted-foreground h-5 w-5" />
+                </div>
               )}
-            </div>
-          )}
-          <AssetActionButtons
-            isImage={isImage}
-            multiple={false}
-            fileInputRef={fileInputRef}
-            onPickerOpen={() => setPickerOpen(true)}
-            onFilesSelected={handleDrop}
-            uploads={uploads}
-          />
-        </div>
-      )}
+
+              <p className="flex-1 truncate text-left text-sm" title={asset.filename}>
+                {asset.filename || "Untitled"}
+              </p>
+            </button>
+            <UnlinkAssetButton
+              fileId={asset._fileId != null ? Number(asset._fileId) : undefined}
+              onUnlink={() => {
+                onFieldChange(fieldName, null);
+              }}
+            />
+            {asset._fileId && (
+              <AssetLightbox
+                open={lightboxOpen}
+                onOpenChange={setLightboxOpen}
+                fileId={Number(asset._fileId)}
+              />
+            )}
+          </div>
+        )}
+        <AssetActionButtons
+          isImage={isImage}
+          multiple={false}
+          fileInputRef={fileInputRef}
+          onPickerOpen={() => setPickerOpen(true)}
+          onFilesSelected={handleDrop}
+          uploads={uploads}
+        />
+      </div>
+      <AssetPickerModal
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        assetType={assetType}
+        mode="single"
+        onSelectSingle={handleSelectExisting}
+        onSelectMultiple={() => {}}
+      />
     </UploadDropZone>
   );
 };
