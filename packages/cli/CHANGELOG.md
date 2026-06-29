@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.33.0](https://github.com/camox-ai/camox/compare/camox-v0.32.0...@camox/cli-v0.33.0) (2026-06-29)
+
+
+### Bug Fixes
+
+* 404 on camox studio pages ([adc064d](https://github.com/camox-ai/camox/commit/adc064d3d727943db6133ebeb03c0b3239b14c2d))
+
 ## [0.32.0](https://github.com/camox-ai/camox/compare/camox-v0.31.5...@camox/cli-v0.32.0) (2026-06-20)
 
 

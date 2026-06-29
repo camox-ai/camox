@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.33.0](https://github.com/camox-ai/camox/compare/camox-v0.32.0...camox-v0.33.0) (2026-06-29)
+
+
+### Features
+
+* add right sidebar ([963a8bb](https://github.com/camox-ai/camox/commit/963a8bbe3233fe24ec64761453a97f76327649fa))
+* add tablet viewport mode ([3b40bfd](https://github.com/camox-ai/camox/commit/3b40bfde4f66bc7952e093e5771d9bfead6e012c))
+* hide toolbar ([0fdf7d7](https://github.com/camox-ai/camox/commit/0fdf7d7faf4dcc2535f08c97ca62e6860dc6a784))
+* move asset picker to a dedicated modal ([12db5f8](https://github.com/camox-ai/camox/commit/12db5f8ddd562827a4773f83e7e51ea2fdeb2d76))
+* new preview toolbar ([ee28363](https://github.com/camox-ai/camox/commit/ee283632e15d6300b55e3897ba4d8b26b98ef337))
+* replace page metadata modal by right sidebar ([2a98bb9](https://github.com/camox-ai/camox/commit/2a98bb942c2e6bb65e1ced20bb78a2bf6b945b13))
+* transform asset field editor into a modal ([cbf4576](https://github.com/camox-ai/camox/commit/cbf4576d26711739d227d9a74cdb851a37de8fd3))
+* vertical selection breadcrumbs in sidebar ([88b1aa9](https://github.com/camox-ai/camox/commit/88b1aa9f677918ada4aadeeedc702b6f43a9d96a))
+* warn before redirecting to sign in ([9b95fe5](https://github.com/camox-ai/camox/commit/9b95fe51557fe33c624aa7ae596de79e343073d9))
+
+
+### Bug Fixes
+
+* 404 on camox studio pages ([adc064d](https://github.com/camox-ai/camox/commit/adc064d3d727943db6133ebeb03c0b3239b14c2d))
+* sidebar stealing focus on preview click ([5e87313](https://github.com/camox-ai/camox/commit/5e8731318920eb002a52fd81641c0b11026a5140))
+* ui details ([809fb8b](https://github.com/camox-ai/camox/commit/809fb8bd600b2ac4c9fd4bb7674f7f545ecaf2d4))
+* use existing preview toolbar for unauthenticated localhost visitors ([e1fd2ce](https://github.com/camox-ai/camox/commit/e1fd2ce50411f710d52731651fd6a2812976c923))
+
+
+### Miscellaneous
+
+* clean up previewStore ([12f6f07](https://github.com/camox-ai/camox/commit/12f6f0799a8c5619616e4f88fb9c396e2352e9f2))
+* move add block ui to left sidebar ([7ae19ce](https://github.com/camox-ai/camox/commit/7ae19ce9acb7fddc93fea167e7b515728e17c9b5))
+* move ai chat to right sidebar ([28efc91](https://github.com/camox-ai/camox/commit/28efc91c6ce4b259503f2c9adfe9d94dc6bd66ed))
+* organize right sidebar into separate files ([fa83188](https://github.com/camox-ai/camox/commit/fa8318880c35726e882f3fc527cbbcf131fe05d3))
+* remove list of fields from PageTree ([c2c1f60](https://github.com/camox-ai/camox/commit/c2c1f607b8258d71fe539d4a543523a4a39723c7))
+* remove preview side sheet component ([76b0ff5](https://github.com/camox-ai/camox/commit/76b0ff5ed8c7153a6e73c726b82d19bf7bef2f24))
+* rename sidebar files ([2950f1b](https://github.com/camox-ai/camox/commit/2950f1b754cb994b3e1db5c19c7d58e12bed539a))
+* use `/camox` as camox studio path prefix ([c4ea339](https://github.com/camox-ai/camox/commit/c4ea33955e1456085670974a4d4d66d861be9228))
+
 ## [0.32.0](https://github.com/camox-ai/camox/compare/camox-v0.31.5...camox-v0.32.0) (2026-06-20)
 
 
