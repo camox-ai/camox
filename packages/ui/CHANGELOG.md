@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.33.0](https://github.com/camox-ai/camox/compare/camox-v0.32.0...@camox/ui-v0.33.0) (2026-06-29)
+
+
+### Features
+
+* new preview toolbar ([ee28363](https://github.com/camox-ai/camox/commit/ee283632e15d6300b55e3897ba4d8b26b98ef337))
+* vertical selection breadcrumbs in sidebar ([88b1aa9](https://github.com/camox-ai/camox/commit/88b1aa9f677918ada4aadeeedc702b6f43a9d96a))
+
+
+### Bug Fixes
+
+* ui details ([809fb8b](https://github.com/camox-ai/camox/commit/809fb8bd600b2ac4c9fd4bb7674f7f545ecaf2d4))
+
 ## [0.32.0](https://github.com/camox-ai/camox/compare/camox-v0.31.5...@camox/ui-v0.32.0) (2026-06-20)
 
 
