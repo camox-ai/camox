@@ -32,6 +32,7 @@ import { useProjectRoom } from "@/lib/use-project-room";
 import { usePreviewPagesActions } from "../preview/CamoxPreview";
 import { PreviewPanel } from "../preview/components/PreviewPanel";
 import { useNavbarActions } from "../studio/components/Navbar";
+import { STUDIO_BASE_PATH } from "../studio/routes";
 import { useApplyTheme, useThemeActions, useThemeValue } from "../studio/useTheme";
 import { actionsStore, type Action } from "./actionsStore";
 import { CamoxAppProvider } from "./components/CamoxAppContext";
@@ -47,7 +48,7 @@ const isLocalhost = () => {
 };
 
 const isStudioPathname = (pathname: string) => {
-  return pathname === "/cmx-studio" || pathname.startsWith("/cmx-studio/");
+  return pathname === STUDIO_BASE_PATH || pathname.startsWith(`${STUDIO_BASE_PATH}/`);
 };
 
 interface AuthenticatedCamoxProviderProps {
@@ -172,8 +173,19 @@ const UnauthenticatedPage = ({ children }: { children: React.ReactNode }) => {
 };
 
 const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode }) => {
-  const signInRedirect = useSignInRedirect();
   const { pathname } = useLocation();
+  const getSignInCallbackHref = React.useCallback(() => {
+    if (typeof window === "undefined") return undefined;
+    if (pathname !== STUDIO_BASE_PATH) return window.location.href;
+
+    return new URL("/", window.location.href).href;
+  }, [pathname]);
+  const signInRedirect = useSignInRedirect(getSignInCallbackHref);
+
+  React.useEffect(() => {
+    if (!isStudioPathname(pathname)) return;
+    signInRedirect();
+  }, [pathname, signInRedirect]);
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -190,6 +202,10 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [signInRedirect]);
+
+  if (isStudioPathname(pathname)) {
+    return null;
+  }
 
   if (isLocalhost() && !isStudioPathname(pathname)) {
     return <UnauthenticatedLocalhostPreview>{children}</UnauthenticatedLocalhostPreview>;
