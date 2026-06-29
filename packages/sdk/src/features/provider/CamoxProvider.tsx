@@ -11,6 +11,7 @@ import {
 import { Toaster } from "@camox/ui/toaster";
 import { useQuery } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
+import { useLocation } from "@tanstack/react-router";
 import * as React from "react";
 import studioCssUrl from "virtual:camox-studio-css";
 
@@ -43,6 +44,10 @@ const isLocalhost = () => {
   if (typeof window === "undefined") return false;
   const { hostname } = window.location;
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+};
+
+const isStudioPathname = (pathname: string) => {
+  return pathname === "/cmx-studio" || pathname.startsWith("/cmx-studio/");
 };
 
 interface AuthenticatedCamoxProviderProps {
@@ -168,6 +173,7 @@ const UnauthenticatedPage = ({ children }: { children: React.ReactNode }) => {
 
 const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode }) => {
   const signInRedirect = useSignInRedirect();
+  const { pathname } = useLocation();
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -185,7 +191,7 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [signInRedirect]);
 
-  if (isLocalhost()) {
+  if (isLocalhost() && !isStudioPathname(pathname)) {
     return <UnauthenticatedLocalhostPreview>{children}</UnauthenticatedLocalhostPreview>;
   }
 
