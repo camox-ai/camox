@@ -750,14 +750,14 @@ export function createBlock<
     const [isEditorFocused, setIsEditorFocused] = React.useState(false);
 
     // Derive selected state from selection
-    const isSelectedFromBreadcrumbs = useFieldSelection(
+    const isSelectedFromSelection = useFieldSelection(
       blockId,
       String(name),
       "String",
       repeaterContext?.itemId,
     );
 
-    const isFocused = isEditorFocused || isSelectedFromBreadcrumbs;
+    const isFocused = isEditorFocused || isSelectedFromSelection;
 
     // Keep sidebar hover via postMessage (transient state)
     const isHoveredFromSidebar = useOverlayMessage(
@@ -1073,14 +1073,14 @@ export function createBlock<
     const [isEditorFocused, setIsEditorFocused] = React.useState(false);
 
     // Derive selected state from selection
-    const isSelectedFromBreadcrumbs = useFieldSelection(
+    const isSelectedFromSelection = useFieldSelection(
       blockId,
       String(name),
       "Link",
       repeaterContext?.itemId,
     );
 
-    const isFocused = isEditorFocused || isSelectedFromBreadcrumbs;
+    const isFocused = isEditorFocused || isSelectedFromSelection;
 
     React.useEffect(() => {
       if (!isEditing) {

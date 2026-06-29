@@ -8,8 +8,8 @@ import { trackClientEvent } from "@/lib/telemetry-client";
 /* -------------------------------------------------------------------------------------------------
  * Selection — normalized, flat pointer to the currently selected entity
  * -------------------------------------------------------------------------------------------------
- * Instead of encoding a path (breadcrumb trail), the selection points directly to the entity.
- * Breadcrumb UI is derived by walking up the parent chain from the items map.
+ * Instead of encoding a path, the selection points directly to the entity.
+ * Selection path UI is derived by walking up the parent chain from the items map.
  * ------------------------------------------------------------------------------------------------*/
 
 export type Selection =
