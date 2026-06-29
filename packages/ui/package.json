@@ -27,10 +27,6 @@
       "types": "./src/components/badge.tsx",
       "default": "./src/components/badge.tsx"
     },
-    "./breadcrumb": {
-      "types": "./src/components/breadcrumb.tsx",
-      "default": "./src/components/breadcrumb.tsx"
-    },
     "./button-group": {
       "types": "./src/components/button-group.tsx",
       "default": "./src/components/button-group.tsx"

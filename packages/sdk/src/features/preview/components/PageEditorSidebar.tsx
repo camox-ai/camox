@@ -1,19 +1,4 @@
-import {
-  Breadcrumb,
-  BreadcrumbEllipsis,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@camox/ui/breadcrumb";
 import { Button } from "@camox/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@camox/ui/dropdown-menu";
 import { Label } from "@camox/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@camox/ui/select";
 import { Spinner } from "@camox/ui/spinner";
@@ -359,7 +344,7 @@ const PageEditorSidebar = () => {
   const activeFieldChangeHandler =
     currentItemId != null ? handleItemFieldChange : handleBlockFieldChange;
 
-  // Build breadcrumb display from the ancestor chain
+  // Build selection path display from the ancestor chain
   const ancestorChain = React.useMemo(
     () => (currentItemId != null ? buildAncestorChain(currentItemId, itemsMap) : []),
     [currentItemId, itemsMap],
@@ -374,103 +359,110 @@ const PageEditorSidebar = () => {
   }
 
   const fieldHasOwnView = fieldInfo ? fieldTypesDictionary[fieldInfo.fieldType].hasOwnView : false;
-  const isAtBlockLevel = ancestorChain.length === 0 && !fieldHasOwnView;
+  const navigationItems = [
+    {
+      key: "page",
+      label: "Page",
+      isCurrent: false,
+      onClick: () => previewStore.send({ type: "clearSelection" }),
+    },
+    {
+      key: "block",
+      label: block.summary || blockDef._internal.title,
+      isCurrent: ancestorChain.length === 0 && !fieldHasOwnView,
+      onClick: () => previewStore.send({ type: "setFocusedBlock", blockId: block.id }),
+    },
+    ...ancestorChain.map((ancestor) => ({
+      key: `item-${ancestor.id}`,
+      label: ancestor.summary || formatFieldName(ancestor.fieldName),
+      isCurrent:
+        ancestor.id === currentItemId &&
+        !fieldHasOwnView &&
+        ancestor.id === ancestorChain[ancestorChain.length - 1]?.id,
+      onClick: () =>
+        previewStore.send({
+          type: "selectItem",
+          blockId: block.id,
+          itemId: ancestor.id,
+        }),
+    })),
+    ...(fieldHasOwnView && fieldInfo
+      ? [
+          {
+            key: `field-${fieldInfo.fieldName}`,
+            label:
+              (currentSchema as any)?.properties?.[fieldInfo.fieldName]?.title ??
+              formatFieldName(fieldInfo.fieldName),
+            isCurrent: true,
+            onClick: undefined,
+          },
+        ]
+      : []),
+  ];
+  const [pageNavigationItem, ...contentNavigationItems] = navigationItems;
 
   return (
     <>
       <div className="border-border flex flex-col gap-1.5 border-b px-2 py-4">
-        <h2 className="text-foreground font-medium">{block.summary}</h2>
-        <Breadcrumb className="text-muted-foreground text-sm">
-          <BreadcrumbList className="flex-nowrap">
-            {/* Block title — always shown */}
-            <BreadcrumbItem className="min-w-0">
-              {isAtBlockLevel ? (
-                <BreadcrumbPage className="truncate">{blockDef._internal.title}</BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink
-                  className="cursor-pointer"
-                  onClick={() => previewStore.send({ type: "setFocusedBlock", blockId: block.id })}
-                >
-                  {blockDef._internal.title}
-                </BreadcrumbLink>
-              )}
-            </BreadcrumbItem>
+        <nav aria-label="Selection path" className="text-muted-foreground text-sm">
+          {pageNavigationItem?.onClick ? (
+            <button
+              type="button"
+              className="hover:text-foreground block min-w-0 cursor-pointer truncate py-0.5 text-left transition-colors"
+              onClick={pageNavigationItem.onClick}
+            >
+              {pageNavigationItem.label}
+            </button>
+          ) : (
+            <span className="text-foreground block min-w-0 truncate py-0.5 font-medium">
+              {pageNavigationItem?.label}
+            </span>
+          )}
+          <ol className="flex flex-col">
+            {contentNavigationItems.map((item, index) => {
+              const hasNextItem = index < contentNavigationItems.length - 1;
+              const connectorPath = hasNextItem
+                ? "M1 0 V24 M1 5 Q1 12 8 12 H16"
+                : "M1 0 V5 Q1 12 8 12 H16";
 
-            {/* Ancestor items — ellipsis dropdown for deep nesting */}
-            {ancestorChain.length > 0 && (
-              <>
-                {ancestorChain.length > 1 && (
-                  <>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="flex items-center gap-1">
-                          <BreadcrumbEllipsis className="size-5" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {ancestorChain.slice(0, -1).map((ancestor) => (
-                            <DropdownMenuItem
-                              key={ancestor.id}
-                              onClick={() =>
-                                previewStore.send({
-                                  type: "selectItem",
-                                  blockId: block.id,
-                                  itemId: ancestor.id,
-                                })
-                              }
-                            >
-                              {ancestor.summary || formatFieldName(ancestor.fieldName)}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </BreadcrumbItem>
-                  </>
-                )}
-                <BreadcrumbSeparator />
-                {(() => {
-                  const lastAncestor = ancestorChain[ancestorChain.length - 1];
-                  const crumbLabel =
-                    lastAncestor.summary || formatFieldName(lastAncestor.fieldName);
-
-                  if (fieldHasOwnView) {
-                    // Viewing a terminal field within this item — item is clickable
-                    return (
-                      <BreadcrumbItem className="min-w-0">
-                        <BreadcrumbLink
-                          className="cursor-pointer truncate"
-                          onClick={() => previewStore.send({ type: "selectParent" })}
-                        >
-                          {crumbLabel}
-                        </BreadcrumbLink>
-                      </BreadcrumbItem>
-                    );
-                  }
-
-                  // Viewing the item itself — it's the current page
-                  return (
-                    <BreadcrumbItem className="min-w-0">
-                      <BreadcrumbPage className="truncate">{crumbLabel}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                  );
-                })()}
-              </>
-            )}
-
-            {/* Terminal field (Link/Image/File) */}
-            {fieldHasOwnView && fieldInfo && (
-              <>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem className="min-w-0">
-                  <BreadcrumbPage className="truncate">
-                    {(currentSchema as any)?.properties?.[fieldInfo.fieldName]?.title ??
-                      formatFieldName(fieldInfo.fieldName)}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </>
-            )}
-          </BreadcrumbList>
-        </Breadcrumb>
+              return (
+                <li key={item.key} className="relative min-w-0 pl-6">
+                  <svg
+                    aria-hidden="true"
+                    className="text-muted-foreground pointer-events-none absolute top-0 left-0 h-full w-4"
+                    fill="none"
+                    preserveAspectRatio="none"
+                    viewBox="0 0 16 24"
+                  >
+                    <path
+                      d={connectorPath}
+                      stroke="currentColor"
+                      strokeLinecap="square"
+                      strokeWidth="1.25"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+                  {item.onClick ? (
+                    <button
+                      type="button"
+                      className={cn(
+                        "hover:text-foreground relative -top-px block min-w-0 cursor-pointer truncate py-0.5 text-left transition-colors",
+                        item.isCurrent && "text-foreground font-medium",
+                      )}
+                      onClick={item.onClick}
+                    >
+                      {item.label}
+                    </button>
+                  ) : (
+                    <span className="text-foreground relative -top-px block min-w-0 truncate py-0.5 font-medium">
+                      {item.label}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
       </div>
       <div className="relative flex-1 overflow-auto">
         {isReadOnly && (

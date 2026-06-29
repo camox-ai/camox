@@ -98,7 +98,7 @@ const PageInfoSidebar = ({ pageId }: { pageId: number }) => {
 
   return (
     <>
-      <div className="flex-1 space-y-4 overflow-auto p-2">
+      <div className="flex-1 space-y-4 overflow-auto p-2 pt-4">
         <section className="space-y-4">
           <p className="text-base font-semibold">About this page</p>
           <PageNicknameSidebarEditor data={data} />
