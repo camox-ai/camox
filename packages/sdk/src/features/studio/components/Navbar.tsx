@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 import type { Action } from "../../provider/actionsStore";
 import { actionsStore } from "../../provider/actionsStore";
+import { STUDIO_CONTENT_PATH } from "../routes";
 import { studioStore } from "../studioStore";
 import { EnvironmentMenu } from "./EnvironmentMenu";
 import { ProjectMenu } from "./ProjectMenu";
@@ -32,7 +33,7 @@ const links = [
     aliases: ["Preview", "Website"],
   },
   {
-    to: "/cmx-studio/content" as LinkProps["to"],
+    to: STUDIO_CONTENT_PATH as LinkProps["to"],
     title: "Content",
     children: (
       <>

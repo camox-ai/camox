@@ -5,6 +5,7 @@ import { useAuthState, useSignInRedirect } from "@/lib/auth";
 import { trackClientEvent } from "@/lib/telemetry-client";
 
 import { Navbar } from "./components/Navbar";
+import { STUDIO_BASE_PATH } from "./routes";
 
 const CamoxStudio = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading: isLoadingAuth } = useAuthState();
@@ -24,12 +25,12 @@ const CamoxStudio = ({ children }: { children: React.ReactNode }) => {
     trackClientEvent("studio_opened", { route: pathname });
   }, [isAuthenticated, pathname]);
 
-  if (pathname === "cmx-studio") {
-    return <Navigate to="/" />;
-  }
-
   if (!isAuthenticated) {
     return null;
+  }
+
+  if (pathname === STUDIO_BASE_PATH) {
+    return <Navigate to="/" />;
   }
 
   return (

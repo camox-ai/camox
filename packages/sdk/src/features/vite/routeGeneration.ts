@@ -3,6 +3,7 @@ import { resolve, relative } from "node:path";
 
 import type { ViteDevServer } from "vite-plus";
 
+import { STUDIO_ROUTE_SEGMENT } from "../studio/routes";
 import { writeIfChanged } from "./utils";
 
 const HEADER = `/* ============================================================================
@@ -72,26 +73,7 @@ export const Route = createFileRoute("/(camox)/(_preview)/og")({
   );
 }
 
-function generateCmxRedirect(): string {
-  return (
-    HEADER +
-    `import { createFileRoute, redirect } from "@tanstack/react-router";
-
-export const Route = createFileRoute("/(camox)/(_studio)/cmx")({
-  component: RouteComponent,
-  loader: () => {
-    throw redirect({ to: "/cmx-studio" });
-  },
-});
-
-function RouteComponent() {
-  return null;
-}
-`
-  );
-}
-
-function generateCmxStudio(authenticationUrl: string): string {
+function generateCamoxStudio(authenticationUrl: string): string {
   return (
     HEADER +
     `import { Outlet, createFileRoute } from "@tanstack/react-router";
@@ -99,7 +81,7 @@ import { CamoxProvider } from "camox/CamoxProvider";
 import { CamoxStudio } from "camox/CamoxStudio";
 import { camoxApp } from "@/camox/app";
 
-export const Route = createFileRoute("/(camox)/(_studio)/cmx-studio")({
+export const Route = createFileRoute("/(camox)/(_studio)/${STUDIO_ROUTE_SEGMENT}")({
   component: RouteComponent,
   notFoundComponent: () => <div>Studio page not found</div>,
 });
@@ -117,13 +99,13 @@ function RouteComponent() {
   );
 }
 
-function generateCmxStudioCatchAll(): string {
+function generateCamoxStudioCatchAll(): string {
   return (
     HEADER +
     `import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { CamoxStudio } from "camox/CamoxStudio";
 
-export const Route = createFileRoute("/(camox)/(_studio)/cmx-studio/$")({
+export const Route = createFileRoute("/(camox)/(_studio)/${STUDIO_ROUTE_SEGMENT}/$")({
   component: RouteComponent,
   notFoundComponent: () => <div>Studio page not found</div>,
 });
@@ -139,13 +121,13 @@ function RouteComponent() {
   );
 }
 
-function generateCmxStudioContent(): string {
+function generateCamoxStudioContent(): string {
   return (
     HEADER +
     `import { createFileRoute } from "@tanstack/react-router";
 import { CamoxContent } from "camox/CamoxContent";
 
-export const Route = createFileRoute("/(camox)/(_studio)/cmx-studio/content")({
+export const Route = createFileRoute("/(camox)/(_studio)/${STUDIO_ROUTE_SEGMENT}/content")({
   component: RouteComponent,
 });
 
@@ -171,15 +153,24 @@ function getRouteFileEntries({ routesDir, authenticationUrl }: RouteFilesOptions
       content: generatePageRoute(authenticationUrl),
     },
     { path: resolve(previewDir, "og.tsx"), content: generateOgRoute() },
-    { path: resolve(studioDir, "cmx.tsx"), content: generateCmxRedirect() },
-    { path: resolve(studioDir, "cmx-studio.tsx"), content: generateCmxStudio(authenticationUrl) },
-    { path: resolve(studioDir, "cmx-studio.$.tsx"), content: generateCmxStudioCatchAll() },
-    { path: resolve(studioDir, "cmx-studio.content.tsx"), content: generateCmxStudioContent() },
+    {
+      path: resolve(studioDir, `${STUDIO_ROUTE_SEGMENT}.tsx`),
+      content: generateCamoxStudio(authenticationUrl),
+    },
+    {
+      path: resolve(studioDir, `${STUDIO_ROUTE_SEGMENT}.$.tsx`),
+      content: generateCamoxStudioCatchAll(),
+    },
+    {
+      path: resolve(studioDir, `${STUDIO_ROUTE_SEGMENT}.content.tsx`),
+      content: generateCamoxStudioContent(),
+    },
   ];
 }
 
 function removeObsoleteRouteFiles(routesDir: string) {
   const camoxDir = resolve(routesDir, "_camox");
+  const studioDir = resolve(routesDir, "(camox)", "(_studio)");
   const obsoletePaths = [
     resolve(routesDir, "_camox.tsx"),
     resolve(camoxDir, "cmx.tsx"),
@@ -188,6 +179,10 @@ function removeObsoleteRouteFiles(routesDir: string) {
     resolve(camoxDir, "cmx-studio.tsx"),
     resolve(camoxDir, "cmx-studio.$.tsx"),
     resolve(camoxDir, "cmx-studio.content.tsx"),
+    resolve(studioDir, "cmx.tsx"),
+    resolve(studioDir, "cmx-studio.tsx"),
+    resolve(studioDir, "cmx-studio.$.tsx"),
+    resolve(studioDir, "cmx-studio.content.tsx"),
   ];
 
   for (const filePath of obsoletePaths) {

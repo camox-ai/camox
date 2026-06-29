@@ -352,15 +352,18 @@ export function useIsAuthenticated() {
   return isAuthenticated;
 }
 
-export function useSignInRedirect() {
+type SignInRedirectCallbackHref = string | (() => string | undefined);
+
+export function useSignInRedirect(callbackHref?: SignInRedirectCallbackHref) {
   const { authenticationUrl } = useAuthContext();
 
   return React.useCallback(() => {
-    if (typeof window !== "undefined") {
-      const callback = encodeURIComponent(window.location.href);
-      window.location.href = `${authenticationUrl}/studio-authorize?callback=${callback}`;
-    }
-  }, [authenticationUrl]);
+    if (typeof window === "undefined") return;
+
+    const href = typeof callbackHref === "function" ? callbackHref() : callbackHref;
+    const callback = encodeURIComponent(href ?? window.location.href);
+    window.location.href = `${authenticationUrl}/studio-authorize?callback=${callback}`;
+  }, [authenticationUrl, callbackHref]);
 }
 
 /**
