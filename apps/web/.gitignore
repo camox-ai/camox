@@ -11,6 +11,5 @@ count.txt
 .vinxi
 .wrangler
 src/camox/app.ts
-src/routes/_camox.tsx
-src/routes/_camox/
+src/routes/(camox)/
 src/routeTree.gen.ts

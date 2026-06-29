@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolve, relative } from "node:path";
 
 import type { ViteDevServer } from "vite-plus";
@@ -18,29 +18,7 @@ const HEADER = `/* =============================================================
 
 `;
 
-function generateCamoxLayout(authenticationUrl: string): string {
-  return (
-    HEADER +
-    `import { Outlet, createFileRoute } from "@tanstack/react-router";
-import { CamoxProvider } from "camox/CamoxProvider";
-import { camoxApp } from "@/camox/app";
-
-export const Route = createFileRoute("/_camox")({
-  component: CamoxPathlessLayout,
-});
-
-function CamoxPathlessLayout() {
-  return (
-    <CamoxProvider camoxApp={camoxApp} authenticationUrl="${authenticationUrl}" apiUrl={__CAMOX_API_URL__} projectSlug={__CAMOX_PROJECT_SLUG__} environmentName={__CAMOX_ENVIRONMENT_NAME__}>
-      <Outlet />
-    </CamoxProvider>
-  );
-}
-`
-  );
-}
-
-function generatePageRoute(): string {
+function generatePageRoute(authenticationUrl: string): string {
   return (
     HEADER +
     `import { createFileRoute } from "@tanstack/react-router";
@@ -50,21 +28,30 @@ import {
   createPageHead,
   PageRouteComponent,
 } from "camox/_internal/pageRoute";
+import { CamoxProvider } from "camox/CamoxProvider";
 import { camoxApp } from "@/camox/app";
 
 const markdownMiddleware = createMarkdownMiddleware(__CAMOX_API_URL__, __CAMOX_PROJECT_SLUG__, __CAMOX_ENVIRONMENT_NAME__);
 const loader = createPageLoader(__CAMOX_API_URL__, __CAMOX_PROJECT_SLUG__, __CAMOX_ENVIRONMENT_NAME__);
 const head = createPageHead(camoxApp);
 
-export const Route = createFileRoute("/_camox/$")({
+export const Route = createFileRoute("/(camox)/(_preview)/$")({
   server: {
     middleware: [markdownMiddleware],
   },
-  component: PageRouteComponent,
+  component: RouteComponent,
   notFoundComponent: () => <div>No Camox page on this path</div>,
   loader,
   head,
 });
+
+function RouteComponent() {
+  return (
+    <CamoxProvider camoxApp={camoxApp} authenticationUrl="${authenticationUrl}" apiUrl={__CAMOX_API_URL__} projectSlug={__CAMOX_PROJECT_SLUG__} environmentName={__CAMOX_ENVIRONMENT_NAME__}>
+      <PageRouteComponent />
+    </CamoxProvider>
+  );
+}
 `
   );
 }
@@ -76,7 +63,7 @@ function generateOgRoute(): string {
 import { createOgHandler } from "camox/_internal/ogRoute";
 import { camoxApp } from "@/camox/app";
 
-export const Route = createFileRoute("/_camox/og")({
+export const Route = createFileRoute("/(camox)/(_preview)/og")({
   server: {
     handlers: createOgHandler(camoxApp),
   },
@@ -90,7 +77,7 @@ function generateCmxRedirect(): string {
     HEADER +
     `import { createFileRoute, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_camox/cmx")({
+export const Route = createFileRoute("/(camox)/(_studio)/cmx")({
   component: RouteComponent,
   loader: () => {
     throw redirect({ to: "/cmx-studio" });
@@ -104,22 +91,26 @@ function RouteComponent() {
   );
 }
 
-function generateCmxStudio(): string {
+function generateCmxStudio(authenticationUrl: string): string {
   return (
     HEADER +
     `import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { CamoxProvider } from "camox/CamoxProvider";
 import { CamoxStudio } from "camox/CamoxStudio";
+import { camoxApp } from "@/camox/app";
 
-export const Route = createFileRoute("/_camox/cmx-studio")({
+export const Route = createFileRoute("/(camox)/(_studio)/cmx-studio")({
   component: RouteComponent,
   notFoundComponent: () => <div>Studio page not found</div>,
 });
 
 function RouteComponent() {
   return (
-    <CamoxStudio>
-      <Outlet />
-    </CamoxStudio>
+    <CamoxProvider camoxApp={camoxApp} authenticationUrl="${authenticationUrl}" apiUrl={__CAMOX_API_URL__} projectSlug={__CAMOX_PROJECT_SLUG__} environmentName={__CAMOX_ENVIRONMENT_NAME__}>
+      <CamoxStudio>
+        <Outlet />
+      </CamoxStudio>
+    </CamoxProvider>
   );
 }
 `
@@ -132,7 +123,7 @@ function generateCmxStudioCatchAll(): string {
     `import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { CamoxStudio } from "camox/CamoxStudio";
 
-export const Route = createFileRoute("/_camox/cmx-studio/$")({
+export const Route = createFileRoute("/(camox)/(_studio)/cmx-studio/$")({
   component: RouteComponent,
   notFoundComponent: () => <div>Studio page not found</div>,
 });
@@ -154,7 +145,7 @@ function generateCmxStudioContent(): string {
     `import { createFileRoute } from "@tanstack/react-router";
 import { CamoxContent } from "camox/CamoxContent";
 
-export const Route = createFileRoute("/_camox/cmx-studio/content")({
+export const Route = createFileRoute("/(camox)/(_studio)/cmx-studio/content")({
   component: RouteComponent,
 });
 
@@ -171,27 +162,51 @@ type RouteFilesOptions = {
 };
 
 function getRouteFileEntries({ routesDir, authenticationUrl }: RouteFilesOptions) {
-  const camoxDir = resolve(routesDir, "_camox");
+  const groupDir = resolve(routesDir, "(camox)");
+  const previewDir = resolve(groupDir, "(_preview)");
+  const studioDir = resolve(groupDir, "(_studio)");
   return [
     {
-      path: resolve(routesDir, "_camox.tsx"),
-      content: generateCamoxLayout(authenticationUrl),
+      path: resolve(previewDir, "$.tsx"),
+      content: generatePageRoute(authenticationUrl),
     },
-    {
-      path: resolve(camoxDir, "$.tsx"),
-      content: generatePageRoute(),
-    },
-    { path: resolve(camoxDir, "og.tsx"), content: generateOgRoute() },
-    { path: resolve(camoxDir, "cmx.tsx"), content: generateCmxRedirect() },
-    { path: resolve(camoxDir, "cmx-studio.tsx"), content: generateCmxStudio() },
-    { path: resolve(camoxDir, "cmx-studio.$.tsx"), content: generateCmxStudioCatchAll() },
-    { path: resolve(camoxDir, "cmx-studio.content.tsx"), content: generateCmxStudioContent() },
+    { path: resolve(previewDir, "og.tsx"), content: generateOgRoute() },
+    { path: resolve(studioDir, "cmx.tsx"), content: generateCmxRedirect() },
+    { path: resolve(studioDir, "cmx-studio.tsx"), content: generateCmxStudio(authenticationUrl) },
+    { path: resolve(studioDir, "cmx-studio.$.tsx"), content: generateCmxStudioCatchAll() },
+    { path: resolve(studioDir, "cmx-studio.content.tsx"), content: generateCmxStudioContent() },
   ];
 }
 
+function removeObsoleteRouteFiles(routesDir: string) {
+  const camoxDir = resolve(routesDir, "_camox");
+  const obsoletePaths = [
+    resolve(routesDir, "_camox.tsx"),
+    resolve(camoxDir, "cmx.tsx"),
+    resolve(camoxDir, "$.tsx"),
+    resolve(camoxDir, "og.tsx"),
+    resolve(camoxDir, "cmx-studio.tsx"),
+    resolve(camoxDir, "cmx-studio.$.tsx"),
+    resolve(camoxDir, "cmx-studio.content.tsx"),
+  ];
+
+  for (const filePath of obsoletePaths) {
+    try {
+      const current = readFileSync(filePath, "utf-8");
+      if (!current.startsWith(HEADER)) continue;
+      unlinkSync(filePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+      throw error;
+    }
+  }
+}
+
 export function generateRouteFiles(options: RouteFilesOptions) {
-  const camoxDir = resolve(options.routesDir, "_camox");
-  mkdirSync(camoxDir, { recursive: true });
+  const groupDir = resolve(options.routesDir, "(camox)");
+  mkdirSync(resolve(groupDir, "(_preview)"), { recursive: true });
+  mkdirSync(resolve(groupDir, "(_studio)"), { recursive: true });
+  removeObsoleteRouteFiles(options.routesDir);
 
   for (const entry of getRouteFileEntries(options)) {
     writeIfChanged(entry.path, entry.content);
