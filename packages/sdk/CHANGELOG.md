@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.33.1](https://github.com/camox-ai/camox/compare/camox-v0.33.0...camox-sdk-v0.33.1) (2026-06-30)
+
+
+### Bug Fixes
+
+* broken auth gate on studio pages ([2663423](https://github.com/camox-ai/camox/commit/26634239f33dd5fa196a2d0bdfce6ee5796ab2ab))
+* remove preview toolbar transitions ([11fb5a2](https://github.com/camox-ai/camox/commit/11fb5a23dd68bcf769b966028c825279556b1383))
+
 ## [0.33.0](https://github.com/camox-ai/camox/compare/camox-v0.32.0...camox-sdk-v0.33.0) (2026-06-29)
 
 
