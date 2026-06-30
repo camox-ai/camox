@@ -71,8 +71,10 @@ export function useFileUpload(options?: UseFileUploadOptions) {
         formData.append("projectId", String(projectIdRef.current ?? 0));
 
         const uploadUrl = `${apiUrl}/files/upload`;
+        const authCookieHeader = getAuthCookieHeader();
         xhr.open("POST", uploadUrl);
-        xhr.setRequestHeader("Better-Auth-Cookie", getAuthCookieHeader());
+        xhr.withCredentials = !authCookieHeader;
+        if (authCookieHeader) xhr.setRequestHeader("Better-Auth-Cookie", authCookieHeader);
         const envName = getEnvironmentName();
         if (envName) xhr.setRequestHeader("x-environment-name", envName);
         xhr.send(formData);

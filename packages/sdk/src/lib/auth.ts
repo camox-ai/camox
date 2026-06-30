@@ -142,6 +142,10 @@ export function getAuthCookieHeader(): string {
   return cookie;
 }
 
+export function getAuthRequestCredentials(authCookieHeader = getAuthCookieHeader()) {
+  return authCookieHeader ? "omit" : "include";
+}
+
 function crossDomainClient(
   opts: {
     storage?: {
@@ -233,10 +237,10 @@ function crossDomainClient(
           const storedCookie = storage.getItem(cookieName);
           const cookie = getCookie(storedCookie || "{}");
           writeServerAuthCookie(cookie);
-          options.credentials = "omit";
+          options.credentials = getAuthRequestCredentials(cookie);
           options.headers = {
             ...options.headers,
-            "Better-Auth-Cookie": cookie,
+            ...(cookie ? { "Better-Auth-Cookie": cookie } : {}),
           };
           if (url.includes("/sign-out")) {
             await storage.setItem(cookieName, "{}");

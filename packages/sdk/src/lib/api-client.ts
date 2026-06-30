@@ -4,7 +4,7 @@ import { RPCLink } from "@orpc/client/fetch";
 import type { RouterClient } from "@orpc/server";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 
-import { getAuthCookieHeader } from "./auth";
+import { getAuthCookieHeader, getAuthRequestCredentials } from "./auth";
 
 declare const __CAMOX_TELEMETRY_DISABLED__: boolean;
 
@@ -27,10 +27,11 @@ export function initApiClient(apiUrl: string, environmentName?: string): ApiClie
     url: `${apiUrl}/rpc`,
     headers,
     fetch: (request, init) => {
+      const authCookieHeader = getAuthCookieHeader();
       if (request instanceof Request) {
-        request.headers.set("Better-Auth-Cookie", getAuthCookieHeader());
+        if (authCookieHeader) request.headers.set("Better-Auth-Cookie", authCookieHeader);
       }
-      return fetch(request, { ...init, credentials: "omit" });
+      return fetch(request, { ...init, credentials: getAuthRequestCredentials(authCookieHeader) });
     },
   });
 

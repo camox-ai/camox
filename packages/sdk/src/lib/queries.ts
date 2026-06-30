@@ -1,7 +1,7 @@
 import { queryKeys, type ReadSource } from "@camox/api-contract/query-keys";
 
 import { type ApiClient, getApiUrl, getEnvironmentName, getOrpc } from "./api-client";
-import { getAuthCookieHeader } from "./auth";
+import { getAuthCookieHeader, getAuthRequestCredentials } from "./auth";
 
 // --- Inferred API response types ---
 
@@ -177,7 +177,9 @@ export const repeatableItemMutations = {
 };
 
 function ogImageHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { "Better-Auth-Cookie": getAuthCookieHeader() };
+  const authCookieHeader = getAuthCookieHeader();
+  const headers: Record<string, string> = {};
+  if (authCookieHeader) headers["Better-Auth-Cookie"] = authCookieHeader;
   const envName = getEnvironmentName();
   if (envName) headers["x-environment-name"] = envName;
   return headers;
@@ -202,7 +204,7 @@ export const pageMutations = {
         method: "POST",
         body: formData,
         headers: ogImageHeaders(),
-        credentials: "omit",
+        credentials: getAuthRequestCredentials(),
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -216,7 +218,7 @@ export const pageMutations = {
       const res = await fetch(`${getApiUrl()}/pages/${pageId}/og-image`, {
         method: "DELETE",
         headers: ogImageHeaders(),
-        credentials: "omit",
+        credentials: getAuthRequestCredentials(),
       });
       if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
       return res.json();

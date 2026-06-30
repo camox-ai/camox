@@ -9,7 +9,7 @@ import * as React from "react";
 import { Streamdown, type Components } from "streamdown";
 
 import { getApiClient, getApiUrl, getEnvironmentName } from "@/lib/api-client";
-import { getAuthCookieHeader } from "@/lib/auth";
+import { getAuthCookieHeader, getAuthRequestCredentials } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 import { previewStore } from "../../preview/previewStore";
@@ -290,17 +290,18 @@ const AgentChatThread = ({
   const connection = React.useMemo(
     () =>
       fetchServerSentEvents(`${getApiUrl()}/agent/chat`, () => {
+        const authCookieHeader = getAuthCookieHeader();
         const headers: Record<string, string> = {
-          "Better-Auth-Cookie": getAuthCookieHeader(),
           "x-camox-client": "studio",
         };
+        if (authCookieHeader) headers["Better-Auth-Cookie"] = authCookieHeader;
         const environmentName = getEnvironmentName();
         if (environmentName) headers["x-environment-name"] = environmentName;
         if (__CAMOX_TELEMETRY_DISABLED__) headers["x-camox-telemetry-disabled"] = "1";
 
         return {
           headers,
-          credentials: "omit",
+          credentials: getAuthRequestCredentials(authCookieHeader),
           body: { projectId, currentPath, source },
         };
       }),
