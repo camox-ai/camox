@@ -10,10 +10,10 @@ import {
 } from "@camox/ui/dropdown-menu";
 import { Skeleton } from "@camox/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { ChevronDown, Globe, Info, Settings, Users } from "lucide-react";
 import * as React from "react";
 
+import { Link } from "@/features/navigation/navigation";
 import { AuthContext } from "@/lib/auth";
 import { projectQueries } from "@/lib/queries";
 

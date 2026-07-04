@@ -11,12 +11,12 @@ import {
 import { Toaster } from "@camox/ui/toaster";
 import { useQuery } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
-import { useLocation } from "@tanstack/react-router";
 import * as React from "react";
 import studioCssUrl from "virtual:camox-studio-css";
 
 import { AuthGate } from "@/components/AuthGate";
 import type { CamoxApp } from "@/core/createApp";
+import { useLocation } from "@/features/navigation/navigation";
 import { initApiClient } from "@/lib/api-client";
 import {
   AuthContext,

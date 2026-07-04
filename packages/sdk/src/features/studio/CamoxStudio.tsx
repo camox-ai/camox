@@ -1,6 +1,6 @@
-import { Navigate, useLocation } from "@tanstack/react-router";
 import * as React from "react";
 
+import { Navigate, useLocation } from "@/features/navigation/navigation";
 import { useAuthState, useSignInRedirect } from "@/lib/auth";
 import { trackClientEvent } from "@/lib/telemetry-client";
 

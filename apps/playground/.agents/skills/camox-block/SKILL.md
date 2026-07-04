@@ -341,10 +341,10 @@ When the content needs to be placed inside a more complex structure, use `props.
 
 ### Rendering Link fields — `block.Link`
 
-Inside the render prop, use the `Link` component from `@tanstack/react-router` instead of a plain `<a>` tag. This enables client-side navigation for internal links. The framework computes `to`, `target`, and `rel` from the link value — just spread `props`.
+Inside the render prop, use the `Link` component from `camox/navigation` instead of a plain `<a>` tag. This enables client-side navigation for internal links. The framework computes `to`, `target`, and `rel` from the link value — just spread `props`.
 
 ```tsx
-import { Link } from "@tanstack/react-router";
+import { Link } from "camox/navigation";
 
 <myBlock.Link name="cta">{(props) => <Link {...props} />}</myBlock.Link>;
 ```

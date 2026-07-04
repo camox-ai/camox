@@ -16,10 +16,10 @@ import { Spinner } from "@camox/ui/spinner";
 import { toast } from "@camox/ui/toaster";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
 import { useEffect } from "react";
 
+import { useNavigate } from "@/features/navigation/navigation";
 import { useProjectSlug } from "@/lib/auth";
 import { layoutQueries, pageMutations, pageQueries, projectQueries } from "@/lib/queries";
 import { trackClientEvent } from "@/lib/telemetry-client";

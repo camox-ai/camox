@@ -3,11 +3,11 @@ import { Alert, AlertDescription, AlertTitle } from "@camox/ui/alert";
 import { Button } from "@camox/ui/button";
 import { Textarea } from "@camox/ui/textarea";
 import { fetchServerSentEvents, useChat, type UseChatReturn } from "@tanstack/ai-react";
-import { useNavigate } from "@tanstack/react-router";
 import { ArrowUp, Brain, Loader2, Square } from "lucide-react";
 import * as React from "react";
 import { Streamdown, type Components } from "streamdown";
 
+import { useNavigate } from "@/features/navigation/navigation";
 import { getApiClient, getApiUrl, getEnvironmentName } from "@/lib/api-client";
 import { getAuthCookieHeader, getAuthRequestCredentials } from "@/lib/auth";
 import { cn } from "@/lib/utils";

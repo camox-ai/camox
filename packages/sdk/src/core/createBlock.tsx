@@ -3,12 +3,12 @@ import { Label } from "@camox/ui/label";
 import { Popover, PopoverTrigger, PopoverContent } from "@camox/ui/popover";
 import { Type as TypeBoxType, type TSchema, type Static } from "@sinclair/typebox";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
 import { generateKeyBetween } from "fractional-indexing";
 import * as React from "react";
 import { createPortal } from "react-dom";
 
+import { useLocation } from "@/features/navigation/navigation";
 import { useProjectSlug } from "@/lib/auth";
 import {
   blockMutations,

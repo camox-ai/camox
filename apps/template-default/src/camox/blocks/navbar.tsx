@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
 import { Type, createBlock } from "camox/createBlock";
+import { Link } from "camox/navigation";
 import type { ReactElement } from "react";
 
 import { Button } from "@/components/ui/button";

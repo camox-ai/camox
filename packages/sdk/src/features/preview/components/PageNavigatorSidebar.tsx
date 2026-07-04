@@ -22,11 +22,11 @@ import { PanelContent, PanelHeader } from "@camox/ui/panel";
 import { Switch } from "@camox/ui/switch";
 import { toast } from "@camox/ui/toaster";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
 import { MoreHorizontal } from "lucide-react";
 import * as React from "react";
 
+import { useLocation } from "@/features/navigation/navigation";
 import { useProjectSlug } from "@/lib/auth";
 import { type Page, pageMutations, type PageStructure } from "@/lib/queries";
 import { trackClientEvent } from "@/lib/telemetry-client";

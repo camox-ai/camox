@@ -47,6 +47,11 @@
       "types": "./dist/features/studio/CamoxStudio.d.ts",
       "import": "./dist/features/studio/CamoxStudio.js"
     },
+    "./navigation": {
+      "source": "./src/features/navigation/navigation.tsx",
+      "types": "./dist/features/navigation/navigation.d.ts",
+      "import": "./dist/features/navigation/navigation.js"
+    },
     "./vite": {
       "source": "./src/features/vite/vite.ts",
       "types": "./dist/features/vite/vite.d.ts",
@@ -66,6 +71,11 @@
       "source": "./src/features/routes/ogRoute.ts",
       "types": "./dist/features/routes/ogRoute.d.ts",
       "import": "./dist/features/routes/ogRoute.js"
+    },
+    "./_internal/futurePageServer": {
+      "source": "./src/features/runtime/futurePageServer.tsx",
+      "types": "./dist/features/runtime/futurePageServer.d.ts",
+      "import": "./dist/features/runtime/futurePageServer.js"
     },
     "./_internal/imageResponse": {
       "workerd": {

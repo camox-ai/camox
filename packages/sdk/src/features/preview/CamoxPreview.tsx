@@ -5,10 +5,10 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
-import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
 import * as React from "react";
 
+import { useLocation, useNavigate } from "@/features/navigation/navigation";
 import { getApiClient } from "@/lib/api-client";
 import { useIsAuthenticated, useProjectSlug } from "@/lib/auth";
 import { NormalizedDataProvider, seedBlockCaches, usePageBlocks } from "@/lib/normalized-data";

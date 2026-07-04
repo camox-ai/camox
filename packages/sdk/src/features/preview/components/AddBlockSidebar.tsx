@@ -10,7 +10,6 @@ import {
 } from "@camox/ui/command";
 import { PanelContent } from "@camox/ui/panel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
 import { generateKeyBetween } from "fractional-indexing";
 import { ArrowLeft } from "lucide-react";
@@ -18,6 +17,7 @@ import * as React from "react";
 
 import type { Block } from "@/core/createBlock";
 import { useRequireDraftSource } from "@/core/hooks/useRequireDraftSource";
+import { useLocation } from "@/features/navigation/navigation";
 import { useProjectSlug } from "@/lib/auth";
 import { usePageBlocks } from "@/lib/normalized-data";
 import {

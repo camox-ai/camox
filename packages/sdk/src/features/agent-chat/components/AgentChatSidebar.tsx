@@ -1,11 +1,11 @@
 import { Alert, AlertDescription, AlertTitle } from "@camox/ui/alert";
 import { Button } from "@camox/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "@tanstack/react-router";
 import { useSelector } from "@xstate/store-react";
 import { Lock, Plus, X } from "lucide-react";
 import * as React from "react";
 
+import { useLocation } from "@/features/navigation/navigation";
 import { useProjectSlug } from "@/lib/auth";
 import { projectQueries } from "@/lib/queries";
 

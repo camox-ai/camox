@@ -26,10 +26,10 @@ import { toast } from "@camox/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@camox/ui/tooltip";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { Globe, Info, Pencil, Trash2, Upload } from "lucide-react";
 import * as React from "react";
 
+import { useNavigate } from "@/features/navigation/navigation";
 import { useDebouncedField } from "@/hooks/use-debounced-field";
 import { useProjectSlug } from "@/lib/auth";
 import type { Page } from "@/lib/queries";

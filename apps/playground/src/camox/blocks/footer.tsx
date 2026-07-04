@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
 import { Type, createBlock } from "camox/createBlock";
+import { Link } from "camox/navigation";
 
 const footer = createBlock({
   id: "footer",

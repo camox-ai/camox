@@ -1,5 +1,4 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import type { ServerResponse } from "node:http";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,14 +11,16 @@ const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
 const RESOLVED_VIRTUAL_STUDIO_CSS = "\0" + VIRTUAL_STUDIO_CSS;
 const VIRTUAL_OVERLAY_CSS = "virtual:camox-overlay-css";
 const RESOLVED_VIRTUAL_OVERLAY_CSS = "\0" + VIRTUAL_OVERLAY_CSS;
-const FUTURE_RUNTIME_BASE_PATH = "/_future";
-const FUTURE_RUNTIME_HEALTH_PATH = "/_camox/health";
-
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
 
 const PRODUCTION_API_URL = "https://api.camox.ai";
 import { syncDefinitions, syncDefinitionsToApi } from "./definitionsSync";
+import {
+  installFutureRuntimeDevMiddleware,
+  loadFutureRuntimeDevModule,
+  resolveFutureRuntimeDevId,
+} from "./futureRuntimeDev";
 import { generateRouteFiles, watchRouteFiles } from "./routeGeneration";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
@@ -66,28 +67,6 @@ function writeRuntimeSidecar(
   const dir = join(root, "node_modules", ".camox");
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "runtime.json"), `${JSON.stringify(data, null, 2)}\n`);
-}
-
-function getFutureRuntimePathname(url: string | undefined): string | null {
-  if (!url) return null;
-
-  const { pathname } = new URL(url, "http://camox.local");
-  if (pathname === FUTURE_RUNTIME_BASE_PATH) return "/";
-  if (!pathname.startsWith(`${FUTURE_RUNTIME_BASE_PATH}/`)) return null;
-
-  const stripped = pathname.slice(FUTURE_RUNTIME_BASE_PATH.length);
-  return stripped || "/";
-}
-
-function sendFutureRuntimeResponse(
-  res: ServerResponse,
-  statusCode: number,
-  body: string,
-  contentType: string,
-): void {
-  res.statusCode = statusCode;
-  res.setHeader("Content-Type", contentType);
-  res.end(body);
 }
 
 function resolveEnvironmentName(command: "serve" | "build", authenticationUrl: string): string {
@@ -145,7 +124,9 @@ export function camox(options: CamoxPluginOptions): Plugin {
   return {
     name: "camox",
     enforce: "pre",
-    resolveId(id) {
+    resolveId(id, importer) {
+      const futureRuntimeId = resolveFutureRuntimeDevId(id, importer);
+      if (futureRuntimeId) return futureRuntimeId;
       if (id === VIRTUAL_STUDIO_CSS) return RESOLVED_VIRTUAL_STUDIO_CSS;
       if (id === VIRTUAL_OVERLAY_CSS) return RESOLVED_VIRTUAL_OVERLAY_CSS;
     },
@@ -165,6 +146,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
         const css = readFileSync(cssPath, "utf-8");
         return `export default ${JSON.stringify(css)};`;
       }
+      return loadFutureRuntimeDevModule(id);
     },
     config(_config, env) {
       isBuild = env.command === "build";
@@ -305,27 +287,12 @@ export function camox(options: CamoxPluginOptions): Plugin {
     configureServer(server: ViteDevServer) {
       const routesDir = resolve(server.config.root, "src/routes");
 
-      server.middlewares.use((req, res, next) => {
-        const pathname = getFutureRuntimePathname(req.url);
-        if (!pathname) {
-          next();
-          return;
-        }
-
-        if (pathname === FUTURE_RUNTIME_HEALTH_PATH) {
-          sendFutureRuntimeResponse(res, 200, "ok\n", "text/plain; charset=utf-8");
-          return;
-        }
-
-        sendFutureRuntimeResponse(
-          res,
-          501,
-          `${JSON.stringify({
-            message: "Future Camox runtime is reserved but not implemented yet.",
-            pathname,
-          })}\n`,
-          "application/json; charset=utf-8",
-        );
+      installFutureRuntimeDevMiddleware(server, {
+        apiUrl,
+        authenticationUrl,
+        disableTelemetry: !!options.disableTelemetry,
+        environmentName,
+        projectSlug: options.projectSlug,
       });
 
       if (!disableCodeGen) {
