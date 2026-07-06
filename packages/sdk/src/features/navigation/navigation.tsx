@@ -60,20 +60,26 @@ async function browserNavigate({ replace, to }: NavigateOptions): Promise<void> 
 
 function NavigationProvider({
   children,
+  getLocation = getBrowserLocation,
   initialLocation,
   navigate = browserNavigate,
 }: {
   children: React.ReactNode;
+  getLocation?: () => LocationState;
   initialLocation?: LocationState;
   navigate?: (options: NavigateOptions) => Promise<void> | void;
 }) {
-  const [location, setLocation] = React.useState(initialLocation ?? getBrowserLocation);
+  const [location, setLocation] = React.useState(initialLocation ?? getLocation);
 
   React.useEffect(() => {
-    const updateLocation = () => setLocation(getBrowserLocation());
+    const updateLocation = () => setLocation(getLocation());
     window.addEventListener("popstate", updateLocation);
-    return () => window.removeEventListener("popstate", updateLocation);
-  }, []);
+    window.addEventListener("camox:navigation", updateLocation);
+    return () => {
+      window.removeEventListener("popstate", updateLocation);
+      window.removeEventListener("camox:navigation", updateLocation);
+    };
+  }, [getLocation]);
 
   const value = React.useMemo(() => ({ location, navigate }), [location, navigate]);
   return <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>;

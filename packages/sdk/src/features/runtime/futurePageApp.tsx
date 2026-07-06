@@ -6,20 +6,10 @@ import {
 } from "@tanstack/react-query";
 
 import type { CamoxApp } from "../../core/createApp";
-import { NavigationProvider } from "../navigation/navigation";
 import { CamoxPreview, PageContent } from "../preview/CamoxPreview";
 import { CamoxProvider } from "../provider/CamoxProvider";
+import { FuturePageNavigationProvider } from "./futurePageNavigation";
 import type { FuturePageRenderInput } from "./futureRuntime";
-
-function getInitialLocation(input: FuturePageRenderInput) {
-  const url = new URL(input.href);
-  return {
-    hash: url.hash,
-    href: input.href,
-    pathname: input.pathname,
-    search: url.search,
-  };
-}
 
 export function FuturePageApp({
   camoxApp,
@@ -33,7 +23,7 @@ export function FuturePageApp({
   return (
     <QueryClientProvider client={queryClient}>
       <HydrationBoundary state={input.dehydratedState as DehydratedState}>
-        <NavigationProvider initialLocation={getInitialLocation(input)}>
+        <FuturePageNavigationProvider initialInput={input} queryClient={queryClient}>
           <CamoxProvider
             camoxApp={camoxApp}
             authenticationUrl={input.authenticationUrl}
@@ -45,7 +35,7 @@ export function FuturePageApp({
               <PageContent />
             </CamoxPreview>
           </CamoxProvider>
-        </NavigationProvider>
+        </FuturePageNavigationProvider>
       </HydrationBoundary>
     </QueryClientProvider>
   );
