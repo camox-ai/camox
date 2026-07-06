@@ -15,6 +15,8 @@ const VIRTUAL_CAMOX_APP = "virtual:camox/app";
 const RESOLVED_VIRTUAL_CAMOX_APP = "\0" + VIRTUAL_CAMOX_APP;
 const VIRTUAL_FUTURE_PAGE_SERVER = "virtual:camox/future-page-server";
 const RESOLVED_VIRTUAL_FUTURE_PAGE_SERVER = "\0" + VIRTUAL_FUTURE_PAGE_SERVER;
+const VIRTUAL_FUTURE_PAGE_CLIENT = "virtual:camox/future-page-client";
+const RESOLVED_VIRTUAL_FUTURE_PAGE_CLIENT = "\0" + VIRTUAL_FUTURE_PAGE_CLIENT;
 const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
 const RESOLVED_VIRTUAL_STUDIO_CSS = "\0" + VIRTUAL_STUDIO_CSS;
 const VIRTUAL_OVERLAY_CSS = "virtual:camox-overlay-css";
@@ -60,6 +62,10 @@ function resolveCamoxSourceImport(id: string): string | undefined {
       sdkRoot,
       "src/features/runtime/futurePageServer.tsx",
     ),
+    "camox/_internal/futurePageClient": resolve(
+      sdkRoot,
+      "src/features/runtime/futurePageClient.tsx",
+    ),
   };
   return sourceImports[id];
 }
@@ -93,6 +99,18 @@ export async function renderFuturePage(input) {
 `;
 }
 
+function generateVirtualFuturePageClient(): string {
+  return `import { hydrateFuturePageWithApp } from "camox/_internal/futurePageClient";
+import { camoxApp } from "virtual:camox/app";
+
+hydrateFuturePageWithApp(camoxApp);
+`;
+}
+
+function wrapViteDevId(id: string): string {
+  return `/@id/${id.replace("\0", "__x00__")}`;
+}
+
 export function resolveFutureRuntimeDevId(id: string, importer?: string): string | undefined {
   const camoxSourceImport = resolveCamoxSourceImport(id);
   if (camoxSourceImport) return camoxSourceImport;
@@ -102,6 +120,7 @@ export function resolveFutureRuntimeDevId(id: string, importer?: string): string
 
   if (id === VIRTUAL_CAMOX_APP) return RESOLVED_VIRTUAL_CAMOX_APP;
   if (id === VIRTUAL_FUTURE_PAGE_SERVER) return RESOLVED_VIRTUAL_FUTURE_PAGE_SERVER;
+  if (id === VIRTUAL_FUTURE_PAGE_CLIENT) return RESOLVED_VIRTUAL_FUTURE_PAGE_CLIENT;
   if (id === VIRTUAL_STUDIO_CSS) return RESOLVED_VIRTUAL_STUDIO_CSS;
   if (id === VIRTUAL_OVERLAY_CSS) return RESOLVED_VIRTUAL_OVERLAY_CSS;
 }
@@ -109,6 +128,7 @@ export function resolveFutureRuntimeDevId(id: string, importer?: string): string
 export function loadFutureRuntimeDevModule(id: string): string | undefined {
   if (id === RESOLVED_VIRTUAL_CAMOX_APP) return generateVirtualCamoxApp();
   if (id === RESOLVED_VIRTUAL_FUTURE_PAGE_SERVER) return generateVirtualFuturePageServer();
+  if (id === RESOLVED_VIRTUAL_FUTURE_PAGE_CLIENT) return generateVirtualFuturePageClient();
   if (id === RESOLVED_VIRTUAL_STUDIO_CSS) {
     return `export default "/@fs/${resolve(sdkRoot, "dist/studio.css")}";`;
   }
@@ -222,10 +242,24 @@ function createRequestFromIncomingMessage(req: IncomingMessage): Request | null 
   return new Request(url, { headers, method: req.method });
 }
 
-async function sendWebResponse(res: ServerResponse, response: Response): Promise<void> {
+async function sendWebResponse(
+  res: ServerResponse,
+  response: Response,
+  options: { transformHtml?: (html: string) => Promise<string> } = {},
+): Promise<void> {
   res.statusCode = response.status;
-  response.headers.forEach((value, name) => res.setHeader(name, value));
-  res.end(await response.text());
+
+  const headers = new Headers(response.headers);
+  const contentType = headers.get("Content-Type") ?? headers.get("content-type") ?? "";
+  let body = await response.text();
+  if (contentType.includes("text/html") && options.transformHtml) {
+    body = await options.transformHtml(body);
+    headers.delete("Content-Length");
+    headers.delete("content-length");
+  }
+
+  headers.forEach((value, name) => res.setHeader(name, value));
+  res.end(body);
 }
 
 export function installFutureRuntimeDevMiddleware(
@@ -242,6 +276,7 @@ export function installFutureRuntimeDevMiddleware(
     const response = await handleFutureCamoxRequest(request, {
       apiUrl: options.apiUrl,
       authenticationUrl: options.authenticationUrl,
+      clientEntryUrl: wrapViteDevId(RESOLVED_VIRTUAL_FUTURE_PAGE_CLIENT),
       environmentName: options.environmentName,
       getCamoxApp: () => loadFutureCamoxApp(server, options),
       projectSlug: options.projectSlug,
@@ -252,6 +287,8 @@ export function installFutureRuntimeDevMiddleware(
       return;
     }
 
-    await sendWebResponse(res, response);
+    await sendWebResponse(res, response, {
+      transformHtml: (html) => server.transformIndexHtml(req.url ?? "/_future/", html),
+    });
   });
 }

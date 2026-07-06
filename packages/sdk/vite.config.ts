@@ -11,10 +11,13 @@ export default defineConfig({
       "features/content/CamoxContent": "src/features/content/CamoxContent.tsx",
       "features/provider/CamoxProvider": "src/features/provider/CamoxProvider.tsx",
       "features/studio/CamoxStudio": "src/features/studio/CamoxStudio.tsx",
+      "features/navigation/navigation": "src/features/navigation/navigation.tsx",
       "features/vite/vite": "src/features/vite/vite.ts",
       "features/metadata/sitemap": "src/features/metadata/sitemap.ts",
       "features/routes/pageRoute": "src/features/routes/pageRoute.tsx",
       "features/routes/ogRoute": "src/features/routes/ogRoute.ts",
+      "features/runtime/futurePageServer": "src/features/runtime/futurePageServer.tsx",
+      "features/runtime/futurePageClient": "src/features/runtime/futurePageClient.tsx",
       // Runtime-conditional OG `ImageResponse` wrappers — package.json dispatches
       // between these via the `workerd` / `worker` / `deno` exports conditions.
       // Both files must be explicit pack entries; tsdown can't traverse the

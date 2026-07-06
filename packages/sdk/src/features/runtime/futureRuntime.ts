@@ -47,6 +47,7 @@ export interface FutureRuntimeOptions {
   apiUrl?: string;
   authenticationUrl?: string;
   environmentName?: string;
+  clientEntryUrl?: string;
   getCamoxApp?: () => Promise<CamoxApp>;
   projectSlug?: string;
   renderPage?: (input: FuturePageRenderInput) => Promise<string>;
@@ -202,6 +203,11 @@ function serializeJsonForHtml(value: unknown): string {
   return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
 
+function renderFutureClientEntryScript(src?: string): string {
+  if (!src) return "";
+  return `<script type="module" src="${escapeXml(src)}"></script>`;
+}
+
 async function createFuturePageHtmlResponse({
   options,
   pathname,
@@ -239,28 +245,29 @@ async function createFuturePageHtmlResponse({
     const camoxApp = await options.getCamoxApp?.();
     const head = camoxApp ? buildCamoxPageHead(camoxApp, result.data) : {};
     const dehydratedState = dehydrate(queryClient);
-    const href = new URL(request.url).href;
-    const appHtml = await options.renderPage({
+    const pageRenderInput = {
       apiUrl: options.apiUrl,
       authenticationUrl: options.authenticationUrl,
       dehydratedState,
       environmentName: options.environmentName,
       head,
-      href,
+      href: new URL(request.url).href,
       loaderData: result.data,
       pathname,
       projectSlug: options.projectSlug,
-    });
+    } satisfies FuturePageRenderInput;
+    const appHtml = await options.renderPage(pageRenderInput);
 
     return new Response(
       `<!doctype html>
 <html lang="en">
 <head>
 ${renderHeadTags(head)}
-<script id="__CAMOX_FUTURE_DATA__" type="application/json">${serializeJsonForHtml({ dehydratedState, loaderData: result.data, pathname })}</script>
+<script id="__CAMOX_FUTURE_DATA__" type="application/json">${serializeJsonForHtml(pageRenderInput)}</script>
 </head>
 <body>
 <div id="root">${appHtml}</div>
+${renderFutureClientEntryScript(options.clientEntryUrl)}
 </body>
 </html>`,
       { headers },

@@ -95,41 +95,42 @@ function useNavigate() {
   return useTanStackNavigate();
 }
 
-const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(function Link(props, ref) {
-  const context = React.useContext(NavigationContext);
-  if (!context) return <TanStackLink {...props} ref={ref} />;
+const Link: React.ForwardRefExoticComponent<LinkProps & React.RefAttributes<HTMLAnchorElement>> =
+  React.forwardRef<HTMLAnchorElement, LinkProps>(function Link(props, ref) {
+    const context = React.useContext(NavigationContext);
+    if (!context) return <TanStackLink {...props} ref={ref} />;
 
-  const { activeProps, children, onClick, target, to, ...rest } = props;
-  const href = toHref(String(to));
-  const isActive = context.location.pathname === new URL(href, "http://camox.local").pathname;
-  const activeAnchorProps = (isActive ? activeProps : undefined) as
-    | React.AnchorHTMLAttributes<HTMLAnchorElement>
-    | undefined;
-  const className = [rest.className, activeAnchorProps?.className].filter(Boolean).join(" ");
+    const { activeProps, children, onClick, target, to, ...rest } = props;
+    const href = toHref(String(to));
+    const isActive = context.location.pathname === new URL(href, "http://camox.local").pathname;
+    const activeAnchorProps = (isActive ? activeProps : undefined) as
+      | React.AnchorHTMLAttributes<HTMLAnchorElement>
+      | undefined;
+    const className = [rest.className, activeAnchorProps?.className].filter(Boolean).join(" ");
 
-  return (
-    <a
-      {...rest}
-      {...activeAnchorProps}
-      ref={ref}
-      href={href}
-      target={target}
-      className={className || undefined}
-      onClick={(event) => {
-        onClick?.(event);
-        if (event.defaultPrevented) return;
-        if (target && target !== "_self") return;
-        if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return;
-        if (event.button !== 0) return;
+    return (
+      <a
+        {...rest}
+        {...activeAnchorProps}
+        ref={ref}
+        href={href}
+        target={target}
+        className={className || undefined}
+        onClick={(event) => {
+          onClick?.(event);
+          if (event.defaultPrevented) return;
+          if (target && target !== "_self") return;
+          if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return;
+          if (event.button !== 0) return;
 
-        event.preventDefault();
-        void context.navigate({ to: href });
-      }}
-    >
-      {children}
-    </a>
-  );
-});
+          event.preventDefault();
+          void context.navigate({ to: href });
+        }}
+      >
+        {children}
+      </a>
+    );
+  });
 
 function Navigate({ replace, to }: NavigateOptions) {
   const context = React.useContext(NavigationContext);

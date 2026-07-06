@@ -77,6 +77,11 @@
       "types": "./dist/features/runtime/futurePageServer.d.ts",
       "import": "./dist/features/runtime/futurePageServer.js"
     },
+    "./_internal/futurePageClient": {
+      "source": "./src/features/runtime/futurePageClient.tsx",
+      "types": "./dist/features/runtime/futurePageClient.d.ts",
+      "import": "./dist/features/runtime/futurePageClient.js"
+    },
     "./_internal/imageResponse": {
       "workerd": {
         "source": "./src/features/og/imageResponse.workerd.ts",
