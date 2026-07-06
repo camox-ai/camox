@@ -1,8 +1,10 @@
 import { hydrate, type QueryClient } from "@tanstack/react-query";
+import { createHead, renderDOMHead } from "@unhead/react/client";
 import * as React from "react";
+import type { ActiveHeadEntry, UseHeadInput } from "unhead/types";
 
 import { NavigationProvider } from "../navigation/navigation";
-import type { FuturePageRenderInput } from "./futureRuntime";
+import { createFuturePageHeadInput, type FuturePageRenderInput } from "./futureRuntime";
 
 const FUTURE_BASE_PATH = "/_future";
 const FUTURE_DATA_PATH = `${FUTURE_BASE_PATH}/_camox/data`;
@@ -71,12 +73,29 @@ async function fetchFuturePageData(pagePathname: string): Promise<FuturePageData
   return (await response.json()) as FuturePageDataResponse;
 }
 
-function updateHead(head: unknown) {
-  if (!head || typeof head !== "object") return;
+interface FutureHeadManager {
+  entry?: ActiveHeadEntry<UseHeadInput>;
+  head: ReturnType<typeof createHead>;
+  removedServerPageHead: boolean;
+}
 
-  const meta = (head as { meta?: Array<Record<string, string>> }).meta ?? [];
-  const title = meta.find((entry) => entry.title)?.title;
-  if (title) document.title = title;
+function isPageHead(
+  head: unknown,
+): head is { meta?: Array<Record<string, string>>; links?: Array<Record<string, string>> } {
+  return !!head && typeof head === "object";
+}
+
+function updateHead(head: unknown, manager: FutureHeadManager) {
+  if (!isPageHead(head)) return;
+
+  if (!manager.removedServerPageHead) {
+    document.querySelectorAll("[data-camox-page-head]").forEach((element) => element.remove());
+    manager.removedServerPageHead = true;
+  }
+
+  manager.entry?.dispose();
+  manager.entry = manager.head.push(createFuturePageHeadInput(head));
+  renderDOMHead(manager.head);
 }
 
 export function FuturePageNavigationProvider({
@@ -88,6 +107,16 @@ export function FuturePageNavigationProvider({
   initialInput: FuturePageRenderInput;
   queryClient: QueryClient;
 }) {
+  const headManagerRef = React.useRef<FutureHeadManager | null>(null);
+  if (!headManagerRef.current) {
+    headManagerRef.current = {
+      head: createHead(),
+      removedServerPageHead: false,
+    };
+  }
+
+  const headManager = headManagerRef.current;
+
   const navigate = React.useCallback(
     async ({ replace, to }: { replace?: boolean; to: string }) => {
       const target = getClientNavigationTarget(to);
@@ -100,7 +129,7 @@ export function FuturePageNavigationProvider({
       try {
         const data = await fetchFuturePageData(pagePathname);
         if (data.dehydratedState) hydrate(queryClient, data.dehydratedState);
-        updateHead(data.head);
+        updateHead(data.head, headManager);
       } catch {
         window.location.assign(target.href);
         return;
@@ -114,7 +143,7 @@ export function FuturePageNavigationProvider({
       }
       window.dispatchEvent(new Event("camox:navigation"));
     },
-    [queryClient],
+    [headManager, queryClient],
   );
 
   React.useEffect(() => {
@@ -145,7 +174,7 @@ export function FuturePageNavigationProvider({
       void fetchFuturePageData(pagePathname)
         .then((data) => {
           if (data.dehydratedState) hydrate(queryClient, data.dehydratedState);
-          updateHead(data.head);
+          updateHead(data.head, headManager);
           window.dispatchEvent(new Event("camox:navigation"));
         })
         .catch(() => window.location.reload());
@@ -153,7 +182,7 @@ export function FuturePageNavigationProvider({
 
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [queryClient]);
+  }, [headManager, queryClient]);
 
   return (
     <NavigationProvider

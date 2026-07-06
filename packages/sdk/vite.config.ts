@@ -7,6 +7,7 @@ export default defineConfig({
       "core/createApp": "src/core/createApp.ts",
       "core/createBlock": "src/core/createBlock.tsx",
       "core/createLayout": "src/core/createLayout.tsx",
+      "core/defineDocument": "src/core/defineDocument.ts",
       "features/preview/CamoxPreview": "src/features/preview/CamoxPreview.tsx",
       "features/content/CamoxContent": "src/features/content/CamoxContent.tsx",
       "features/provider/CamoxProvider": "src/features/provider/CamoxProvider.tsx",

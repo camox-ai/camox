@@ -1,6 +1,9 @@
 import { QueryClient, dehydrate } from "@tanstack/react-query";
+import { createHead, renderSSRHead } from "@unhead/react/server";
+import type { Link, Meta, UseHeadInput } from "unhead/types";
 
 import type { CamoxApp } from "../../core/createApp";
+import type { CamoxDocument } from "../../core/defineDocument";
 import {
   buildCamoxPageHead,
   createMarkdownResponse,
@@ -49,6 +52,7 @@ export interface FutureRuntimeOptions {
   environmentName?: string;
   clientEntryUrl?: string;
   getCamoxApp?: () => Promise<CamoxApp>;
+  getDocument?: () => Promise<CamoxDocument>;
   projectSlug?: string;
   renderPage?: (input: FuturePageRenderInput) => Promise<string>;
 }
@@ -162,41 +166,60 @@ async function createFutureOgResponse(
   return layout._internal.buildOgImage({ title, description, projectName });
 }
 
-function renderHeadTags(head: {
+function createDefaultHeadInput(): UseHeadInput {
+  return {
+    htmlAttrs: { lang: "en" },
+    meta: [
+      { charset: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+    ],
+    link: [{ rel: "stylesheet", href: "/src/styles.css" }],
+  };
+}
+
+export function createFuturePageHeadInput(head: {
   meta?: Array<Record<string, string>>;
   links?: Array<Record<string, string>>;
-}) {
+}): UseHeadInput {
   const meta = head.meta ?? [];
   const links = head.links ?? [];
   const title = meta.find((entry) => entry.title)?.title;
-  const metaTags = meta
-    .filter((entry) => !entry.title)
-    .map((entry) => {
-      const attrs = Object.entries(entry)
-        .map(([key, value]) => `${key}="${escapeXml(value)}"`)
-        .join(" ");
-      return `<meta ${attrs}>`;
-    })
-    .join("\n");
-  const linkTags = links
-    .map((entry) => {
-      const attrs = Object.entries(entry)
-        .map(([key, value]) => `${key}="${escapeXml(value)}"`)
-        .join(" ");
-      return `<link ${attrs}>`;
-    })
-    .join("\n");
 
-  return [
-    '<meta charset="utf-8">',
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    title ? `<title>${escapeXml(title)}</title>` : "",
-    metaTags,
-    linkTags,
-    '<link rel="stylesheet" href="/src/styles.css">',
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const pageMeta: Meta[] = [];
+  for (const entry of meta) {
+    if (entry.title) continue;
+    if (entry.name && entry.content) {
+      pageMeta.push({ name: entry.name, content: entry.content, "data-camox-page-head": "true" });
+      continue;
+    }
+    if (entry.property && entry.content) {
+      pageMeta.push({
+        property: entry.property,
+        content: entry.content,
+        "data-camox-page-head": "true",
+      });
+    }
+  }
+
+  const pageLinks: Link[] = [];
+  for (const entry of links) {
+    if (entry.rel !== "icon" || !entry.href) continue;
+    pageLinks.push({ rel: "icon", href: entry.href, "data-camox-page-head": "true" });
+  }
+
+  return {
+    ...(title && { title }),
+    meta: pageMeta,
+    link: pageLinks,
+  };
+}
+
+function renderFutureHead(document: CamoxDocument, pageHead: UseHeadInput) {
+  const head = createHead();
+  head.push(createDefaultHeadInput());
+  head.push(document);
+  head.push(pageHead);
+  return renderSSRHead(head);
 }
 
 function serializeJsonForHtml(value: unknown): string {
@@ -243,6 +266,7 @@ async function createFuturePageHtmlResponse({
     }
 
     const camoxApp = await options.getCamoxApp?.();
+    const document = (await options.getDocument?.()) ?? {};
     const head = camoxApp ? buildCamoxPageHead(camoxApp, result.data) : {};
     const dehydratedState = dehydrate(queryClient);
     const pageRenderInput = {
@@ -257,16 +281,19 @@ async function createFuturePageHtmlResponse({
       projectSlug: options.projectSlug,
     } satisfies FuturePageRenderInput;
     const appHtml = await options.renderPage(pageRenderInput);
+    const renderedHead = renderFutureHead(document, createFuturePageHeadInput(head));
 
     return new Response(
       `<!doctype html>
-<html lang="en">
+<html${renderedHead.htmlAttrs}>
 <head>
-${renderHeadTags(head)}
+${renderedHead.headTags}
 <script id="__CAMOX_FUTURE_DATA__" type="application/json">${serializeJsonForHtml(pageRenderInput)}</script>
 </head>
-<body>
+<body${renderedHead.bodyAttrs}>
+${renderedHead.bodyTagsOpen}
 <div id="root">${appHtml}</div>
+${renderedHead.bodyTags}
 ${renderFutureClientEntryScript(options.clientEntryUrl)}
 </body>
 </html>`,

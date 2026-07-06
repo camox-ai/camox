@@ -7,12 +7,15 @@ import { fileURLToPath } from "node:url";
 import { type Plugin, type ViteDevServer, createServer } from "vite-plus";
 
 import type { CamoxApp } from "../../core/createApp";
+import type { CamoxDocument } from "../../core/defineDocument";
 import { type FuturePageRenderInput, handleFutureCamoxRequest } from "../runtime/futureRuntime";
 
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const VIRTUAL_CAMOX_APP = "virtual:camox/app";
 const RESOLVED_VIRTUAL_CAMOX_APP = "\0" + VIRTUAL_CAMOX_APP;
+const VIRTUAL_CAMOX_DOCUMENT = "virtual:camox/document";
+const RESOLVED_VIRTUAL_CAMOX_DOCUMENT = "\0" + VIRTUAL_CAMOX_DOCUMENT;
 const VIRTUAL_FUTURE_PAGE_SERVER = "virtual:camox/future-page-server";
 const RESOLVED_VIRTUAL_FUTURE_PAGE_SERVER = "\0" + VIRTUAL_FUTURE_PAGE_SERVER;
 const VIRTUAL_FUTURE_PAGE_CLIENT = "virtual:camox/future-page-client";
@@ -55,6 +58,7 @@ function resolveCamoxSourceImport(id: string): string | undefined {
     "camox/createApp": resolve(sdkRoot, "src/core/createApp.ts"),
     "camox/createBlock": resolve(sdkRoot, "src/core/createBlock.tsx"),
     "camox/createLayout": resolve(sdkRoot, "src/core/createLayout.tsx"),
+    "camox/document": resolve(sdkRoot, "src/core/defineDocument.ts"),
     "camox/CamoxProvider": resolve(sdkRoot, "src/features/provider/CamoxProvider.tsx"),
     "camox/CamoxPreview": resolve(sdkRoot, "src/features/preview/CamoxPreview.tsx"),
     "camox/navigation": resolve(sdkRoot, "src/features/navigation/navigation.tsx"),
@@ -89,6 +93,16 @@ export const camoxApp = createApp({ blocks, layouts });
 `;
 }
 
+function generateVirtualCamoxDocument(): string {
+  return `const documentModules = import.meta.glob("/src/document.{ts,tsx}", { eager: true });
+const documents = Object.values(documentModules)
+  .map((mod) => mod.default)
+  .filter(Boolean);
+
+export const camoxDocument = documents[0] ?? {};
+`;
+}
+
 function generateVirtualFuturePageServer(): string {
   return `import { renderFuturePageWithApp } from "camox/_internal/futurePageServer";
 import { camoxApp } from "virtual:camox/app";
@@ -119,6 +133,7 @@ export function resolveFutureRuntimeDevId(id: string, importer?: string): string
   if (sdkAlias) return sdkAlias;
 
   if (id === VIRTUAL_CAMOX_APP) return RESOLVED_VIRTUAL_CAMOX_APP;
+  if (id === VIRTUAL_CAMOX_DOCUMENT) return RESOLVED_VIRTUAL_CAMOX_DOCUMENT;
   if (id === VIRTUAL_FUTURE_PAGE_SERVER) return RESOLVED_VIRTUAL_FUTURE_PAGE_SERVER;
   if (id === VIRTUAL_FUTURE_PAGE_CLIENT) return RESOLVED_VIRTUAL_FUTURE_PAGE_CLIENT;
   if (id === VIRTUAL_STUDIO_CSS) return RESOLVED_VIRTUAL_STUDIO_CSS;
@@ -127,6 +142,7 @@ export function resolveFutureRuntimeDevId(id: string, importer?: string): string
 
 export function loadFutureRuntimeDevModule(id: string): string | undefined {
   if (id === RESOLVED_VIRTUAL_CAMOX_APP) return generateVirtualCamoxApp();
+  if (id === RESOLVED_VIRTUAL_CAMOX_DOCUMENT) return generateVirtualCamoxDocument();
   if (id === RESOLVED_VIRTUAL_FUTURE_PAGE_SERVER) return generateVirtualFuturePageServer();
   if (id === RESOLVED_VIRTUAL_FUTURE_PAGE_CLIENT) return generateVirtualFuturePageClient();
   if (id === RESOLVED_VIRTUAL_STUDIO_CSS) {
@@ -176,6 +192,26 @@ async function withFutureTempServer<T>(
   } finally {
     await tempServer.close();
   }
+}
+
+async function loadFutureCamoxDocument(
+  server: ViteDevServer,
+  options: FutureRuntimeDevOptions,
+): Promise<CamoxDocument> {
+  type FutureDocumentModule = { camoxDocument: CamoxDocument };
+
+  try {
+    const module = (await server.ssrLoadModule(VIRTUAL_CAMOX_DOCUMENT)) as FutureDocumentModule;
+    return module.camoxDocument;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("runnable environment")) throw error;
+  }
+
+  return withFutureTempServer(server, options, async (tempServer) => {
+    const module = (await tempServer.ssrLoadModule(VIRTUAL_CAMOX_DOCUMENT)) as FutureDocumentModule;
+    return module.camoxDocument;
+  });
 }
 
 async function loadFutureCamoxApp(
@@ -279,6 +315,7 @@ export function installFutureRuntimeDevMiddleware(
       clientEntryUrl: wrapViteDevId(RESOLVED_VIRTUAL_FUTURE_PAGE_CLIENT),
       environmentName: options.environmentName,
       getCamoxApp: () => loadFutureCamoxApp(server, options),
+      getDocument: () => loadFutureCamoxDocument(server, options),
       projectSlug: options.projectSlug,
       renderPage: (input) => renderFuturePage(server, options, input),
     });

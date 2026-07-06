@@ -27,6 +27,11 @@
       "types": "./dist/core/createLayout.d.ts",
       "import": "./dist/core/createLayout.js"
     },
+    "./document": {
+      "source": "./src/core/defineDocument.ts",
+      "types": "./dist/core/defineDocument.d.ts",
+      "import": "./dist/core/defineDocument.js"
+    },
     "./CamoxPreview": {
       "source": "./src/features/preview/CamoxPreview.tsx",
       "types": "./dist/features/preview/CamoxPreview.d.ts",
@@ -138,6 +143,7 @@
     "@tanstack/ai-react": "^0.11.7",
     "@tanstack/react-form": "^1.32.0",
     "@tanstack/react-query-devtools": "^5.100.11",
+    "@unhead/react": "^3.1.7",
     "@xstate/store": "3.17.1",
     "@xstate/store-react": "^1.0.1",
     "better-auth": "^1.6.11",
@@ -154,6 +160,7 @@
     "react-og-preview": "^0.2.0",
     "shiki": "^4.1.0",
     "streamdown": "^2.5.0",
+    "unhead": "^3.1.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {

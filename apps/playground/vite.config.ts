@@ -38,6 +38,10 @@ const config = defineConfig({
         replacement: resolve(__dirname, "../../packages/sdk/src/core/createLayout.tsx"),
       },
       {
+        find: "camox/document",
+        replacement: resolve(__dirname, "../../packages/sdk/src/core/defineDocument.ts"),
+      },
+      {
         find: "camox/CamoxPreview",
         replacement: resolve(__dirname, "../../packages/sdk/src/features/preview/CamoxPreview.tsx"),
       },
