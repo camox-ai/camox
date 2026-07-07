@@ -11,6 +11,7 @@ import {
   isNotFoundError,
   loadCamoxPageForRequest,
 } from "../routes/pageRuntime";
+import type { FutureStudioRenderInput } from "./futureStudioApp";
 
 const FUTURE_RUNTIME_BASE_PATH = "/_future";
 const FUTURE_RUNTIME_HEALTH_PATH = "/_camox/health";
@@ -63,6 +64,7 @@ export interface FutureRuntimeOptions {
   getDocument?: () => Promise<CamoxDocument>;
   projectSlug?: string;
   renderPage?: (input: FuturePageRenderInput) => Promise<string>;
+  renderStudio?: (input: FutureStudioRenderInput) => Promise<string>;
 }
 
 function buildClearServerAuthCookieHeader() {
@@ -336,6 +338,61 @@ ${renderFutureClientEntryScript(options.clientEntryUrl)}
   }
 }
 
+async function createFutureStudioHtmlResponse({
+  match,
+  options,
+  request,
+}: {
+  match: FutureRuntimeRouteMatch;
+  options: FutureRuntimeOptions;
+  request: Request;
+}): Promise<Response> {
+  if (
+    !options.apiUrl ||
+    !options.authenticationUrl ||
+    !options.projectSlug ||
+    !options.renderStudio
+  ) {
+    return Response.json(
+      { message: "Future Camox Studio renderer is not configured.", ...match },
+      { status: 500 },
+    );
+  }
+
+  const queryClient = new QueryClient();
+  const document = (await options.getDocument?.()) ?? {};
+  const studioRenderInput = {
+    apiUrl: options.apiUrl,
+    authenticationUrl: options.authenticationUrl,
+    dehydratedState: dehydrate(queryClient),
+    environmentName: options.environmentName,
+    href: new URL(request.url).href,
+    pathname: match.pathname,
+    projectSlug: options.projectSlug,
+    routeKind: match.kind as "studio" | "studio-content" | "studio-nested",
+    runtimeKind: "studio",
+  } satisfies FutureStudioRenderInput & { runtimeKind: "studio" };
+  const appHtml = await options.renderStudio(studioRenderInput);
+  const renderedHead = renderFutureHead(document, {});
+
+  return new Response(
+    `<!doctype html>
+<html${renderedHead.htmlAttrs}>
+<head>
+${renderedHead.headTags}
+<script id="__CAMOX_FUTURE_DATA__" type="application/json">${serializeJsonForHtml(studioRenderInput)}</script>
+</head>
+<body${renderedHead.bodyAttrs}>
+${renderedHead.bodyTagsOpen}
+<div id="root">${appHtml}</div>
+${renderedHead.bodyTags}
+${renderFutureClientEntryScript(options.clientEntryUrl)}
+</body>
+</html>`,
+    { headers: { "Content-Type": "text/html; charset=utf-8" } },
+  );
+}
+
 async function createFuturePageDataResponse({
   options,
   pathname,
@@ -453,6 +510,14 @@ export async function handleFutureCamoxRequest(
       pathname: normalizePagePath(url.searchParams.get("path")),
       request,
     });
+  }
+
+  if (
+    match.kind === "studio" ||
+    match.kind === "studio-content" ||
+    match.kind === "studio-nested"
+  ) {
+    return createFutureStudioHtmlResponse({ match, options, request });
   }
 
   if (match.kind === "page") {
