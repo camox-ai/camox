@@ -48,6 +48,7 @@ interface LoadPageForRequestOptions {
 interface LoadPageForRequestResult {
   data: CamoxPageLoaderData;
   shouldClearAuthCookie: boolean;
+  source: PageSource;
 }
 
 interface ErrorDetails {
@@ -268,18 +269,30 @@ export async function loadCamoxPageForRequest({
 
   if (!authCookieHeader) {
     const page = await loadLivePage(loadOptions);
-    return { data: buildCamoxPageLoaderData(apiUrl, page, origin), shouldClearAuthCookie: false };
+    return {
+      data: buildCamoxPageLoaderData(apiUrl, page, origin),
+      shouldClearAuthCookie: false,
+      source: "live",
+    };
   }
 
   try {
     const page = await loadCamoxPage({ ...loadOptions, authCookieHeader, source: "draft" });
-    return { data: buildCamoxPageLoaderData(apiUrl, page, origin), shouldClearAuthCookie: false };
+    return {
+      data: buildCamoxPageLoaderData(apiUrl, page, origin),
+      shouldClearAuthCookie: false,
+      source: "draft",
+    };
   } catch (error) {
     if (!isAuthSessionError(error)) throw error;
 
     console.warn("[camox] Ignoring stale camox_auth_cookie and retrying published page load.");
     const page = await loadLivePage(loadOptions);
-    return { data: buildCamoxPageLoaderData(apiUrl, page, origin), shouldClearAuthCookie: true };
+    return {
+      data: buildCamoxPageLoaderData(apiUrl, page, origin),
+      shouldClearAuthCookie: true,
+      source: "live",
+    };
   }
 }
 

@@ -548,7 +548,15 @@ function composePageView(args: {
     // favicon URL (`/favicons/${id}?v=${updatedAt}`) in the page <head>.
     project: { id: project.id, updatedAt: project.updatedAt },
     layout: layout
-      ? { id: layout.id, layoutId: layout.layoutId, beforeBlockIds, afterBlockIds }
+      ? {
+          id: layout.id,
+          layoutId: layout.layoutId,
+          contentUpdatedAt: layout.contentUpdatedAt,
+          livePublishedCheckpointId: layout.livePublishedCheckpointId,
+          updatedAt: layout.updatedAt,
+          beforeBlockIds,
+          afterBlockIds,
+        }
       : null,
     blocks: blocksWithMarkers,
     repeatableItems: itemsWithMarkers,
@@ -710,6 +718,9 @@ export async function getPageStructure(
       ? {
           id: layout.id,
           layoutId: layout.layoutId,
+          contentUpdatedAt: layout.contentUpdatedAt,
+          livePublishedCheckpointId: layout.livePublishedCheckpointId,
+          updatedAt: layout.updatedAt,
           beforeBlockIds: layoutBlockOrder.filter((b) => b.placement === "before").map((b) => b.id),
           afterBlockIds: layoutBlockOrder.filter((b) => b.placement === "after").map((b) => b.id),
         }

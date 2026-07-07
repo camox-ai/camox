@@ -34,6 +34,13 @@ export interface FutureRuntimeRouteMatch {
   pathname: string;
 }
 
+export interface FutureLayoutIdentity {
+  blockIds: number[];
+  id: number;
+  layoutId: string;
+  version: string;
+}
+
 export interface FuturePageRenderInput {
   apiUrl: string;
   authenticationUrl: string;
@@ -41,6 +48,7 @@ export interface FuturePageRenderInput {
   environmentName?: string;
   head: unknown;
   href: string;
+  layoutIdentity: FutureLayoutIdentity | null;
   loaderData: unknown;
   pathname: string;
   projectSlug: string;
@@ -96,6 +104,26 @@ function escapeXml(value: string): string {
 function normalizePagePath(path: string | null): string {
   if (!path) return "/";
   return path.startsWith("/") ? path : `/${path}`;
+}
+
+function getFutureLayoutIdentity(
+  data: Awaited<ReturnType<typeof loadCamoxPageForRequest>>["data"],
+  source: Awaited<ReturnType<typeof loadCamoxPageForRequest>>["source"],
+): FutureLayoutIdentity | null {
+  const layout = data.page.layout;
+  if (!layout) return null;
+
+  const version =
+    source === "live"
+      ? String(layout.livePublishedCheckpointId ?? "none")
+      : String(layout.contentUpdatedAt ?? layout.updatedAt);
+
+  return {
+    blockIds: [...layout.beforeBlockIds, ...layout.afterBlockIds],
+    id: layout.id,
+    layoutId: layout.layoutId,
+    version,
+  };
 }
 
 export function matchFutureRuntimeRoute(pathname: string): FutureRuntimeRouteMatch {
@@ -276,6 +304,7 @@ async function createFuturePageHtmlResponse({
       environmentName: options.environmentName,
       head,
       href: new URL(request.url).href,
+      layoutIdentity: getFutureLayoutIdentity(result.data, result.source),
       loaderData: result.data,
       pathname,
       projectSlug: options.projectSlug,
@@ -355,6 +384,7 @@ async function createFuturePageDataResponse({
             metaDescription: page.metaDescription,
           },
           layout: layout ? { id: layout.id, layoutId: layout.layoutId } : null,
+          layoutIdentity: getFutureLayoutIdentity(result.data, result.source),
           project: { id: project.id, name: projectName },
           loaderData: {
             faviconUrl: result.data.faviconUrl,

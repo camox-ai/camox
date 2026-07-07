@@ -4,7 +4,11 @@ import * as React from "react";
 import type { ActiveHeadEntry, UseHeadInput } from "unhead/types";
 
 import { NavigationProvider } from "../navigation/navigation";
-import { createFuturePageHeadInput, type FuturePageRenderInput } from "./futureRuntime";
+import {
+  createFuturePageHeadInput,
+  type FutureLayoutIdentity,
+  type FuturePageRenderInput,
+} from "./futureRuntime";
 
 const FUTURE_BASE_PATH = "/_future";
 const FUTURE_DATA_PATH = `${FUTURE_BASE_PATH}/_camox/data`;
@@ -12,6 +16,7 @@ const FUTURE_DATA_PATH = `${FUTURE_BASE_PATH}/_camox/data`;
 interface FuturePageDataResponse {
   dehydratedState?: unknown;
   head?: unknown;
+  layoutIdentity?: FutureLayoutIdentity | null;
   pathname?: string;
 }
 
@@ -98,6 +103,50 @@ function updateHead(head: unknown, manager: FutureHeadManager) {
   renderDOMHead(manager.head);
 }
 
+function hasSameLayoutIdentity(
+  current: FutureLayoutIdentity | null | undefined,
+  next: FutureLayoutIdentity | null | undefined,
+) {
+  return (
+    !!current &&
+    !!next &&
+    current.id === next.id &&
+    current.layoutId === next.layoutId &&
+    current.version === next.version
+  );
+}
+
+function isLayoutBlockQuery(query: unknown, layoutBlockIds: Set<number>) {
+  if (!query || typeof query !== "object") return false;
+  const queryKey = (query as { queryKey?: unknown }).queryKey;
+  return (
+    Array.isArray(queryKey) &&
+    queryKey[0] === "camox" &&
+    queryKey[1] === "blocks" &&
+    queryKey[2] === "get" &&
+    typeof queryKey[3] === "number" &&
+    layoutBlockIds.has(queryKey[3])
+  );
+}
+
+function preserveStableLayoutBlockCaches(
+  dehydratedState: unknown,
+  currentLayout: FutureLayoutIdentity | null | undefined,
+  nextLayout: FutureLayoutIdentity | null | undefined,
+) {
+  if (!hasSameLayoutIdentity(currentLayout, nextLayout)) return dehydratedState;
+  if (!dehydratedState || typeof dehydratedState !== "object") return dehydratedState;
+  if (!Array.isArray((dehydratedState as { queries?: unknown }).queries)) return dehydratedState;
+
+  const layoutBlockIds = new Set(currentLayout?.blockIds ?? []);
+  return {
+    ...dehydratedState,
+    queries: (dehydratedState as { queries: unknown[] }).queries.filter(
+      (query) => !isLayoutBlockQuery(query, layoutBlockIds),
+    ),
+  };
+}
+
 export function FuturePageNavigationProvider({
   children,
   initialInput,
@@ -116,6 +165,9 @@ export function FuturePageNavigationProvider({
   }
 
   const headManager = headManagerRef.current;
+  const currentLayoutIdentityRef = React.useRef<FutureLayoutIdentity | null>(
+    initialInput.layoutIdentity,
+  );
 
   const navigate = React.useCallback(
     async ({ replace, to }: { replace?: boolean; to: string }) => {
@@ -128,7 +180,17 @@ export function FuturePageNavigationProvider({
       const pagePathname = normalizePagePath(target.pathname);
       try {
         const data = await fetchFuturePageData(pagePathname);
-        if (data.dehydratedState) hydrate(queryClient, data.dehydratedState);
+        if (data.dehydratedState) {
+          hydrate(
+            queryClient,
+            preserveStableLayoutBlockCaches(
+              data.dehydratedState,
+              currentLayoutIdentityRef.current,
+              data.layoutIdentity,
+            ),
+          );
+        }
+        currentLayoutIdentityRef.current = data.layoutIdentity ?? null;
         updateHead(data.head, headManager);
       } catch {
         window.location.assign(target.href);
@@ -173,7 +235,17 @@ export function FuturePageNavigationProvider({
       const pagePathname = normalizePagePath(window.location.pathname);
       void fetchFuturePageData(pagePathname)
         .then((data) => {
-          if (data.dehydratedState) hydrate(queryClient, data.dehydratedState);
+          if (data.dehydratedState) {
+            hydrate(
+              queryClient,
+              preserveStableLayoutBlockCaches(
+                data.dehydratedState,
+                currentLayoutIdentityRef.current,
+                data.layoutIdentity,
+              ),
+            );
+          }
+          currentLayoutIdentityRef.current = data.layoutIdentity ?? null;
           updateHead(data.head, headManager);
           window.dispatchEvent(new Event("camox:navigation"));
         })
