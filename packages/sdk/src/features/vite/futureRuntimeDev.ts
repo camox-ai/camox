@@ -34,6 +34,7 @@ interface FutureRuntimeDevOptions {
   disableTelemetry: boolean;
   environmentName: string;
   projectSlug: string;
+  runtimeBasePath?: string;
 }
 
 function normalizeImporterPath(importer?: string): string {
@@ -305,6 +306,36 @@ async function renderFutureStudio(
   });
 }
 
+function normalizeRuntimeBasePath(basePath?: string): string {
+  if (basePath === undefined) return "/_future";
+  if (!basePath || basePath === "/") return "";
+  return basePath.startsWith("/")
+    ? basePath.replace(/\/+$/, "")
+    : `/${basePath.replace(/\/+$/, "")}`;
+}
+
+function isDocumentRequest(request: Request): boolean {
+  const accept = request.headers.get("Accept") ?? request.headers.get("accept") ?? "";
+  return accept.includes("text/html") || accept.includes("*/*");
+}
+
+function shouldHandleFutureRuntimeDevRequest(request: Request, options: FutureRuntimeDevOptions) {
+  const url = new URL(request.url);
+  const basePath = normalizeRuntimeBasePath(options.runtimeBasePath);
+  if (basePath) return url.pathname === basePath || url.pathname.startsWith(`${basePath}/`);
+
+  if (request.method !== "GET" && request.method !== "HEAD") return false;
+  if (url.pathname === "/_camox/data" || url.pathname === "/_camox/health") return true;
+  if (url.pathname === "/og" || url.pathname === "/sitemap.xml") return true;
+  if (url.pathname === "/camox" || url.pathname.startsWith("/camox/")) return true;
+  if (/\.[a-z0-9]+$/i.test(url.pathname)) return false;
+  if (url.pathname.startsWith("/@") || url.pathname.startsWith("/src/")) return false;
+  if (url.pathname.startsWith("/node_modules/")) return false;
+  if (!isDocumentRequest(request)) return false;
+
+  return true;
+}
+
 function createRequestFromIncomingMessage(req: IncomingMessage): Request | null {
   if (!req.url) return null;
 
@@ -355,6 +386,11 @@ export function installFutureRuntimeDevMiddleware(
       return;
     }
 
+    if (!shouldHandleFutureRuntimeDevRequest(request, options)) {
+      next();
+      return;
+    }
+
     const response = await handleFutureCamoxRequest(request, {
       apiUrl: options.apiUrl,
       authenticationUrl: options.authenticationUrl,
@@ -365,6 +401,7 @@ export function installFutureRuntimeDevMiddleware(
       projectSlug: options.projectSlug,
       renderPage: (input) => renderFuturePage(server, options, input),
       renderStudio: (input) => renderFutureStudio(server, options, input),
+      runtimeBasePath: options.runtimeBasePath,
     });
     if (!response) {
       next();

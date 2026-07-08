@@ -10,9 +10,6 @@ import {
   type FuturePageRenderInput,
 } from "./futureRuntime";
 
-const FUTURE_BASE_PATH = "/_future";
-const FUTURE_DATA_PATH = `${FUTURE_BASE_PATH}/_camox/data`;
-
 interface FuturePageDataResponse {
   dehydratedState?: unknown;
   head?: unknown;
@@ -20,25 +17,35 @@ interface FuturePageDataResponse {
   pathname?: string;
 }
 
-function normalizePagePath(pathname: string): string {
-  if (pathname === FUTURE_BASE_PATH) return "/";
-  if (pathname.startsWith(`${FUTURE_BASE_PATH}/`)) {
-    return pathname.slice(FUTURE_BASE_PATH.length) || "/";
-  }
+function normalizeRuntimeBasePath(basePath: string): string {
+  if (!basePath || basePath === "/") return "";
+  return basePath.startsWith("/")
+    ? basePath.replace(/\/+$/, "")
+    : `/${basePath.replace(/\/+$/, "")}`;
+}
+
+function normalizePagePath(pathname: string, runtimeBasePath: string): string {
+  const basePath = normalizeRuntimeBasePath(runtimeBasePath);
+  if (!basePath) return pathname || "/";
+  if (pathname === basePath) return "/";
+  if (pathname.startsWith(`${basePath}/`)) return pathname.slice(basePath.length) || "/";
   return pathname || "/";
 }
 
-function toFuturePathname(pagePathname: string): string {
-  if (pagePathname === "/") return `${FUTURE_BASE_PATH}/`;
-  if (pagePathname.startsWith(`${FUTURE_BASE_PATH}/`)) return pagePathname;
-  return `${FUTURE_BASE_PATH}${pagePathname.startsWith("/") ? pagePathname : `/${pagePathname}`}`;
+function toFuturePathname(pagePathname: string, runtimeBasePath: string): string {
+  const basePath = normalizeRuntimeBasePath(runtimeBasePath);
+  const normalizedPathname = pagePathname.startsWith("/") ? pagePathname : `/${pagePathname}`;
+  if (!basePath) return normalizedPathname;
+  if (normalizedPathname === "/") return `${basePath}/`;
+  if (normalizedPathname.startsWith(`${basePath}/`)) return normalizedPathname;
+  return `${basePath}${normalizedPathname}`;
 }
 
-function getFutureLocation() {
+function getFutureLocation(runtimeBasePath: string) {
   return {
     hash: window.location.hash,
     href: window.location.href,
-    pathname: normalizePagePath(window.location.pathname),
+    pathname: normalizePagePath(window.location.pathname, runtimeBasePath),
     search: window.location.search,
   };
 }
@@ -54,19 +61,25 @@ function isReservedPagePath(pathname: string): boolean {
   );
 }
 
-function getClientNavigationTarget(to: string): URL | null {
+function getClientNavigationTarget(to: string, runtimeBasePath: string): URL | null {
   const url = new URL(to, window.location.href);
   if (url.origin !== window.location.origin) return null;
 
-  const pagePathname = normalizePagePath(url.pathname);
+  const pagePathname = normalizePagePath(url.pathname, runtimeBasePath);
   if (isReservedPagePath(pagePathname)) return null;
 
-  url.pathname = toFuturePathname(pagePathname);
+  url.pathname = toFuturePathname(pagePathname, runtimeBasePath);
   return url;
 }
 
-async function fetchFuturePageData(pagePathname: string): Promise<FuturePageDataResponse> {
-  const dataUrl = new URL(FUTURE_DATA_PATH, window.location.origin);
+async function fetchFuturePageData(
+  pagePathname: string,
+  runtimeBasePath: string,
+): Promise<FuturePageDataResponse> {
+  const dataUrl = new URL(
+    toFuturePathname("/_camox/data", runtimeBasePath),
+    window.location.origin,
+  );
   dataUrl.searchParams.set("path", pagePathname);
 
   const response = await fetch(dataUrl, {
@@ -171,15 +184,15 @@ export function FuturePageNavigationProvider({
 
   const navigate = React.useCallback(
     async ({ replace, to }: { replace?: boolean; to: string }) => {
-      const target = getClientNavigationTarget(to);
+      const target = getClientNavigationTarget(to, initialInput.runtimeBasePath);
       if (!target) {
         window.location.assign(to);
         return;
       }
 
-      const pagePathname = normalizePagePath(target.pathname);
+      const pagePathname = normalizePagePath(target.pathname, initialInput.runtimeBasePath);
       try {
-        const data = await fetchFuturePageData(pagePathname);
+        const data = await fetchFuturePageData(pagePathname, initialInput.runtimeBasePath);
         if (data.dehydratedState) {
           hydrate(
             queryClient,
@@ -205,7 +218,7 @@ export function FuturePageNavigationProvider({
       }
       window.dispatchEvent(new Event("camox:navigation"));
     },
-    [headManager, queryClient],
+    [headManager, initialInput.runtimeBasePath, queryClient],
   );
 
   React.useEffect(() => {
@@ -219,7 +232,7 @@ export function FuturePageNavigationProvider({
       if (anchor.hasAttribute("download")) return;
       if (anchor.target && anchor.target !== "_self") return;
 
-      const target = getClientNavigationTarget(anchor.href);
+      const target = getClientNavigationTarget(anchor.href, initialInput.runtimeBasePath);
       if (!target) return;
 
       event.preventDefault();
@@ -232,8 +245,11 @@ export function FuturePageNavigationProvider({
 
   React.useEffect(() => {
     const onPopState = () => {
-      const pagePathname = normalizePagePath(window.location.pathname);
-      void fetchFuturePageData(pagePathname)
+      const pagePathname = normalizePagePath(
+        window.location.pathname,
+        initialInput.runtimeBasePath,
+      );
+      void fetchFuturePageData(pagePathname, initialInput.runtimeBasePath)
         .then((data) => {
           if (data.dehydratedState) {
             hydrate(
@@ -254,11 +270,16 @@ export function FuturePageNavigationProvider({
 
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [headManager, queryClient]);
+  }, [headManager, initialInput.runtimeBasePath, queryClient]);
+
+  const getLocation = React.useCallback(
+    () => getFutureLocation(initialInput.runtimeBasePath),
+    [initialInput.runtimeBasePath],
+  );
 
   return (
     <NavigationProvider
-      getLocation={getFutureLocation}
+      getLocation={getLocation}
       initialLocation={{
         hash: new URL(initialInput.href).hash,
         href: initialInput.href,

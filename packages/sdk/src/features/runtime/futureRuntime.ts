@@ -13,11 +13,10 @@ import {
 } from "../routes/pageRuntime";
 import type { FutureStudioRenderInput } from "./futureStudioApp";
 
-const FUTURE_RUNTIME_BASE_PATH = "/_future";
+const DEFAULT_FUTURE_RUNTIME_BASE_PATH = "/_future";
 const FUTURE_RUNTIME_HEALTH_PATH = "/_camox/health";
 const FUTURE_RUNTIME_REGISTRY_PATH = "/_camox/registry";
 const SERVER_AUTH_COOKIE_NAME = "camox_auth_cookie";
-const FUTURE_PUBLIC_BASE_PATH = "/_future";
 
 export type FutureRuntimeRouteKind =
   | "data"
@@ -53,6 +52,7 @@ export interface FuturePageRenderInput {
   loaderData: unknown;
   pathname: string;
   projectSlug: string;
+  runtimeBasePath: string;
 }
 
 export interface FutureRuntimeOptions {
@@ -65,6 +65,7 @@ export interface FutureRuntimeOptions {
   projectSlug?: string;
   renderPage?: (input: FuturePageRenderInput) => Promise<string>;
   renderStudio?: (input: FutureStudioRenderInput) => Promise<string>;
+  runtimeBasePath?: string;
 }
 
 function buildClearServerAuthCookieHeader() {
@@ -85,12 +86,25 @@ function getServerAuthCookieHeader(headers: Headers): string {
   }
 }
 
-export function getFutureRuntimePathname(url: string): string | null {
-  const { pathname } = new URL(url);
-  if (pathname === FUTURE_RUNTIME_BASE_PATH) return "/";
-  if (!pathname.startsWith(`${FUTURE_RUNTIME_BASE_PATH}/`)) return null;
+function normalizeRuntimeBasePath(basePath?: string): string {
+  if (basePath === undefined) return DEFAULT_FUTURE_RUNTIME_BASE_PATH;
+  if (!basePath || basePath === "/") return "";
+  return basePath.startsWith("/")
+    ? basePath.replace(/\/+$/, "")
+    : `/${basePath.replace(/\/+$/, "")}`;
+}
 
-  const stripped = pathname.slice(FUTURE_RUNTIME_BASE_PATH.length);
+export function getFutureRuntimePathname(
+  url: string,
+  runtimeBasePath = DEFAULT_FUTURE_RUNTIME_BASE_PATH,
+): string | null {
+  const { pathname } = new URL(url);
+  const basePath = normalizeRuntimeBasePath(runtimeBasePath);
+  if (!basePath) return pathname || "/";
+  if (pathname === basePath) return "/";
+  if (!pathname.startsWith(`${basePath}/`)) return null;
+
+  const stripped = pathname.slice(basePath.length);
   return stripped || "/";
 }
 
@@ -141,6 +155,13 @@ export function matchFutureRuntimeRoute(pathname: string): FutureRuntimeRouteMat
   return { kind: "page", pathname };
 }
 
+function withRuntimeBasePath(pathname: string, runtimeBasePath?: string): string {
+  const basePath = normalizeRuntimeBasePath(runtimeBasePath);
+  if (!basePath) return pathname;
+  if (pathname === "/") return `${basePath}/`;
+  return `${basePath}${pathname}`;
+}
+
 async function createFutureSitemapResponse(
   request: Request,
   options: FutureRuntimeOptions,
@@ -155,7 +176,7 @@ async function createFutureSitemapResponse(
   const entries = pages
     .map(
       (page) => `  <url>
-    <loc>${escapeXml(`${origin}${FUTURE_PUBLIC_BASE_PATH}${page.fullPath}`)}</loc>
+    <loc>${escapeXml(`${origin}${withRuntimeBasePath(page.fullPath, options.runtimeBasePath)}`)}</loc>
     <lastmod>${escapeXml(new Date(page.updatedAt).toISOString())}</lastmod>
   </url>`,
     )
@@ -310,6 +331,7 @@ async function createFuturePageHtmlResponse({
       loaderData: result.data,
       pathname,
       projectSlug: options.projectSlug,
+      runtimeBasePath: normalizeRuntimeBasePath(options.runtimeBasePath),
     } satisfies FuturePageRenderInput;
     const appHtml = await options.renderPage(pageRenderInput);
     const renderedHead = renderFutureHead(document, createFuturePageHeadInput(head));
@@ -370,6 +392,7 @@ async function createFutureStudioHtmlResponse({
     pathname: match.pathname,
     projectSlug: options.projectSlug,
     routeKind: match.kind as "studio" | "studio-content" | "studio-nested",
+    runtimeBasePath: normalizeRuntimeBasePath(options.runtimeBasePath),
     runtimeKind: "studio",
   } satisfies FutureStudioRenderInput & { runtimeKind: "studio" };
   const appHtml = await options.renderStudio(studioRenderInput);
@@ -470,7 +493,7 @@ export async function handleFutureCamoxRequest(
   request: Request,
   options: FutureRuntimeOptions = {},
 ): Promise<Response | null> {
-  const pathname = getFutureRuntimePathname(request.url);
+  const pathname = getFutureRuntimePathname(request.url, options.runtimeBasePath);
   if (!pathname) return null;
 
   const match = matchFutureRuntimeRoute(pathname);

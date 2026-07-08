@@ -2,37 +2,45 @@ import * as React from "react";
 
 import { NavigationProvider } from "../navigation/navigation";
 
-const FUTURE_BASE_PATH = "/_future";
+function normalizeRuntimeBasePath(basePath: string): string {
+  if (!basePath || basePath === "/") return "";
+  return basePath.startsWith("/")
+    ? basePath.replace(/\/+$/, "")
+    : `/${basePath.replace(/\/+$/, "")}`;
+}
 
-function normalizeFuturePathname(pathname: string): string {
-  if (pathname === FUTURE_BASE_PATH) return "/";
-  if (pathname.startsWith(`${FUTURE_BASE_PATH}/`)) {
-    return pathname.slice(FUTURE_BASE_PATH.length) || "/";
-  }
+function normalizeFuturePathname(pathname: string, runtimeBasePath: string): string {
+  const basePath = normalizeRuntimeBasePath(runtimeBasePath);
+  if (!basePath) return pathname || "/";
+  if (pathname === basePath) return "/";
+  if (pathname.startsWith(`${basePath}/`)) return pathname.slice(basePath.length) || "/";
   return pathname || "/";
 }
 
-function toFuturePathname(pathname: string): string {
-  if (pathname === "/") return `${FUTURE_BASE_PATH}/`;
-  if (pathname.startsWith(`${FUTURE_BASE_PATH}/`)) return pathname;
-  return `${FUTURE_BASE_PATH}${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
+function toFuturePathname(pathname: string, runtimeBasePath: string): string {
+  const basePath = normalizeRuntimeBasePath(runtimeBasePath);
+  const normalizedPathname = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  if (!basePath) return normalizedPathname;
+  if (normalizedPathname === "/") return `${basePath}/`;
+  if (normalizedPathname.startsWith(`${basePath}/`)) return normalizedPathname;
+  return `${basePath}${normalizedPathname}`;
 }
 
-function getFutureStudioLocation() {
+function getFutureStudioLocation(runtimeBasePath: string) {
   return {
     hash: window.location.hash,
     href: window.location.href,
-    pathname: normalizeFuturePathname(window.location.pathname),
+    pathname: normalizeFuturePathname(window.location.pathname, runtimeBasePath),
     search: window.location.search,
   };
 }
 
-function getFutureStudioTarget(to: string): URL | null {
+function getFutureStudioTarget(to: string, runtimeBasePath: string): URL | null {
   const url = new URL(to, window.location.href);
   if (url.origin !== window.location.origin) return null;
 
-  const pathname = normalizeFuturePathname(url.pathname);
-  url.pathname = toFuturePathname(pathname);
+  const pathname = normalizeFuturePathname(url.pathname, runtimeBasePath);
+  url.pathname = toFuturePathname(pathname, runtimeBasePath);
   return url;
 }
 
@@ -40,29 +48,39 @@ export function FutureStudioNavigationProvider({
   children,
   href,
   pathname,
+  runtimeBasePath,
 }: {
   children: React.ReactNode;
   href: string;
   pathname: string;
+  runtimeBasePath: string;
 }) {
-  const navigate = React.useCallback(async ({ replace, to }: { replace?: boolean; to: string }) => {
-    const target = getFutureStudioTarget(to);
-    if (!target) {
-      window.location.assign(to);
-      return;
-    }
+  const navigate = React.useCallback(
+    async ({ replace, to }: { replace?: boolean; to: string }) => {
+      const target = getFutureStudioTarget(to, runtimeBasePath);
+      if (!target) {
+        window.location.assign(to);
+        return;
+      }
 
-    if (replace) {
-      window.history.replaceState(null, "", target.href);
-    } else {
-      window.history.pushState(null, "", target.href);
-    }
-    window.dispatchEvent(new Event("camox:navigation"));
-  }, []);
+      if (replace) {
+        window.history.replaceState(null, "", target.href);
+      } else {
+        window.history.pushState(null, "", target.href);
+      }
+      window.dispatchEvent(new Event("camox:navigation"));
+    },
+    [runtimeBasePath],
+  );
+
+  const getLocation = React.useCallback(
+    () => getFutureStudioLocation(runtimeBasePath),
+    [runtimeBasePath],
+  );
 
   return (
     <NavigationProvider
-      getLocation={getFutureStudioLocation}
+      getLocation={getLocation}
       initialLocation={{
         hash: new URL(href).hash,
         href,

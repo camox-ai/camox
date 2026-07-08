@@ -21,6 +21,7 @@ export interface FutureStudioRenderInput {
   pathname: string;
   projectSlug: string;
   routeKind: "studio" | "studio-content" | "studio-nested";
+  runtimeBasePath: string;
 }
 
 function FutureStudioRouteContent({ input }: { input: FutureStudioRenderInput }) {
@@ -45,7 +46,11 @@ export function FutureStudioApp({
   return (
     <QueryClientProvider client={queryClient}>
       <HydrationBoundary state={input.dehydratedState as DehydratedState}>
-        <FutureStudioNavigationProvider href={input.href} pathname={input.pathname}>
+        <FutureStudioNavigationProvider
+          href={input.href}
+          pathname={input.pathname}
+          runtimeBasePath={input.runtimeBasePath}
+        >
           <CamoxProvider
             camoxApp={camoxApp}
             authenticationUrl={input.authenticationUrl}

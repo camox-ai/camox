@@ -108,6 +108,8 @@ export interface CamoxPluginOptions {
     enableTanstackDevtools?: boolean;
     /** Disable automatic code generation (route files, app file, skill files) (default: false) */
     disableCodeGen?: boolean;
+    /** Mount the Camox-owned dev runtime at this base path. Use "/" for root mode. */
+    futureRuntimeBasePath?: string;
   };
 }
 
@@ -116,6 +118,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
   const authenticationUrl = options._internal?.authenticationUrl ?? DEFAULT_AUTHENTICATION_URL;
   const enableTanstackDevtools = options._internal?.enableTanstackDevtools ?? false;
   const disableCodeGen = options._internal?.disableCodeGen ?? false;
+  const futureRuntimeBasePath = options._internal?.futureRuntimeBasePath;
 
   let isBuild = false;
   let resolvedConfig: ResolvedConfig;
@@ -293,6 +296,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
         disableTelemetry: !!options.disableTelemetry,
         environmentName,
         projectSlug: options.projectSlug,
+        runtimeBasePath: futureRuntimeBasePath,
       });
 
       if (!disableCodeGen) {
