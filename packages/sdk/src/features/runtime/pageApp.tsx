@@ -8,22 +8,22 @@ import {
 import type { CamoxApp } from "../../core/createApp";
 import { CamoxPreview, PageContent } from "../preview/CamoxPreview";
 import { CamoxProvider } from "../provider/CamoxProvider";
-import { FuturePageNavigationProvider } from "./futurePageNavigation";
-import type { FuturePageRenderInput } from "./futureRuntime";
+import { PageNavigationProvider } from "./pageNavigation";
+import type { PageRenderInput } from "./runtime";
 
-export function FuturePageApp({
+export function PageApp({
   camoxApp,
   input,
   queryClient,
 }: {
   camoxApp: CamoxApp;
-  input: FuturePageRenderInput;
+  input: PageRenderInput;
   queryClient: QueryClient;
 }) {
   return (
     <QueryClientProvider client={queryClient}>
       <HydrationBoundary state={input.dehydratedState as DehydratedState}>
-        <FuturePageNavigationProvider initialInput={input} queryClient={queryClient}>
+        <PageNavigationProvider initialInput={input} queryClient={queryClient}>
           <CamoxProvider
             camoxApp={camoxApp}
             authenticationUrl={input.authenticationUrl}
@@ -35,7 +35,7 @@ export function FuturePageApp({
               <PageContent />
             </CamoxPreview>
           </CamoxProvider>
-        </FuturePageNavigationProvider>
+        </PageNavigationProvider>
       </HydrationBoundary>
     </QueryClientProvider>
   );

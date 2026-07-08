@@ -183,6 +183,11 @@ function removeObsoleteRouteFiles(routesDir: string) {
     resolve(studioDir, "cmx-studio.tsx"),
     resolve(studioDir, "cmx-studio.$.tsx"),
     resolve(studioDir, "cmx-studio.content.tsx"),
+    resolve(routesDir, "(camox)", "(_preview)", "$.tsx"),
+    resolve(routesDir, "(camox)", "(_preview)", "og.tsx"),
+    resolve(studioDir, `${STUDIO_ROUTE_SEGMENT}.tsx`),
+    resolve(studioDir, `${STUDIO_ROUTE_SEGMENT}.$.tsx`),
+    resolve(studioDir, `${STUDIO_ROUTE_SEGMENT}.content.tsx`),
   ];
 
   for (const filePath of obsoletePaths) {
@@ -195,6 +200,10 @@ function removeObsoleteRouteFiles(routesDir: string) {
       throw error;
     }
   }
+}
+
+export function cleanupGeneratedRouteFiles(routesDir: string) {
+  removeObsoleteRouteFiles(routesDir);
 }
 
 export function generateRouteFiles(options: RouteFilesOptions) {

@@ -9,7 +9,7 @@ function normalizeRuntimeBasePath(basePath: string): string {
     : `/${basePath.replace(/\/+$/, "")}`;
 }
 
-function normalizeFuturePathname(pathname: string, runtimeBasePath: string): string {
+function normalizeRuntimePathname(pathname: string, runtimeBasePath: string): string {
   const basePath = normalizeRuntimeBasePath(runtimeBasePath);
   if (!basePath) return pathname || "/";
   if (pathname === basePath) return "/";
@@ -17,7 +17,7 @@ function normalizeFuturePathname(pathname: string, runtimeBasePath: string): str
   return pathname || "/";
 }
 
-function toFuturePathname(pathname: string, runtimeBasePath: string): string {
+function toRuntimePathname(pathname: string, runtimeBasePath: string): string {
   const basePath = normalizeRuntimeBasePath(runtimeBasePath);
   const normalizedPathname = pathname.startsWith("/") ? pathname : `/${pathname}`;
   if (!basePath) return normalizedPathname;
@@ -26,25 +26,25 @@ function toFuturePathname(pathname: string, runtimeBasePath: string): string {
   return `${basePath}${normalizedPathname}`;
 }
 
-function getFutureStudioLocation(runtimeBasePath: string) {
+function getStudioLocation(runtimeBasePath: string) {
   return {
     hash: window.location.hash,
     href: window.location.href,
-    pathname: normalizeFuturePathname(window.location.pathname, runtimeBasePath),
+    pathname: normalizeRuntimePathname(window.location.pathname, runtimeBasePath),
     search: window.location.search,
   };
 }
 
-function getFutureStudioTarget(to: string, runtimeBasePath: string): URL | null {
+function getStudioTarget(to: string, runtimeBasePath: string): URL | null {
   const url = new URL(to, window.location.href);
   if (url.origin !== window.location.origin) return null;
 
-  const pathname = normalizeFuturePathname(url.pathname, runtimeBasePath);
-  url.pathname = toFuturePathname(pathname, runtimeBasePath);
+  const pathname = normalizeRuntimePathname(url.pathname, runtimeBasePath);
+  url.pathname = toRuntimePathname(pathname, runtimeBasePath);
   return url;
 }
 
-export function FutureStudioNavigationProvider({
+export function StudioNavigationProvider({
   children,
   href,
   pathname,
@@ -57,7 +57,7 @@ export function FutureStudioNavigationProvider({
 }) {
   const navigate = React.useCallback(
     async ({ replace, to }: { replace?: boolean; to: string }) => {
-      const target = getFutureStudioTarget(to, runtimeBasePath);
+      const target = getStudioTarget(to, runtimeBasePath);
       if (!target) {
         window.location.assign(to);
         return;
@@ -74,7 +74,7 @@ export function FutureStudioNavigationProvider({
   );
 
   const getLocation = React.useCallback(
-    () => getFutureStudioLocation(runtimeBasePath),
+    () => getStudioLocation(runtimeBasePath),
     [runtimeBasePath],
   );
 

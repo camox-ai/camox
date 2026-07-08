@@ -10,9 +10,9 @@ import { CamoxContent } from "../content/CamoxContent";
 import { CamoxProvider } from "../provider/CamoxProvider";
 import { CamoxStudio } from "../studio/CamoxStudio";
 import { STUDIO_CONTENT_PATH } from "../studio/routes";
-import { FutureStudioNavigationProvider } from "./futureStudioNavigation";
+import { StudioNavigationProvider } from "./studioNavigation";
 
-export interface FutureStudioRenderInput {
+export interface StudioRenderInput {
   apiUrl: string;
   authenticationUrl: string;
   dehydratedState: unknown;
@@ -24,7 +24,7 @@ export interface FutureStudioRenderInput {
   runtimeBasePath: string;
 }
 
-function FutureStudioRouteContent({ input }: { input: FutureStudioRenderInput }) {
+function StudioRouteContent({ input }: { input: StudioRenderInput }) {
   if (input.pathname === STUDIO_CONTENT_PATH) return <CamoxContent />;
 
   if (input.routeKind === "studio-nested") {
@@ -34,19 +34,19 @@ function FutureStudioRouteContent({ input }: { input: FutureStudioRenderInput })
   return <div className="text-muted-foreground p-6 text-sm">Loading Studio…</div>;
 }
 
-export function FutureStudioApp({
+export function StudioApp({
   camoxApp,
   input,
   queryClient,
 }: {
   camoxApp: CamoxApp;
-  input: FutureStudioRenderInput;
+  input: StudioRenderInput;
   queryClient: QueryClient;
 }) {
   return (
     <QueryClientProvider client={queryClient}>
       <HydrationBoundary state={input.dehydratedState as DehydratedState}>
-        <FutureStudioNavigationProvider
+        <StudioNavigationProvider
           href={input.href}
           pathname={input.pathname}
           runtimeBasePath={input.runtimeBasePath}
@@ -59,10 +59,10 @@ export function FutureStudioApp({
             environmentName={input.environmentName}
           >
             <CamoxStudio>
-              <FutureStudioRouteContent input={input} />
+              <StudioRouteContent input={input} />
             </CamoxStudio>
           </CamoxProvider>
-        </FutureStudioNavigationProvider>
+        </StudioNavigationProvider>
       </HydrationBoundary>
     </QueryClientProvider>
   );

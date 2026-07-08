@@ -16,12 +16,12 @@ import { watchNewBlockFiles } from "./blockBoilerplate";
 
 const PRODUCTION_API_URL = "https://api.camox.ai";
 import { syncDefinitions, syncDefinitionsToApi } from "./definitionsSync";
+import { cleanupGeneratedRouteFiles } from "./routeGeneration";
 import {
-  installFutureRuntimeDevMiddleware,
-  loadFutureRuntimeDevModule,
-  resolveFutureRuntimeDevId,
-} from "./futureRuntimeDev";
-import { generateRouteFiles, watchRouteFiles } from "./routeGeneration";
+  installRuntimeDevMiddleware,
+  loadRuntimeDevModule,
+  resolveRuntimeDevId,
+} from "./runtimeDev";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
 /** Authentication URL to use for Camox authentication (production Camox web app) */
@@ -109,7 +109,7 @@ export interface CamoxPluginOptions {
     /** Disable automatic code generation (route files, app file, skill files) (default: false) */
     disableCodeGen?: boolean;
     /** Mount the Camox-owned dev runtime at this base path. Use "/" for root mode. */
-    futureRuntimeBasePath?: string;
+    runtimeBasePath?: string;
   };
 }
 
@@ -118,7 +118,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
   const authenticationUrl = options._internal?.authenticationUrl ?? DEFAULT_AUTHENTICATION_URL;
   const enableTanstackDevtools = options._internal?.enableTanstackDevtools ?? false;
   const disableCodeGen = options._internal?.disableCodeGen ?? false;
-  const futureRuntimeBasePath = options._internal?.futureRuntimeBasePath;
+  const runtimeBasePath = options._internal?.runtimeBasePath;
 
   let isBuild = false;
   let resolvedConfig: ResolvedConfig;
@@ -128,8 +128,8 @@ export function camox(options: CamoxPluginOptions): Plugin {
     name: "camox",
     enforce: "pre",
     resolveId(id, importer) {
-      const futureRuntimeId = resolveFutureRuntimeDevId(id, importer);
-      if (futureRuntimeId) return futureRuntimeId;
+      const runtimeId = resolveRuntimeDevId(id, importer);
+      if (runtimeId) return runtimeId;
       if (id === VIRTUAL_STUDIO_CSS) return RESOLVED_VIRTUAL_STUDIO_CSS;
       if (id === VIRTUAL_OVERLAY_CSS) return RESOLVED_VIRTUAL_OVERLAY_CSS;
     },
@@ -149,7 +149,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
         const css = readFileSync(cssPath, "utf-8");
         return `export default ${JSON.stringify(css)};`;
       }
-      return loadFutureRuntimeDevModule(id);
+      return loadRuntimeDevModule(id);
     },
     config(_config, env) {
       isBuild = env.command === "build";
@@ -265,10 +265,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
 
       if (!disableCodeGen) {
         generateAppFile(config.root);
-        generateRouteFiles({
-          routesDir,
-          authenticationUrl,
-        });
+        cleanupGeneratedRouteFiles(routesDir);
         generateSkillFiles(config.root);
       }
 
@@ -290,22 +287,18 @@ export function camox(options: CamoxPluginOptions): Plugin {
     configureServer(server: ViteDevServer) {
       const routesDir = resolve(server.config.root, "src/routes");
 
-      installFutureRuntimeDevMiddleware(server, {
+      installRuntimeDevMiddleware(server, {
         apiUrl,
         authenticationUrl,
         disableTelemetry: !!options.disableTelemetry,
         environmentName,
         projectSlug: options.projectSlug,
-        runtimeBasePath: futureRuntimeBasePath,
+        runtimeBasePath: runtimeBasePath,
       });
 
       if (!disableCodeGen) {
         watchAppFile(server, server.config.root);
-        watchRouteFiles({
-          server,
-          routesDir,
-          authenticationUrl,
-        });
+        cleanupGeneratedRouteFiles(routesDir);
         watchSkillFiles(server, server.config.root);
 
         watchNewBlockFiles(server);

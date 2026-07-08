@@ -11,14 +11,14 @@ import {
   isNotFoundError,
   loadCamoxPageForRequest,
 } from "../routes/pageRuntime";
-import type { FutureStudioRenderInput } from "./futureStudioApp";
+import type { StudioRenderInput } from "./studioApp";
 
-const DEFAULT_FUTURE_RUNTIME_BASE_PATH = "/_future";
-const FUTURE_RUNTIME_HEALTH_PATH = "/_camox/health";
-const FUTURE_RUNTIME_REGISTRY_PATH = "/_camox/registry";
+const DEFAULT_RUNTIME_BASE_PATH = "";
+const RUNTIME_HEALTH_PATH = "/_camox/health";
+const RUNTIME_REGISTRY_PATH = "/_camox/registry";
 const SERVER_AUTH_COOKIE_NAME = "camox_auth_cookie";
 
-export type FutureRuntimeRouteKind =
+export type RuntimeRouteKind =
   | "data"
   | "health"
   | "og"
@@ -29,33 +29,33 @@ export type FutureRuntimeRouteKind =
   | "studio-content"
   | "studio-nested";
 
-export interface FutureRuntimeRouteMatch {
-  kind: FutureRuntimeRouteKind;
+export interface RuntimeRouteMatch {
+  kind: RuntimeRouteKind;
   pathname: string;
 }
 
-export interface FutureLayoutIdentity {
+export interface LayoutIdentity {
   blockIds: number[];
   id: number;
   layoutId: string;
   version: string;
 }
 
-export interface FuturePageRenderInput {
+export interface PageRenderInput {
   apiUrl: string;
   authenticationUrl: string;
   dehydratedState: unknown;
   environmentName?: string;
   head: unknown;
   href: string;
-  layoutIdentity: FutureLayoutIdentity | null;
+  layoutIdentity: LayoutIdentity | null;
   loaderData: unknown;
   pathname: string;
   projectSlug: string;
   runtimeBasePath: string;
 }
 
-export interface FutureRuntimeOptions {
+export interface RuntimeOptions {
   apiUrl?: string;
   authenticationUrl?: string;
   environmentName?: string;
@@ -63,8 +63,8 @@ export interface FutureRuntimeOptions {
   getCamoxApp?: () => Promise<CamoxApp>;
   getDocument?: () => Promise<CamoxDocument>;
   projectSlug?: string;
-  renderPage?: (input: FuturePageRenderInput) => Promise<string>;
-  renderStudio?: (input: FutureStudioRenderInput) => Promise<string>;
+  renderPage?: (input: PageRenderInput) => Promise<string>;
+  renderStudio?: (input: StudioRenderInput) => Promise<string>;
   runtimeBasePath?: string;
 }
 
@@ -87,16 +87,16 @@ function getServerAuthCookieHeader(headers: Headers): string {
 }
 
 function normalizeRuntimeBasePath(basePath?: string): string {
-  if (basePath === undefined) return DEFAULT_FUTURE_RUNTIME_BASE_PATH;
+  if (basePath === undefined) return DEFAULT_RUNTIME_BASE_PATH;
   if (!basePath || basePath === "/") return "";
   return basePath.startsWith("/")
     ? basePath.replace(/\/+$/, "")
     : `/${basePath.replace(/\/+$/, "")}`;
 }
 
-export function getFutureRuntimePathname(
+export function getRuntimePathname(
   url: string,
-  runtimeBasePath = DEFAULT_FUTURE_RUNTIME_BASE_PATH,
+  runtimeBasePath = DEFAULT_RUNTIME_BASE_PATH,
 ): string | null {
   const { pathname } = new URL(url);
   const basePath = normalizeRuntimeBasePath(runtimeBasePath);
@@ -122,10 +122,10 @@ function normalizePagePath(path: string | null): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
-function getFutureLayoutIdentity(
+function getLayoutIdentity(
   data: Awaited<ReturnType<typeof loadCamoxPageForRequest>>["data"],
   source: Awaited<ReturnType<typeof loadCamoxPageForRequest>>["source"],
-): FutureLayoutIdentity | null {
+): LayoutIdentity | null {
   const layout = data.page.layout;
   if (!layout) return null;
 
@@ -142,9 +142,9 @@ function getFutureLayoutIdentity(
   };
 }
 
-export function matchFutureRuntimeRoute(pathname: string): FutureRuntimeRouteMatch {
-  if (pathname === FUTURE_RUNTIME_HEALTH_PATH) return { kind: "health", pathname };
-  if (pathname === FUTURE_RUNTIME_REGISTRY_PATH) return { kind: "registry", pathname };
+export function matchRuntimeRoute(pathname: string): RuntimeRouteMatch {
+  if (pathname === RUNTIME_HEALTH_PATH) return { kind: "health", pathname };
+  if (pathname === RUNTIME_REGISTRY_PATH) return { kind: "registry", pathname };
   if (pathname === "/_camox/data") return { kind: "data", pathname };
   if (pathname === "/camox") return { kind: "studio", pathname };
   if (pathname === "/camox/content") return { kind: "studio-content", pathname };
@@ -162,12 +162,9 @@ function withRuntimeBasePath(pathname: string, runtimeBasePath?: string): string
   return `${basePath}${pathname}`;
 }
 
-async function createFutureSitemapResponse(
-  request: Request,
-  options: FutureRuntimeOptions,
-): Promise<Response> {
+async function createSitemapResponse(request: Request, options: RuntimeOptions): Promise<Response> {
   if (!options.apiUrl || !options.projectSlug) {
-    return Response.json({ message: "Future Camox sitemap is not configured." }, { status: 500 });
+    return Response.json({ message: "Camox sitemap is not configured." }, { status: 500 });
   }
 
   const api = createServerApiClient(options.apiUrl, options.environmentName);
@@ -191,16 +188,10 @@ ${entries}
   );
 }
 
-async function createFutureOgResponse(
-  request: Request,
-  options: FutureRuntimeOptions,
-): Promise<Response> {
+async function createOgResponse(request: Request, options: RuntimeOptions): Promise<Response> {
   const camoxApp = await options.getCamoxApp?.();
   if (!camoxApp) {
-    return Response.json(
-      { message: "Future Camox app registry is not available." },
-      { status: 500 },
-    );
+    return Response.json({ message: "Camox app registry is not available." }, { status: 500 });
   }
 
   const url = new URL(request.url);
@@ -228,7 +219,7 @@ function createDefaultHeadInput(): UseHeadInput {
   };
 }
 
-export function createFuturePageHeadInput(head: {
+export function createPageHeadInput(head: {
   meta?: Array<Record<string, string>>;
   links?: Array<Record<string, string>>;
 }): UseHeadInput {
@@ -265,7 +256,7 @@ export function createFuturePageHeadInput(head: {
   };
 }
 
-function renderFutureHead(document: CamoxDocument, pageHead: UseHeadInput) {
+function renderHead(document: CamoxDocument, pageHead: UseHeadInput) {
   const head = createHead();
   head.push(createDefaultHeadInput());
   head.push(document);
@@ -277,17 +268,17 @@ function serializeJsonForHtml(value: unknown): string {
   return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
 
-function renderFutureClientEntryScript(src?: string): string {
+function renderClientEntryScript(src?: string): string {
   if (!src) return "";
   return `<script type="module" src="${escapeXml(src)}"></script>`;
 }
 
-async function createFuturePageHtmlResponse({
+async function createPageHtmlResponse({
   options,
   pathname,
   request,
 }: {
-  options: FutureRuntimeOptions;
+  options: RuntimeOptions;
   pathname: string;
   request: Request;
 }): Promise<Response> {
@@ -297,7 +288,7 @@ async function createFuturePageHtmlResponse({
     !options.projectSlug ||
     !options.renderPage
   ) {
-    return createFuturePageDataResponse({ options, pathname, request });
+    return createPageDataResponse({ options, pathname, request });
   }
 
   const queryClient = new QueryClient();
@@ -327,27 +318,27 @@ async function createFuturePageHtmlResponse({
       environmentName: options.environmentName,
       head,
       href: new URL(request.url).href,
-      layoutIdentity: getFutureLayoutIdentity(result.data, result.source),
+      layoutIdentity: getLayoutIdentity(result.data, result.source),
       loaderData: result.data,
       pathname,
       projectSlug: options.projectSlug,
       runtimeBasePath: normalizeRuntimeBasePath(options.runtimeBasePath),
-    } satisfies FuturePageRenderInput;
+    } satisfies PageRenderInput;
     const appHtml = await options.renderPage(pageRenderInput);
-    const renderedHead = renderFutureHead(document, createFuturePageHeadInput(head));
+    const renderedHead = renderHead(document, createPageHeadInput(head));
 
     return new Response(
       `<!doctype html>
 <html${renderedHead.htmlAttrs}>
 <head>
 ${renderedHead.headTags}
-<script id="__CAMOX_FUTURE_DATA__" type="application/json">${serializeJsonForHtml(pageRenderInput)}</script>
+<script id="__CAMOX_DATA__" type="application/json">${serializeJsonForHtml(pageRenderInput)}</script>
 </head>
 <body${renderedHead.bodyAttrs}>
 ${renderedHead.bodyTagsOpen}
 <div id="root">${appHtml}</div>
 ${renderedHead.bodyTags}
-${renderFutureClientEntryScript(options.clientEntryUrl)}
+${renderClientEntryScript(options.clientEntryUrl)}
 </body>
 </html>`,
       { headers },
@@ -360,13 +351,13 @@ ${renderFutureClientEntryScript(options.clientEntryUrl)}
   }
 }
 
-async function createFutureStudioHtmlResponse({
+async function createStudioHtmlResponse({
   match,
   options,
   request,
 }: {
-  match: FutureRuntimeRouteMatch;
-  options: FutureRuntimeOptions;
+  match: RuntimeRouteMatch;
+  options: RuntimeOptions;
   request: Request;
 }): Promise<Response> {
   if (
@@ -376,7 +367,7 @@ async function createFutureStudioHtmlResponse({
     !options.renderStudio
   ) {
     return Response.json(
-      { message: "Future Camox Studio renderer is not configured.", ...match },
+      { message: "Camox Studio renderer is not configured.", ...match },
       { status: 500 },
     );
   }
@@ -394,42 +385,39 @@ async function createFutureStudioHtmlResponse({
     routeKind: match.kind as "studio" | "studio-content" | "studio-nested",
     runtimeBasePath: normalizeRuntimeBasePath(options.runtimeBasePath),
     runtimeKind: "studio",
-  } satisfies FutureStudioRenderInput & { runtimeKind: "studio" };
+  } satisfies StudioRenderInput & { runtimeKind: "studio" };
   const appHtml = await options.renderStudio(studioRenderInput);
-  const renderedHead = renderFutureHead(document, {});
+  const renderedHead = renderHead(document, {});
 
   return new Response(
     `<!doctype html>
 <html${renderedHead.htmlAttrs}>
 <head>
 ${renderedHead.headTags}
-<script id="__CAMOX_FUTURE_DATA__" type="application/json">${serializeJsonForHtml(studioRenderInput)}</script>
+<script id="__CAMOX_DATA__" type="application/json">${serializeJsonForHtml(studioRenderInput)}</script>
 </head>
 <body${renderedHead.bodyAttrs}>
 ${renderedHead.bodyTagsOpen}
 <div id="root">${appHtml}</div>
 ${renderedHead.bodyTags}
-${renderFutureClientEntryScript(options.clientEntryUrl)}
+${renderClientEntryScript(options.clientEntryUrl)}
 </body>
 </html>`,
     { headers: { "Content-Type": "text/html; charset=utf-8" } },
   );
 }
 
-async function createFuturePageDataResponse({
+async function createPageDataResponse({
   options,
   pathname,
   request,
 }: {
-  options: FutureRuntimeOptions;
+  options: RuntimeOptions;
   pathname: string;
   request: Request;
 }): Promise<Response> {
   if (!options.apiUrl || !options.projectSlug) {
-    return Response.json(
-      { message: "Future Camox page loader is not configured." },
-      { status: 500 },
-    );
+    return Response.json({ message: "Camox page loader is not configured." }, { status: 500 });
   }
 
   const queryClient = new QueryClient();
@@ -464,7 +452,7 @@ async function createFuturePageDataResponse({
             metaDescription: page.metaDescription,
           },
           layout: layout ? { id: layout.id, layoutId: layout.layoutId } : null,
-          layoutIdentity: getFutureLayoutIdentity(result.data, result.source),
+          layoutIdentity: getLayoutIdentity(result.data, result.source),
           project: { id: project.id, name: projectName },
           loaderData: {
             faviconUrl: result.data.faviconUrl,
@@ -489,14 +477,14 @@ async function createFuturePageDataResponse({
   }
 }
 
-export async function handleFutureCamoxRequest(
+export async function handleCamoxRequest(
   request: Request,
-  options: FutureRuntimeOptions = {},
+  options: RuntimeOptions = {},
 ): Promise<Response | null> {
-  const pathname = getFutureRuntimePathname(request.url, options.runtimeBasePath);
+  const pathname = getRuntimePathname(request.url, options.runtimeBasePath);
   if (!pathname) return null;
 
-  const match = matchFutureRuntimeRoute(pathname);
+  const match = matchRuntimeRoute(pathname);
   if (match.kind === "health") {
     return new Response("ok\n", {
       headers: { "Content-Type": "text/plain; charset=utf-8" },
@@ -506,10 +494,7 @@ export async function handleFutureCamoxRequest(
   if (match.kind === "registry") {
     const camoxApp = await options.getCamoxApp?.();
     if (!camoxApp) {
-      return Response.json(
-        { message: "Future Camox app registry is not available." },
-        { status: 500 },
-      );
+      return Response.json({ message: "Camox app registry is not available." }, { status: 500 });
     }
 
     return Response.json({
@@ -519,16 +504,16 @@ export async function handleFutureCamoxRequest(
   }
 
   if (match.kind === "og") {
-    return createFutureOgResponse(request, options);
+    return createOgResponse(request, options);
   }
 
   if (match.kind === "sitemap") {
-    return createFutureSitemapResponse(request, options);
+    return createSitemapResponse(request, options);
   }
 
   if (match.kind === "data") {
     const url = new URL(request.url);
-    return createFuturePageDataResponse({
+    return createPageDataResponse({
       options,
       pathname: normalizePagePath(url.searchParams.get("path")),
       request,
@@ -540,7 +525,7 @@ export async function handleFutureCamoxRequest(
     match.kind === "studio-content" ||
     match.kind === "studio-nested"
   ) {
-    return createFutureStudioHtmlResponse({ match, options, request });
+    return createStudioHtmlResponse({ match, options, request });
   }
 
   if (match.kind === "page") {
@@ -555,12 +540,12 @@ export async function handleFutureCamoxRequest(
       if (markdownResponse) return markdownResponse;
     }
 
-    return createFuturePageHtmlResponse({ options, pathname: match.pathname, request });
+    return createPageHtmlResponse({ options, pathname: match.pathname, request });
   }
 
   return Response.json(
     {
-      message: "Future Camox runtime route matched.",
+      message: "Camox runtime route matched.",
       ...match,
     },
     { status: 501 },

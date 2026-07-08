@@ -4,16 +4,12 @@ import * as React from "react";
 import type { ActiveHeadEntry, UseHeadInput } from "unhead/types";
 
 import { NavigationProvider } from "../navigation/navigation";
-import {
-  createFuturePageHeadInput,
-  type FutureLayoutIdentity,
-  type FuturePageRenderInput,
-} from "./futureRuntime";
+import { createPageHeadInput, type LayoutIdentity, type PageRenderInput } from "./runtime";
 
-interface FuturePageDataResponse {
+interface PageDataResponse {
   dehydratedState?: unknown;
   head?: unknown;
-  layoutIdentity?: FutureLayoutIdentity | null;
+  layoutIdentity?: LayoutIdentity | null;
   pathname?: string;
 }
 
@@ -32,7 +28,7 @@ function normalizePagePath(pathname: string, runtimeBasePath: string): string {
   return pathname || "/";
 }
 
-function toFuturePathname(pagePathname: string, runtimeBasePath: string): string {
+function toRuntimePathname(pagePathname: string, runtimeBasePath: string): string {
   const basePath = normalizeRuntimeBasePath(runtimeBasePath);
   const normalizedPathname = pagePathname.startsWith("/") ? pagePathname : `/${pagePathname}`;
   if (!basePath) return normalizedPathname;
@@ -41,7 +37,7 @@ function toFuturePathname(pagePathname: string, runtimeBasePath: string): string
   return `${basePath}${normalizedPathname}`;
 }
 
-function getFutureLocation(runtimeBasePath: string) {
+function getRuntimeLocation(runtimeBasePath: string) {
   return {
     hash: window.location.hash,
     href: window.location.href,
@@ -68,16 +64,16 @@ function getClientNavigationTarget(to: string, runtimeBasePath: string): URL | n
   const pagePathname = normalizePagePath(url.pathname, runtimeBasePath);
   if (isReservedPagePath(pagePathname)) return null;
 
-  url.pathname = toFuturePathname(pagePathname, runtimeBasePath);
+  url.pathname = toRuntimePathname(pagePathname, runtimeBasePath);
   return url;
 }
 
-async function fetchFuturePageData(
+async function fetchPageData(
   pagePathname: string,
   runtimeBasePath: string,
-): Promise<FuturePageDataResponse> {
+): Promise<PageDataResponse> {
   const dataUrl = new URL(
-    toFuturePathname("/_camox/data", runtimeBasePath),
+    toRuntimePathname("/_camox/data", runtimeBasePath),
     window.location.origin,
   );
   dataUrl.searchParams.set("path", pagePathname);
@@ -86,12 +82,12 @@ async function fetchFuturePageData(
     headers: { Accept: "application/json" },
     credentials: "same-origin",
   });
-  if (!response.ok) throw new Error(`Future Page data request failed: ${response.status}`);
+  if (!response.ok) throw new Error(`Page data request failed: ${response.status}`);
 
-  return (await response.json()) as FuturePageDataResponse;
+  return (await response.json()) as PageDataResponse;
 }
 
-interface FutureHeadManager {
+interface HeadManager {
   entry?: ActiveHeadEntry<UseHeadInput>;
   head: ReturnType<typeof createHead>;
   removedServerPageHead: boolean;
@@ -103,7 +99,7 @@ function isPageHead(
   return !!head && typeof head === "object";
 }
 
-function updateHead(head: unknown, manager: FutureHeadManager) {
+function updateHead(head: unknown, manager: HeadManager) {
   if (!isPageHead(head)) return;
 
   if (!manager.removedServerPageHead) {
@@ -112,13 +108,13 @@ function updateHead(head: unknown, manager: FutureHeadManager) {
   }
 
   manager.entry?.dispose();
-  manager.entry = manager.head.push(createFuturePageHeadInput(head));
+  manager.entry = manager.head.push(createPageHeadInput(head));
   renderDOMHead(manager.head);
 }
 
 function hasSameLayoutIdentity(
-  current: FutureLayoutIdentity | null | undefined,
-  next: FutureLayoutIdentity | null | undefined,
+  current: LayoutIdentity | null | undefined,
+  next: LayoutIdentity | null | undefined,
 ) {
   return (
     !!current &&
@@ -144,8 +140,8 @@ function isLayoutBlockQuery(query: unknown, layoutBlockIds: Set<number>) {
 
 function preserveStableLayoutBlockCaches(
   dehydratedState: unknown,
-  currentLayout: FutureLayoutIdentity | null | undefined,
-  nextLayout: FutureLayoutIdentity | null | undefined,
+  currentLayout: LayoutIdentity | null | undefined,
+  nextLayout: LayoutIdentity | null | undefined,
 ) {
   if (!hasSameLayoutIdentity(currentLayout, nextLayout)) return dehydratedState;
   if (!dehydratedState || typeof dehydratedState !== "object") return dehydratedState;
@@ -160,16 +156,16 @@ function preserveStableLayoutBlockCaches(
   };
 }
 
-export function FuturePageNavigationProvider({
+export function PageNavigationProvider({
   children,
   initialInput,
   queryClient,
 }: {
   children: React.ReactNode;
-  initialInput: FuturePageRenderInput;
+  initialInput: PageRenderInput;
   queryClient: QueryClient;
 }) {
-  const headManagerRef = React.useRef<FutureHeadManager | null>(null);
+  const headManagerRef = React.useRef<HeadManager | null>(null);
   if (!headManagerRef.current) {
     headManagerRef.current = {
       head: createHead(),
@@ -178,9 +174,7 @@ export function FuturePageNavigationProvider({
   }
 
   const headManager = headManagerRef.current;
-  const currentLayoutIdentityRef = React.useRef<FutureLayoutIdentity | null>(
-    initialInput.layoutIdentity,
-  );
+  const currentLayoutIdentityRef = React.useRef<LayoutIdentity | null>(initialInput.layoutIdentity);
 
   const navigate = React.useCallback(
     async ({ replace, to }: { replace?: boolean; to: string }) => {
@@ -192,7 +186,7 @@ export function FuturePageNavigationProvider({
 
       const pagePathname = normalizePagePath(target.pathname, initialInput.runtimeBasePath);
       try {
-        const data = await fetchFuturePageData(pagePathname, initialInput.runtimeBasePath);
+        const data = await fetchPageData(pagePathname, initialInput.runtimeBasePath);
         if (data.dehydratedState) {
           hydrate(
             queryClient,
@@ -249,7 +243,7 @@ export function FuturePageNavigationProvider({
         window.location.pathname,
         initialInput.runtimeBasePath,
       );
-      void fetchFuturePageData(pagePathname, initialInput.runtimeBasePath)
+      void fetchPageData(pagePathname, initialInput.runtimeBasePath)
         .then((data) => {
           if (data.dehydratedState) {
             hydrate(
@@ -273,7 +267,7 @@ export function FuturePageNavigationProvider({
   }, [headManager, initialInput.runtimeBasePath, queryClient]);
 
   const getLocation = React.useCallback(
-    () => getFutureLocation(initialInput.runtimeBasePath),
+    () => getRuntimeLocation(initialInput.runtimeBasePath),
     [initialInput.runtimeBasePath],
   );
 

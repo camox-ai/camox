@@ -1,6 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { dirname, resolve } from "node:path";
+import { dirname, normalize, resolve } from "node:path";
 import { TLSSocket } from "node:tls";
 import { fileURLToPath } from "node:url";
 
@@ -8,8 +8,8 @@ import { type Plugin, type ViteDevServer, createServer } from "vite-plus";
 
 import type { CamoxApp } from "../../core/createApp";
 import type { CamoxDocument } from "../../core/defineDocument";
-import { type FuturePageRenderInput, handleFutureCamoxRequest } from "../runtime/futureRuntime";
-import type { FutureStudioRenderInput } from "../runtime/futureStudioApp";
+import { type PageRenderInput, handleCamoxRequest } from "../runtime/runtime";
+import type { StudioRenderInput } from "../runtime/studioApp";
 
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -17,18 +17,18 @@ const VIRTUAL_CAMOX_APP = "virtual:camox/app";
 const RESOLVED_VIRTUAL_CAMOX_APP = "\0" + VIRTUAL_CAMOX_APP;
 const VIRTUAL_CAMOX_DOCUMENT = "virtual:camox/document";
 const RESOLVED_VIRTUAL_CAMOX_DOCUMENT = "\0" + VIRTUAL_CAMOX_DOCUMENT;
-const VIRTUAL_FUTURE_PAGE_SERVER = "virtual:camox/future-page-server";
-const RESOLVED_VIRTUAL_FUTURE_PAGE_SERVER = "\0" + VIRTUAL_FUTURE_PAGE_SERVER;
-const VIRTUAL_FUTURE_STUDIO_SERVER = "virtual:camox/future-studio-server";
-const RESOLVED_VIRTUAL_FUTURE_STUDIO_SERVER = "\0" + VIRTUAL_FUTURE_STUDIO_SERVER;
-const VIRTUAL_FUTURE_PAGE_CLIENT = "virtual:camox/future-page-client";
-const RESOLVED_VIRTUAL_FUTURE_PAGE_CLIENT = "\0" + VIRTUAL_FUTURE_PAGE_CLIENT;
+const VIRTUAL_PAGE_SERVER = "virtual:camox/page-server";
+const RESOLVED_VIRTUAL_PAGE_SERVER = "\0" + VIRTUAL_PAGE_SERVER;
+const VIRTUAL_STUDIO_SERVER = "virtual:camox/studio-server";
+const RESOLVED_VIRTUAL_STUDIO_SERVER = "\0" + VIRTUAL_STUDIO_SERVER;
+const VIRTUAL_PAGE_CLIENT = "virtual:camox/page-client";
+const RESOLVED_VIRTUAL_PAGE_CLIENT = "\0" + VIRTUAL_PAGE_CLIENT;
 const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
 const RESOLVED_VIRTUAL_STUDIO_CSS = "\0" + VIRTUAL_STUDIO_CSS;
 const VIRTUAL_OVERLAY_CSS = "virtual:camox-overlay-css";
 const RESOLVED_VIRTUAL_OVERLAY_CSS = "\0" + VIRTUAL_OVERLAY_CSS;
 
-interface FutureRuntimeDevOptions {
+interface RuntimeDevOptions {
   apiUrl: string;
   authenticationUrl: string;
   disableTelemetry: boolean;
@@ -66,18 +66,9 @@ function resolveCamoxSourceImport(id: string): string | undefined {
     "camox/CamoxProvider": resolve(sdkRoot, "src/features/provider/CamoxProvider.tsx"),
     "camox/CamoxPreview": resolve(sdkRoot, "src/features/preview/CamoxPreview.tsx"),
     "camox/navigation": resolve(sdkRoot, "src/features/navigation/navigation.tsx"),
-    "camox/_internal/futurePageServer": resolve(
-      sdkRoot,
-      "src/features/runtime/futurePageServer.tsx",
-    ),
-    "camox/_internal/futurePageClient": resolve(
-      sdkRoot,
-      "src/features/runtime/futurePageClient.tsx",
-    ),
-    "camox/_internal/futureStudioServer": resolve(
-      sdkRoot,
-      "src/features/runtime/futureStudioServer.tsx",
-    ),
+    "camox/_internal/pageServer": resolve(sdkRoot, "src/features/runtime/pageServer.tsx"),
+    "camox/_internal/pageClient": resolve(sdkRoot, "src/features/runtime/pageClient.tsx"),
+    "camox/_internal/studioServer": resolve(sdkRoot, "src/features/runtime/studioServer.tsx"),
   };
   return sourceImports[id];
 }
@@ -111,31 +102,31 @@ export const camoxDocument = documents[0] ?? {};
 `;
 }
 
-function generateVirtualFuturePageServer(): string {
-  return `import { renderFuturePageWithApp } from "camox/_internal/futurePageServer";
+function generateVirtualPageServer(): string {
+  return `import { renderPageWithApp } from "camox/_internal/pageServer";
 import { camoxApp } from "virtual:camox/app";
 
-export async function renderFuturePage(input) {
-  return renderFuturePageWithApp({ ...input, camoxApp });
+export async function renderPage(input) {
+  return renderPageWithApp({ ...input, camoxApp });
 }
 `;
 }
 
-function generateVirtualFutureStudioServer(): string {
-  return `import { renderFutureStudioWithApp } from "camox/_internal/futureStudioServer";
+function generateVirtualStudioServer(): string {
+  return `import { renderStudioWithApp } from "camox/_internal/studioServer";
 import { camoxApp } from "virtual:camox/app";
 
-export async function renderFutureStudio(input) {
-  return renderFutureStudioWithApp({ ...input, camoxApp });
+export async function renderStudio(input) {
+  return renderStudioWithApp({ ...input, camoxApp });
 }
 `;
 }
 
-function generateVirtualFuturePageClient(): string {
-  return `import { hydrateFutureRuntimeWithApp } from "camox/_internal/futurePageClient";
+function generateVirtualPageClient(): string {
+  return `import { hydrateRuntimeWithApp } from "camox/_internal/pageClient";
 import { camoxApp } from "virtual:camox/app";
 
-hydrateFutureRuntimeWithApp(camoxApp);
+hydrateRuntimeWithApp(camoxApp);
 `;
 }
 
@@ -143,7 +134,7 @@ function wrapViteDevId(id: string): string {
   return `/@id/${id.replace("\0", "__x00__")}`;
 }
 
-export function resolveFutureRuntimeDevId(id: string, importer?: string): string | undefined {
+export function resolveRuntimeDevId(id: string, importer?: string): string | undefined {
   const camoxSourceImport = resolveCamoxSourceImport(id);
   if (camoxSourceImport) return camoxSourceImport;
 
@@ -152,19 +143,19 @@ export function resolveFutureRuntimeDevId(id: string, importer?: string): string
 
   if (id === VIRTUAL_CAMOX_APP) return RESOLVED_VIRTUAL_CAMOX_APP;
   if (id === VIRTUAL_CAMOX_DOCUMENT) return RESOLVED_VIRTUAL_CAMOX_DOCUMENT;
-  if (id === VIRTUAL_FUTURE_PAGE_SERVER) return RESOLVED_VIRTUAL_FUTURE_PAGE_SERVER;
-  if (id === VIRTUAL_FUTURE_STUDIO_SERVER) return RESOLVED_VIRTUAL_FUTURE_STUDIO_SERVER;
-  if (id === VIRTUAL_FUTURE_PAGE_CLIENT) return RESOLVED_VIRTUAL_FUTURE_PAGE_CLIENT;
+  if (id === VIRTUAL_PAGE_SERVER) return RESOLVED_VIRTUAL_PAGE_SERVER;
+  if (id === VIRTUAL_STUDIO_SERVER) return RESOLVED_VIRTUAL_STUDIO_SERVER;
+  if (id === VIRTUAL_PAGE_CLIENT) return RESOLVED_VIRTUAL_PAGE_CLIENT;
   if (id === VIRTUAL_STUDIO_CSS) return RESOLVED_VIRTUAL_STUDIO_CSS;
   if (id === VIRTUAL_OVERLAY_CSS) return RESOLVED_VIRTUAL_OVERLAY_CSS;
 }
 
-export function loadFutureRuntimeDevModule(id: string): string | undefined {
+export function loadRuntimeDevModule(id: string): string | undefined {
   if (id === RESOLVED_VIRTUAL_CAMOX_APP) return generateVirtualCamoxApp();
   if (id === RESOLVED_VIRTUAL_CAMOX_DOCUMENT) return generateVirtualCamoxDocument();
-  if (id === RESOLVED_VIRTUAL_FUTURE_PAGE_SERVER) return generateVirtualFuturePageServer();
-  if (id === RESOLVED_VIRTUAL_FUTURE_STUDIO_SERVER) return generateVirtualFutureStudioServer();
-  if (id === RESOLVED_VIRTUAL_FUTURE_PAGE_CLIENT) return generateVirtualFuturePageClient();
+  if (id === RESOLVED_VIRTUAL_PAGE_SERVER) return generateVirtualPageServer();
+  if (id === RESOLVED_VIRTUAL_STUDIO_SERVER) return generateVirtualStudioServer();
+  if (id === RESOLVED_VIRTUAL_PAGE_CLIENT) return generateVirtualPageClient();
   if (id === RESOLVED_VIRTUAL_STUDIO_CSS) {
     return `export default "/@fs/${resolve(sdkRoot, "dist/studio.css")}";`;
   }
@@ -173,20 +164,20 @@ export function loadFutureRuntimeDevModule(id: string): string | undefined {
   }
 }
 
-function createFutureRegistryPlugin(): Plugin {
+function createRuntimeRegistryPlugin(): Plugin {
   return {
-    name: "camox-future-registry",
+    name: "camox-runtime-registry",
     enforce: "pre",
-    resolveId: resolveFutureRuntimeDevId,
-    load: loadFutureRuntimeDevModule,
+    resolveId: resolveRuntimeDevId,
+    load: loadRuntimeDevModule,
   };
 }
 
-function getFutureTempServerConfig(server: ViteDevServer, options: FutureRuntimeDevOptions) {
+function getRuntimeTempServerConfig(server: ViteDevServer, options: RuntimeDevOptions) {
   return {
     configFile: false as const,
     root: server.config.root,
-    cacheDir: resolve(server.config.root, "node_modules", ".vite-camox-future"),
+    cacheDir: resolve(server.config.root, "node_modules", ".vite-camox-runtime"),
     define: {
       __CAMOX_TELEMETRY_DISABLED__: JSON.stringify(options.disableTelemetry),
       __ENABLE_TANSTACK_DEVTOOLS__: JSON.stringify(false),
@@ -194,19 +185,19 @@ function getFutureTempServerConfig(server: ViteDevServer, options: FutureRuntime
       __CAMOX_API_URL__: JSON.stringify(options.apiUrl),
       __CAMOX_PROJECT_SLUG__: JSON.stringify(options.projectSlug),
     },
-    plugins: [createFutureRegistryPlugin()],
+    plugins: [createRuntimeRegistryPlugin()],
     resolve: server.config.resolve,
     server: { middlewareMode: true as const },
     logLevel: "silent" as const,
   };
 }
 
-async function withFutureTempServer<T>(
+async function withRuntimeTempServer<T>(
   server: ViteDevServer,
-  options: FutureRuntimeDevOptions,
+  options: RuntimeDevOptions,
   callback: (tempServer: ViteDevServer) => Promise<T>,
 ): Promise<T> {
-  const tempServer = await createServer(getFutureTempServerConfig(server, options));
+  const tempServer = await createServer(getRuntimeTempServerConfig(server, options));
   try {
     return await callback(tempServer);
   } finally {
@@ -214,30 +205,27 @@ async function withFutureTempServer<T>(
   }
 }
 
-async function loadFutureCamoxDocument(
+async function loadCamoxDocument(
   server: ViteDevServer,
-  options: FutureRuntimeDevOptions,
+  options: RuntimeDevOptions,
 ): Promise<CamoxDocument> {
-  type FutureDocumentModule = { camoxDocument: CamoxDocument };
+  type DocumentModule = { camoxDocument: CamoxDocument };
 
   try {
-    const module = (await server.ssrLoadModule(VIRTUAL_CAMOX_DOCUMENT)) as FutureDocumentModule;
+    const module = (await server.ssrLoadModule(VIRTUAL_CAMOX_DOCUMENT)) as DocumentModule;
     return module.camoxDocument;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (!message.includes("runnable environment")) throw error;
   }
 
-  return withFutureTempServer(server, options, async (tempServer) => {
-    const module = (await tempServer.ssrLoadModule(VIRTUAL_CAMOX_DOCUMENT)) as FutureDocumentModule;
+  return withRuntimeTempServer(server, options, async (tempServer) => {
+    const module = (await tempServer.ssrLoadModule(VIRTUAL_CAMOX_DOCUMENT)) as DocumentModule;
     return module.camoxDocument;
   });
 }
 
-async function loadFutureCamoxApp(
-  server: ViteDevServer,
-  options: FutureRuntimeDevOptions,
-): Promise<CamoxApp> {
+async function loadCamoxApp(server: ViteDevServer, options: RuntimeDevOptions): Promise<CamoxApp> {
   try {
     const module = (await server.ssrLoadModule(VIRTUAL_CAMOX_APP)) as { camoxApp: CamoxApp };
     return module.camoxApp;
@@ -246,68 +234,60 @@ async function loadFutureCamoxApp(
     if (!message.includes("runnable environment")) throw error;
   }
 
-  return withFutureTempServer(server, options, async (tempServer) => {
+  return withRuntimeTempServer(server, options, async (tempServer) => {
     const module = (await tempServer.ssrLoadModule(VIRTUAL_CAMOX_APP)) as { camoxApp: CamoxApp };
     return module.camoxApp;
   });
 }
 
-async function renderFuturePage(
+async function renderPage(
   server: ViteDevServer,
-  options: FutureRuntimeDevOptions,
-  input: FuturePageRenderInput,
+  options: RuntimeDevOptions,
+  input: PageRenderInput,
 ): Promise<string> {
-  type FuturePageServerModule = {
-    renderFuturePage: (input: FuturePageRenderInput) => Promise<string>;
+  type PageServerModule = {
+    renderPage: (input: PageRenderInput) => Promise<string>;
   };
 
   try {
-    const module = (await server.ssrLoadModule(
-      VIRTUAL_FUTURE_PAGE_SERVER,
-    )) as FuturePageServerModule;
-    return module.renderFuturePage(input);
+    const module = (await server.ssrLoadModule(VIRTUAL_PAGE_SERVER)) as PageServerModule;
+    return module.renderPage(input);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (!message.includes("runnable environment")) throw error;
   }
 
-  return withFutureTempServer(server, options, async (tempServer) => {
-    const module = (await tempServer.ssrLoadModule(
-      VIRTUAL_FUTURE_PAGE_SERVER,
-    )) as FuturePageServerModule;
-    return module.renderFuturePage(input);
+  return withRuntimeTempServer(server, options, async (tempServer) => {
+    const module = (await tempServer.ssrLoadModule(VIRTUAL_PAGE_SERVER)) as PageServerModule;
+    return module.renderPage(input);
   });
 }
 
-async function renderFutureStudio(
+async function renderStudio(
   server: ViteDevServer,
-  options: FutureRuntimeDevOptions,
-  input: FutureStudioRenderInput,
+  options: RuntimeDevOptions,
+  input: StudioRenderInput,
 ): Promise<string> {
-  type FutureStudioServerModule = {
-    renderFutureStudio: (input: FutureStudioRenderInput) => Promise<string>;
+  type StudioServerModule = {
+    renderStudio: (input: StudioRenderInput) => Promise<string>;
   };
 
   try {
-    const module = (await server.ssrLoadModule(
-      VIRTUAL_FUTURE_STUDIO_SERVER,
-    )) as FutureStudioServerModule;
-    return module.renderFutureStudio(input);
+    const module = (await server.ssrLoadModule(VIRTUAL_STUDIO_SERVER)) as StudioServerModule;
+    return module.renderStudio(input);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (!message.includes("runnable environment")) throw error;
   }
 
-  return withFutureTempServer(server, options, async (tempServer) => {
-    const module = (await tempServer.ssrLoadModule(
-      VIRTUAL_FUTURE_STUDIO_SERVER,
-    )) as FutureStudioServerModule;
-    return module.renderFutureStudio(input);
+  return withRuntimeTempServer(server, options, async (tempServer) => {
+    const module = (await tempServer.ssrLoadModule(VIRTUAL_STUDIO_SERVER)) as StudioServerModule;
+    return module.renderStudio(input);
   });
 }
 
 function normalizeRuntimeBasePath(basePath?: string): string {
-  if (basePath === undefined) return "/_future";
+  if (basePath === undefined) return "";
   if (!basePath || basePath === "/") return "";
   return basePath.startsWith("/")
     ? basePath.replace(/\/+$/, "")
@@ -319,18 +299,49 @@ function isDocumentRequest(request: Request): boolean {
   return accept.includes("text/html") || accept.includes("*/*");
 }
 
-function shouldHandleFutureRuntimeDevRequest(request: Request, options: FutureRuntimeDevOptions) {
+function isPublicAssetRequest(pathname: string, server: ViteDevServer): boolean {
+  if (!server.config.publicDir) return false;
+
+  let decodedPathname: string;
+  try {
+    decodedPathname = decodeURIComponent(pathname);
+  } catch {
+    return false;
+  }
+
+  const publicDir = resolve(server.config.publicDir);
+  const assetPath = resolve(publicDir, normalize(decodedPathname).replace(/^[/\\]+/, ""));
+  if (assetPath === publicDir) return false;
+  if (!assetPath.startsWith(`${publicDir}/`)) return false;
+  if (!existsSync(assetPath)) return false;
+
+  return statSync(assetPath).isFile();
+}
+
+function shouldHandleRuntimeDevRequest(
+  request: Request,
+  options: RuntimeDevOptions,
+  server: ViteDevServer,
+) {
   const url = new URL(request.url);
   const basePath = normalizeRuntimeBasePath(options.runtimeBasePath);
   if (basePath) return url.pathname === basePath || url.pathname.startsWith(`${basePath}/`);
 
   if (request.method !== "GET" && request.method !== "HEAD") return false;
-  if (url.pathname === "/_camox/data" || url.pathname === "/_camox/health") return true;
+  if (
+    url.pathname === "/_camox/data" ||
+    url.pathname === "/_camox/health" ||
+    url.pathname === "/_camox/registry"
+  ) {
+    return true;
+  }
   if (url.pathname === "/og" || url.pathname === "/sitemap.xml") return true;
   if (url.pathname === "/camox" || url.pathname.startsWith("/camox/")) return true;
   if (/\.[a-z0-9]+$/i.test(url.pathname)) return false;
   if (url.pathname.startsWith("/@") || url.pathname.startsWith("/src/")) return false;
+  if (url.pathname.startsWith("/__vite")) return false;
   if (url.pathname.startsWith("/node_modules/")) return false;
+  if (isPublicAssetRequest(url.pathname, server)) return false;
   if (!isDocumentRequest(request)) return false;
 
   return true;
@@ -375,10 +386,7 @@ async function sendWebResponse(
   res.end(body);
 }
 
-export function installFutureRuntimeDevMiddleware(
-  server: ViteDevServer,
-  options: FutureRuntimeDevOptions,
-) {
+export function installRuntimeDevMiddleware(server: ViteDevServer, options: RuntimeDevOptions) {
   server.middlewares.use(async (req, res, next) => {
     const request = createRequestFromIncomingMessage(req);
     if (!request) {
@@ -386,21 +394,21 @@ export function installFutureRuntimeDevMiddleware(
       return;
     }
 
-    if (!shouldHandleFutureRuntimeDevRequest(request, options)) {
+    if (!shouldHandleRuntimeDevRequest(request, options, server)) {
       next();
       return;
     }
 
-    const response = await handleFutureCamoxRequest(request, {
+    const response = await handleCamoxRequest(request, {
       apiUrl: options.apiUrl,
       authenticationUrl: options.authenticationUrl,
-      clientEntryUrl: wrapViteDevId(RESOLVED_VIRTUAL_FUTURE_PAGE_CLIENT),
+      clientEntryUrl: wrapViteDevId(RESOLVED_VIRTUAL_PAGE_CLIENT),
       environmentName: options.environmentName,
-      getCamoxApp: () => loadFutureCamoxApp(server, options),
-      getDocument: () => loadFutureCamoxDocument(server, options),
+      getCamoxApp: () => loadCamoxApp(server, options),
+      getDocument: () => loadCamoxDocument(server, options),
       projectSlug: options.projectSlug,
-      renderPage: (input) => renderFuturePage(server, options, input),
-      renderStudio: (input) => renderFutureStudio(server, options, input),
+      renderPage: (input) => renderPage(server, options, input),
+      renderStudio: (input) => renderStudio(server, options, input),
       runtimeBasePath: options.runtimeBasePath,
     });
     if (!response) {
@@ -409,7 +417,7 @@ export function installFutureRuntimeDevMiddleware(
     }
 
     await sendWebResponse(res, response, {
-      transformHtml: (html) => server.transformIndexHtml(req.url ?? "/_future/", html),
+      transformHtml: (html) => server.transformIndexHtml(req.url ?? "/", html),
     });
   });
 }

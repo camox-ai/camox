@@ -65,16 +65,8 @@ const config = defineConfig({
         replacement: resolve(__dirname, "../../packages/sdk/src/og/og.ts"),
       },
       {
-        find: "camox/_internal/pageRoute",
-        replacement: resolve(__dirname, "../../packages/sdk/src/features/routes/pageRoute.tsx"),
-      },
-      {
         find: "camox/metadata",
         replacement: resolve(__dirname, "../../packages/sdk/src/features/metadata/sitemap.ts"),
-      },
-      {
-        find: "camox/_internal/ogRoute",
-        replacement: resolve(__dirname, "../../packages/sdk/src/features/routes/ogRoute.ts"),
       },
     ],
   },
@@ -87,7 +79,7 @@ const config = defineConfig({
       _internal: {
         authenticationUrl: "http://localhost:3274",
         apiUrl: "http://localhost:8787",
-        futureRuntimeBasePath: "/",
+        runtimeBasePath: "/",
       },
     }),
     tanstackStart(),

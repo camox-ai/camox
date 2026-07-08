@@ -178,7 +178,7 @@ const UnauthenticatedCamoxProvider = ({ children }: { children: React.ReactNode 
     if (typeof window === "undefined") return undefined;
     if (pathname !== STUDIO_BASE_PATH) return window.location.href;
 
-    const rootPath = window.location.pathname.startsWith("/_future") ? "/_future/" : "/";
+    const rootPath = "/";
     return new URL(rootPath, window.location.href).href;
   }, [pathname]);
   const signInRedirect = useSignInRedirect(getSignInCallbackHref);
