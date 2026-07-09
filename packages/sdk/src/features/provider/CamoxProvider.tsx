@@ -244,6 +244,8 @@ export function CamoxProvider({
   const ottReady = useProcessOtt(authClient);
   if (!ottReady) return null;
 
+  const unauthenticated = <UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>;
+
   return (
     <AuthContext.Provider
       value={{ authClient, authenticationUrl, apiUrl, projectSlug, environmentName }}
@@ -257,7 +259,8 @@ export function CamoxProvider({
               <AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>
             </>
           }
-          unauthenticated={<UnauthenticatedCamoxProvider>{children}</UnauthenticatedCamoxProvider>}
+          loading={unauthenticated}
+          unauthenticated={unauthenticated}
         />
       </CamoxAppProvider>
     </AuthContext.Provider>
