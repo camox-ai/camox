@@ -11,17 +11,15 @@ const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
 const RESOLVED_VIRTUAL_STUDIO_CSS = "\0" + VIRTUAL_STUDIO_CSS;
 const VIRTUAL_OVERLAY_CSS = "virtual:camox-overlay-css";
 const RESOLVED_VIRTUAL_OVERLAY_CSS = "\0" + VIRTUAL_OVERLAY_CSS;
+const RESOLVED_VIRTUAL_PAGE_CLIENT = "\0virtual:camox/page-client";
+const RESOLVED_VIRTUAL_PAGE_CLIENT_URL = "\0virtual:camox/page-client-url";
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
 
 const PRODUCTION_API_URL = "https://api.camox.ai";
 import { syncDefinitions, syncDefinitionsToApi } from "./definitionsSync";
 import { cleanupGeneratedRouteFiles } from "./routeGeneration";
-import {
-  installRuntimeDevMiddleware,
-  loadRuntimeDevModule,
-  resolveRuntimeDevId,
-} from "./runtimeDev";
+import { installRuntimeNitroRoutes, loadRuntimeDevModule, resolveRuntimeDevId } from "./runtimeDev";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
 /** Authentication URL to use for Camox authentication (production Camox web app) */
@@ -33,6 +31,19 @@ const authTokenSchema = z.object({
   email: z.string(),
 });
 const authFileSchema = z.record(z.string(), authTokenSchema);
+
+interface CamoxNitro {
+  options: {
+    routes: Record<string, string>;
+    virtual: Record<string, string>;
+  };
+}
+
+type CamoxVitePlugin = Plugin & {
+  nitro?: {
+    setup: (nitro: CamoxNitro) => void;
+  };
+};
 
 function readAuthEmail(authenticationUrl: string): string | null {
   const authFile = join(homedir(), ".camox", "auth.json");
@@ -113,7 +124,7 @@ export interface CamoxPluginOptions {
   };
 }
 
-export function camox(options: CamoxPluginOptions): Plugin {
+export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
   const apiUrl = options._internal?.apiUrl ?? PRODUCTION_API_URL;
   const authenticationUrl = options._internal?.authenticationUrl ?? DEFAULT_AUTHENTICATION_URL;
   const enableTanstackDevtools = options._internal?.enableTanstackDevtools ?? false;
@@ -149,7 +160,20 @@ export function camox(options: CamoxPluginOptions): Plugin {
         const css = readFileSync(cssPath, "utf-8");
         return `export default ${JSON.stringify(css)};`;
       }
-      return loadRuntimeDevModule(id);
+      if (id === RESOLVED_VIRTUAL_PAGE_CLIENT_URL && isBuild) {
+        const ref = this.emitFile({
+          type: "chunk",
+          id: RESOLVED_VIRTUAL_PAGE_CLIENT,
+          name: "camox-page-client",
+        });
+        return `export default import.meta.ROLLUP_FILE_URL_${ref};`;
+      }
+      return loadRuntimeDevModule(id, { runtimeBasePath });
+    },
+    nitro: {
+      setup(nitro) {
+        installRuntimeNitroRoutes(nitro, { runtimeBasePath });
+      },
     },
     config(_config, env) {
       isBuild = env.command === "build";
@@ -160,6 +184,7 @@ export function camox(options: CamoxPluginOptions): Plugin {
           __ENABLE_TANSTACK_DEVTOOLS__: JSON.stringify(enableTanstackDevtools),
           __CAMOX_ENVIRONMENT_NAME__: JSON.stringify(environmentName),
           __CAMOX_API_URL__: JSON.stringify(apiUrl),
+          __CAMOX_AUTHENTICATION_URL__: JSON.stringify(authenticationUrl),
           __CAMOX_PROJECT_SLUG__: JSON.stringify(options.projectSlug),
         },
         resolve: {
@@ -286,15 +311,6 @@ export function camox(options: CamoxPluginOptions): Plugin {
 
     configureServer(server: ViteDevServer) {
       const routesDir = resolve(server.config.root, "src/routes");
-
-      installRuntimeDevMiddleware(server, {
-        apiUrl,
-        authenticationUrl,
-        disableTelemetry: !!options.disableTelemetry,
-        environmentName,
-        projectSlug: options.projectSlug,
-        runtimeBasePath: runtimeBasePath,
-      });
 
       if (!disableCodeGen) {
         watchAppFile(server, server.config.root);

@@ -82,6 +82,11 @@
       "types": "./dist/features/runtime/studioServer.d.ts",
       "import": "./dist/features/runtime/studioServer.js"
     },
+    "./_internal/runtime": {
+      "source": "./src/features/runtime/runtime.ts",
+      "types": "./dist/features/runtime/runtime.d.ts",
+      "import": "./dist/features/runtime/runtime.js"
+    },
     "./_internal/imageResponse": {
       "workerd": {
         "source": "./src/features/og/imageResponse.workerd.ts",

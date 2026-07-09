@@ -11,6 +11,17 @@ declare module "virtual:camox-overlay-css" {
   export default css;
 }
 
+declare module "virtual:camox/server" {
+  export function handleCamoxRequest(request: Request): Promise<Response | null>;
+}
+
+declare module "virtual:camox/page-client-url" {
+  const url: string;
+  export default url;
+}
+
+declare const __CAMOX_AUTHENTICATION_URL__: string;
+
 // Temporal API types (Stage 3, available in modern browsers)
 declare namespace Temporal {
   class Instant {
