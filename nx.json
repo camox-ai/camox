@@ -46,5 +46,8 @@
       "cache": true
     }
   },
+  "tui": {
+    "enabled": false
+  },
   "defaultBase": "main"
 }
