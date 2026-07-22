@@ -13,7 +13,7 @@ A definition only adds a new layout to the catalog — it doesn't apply it to an
 
 ## Quick Start
 
-A layout file lives in the app's `src/camox/layouts/` folder, is a `.tsx` file, and exports `layout`:
+A layout file lives in the app's `src/layouts/` folder, is a `.tsx` file, and exports `layout`:
 
 ```tsx
 import { createLayout } from "camox/createLayout";
@@ -199,7 +199,7 @@ buildOgImage: ({ title, description, projectName }) => (
 
 ## Rules and Conventions
 
-1. **File = one layout.** One `.tsx` file per layout in `src/camox/layouts/`. The `id` must match the filename (without `.tsx`).
+1. **File = one layout.** One `.tsx` file per layout in `src/layouts/`. The `id` must match the filename (without `.tsx`).
 2. **Named export as `layout`.** Always: `export { myVar as layout }`. Not a default export.
 3. **Named function component.** Use `function MyComponent()`, not an arrow function. Reference it in `createLayout` before its declaration is fine (hoisting).
 4. **Import path is `"camox/createLayout"`.** The `createLayout` function comes from this import.

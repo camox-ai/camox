@@ -266,7 +266,14 @@ export async function syncDefinitions(
   options: SyncDefinitionsOptions,
 ): Promise<void> {
   const { projectSlug, syncSecret, apiUrl, environmentName, autoCreate } = options;
-  const blocksDir = path.resolve(server.config.root, "src/camox/blocks");
+  const blocksDirs = [
+    path.resolve(server.config.root, "src/blocks"),
+    path.resolve(server.config.root, "src/camox/blocks"),
+  ];
+  const layoutsDirs = [
+    path.resolve(server.config.root, "src/layouts"),
+    path.resolve(server.config.root, "src/camox/layouts"),
+  ];
   const client = createServerApiClient(apiUrl, environmentName);
 
   async function performInitialSync(): Promise<void> {
@@ -388,14 +395,16 @@ export async function syncDefinitions(
   // Watch for changes in block files
   const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  const layoutsDir = path.resolve(server.config.root, "src/camox/layouts");
-
   function isBlockFile(filePath: string): boolean {
-    return filePath.startsWith(blocksDir) && /\.tsx?$/.test(filePath);
+    return (
+      blocksDirs.some((blocksDir) => filePath.startsWith(blocksDir)) && /\.tsx?$/.test(filePath)
+    );
   }
 
   function isLayoutFile(filePath: string): boolean {
-    return filePath.startsWith(layoutsDir) && /\.tsx?$/.test(filePath);
+    return (
+      layoutsDirs.some((layoutsDir) => filePath.startsWith(layoutsDir)) && /\.tsx?$/.test(filePath)
+    );
   }
 
   const handleBlockFileUpsert = (filePath: string) => {

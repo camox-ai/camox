@@ -2,7 +2,6 @@ import { resolve } from "node:path";
 
 import babelPlugin from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite-plus";
@@ -15,7 +14,7 @@ const config = defineConfig({
     rules: {
       "no-nested-ternary": "error",
     },
-    ignorePatterns: ["src/routeTree.gen.ts", "**/convex/_generated/**"],
+    ignorePatterns: ["**/convex/_generated/**"],
     options: {
       typeAware: true,
       typeCheck: true,
@@ -82,7 +81,6 @@ const config = defineConfig({
         runtimeBasePath: "/",
       },
     }),
-    tanstackStart(),
     react(),
     babelPlugin({ presets: [reactCompilerPreset()] }),
   ],
