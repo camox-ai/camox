@@ -240,7 +240,10 @@ function crossDomainClient(
           options.credentials = getAuthRequestCredentials(cookie);
           options.headers = {
             ...options.headers,
-            ...(cookie ? { "Better-Auth-Cookie": cookie } : {}),
+            // Header presence identifies SDK cross-domain requests to the API.
+            // Keep it even when there is no cookie yet so the first OTT exchange
+            // can return its session through `Set-Better-Auth-Cookie`.
+            "Better-Auth-Cookie": cookie,
           };
           if (url.includes("/sign-out")) {
             await storage.setItem(cookieName, "{}");
@@ -300,10 +303,15 @@ export function useProcessOtt(authClient: CamoxAuthClient) {
 
     void (async () => {
       try {
-        await authClient.oneTimeToken.verify({ token: ott });
-        // crossDomainClient's fetch plugin handles storing the session cookie
-        // in localStorage automatically. Just notify the session store.
-        await authClient.updateSession();
+        const verification = await authClient.oneTimeToken.verify({ token: ott });
+        if (verification.error) throw verification.error;
+        if (!verification.data) throw new Error("OTT verification returned no session");
+
+        // The fetch hook has persisted the session in localStorage and mirrored it
+        // into the first-party server cookie. Reload the URL after stripping the
+        // one-time token so SSR and the client both start authenticated.
+        window.location.reload();
+        return;
       } catch {
         // OTT verification failed — continue unauthenticated
       }
