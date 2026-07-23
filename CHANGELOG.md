@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.34.0](https://github.com/camox-ai/camox/compare/camox-v0.33.1...camox-v0.34.0) (2026-07-23)
+
+
+### Features
+
+* add _future page rendering ([e0fcf09](https://github.com/camox-ai/camox/commit/e0fcf0976401963f7504e7d25844e5fe86b5832f))
+* add defineDocument API ([92552ba](https://github.com/camox-ai/camox/commit/92552ba2dcae8cf4cdcc51459b083cc69bec936f))
+* add hydration to _future runtime ([19c865f](https://github.com/camox-ai/camox/commit/19c865fd4ae6497c4568120f8d482e8ce16bea2d))
+* nitro-first runtime ([ec92df2](https://github.com/camox-ai/camox/commit/ec92df24bb483e25ca8a486027d8683a3f62b4b0))
+* preserve shared layout upon navigation ([99327fa](https://github.com/camox-ai/camox/commit/99327fade7bae66aac3ce4446521600c0f21317a))
+* render camox routes on future runtime ([31250cd](https://github.com/camox-ai/camox/commit/31250cdf062791b9edb98abdf4247497d7ded3e5))
+
+
+### Bug Fixes
+
+* display toolbar upon auth ([dc75a4e](https://github.com/camox-ai/camox/commit/dc75a4e2b7a2a90a3c8cd44b9fa7c21a750f8296))
+* **sdk:** css and js not loading ([9936bfa](https://github.com/camox-ai/camox/commit/9936bfa8cad1988fa2a797c51139a904f438f5e0))
+* ssr not rendering blocks html ([6985198](https://github.com/camox-ai/camox/commit/69851980ba7ad8fad3bfa47163234773db3d3d95))
+
+
+### Documentation
+
+* document custom framework plan ([5be2390](https://github.com/camox-ai/camox/commit/5be2390ac0f4d9a46a99155bbe8087e9f493f754))
+
+
+### Miscellaneous
+
+* add camox provider to future runtime ([6413270](https://github.com/camox-ai/camox/commit/64132702fa08a7435c5daf9f812be449f8724067))
+* **api:** rename SITE_URL to DASHBOARD_URL ([038da3c](https://github.com/camox-ai/camox/commit/038da3c7f77664b982fb8edabab2defb5832457d))
+* client side navigation ([c69ee0d](https://github.com/camox-ai/camox/commit/c69ee0d889470888000144851dc8f42fdc24a0ca))
+* fix main dev script spiking cpu use ([9347c8a](https://github.com/camox-ai/camox/commit/9347c8a98b75dc29d688741260d852bb29211248))
+* promote future runtime to default ([e5a8482](https://github.com/camox-ai/camox/commit/e5a84823f01b0b5443cc6c0ab83fcf2890e8123a))
+* register _future route path ([99b402c](https://github.com/camox-ai/camox/commit/99b402c5da13a6ef8d6da733120157074196c81b))
+* remove tanstack start from playground app ([b5e4e51](https://github.com/camox-ai/camox/commit/b5e4e51a6ef43c73cbc4dc777a6ca996468a3e38))
+* render camox studio routes on future runtime ([63e5e55](https://github.com/camox-ai/camox/commit/63e5e55cb973670b0c18a5268fe62fb3ed21cbcd))
+* split web app into dashboard and landing ([e334ffe](https://github.com/camox-ai/camox/commit/e334ffe642c66141f670ccbd596c92bf8f7616e0))
+* update template app to use new file structure ([3ee340a](https://github.com/camox-ai/camox/commit/3ee340a23dfffba78473e7cae67e9dd00d1a6bc1))
+
 ## [0.33.1](https://github.com/camox-ai/camox/compare/camox-v0.33.0...camox-v0.33.1) (2026-06-30)
 
 
