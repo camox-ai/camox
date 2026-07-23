@@ -66,6 +66,7 @@ export interface RuntimeOptions {
   renderPage?: (input: PageRenderInput) => Promise<string>;
   renderStudio?: (input: StudioRenderInput) => Promise<string>;
   runtimeBasePath?: string;
+  stylesheetUrl?: string;
 }
 
 function buildClearServerAuthCookieHeader() {
@@ -208,14 +209,14 @@ async function createOgResponse(request: Request, options: RuntimeOptions): Prom
   return layout._internal.buildOgImage({ title, description, projectName });
 }
 
-function createDefaultHeadInput(): UseHeadInput {
+function createDefaultHeadInput(stylesheetUrl?: string): UseHeadInput {
   return {
     htmlAttrs: { lang: "en" },
     meta: [
       { charset: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
     ],
-    link: [{ rel: "stylesheet", href: "/src/styles.css" }],
+    link: stylesheetUrl ? [{ rel: "stylesheet", href: stylesheetUrl }] : [],
   };
 }
 
@@ -256,9 +257,9 @@ export function createPageHeadInput(head: {
   };
 }
 
-function renderHead(document: CamoxDocument, pageHead: UseHeadInput) {
+function renderHead(document: CamoxDocument, pageHead: UseHeadInput, stylesheetUrl?: string) {
   const head = createHead();
-  head.push(createDefaultHeadInput());
+  head.push(createDefaultHeadInput(stylesheetUrl));
   head.push(document);
   head.push(pageHead);
   return renderSSRHead(head);
@@ -325,7 +326,7 @@ async function createPageHtmlResponse({
       runtimeBasePath: normalizeRuntimeBasePath(options.runtimeBasePath),
     } satisfies PageRenderInput;
     const appHtml = await options.renderPage(pageRenderInput);
-    const renderedHead = renderHead(document, createPageHeadInput(head));
+    const renderedHead = renderHead(document, createPageHeadInput(head), options.stylesheetUrl);
 
     return new Response(
       `<!doctype html>
@@ -387,7 +388,7 @@ async function createStudioHtmlResponse({
     runtimeKind: "studio",
   } satisfies StudioRenderInput & { runtimeKind: "studio" };
   const appHtml = await options.renderStudio(studioRenderInput);
-  const renderedHead = renderHead(document, {});
+  const renderedHead = renderHead(document, {}, options.stylesheetUrl);
 
   return new Response(
     `<!doctype html>

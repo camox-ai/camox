@@ -168,11 +168,6 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
         return `export default ${JSON.stringify(css)};`;
       }
       if (id === RESOLVED_VIRTUAL_PAGE_CLIENT_URL && isBuild) {
-        this.emitFile({
-          type: "chunk",
-          id: VIRTUAL_PAGE_CLIENT,
-          name: "camox-page-client",
-        });
         return 'export default "/_chunks/camox-page-client.mjs";';
       }
       return loadRuntimeDevModule(id, { runtimeBasePath });
@@ -181,11 +176,9 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
       setup(nitro) {
         installRuntimeNitroRoutes(nitro, { runtimeBasePath });
         nitro.hooks.hook("compiled", ({ options }) => {
-          for (const directory of ["_chunks", "_libs", "wasm"]) {
-            const source = join(options.output.serverDir, directory);
-            if (!existsSync(source)) continue;
-            cpSync(source, join(options.output.publicDir, directory), { recursive: true });
-          }
+          const serverAssets = join(options.output.serverDir, "assets");
+          if (!existsSync(serverAssets)) return;
+          cpSync(serverAssets, join(options.output.publicDir, "assets"), { recursive: true });
         });
       },
     },
@@ -193,6 +186,9 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
       isBuild = env.command === "build";
       environmentName = resolveEnvironmentName(env.command, authenticationUrl);
       return {
+        build: {
+          emitAssets: true,
+        },
         define: {
           __CAMOX_TELEMETRY_DISABLED__: JSON.stringify(!!options.disableTelemetry),
           __ENABLE_TANSTACK_DEVTOOLS__: JSON.stringify(enableTanstackDevtools),
@@ -200,6 +196,22 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
           __CAMOX_API_URL__: JSON.stringify(apiUrl),
           __CAMOX_AUTHENTICATION_URL__: JSON.stringify(authenticationUrl),
           __CAMOX_PROJECT_SLUG__: JSON.stringify(options.projectSlug),
+        },
+        environments: {
+          client: {
+            build: {
+              rollupOptions: {
+                input: {
+                  "camox-page-client": VIRTUAL_PAGE_CLIENT,
+                },
+                output: {
+                  assetFileNames: "assets/[name]-[hash][extname]",
+                  chunkFileNames: "_chunks/[name]-[hash].mjs",
+                  entryFileNames: "_chunks/[name].mjs",
+                },
+              },
+            },
+          },
         },
         resolve: {
           // `react-remove-scroll` (transitive dep of @base-ui/react and radix dialog)
