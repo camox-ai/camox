@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/camox-ai/camox/compare/camox-v0.33.1...@camox/cli-v0.34.0) (2026-07-23)
+
+
+### Miscellaneous
+
+* split web app into dashboard and landing ([e334ffe](https://github.com/camox-ai/camox/commit/e334ffe642c66141f670ccbd596c92bf8f7616e0))
+
 ## [0.33.1](https://github.com/camox-ai/camox/compare/camox-v0.33.0...@camox/cli-v0.33.1) (2026-06-30)
 
 
