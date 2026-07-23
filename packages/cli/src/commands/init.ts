@@ -200,7 +200,7 @@ export async function init() {
   });
   if (p.isCancel(name)) return onCancel();
 
-  // Authenticate with camox.ai
+  // Authenticate with the Camox Dashboard
   const auth = await getOrAuthenticate();
 
   // Organization selection

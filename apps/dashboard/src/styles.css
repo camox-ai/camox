@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@daveyplate/better-auth-ui/css";
+@import "../../../packages/ui/src/styles/globals.css";
+@source "./";
+
+@layer base {
+  html {
+    font-size: 15px;
+    @media (width >= theme(--breakpoint-sm)) {
+      font-size: 15.5px;
+    }
+    @media (width >= theme(--breakpoint-md)) {
+      font-size: 16px;
+    }
+  }
+}

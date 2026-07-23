@@ -14,6 +14,9 @@ Camox is an open-source page builder framework. It lets developers build quality
 - [Video product overview](https://youtu.be/sftAaNrrfR8)
 - [GitHub](https://github.com/camox-ai/camox)
 
+The repository includes the public Camox site in `apps/landing` and the account
+and Project Dashboard in `apps/dashboard`.
+
 ## Quick start
 
 ```bash

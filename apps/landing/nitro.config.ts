@@ -1,0 +1,23 @@
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  preset: "cloudflare_module",
+  cloudflare: {
+    wrangler: {
+      name: "camox-landing",
+      compatibility_date: "2026-04-11",
+      compatibility_flags: ["nodejs_compat"],
+      routes: [{ pattern: "camox.ai", custom_domain: true }],
+      observability: {
+        logs: {
+          enabled: true,
+          invocation_logs: true,
+        },
+        // @ts-expect-error Nitro's embedded Wrangler types do not expose traces yet.
+        traces: {
+          enabled: true,
+        },
+      },
+    },
+  },
+});

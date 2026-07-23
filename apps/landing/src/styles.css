@@ -1,0 +1,65 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../../../packages/ui/src/styles/globals.css";
+@source "./";
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 0.5rem;
+  max-width: 80rem;
+  @media (width >= theme(--breakpoint-sm)) {
+    padding-inline: 2rem;
+  }
+  @media (width >= theme(--breakpoint-md)) {
+    padding-inline: 3rem;
+  }
+}
+
+/* Two hairline vertical rules with a wider gutter than `border-style: double`
+   would allow (which would also thicken the lines). Only shown once the
+   viewport is wide enough that the container isn't flush to the edges. */
+@utility block-side-border {
+  @media (width >= theme(--breakpoint-xl)) {
+    position: relative;
+    border-inline: 1px solid var(--border);
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      width: 1px;
+      background: var(--border);
+      pointer-events: none;
+    }
+    &::before {
+      left: 4px;
+    }
+    &::after {
+      right: 4px;
+    }
+  }
+}
+
+@layer base {
+  html {
+    font-size: 15px;
+    @media (width >= theme(--breakpoint-sm)) {
+      font-size: 15.5px;
+    }
+    @media (width >= theme(--breakpoint-md)) {
+      font-size: 16px;
+    }
+  }
+}
+
+/* Paper Shaders mounts its <canvas> async after WebGL init; fade it in to hide
+   the pop. The `data-paper-shader` attribute is set by the library only once
+   the shader is ready, so the animation runs when the canvas is inserted. */
+@keyframes paper-shader-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+[data-paper-shader] > canvas {
+  animation: paper-shader-fade-in 1s ease-out;
+}

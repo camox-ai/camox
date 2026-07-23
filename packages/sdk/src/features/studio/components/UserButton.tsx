@@ -75,9 +75,7 @@ function AuthenticatedUserButton({
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => window.open(`${authenticationUrl}/dashboard/profile`, "_blank")}
-        >
+        <DropdownMenuItem onClick={() => window.open(`${authenticationUrl}/profile`, "_blank")}>
           <Settings />
           <span>Manage account</span>
         </DropdownMenuItem>

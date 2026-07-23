@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,7 +11,7 @@ const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
 const RESOLVED_VIRTUAL_STUDIO_CSS = "\0" + VIRTUAL_STUDIO_CSS;
 const VIRTUAL_OVERLAY_CSS = "virtual:camox-overlay-css";
 const RESOLVED_VIRTUAL_OVERLAY_CSS = "\0" + VIRTUAL_OVERLAY_CSS;
-const RESOLVED_VIRTUAL_PAGE_CLIENT = "\0virtual:camox/page-client";
+const VIRTUAL_PAGE_CLIENT = "virtual:camox/page-client";
 const RESOLVED_VIRTUAL_PAGE_CLIENT_URL = "\0virtual:camox/page-client-url";
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
@@ -22,8 +22,8 @@ import { cleanupGeneratedRouteFiles } from "./routeGeneration";
 import { installRuntimeNitroRoutes, loadRuntimeDevModule, resolveRuntimeDevId } from "./runtimeDev";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
-/** Authentication URL to use for Camox authentication (production Camox web app) */
-const DEFAULT_AUTHENTICATION_URL = "https://camox.ai";
+/** Authentication URL to use for Camox authentication (production Camox Dashboard) */
+const DEFAULT_AUTHENTICATION_URL = "https://app.camox.ai";
 
 const authTokenSchema = z.object({
   token: z.string(),
@@ -33,7 +33,14 @@ const authTokenSchema = z.object({
 const authFileSchema = z.record(z.string(), authTokenSchema);
 
 interface CamoxNitro {
+  hooks: {
+    hook: (name: "compiled", callback: (nitro: CamoxNitro) => void) => void;
+  };
   options: {
+    output: {
+      publicDir: string;
+      serverDir: string;
+    };
     routes: Record<string, string>;
     virtual: Record<string, string>;
   };
@@ -113,7 +120,7 @@ export interface CamoxPluginOptions {
   _internal?: {
     /** URL of the Camox API backend, used for data fetching */
     apiUrl?: string;
-    /** URL of the Camox authentication backend (default: https://camox.ai) */
+    /** URL of the Camox authentication backend (default: https://app.camox.ai) */
     authenticationUrl?: string;
     /** Show Tanstack query devtools (default: false) */
     enableTanstackDevtools?: boolean;
@@ -149,8 +156,8 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
         const cssPath = resolve(sdkRoot, "dist/studio.css");
         if (isBuild) {
           const css = readFileSync(cssPath, "utf-8");
-          const ref = this.emitFile({ type: "asset", name: "studio.css", source: css });
-          return `export default import.meta.ROLLUP_FILE_URL_${ref};`;
+          const dataUrl = `data:text/css;base64,${Buffer.from(css).toString("base64")}`;
+          return `export default ${JSON.stringify(dataUrl)};`;
         }
         // Dev: serve the file directly via Vite's /@fs/ prefix
         return `export default "/@fs/${cssPath}";`;
@@ -161,18 +168,25 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
         return `export default ${JSON.stringify(css)};`;
       }
       if (id === RESOLVED_VIRTUAL_PAGE_CLIENT_URL && isBuild) {
-        const ref = this.emitFile({
+        this.emitFile({
           type: "chunk",
-          id: RESOLVED_VIRTUAL_PAGE_CLIENT,
+          id: VIRTUAL_PAGE_CLIENT,
           name: "camox-page-client",
         });
-        return `export default import.meta.ROLLUP_FILE_URL_${ref};`;
+        return 'export default "/_chunks/camox-page-client.mjs";';
       }
       return loadRuntimeDevModule(id, { runtimeBasePath });
     },
     nitro: {
       setup(nitro) {
         installRuntimeNitroRoutes(nitro, { runtimeBasePath });
+        nitro.hooks.hook("compiled", ({ options }) => {
+          for (const directory of ["_chunks", "_libs", "wasm"]) {
+            const source = join(options.output.serverDir, directory);
+            if (!existsSync(source)) continue;
+            cpSync(source, join(options.output.publicDir, directory), { recursive: true });
+          }
+        });
       },
     },
     config(_config, env) {

@@ -6,7 +6,7 @@ import path from "node:path";
 
 import * as p from "@clack/prompts";
 
-const CAMOX_URL = process.env.CAMOX_URL || "https://camox.ai";
+const CAMOX_URL = process.env.CAMOX_URL || "https://app.camox.ai";
 const CAMOX_API_URL = process.env.CAMOX_API_URL || "https://api.camox.ai";
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const AUTH_DIR = path.join(os.homedir(), ".camox");

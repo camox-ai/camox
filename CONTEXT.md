@@ -25,7 +25,7 @@ A Camox Studio surface where a user describes desired page, layout, or content c
 _Avoid_: AI editor, in-app interface
 
 **Dashboard**:
-The Camox web app for account-level and project-level workflows outside the in-site editing experience.
+The Camox app at `app.camox.ai` for account-level and project-level workflows outside the in-site editing experience.
 _Avoid_: Studio, editor
 
 **Page**:

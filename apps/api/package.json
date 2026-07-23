@@ -16,6 +16,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "db:studio": "drizzle-kit studio",
     "seed": "tsx scripts/dev-seed.ts",
+    "test": "vp test --run",
     "lint": "vp lint",
     "check": "vp check"
   },
@@ -43,6 +44,7 @@
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.22.2",
     "vite-plus": "catalog:",
+    "vitest": "catalog:",
     "wrangler": "^4.92.0"
   },
   "nx": {

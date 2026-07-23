@@ -99,7 +99,7 @@ export const ProjectMenu = () => {
             <a
               href={
                 authCtx
-                  ? `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/${project.slug}/overview`
+                  ? `${authCtx.authenticationUrl}/${project.organizationSlug}/${project.slug}/overview`
                   : "#"
               }
               target="_blank"
@@ -119,9 +119,7 @@ export const ProjectMenu = () => {
             render={
               <a
                 href={
-                  authCtx
-                    ? `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/team`
-                    : "#"
+                  authCtx ? `${authCtx.authenticationUrl}/${project.organizationSlug}/team` : "#"
                 }
                 target="_blank"
                 rel="noopener noreferrer"
@@ -136,7 +134,7 @@ export const ProjectMenu = () => {
               <a
                 href={
                   authCtx
-                    ? `${authCtx.authenticationUrl}/dashboard/${project.organizationSlug}/settings`
+                    ? `${authCtx.authenticationUrl}/${project.organizationSlug}/settings`
                     : "#"
                 }
                 target="_blank"
