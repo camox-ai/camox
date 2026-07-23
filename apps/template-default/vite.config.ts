@@ -1,6 +1,5 @@
 import babelPlugin from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { camox } from "camox/vite";
 import { nitro } from "nitro/vite";
@@ -23,7 +22,6 @@ export default defineConfig({
       },
       // camox-cli:dev-only-end
     }),
-    tanstackStart(),
     react(),
     babelPlugin({ presets: [reactCompilerPreset()] }),
   ],
