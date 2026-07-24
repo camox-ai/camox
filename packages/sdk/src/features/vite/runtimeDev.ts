@@ -21,6 +21,10 @@ const VIRTUAL_PAGE_CLIENT = "virtual:camox/page-client";
 const RESOLVED_VIRTUAL_PAGE_CLIENT = "\0" + VIRTUAL_PAGE_CLIENT;
 const VIRTUAL_PAGE_CLIENT_URL = "virtual:camox/page-client-url";
 const RESOLVED_VIRTUAL_PAGE_CLIENT_URL = "\0" + VIRTUAL_PAGE_CLIENT_URL;
+const VIRTUAL_STUDIO_CLIENT = "virtual:camox/studio-client";
+const RESOLVED_VIRTUAL_STUDIO_CLIENT = "\0" + VIRTUAL_STUDIO_CLIENT;
+const VIRTUAL_STUDIO_CLIENT_URL = "virtual:camox/studio-client-url";
+const RESOLVED_VIRTUAL_STUDIO_CLIENT_URL = "\0" + VIRTUAL_STUDIO_CLIENT_URL;
 const VIRTUAL_APP_STYLESHEET_URL = "virtual:camox/app-stylesheet-url";
 const RESOLVED_VIRTUAL_APP_STYLESHEET_URL = "\0" + VIRTUAL_APP_STYLESHEET_URL;
 const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
@@ -59,6 +63,7 @@ function resolveCamoxSourceImport(id: string): string | undefined {
     "camox/navigation": resolve(sdkRoot, "src/features/navigation/navigation.tsx"),
     "camox/_internal/pageServer": resolve(sdkRoot, "src/features/runtime/pageServer.tsx"),
     "camox/_internal/pageClient": resolve(sdkRoot, "src/features/runtime/pageClient.tsx"),
+    "camox/_internal/studioClient": resolve(sdkRoot, "src/features/runtime/studioClient.tsx"),
     "camox/_internal/studioServer": resolve(sdkRoot, "src/features/runtime/studioServer.tsx"),
     "camox/_internal/runtime": resolve(sdkRoot, "src/features/runtime/runtime.ts"),
   };
@@ -115,10 +120,18 @@ export async function renderStudio(input) {
 }
 
 function generateVirtualPageClient(): string {
-  return `import { hydrateRuntimeWithApp } from "camox/_internal/pageClient";
+  return `import { hydratePageWithApp } from "camox/_internal/pageClient";
 import { camoxApp } from "virtual:camox/app";
 
-hydrateRuntimeWithApp(camoxApp);
+hydratePageWithApp(camoxApp);
+`;
+}
+
+function generateVirtualStudioClient(): string {
+  return `import { hydrateStudioWithApp } from "camox/_internal/studioClient";
+import { camoxApp } from "virtual:camox/app";
+
+hydrateStudioWithApp(camoxApp);
 `;
 }
 
@@ -128,6 +141,10 @@ function wrapViteDevId(id: string): string {
 
 function generateVirtualPageClientUrl(): string {
   return `export default ${JSON.stringify(wrapViteDevId(RESOLVED_VIRTUAL_PAGE_CLIENT))};`;
+}
+
+function generateVirtualStudioClientUrl(): string {
+  return `export default ${JSON.stringify(wrapViteDevId(RESOLVED_VIRTUAL_STUDIO_CLIENT))};`;
 }
 
 function generateVirtualAppStylesheetUrl(): string {
@@ -143,6 +160,7 @@ import { camoxApp } from "virtual:camox/app";
 import { camoxDocument } from "virtual:camox/document";
 import appStylesheetUrl from "virtual:camox/app-stylesheet-url";
 import pageClientEntryUrl from "virtual:camox/page-client-url";
+import studioClientEntryUrl from "virtual:camox/studio-client-url";
 import { renderPage } from "virtual:camox/page-server";
 import { renderStudio } from "virtual:camox/studio-server";
 
@@ -150,7 +168,8 @@ export async function handleCamoxRequest(request) {
   return handleRuntimeRequest(request, {
     apiUrl: __CAMOX_API_URL__,
     authenticationUrl: __CAMOX_AUTHENTICATION_URL__,
-    clientEntryUrl: pageClientEntryUrl,
+    pageClientEntryUrl,
+    studioClientEntryUrl,
     environmentName: __CAMOX_ENVIRONMENT_NAME__,
     getCamoxApp: async () => camoxApp,
     getDocument: async () => camoxDocument,
@@ -245,6 +264,8 @@ export function resolveRuntimeDevId(id: string, importer?: string): string | und
   if (id === VIRTUAL_STUDIO_SERVER) return RESOLVED_VIRTUAL_STUDIO_SERVER;
   if (id === VIRTUAL_PAGE_CLIENT) return RESOLVED_VIRTUAL_PAGE_CLIENT;
   if (id === VIRTUAL_PAGE_CLIENT_URL) return RESOLVED_VIRTUAL_PAGE_CLIENT_URL;
+  if (id === VIRTUAL_STUDIO_CLIENT) return RESOLVED_VIRTUAL_STUDIO_CLIENT;
+  if (id === VIRTUAL_STUDIO_CLIENT_URL) return RESOLVED_VIRTUAL_STUDIO_CLIENT_URL;
   if (id === VIRTUAL_APP_STYLESHEET_URL) return RESOLVED_VIRTUAL_APP_STYLESHEET_URL;
   if (id === VIRTUAL_STUDIO_CSS) return RESOLVED_VIRTUAL_STUDIO_CSS;
   if (id === VIRTUAL_OVERLAY_CSS) return RESOLVED_VIRTUAL_OVERLAY_CSS;
@@ -264,6 +285,8 @@ export function loadRuntimeDevModule(
   if (id === RESOLVED_VIRTUAL_STUDIO_SERVER) return generateVirtualStudioServer();
   if (id === RESOLVED_VIRTUAL_PAGE_CLIENT) return generateVirtualPageClient();
   if (id === RESOLVED_VIRTUAL_PAGE_CLIENT_URL) return generateVirtualPageClientUrl();
+  if (id === RESOLVED_VIRTUAL_STUDIO_CLIENT) return generateVirtualStudioClient();
+  if (id === RESOLVED_VIRTUAL_STUDIO_CLIENT_URL) return generateVirtualStudioClientUrl();
   if (id === RESOLVED_VIRTUAL_APP_STYLESHEET_URL) return generateVirtualAppStylesheetUrl();
   if (id === RESOLVED_VIRTUAL_STUDIO_CSS) {
     return `export default "/@fs/${resolve(sdkRoot, "dist/studio.css")}";`;

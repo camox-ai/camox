@@ -49,7 +49,7 @@ export function getCookieDomain(siteUrl: string): string | undefined {
 export function createAuth(db: Database, env: Bindings, baseURL: string) {
   // The Dashboard and API use sibling camox.ai hosts in production. Localhost
   // works without an explicit domain.
-  const cookieDomain = getCookieDomain(env.DASHBOARD_URL);
+  const cookieDomain = getCookieDomain(baseURL);
 
   const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -79,10 +79,14 @@ export function createAuth(db: Database, env: Bindings, baseURL: string) {
     // Accept requests from any origin — Camox sites run on arbitrary customer domains
     trustedOrigins: ["*"],
     advanced: {
-      crossSubDomainCookies: {
-        enabled: true,
-        domain: cookieDomain,
-      },
+      crossSubDomainCookies: cookieDomain
+        ? {
+            enabled: true,
+            domain: cookieDomain,
+          }
+        : {
+            enabled: false,
+          },
     },
     plugins: [
       organization(),

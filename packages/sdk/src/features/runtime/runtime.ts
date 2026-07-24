@@ -53,13 +53,15 @@ export interface PageRenderInput {
   pathname: string;
   projectSlug: string;
   runtimeBasePath: string;
+  source: "live" | "draft";
 }
 
 export interface RuntimeOptions {
   apiUrl?: string;
   authenticationUrl?: string;
   environmentName?: string;
-  clientEntryUrl?: string;
+  pageClientEntryUrl?: string;
+  studioClientEntryUrl?: string;
   getCamoxApp?: () => Promise<CamoxApp>;
   getDocument?: () => Promise<CamoxDocument>;
   projectSlug?: string;
@@ -324,6 +326,7 @@ async function createPageHtmlResponse({
       pathname,
       projectSlug: options.projectSlug,
       runtimeBasePath: normalizeRuntimeBasePath(options.runtimeBasePath),
+      source: result.source,
     } satisfies PageRenderInput;
     const appHtml = await options.renderPage(pageRenderInput);
     const renderedHead = renderHead(document, createPageHeadInput(head), options.stylesheetUrl);
@@ -339,7 +342,7 @@ ${renderedHead.headTags}
 ${renderedHead.bodyTagsOpen}
 <div id="root">${appHtml}</div>
 ${renderedHead.bodyTags}
-${renderClientEntryScript(options.clientEntryUrl)}
+${renderClientEntryScript(options.pageClientEntryUrl)}
 </body>
 </html>`,
       { headers },
@@ -385,8 +388,7 @@ async function createStudioHtmlResponse({
     projectSlug: options.projectSlug,
     routeKind: match.kind as "studio" | "studio-content" | "studio-nested",
     runtimeBasePath: normalizeRuntimeBasePath(options.runtimeBasePath),
-    runtimeKind: "studio",
-  } satisfies StudioRenderInput & { runtimeKind: "studio" };
+  } satisfies StudioRenderInput;
   const appHtml = await options.renderStudio(studioRenderInput);
   const renderedHead = renderHead(document, {}, options.stylesheetUrl);
 
@@ -401,7 +403,7 @@ ${renderedHead.headTags}
 ${renderedHead.bodyTagsOpen}
 <div id="root">${appHtml}</div>
 ${renderedHead.bodyTags}
-${renderClientEntryScript(options.clientEntryUrl)}
+${renderClientEntryScript(options.studioClientEntryUrl)}
 </body>
 </html>`,
     { headers: { "Content-Type": "text/html; charset=utf-8" } },

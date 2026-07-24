@@ -4,6 +4,7 @@ import { getCookieDomain } from "./routes";
 
 describe("getCookieDomain", () => {
   it.each([
+    ["https://api.camox.ai", ".camox.ai"],
     ["https://app.camox.ai", ".camox.ai"],
     ["https://camox.ai", ".camox.ai"],
     ["http://localhost:3274", undefined],

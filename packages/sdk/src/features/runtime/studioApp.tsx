@@ -4,10 +4,15 @@ import {
   type DehydratedState,
   type QueryClient,
 } from "@tanstack/react-query";
+import * as React from "react";
 
+import { AuthGate } from "../../components/AuthGate";
 import type { CamoxApp } from "../../core/createApp";
+import { CompleteBlockEditingRuntimeProvider } from "../../core/editing/CompleteBlockEditingRuntime";
+import { useSignInRedirect } from "../../lib/auth";
 import { CamoxContent } from "../content/CamoxContent";
-import { CamoxProvider } from "../provider/CamoxProvider";
+import { AuthenticatedCamoxProvider } from "../provider/AuthenticatedCamoxProvider";
+import { CoreCamoxProvider } from "../provider/CoreCamoxProvider";
 import { CamoxStudio } from "../studio/CamoxStudio";
 import { STUDIO_CONTENT_PATH } from "../studio/routes";
 import { StudioNavigationProvider } from "./studioNavigation";
@@ -34,6 +39,26 @@ function StudioRouteContent({ input }: { input: StudioRenderInput }) {
   return <div className="text-muted-foreground p-6 text-sm">Loading Studio…</div>;
 }
 
+function StudioAuthentication({ children }: { children: React.ReactNode }) {
+  const signInRedirect = useSignInRedirect(() => {
+    if (typeof window === "undefined") return undefined;
+    return new URL("/", window.location.href).href;
+  });
+
+  React.useEffect(() => signInRedirect(), [signInRedirect]);
+  return <>{children}</>;
+}
+
+function StudioAccessGate({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthGate
+      authenticated={<AuthenticatedCamoxProvider>{children}</AuthenticatedCamoxProvider>}
+      loading={null}
+      unauthenticated={<StudioAuthentication>{null}</StudioAuthentication>}
+    />
+  );
+}
+
 export function StudioApp({
   camoxApp,
   input,
@@ -51,17 +76,21 @@ export function StudioApp({
           pathname={input.pathname}
           runtimeBasePath={input.runtimeBasePath}
         >
-          <CamoxProvider
+          <CoreCamoxProvider
             camoxApp={camoxApp}
             authenticationUrl={input.authenticationUrl}
             apiUrl={input.apiUrl}
             projectSlug={input.projectSlug}
             environmentName={input.environmentName}
           >
-            <CamoxStudio>
-              <StudioRouteContent input={input} />
-            </CamoxStudio>
-          </CamoxProvider>
+            <StudioAccessGate>
+              <CompleteBlockEditingRuntimeProvider>
+                <CamoxStudio>
+                  <StudioRouteContent input={input} />
+                </CamoxStudio>
+              </CompleteBlockEditingRuntimeProvider>
+            </StudioAccessGate>
+          </CoreCamoxProvider>
         </StudioNavigationProvider>
       </HydrationBoundary>
     </QueryClientProvider>

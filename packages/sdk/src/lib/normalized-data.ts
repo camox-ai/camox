@@ -4,7 +4,7 @@ import { useQueries } from "@tanstack/react-query";
 import * as React from "react";
 
 import type { BlockBundle, PageStructure, PageWithBlocks } from "./queries";
-import { blockQueries } from "./queries";
+import { viewBlockQueries } from "./view-queries";
 
 /* -------------------------------------------------------------------------------------------------
  * Types
@@ -88,7 +88,7 @@ export function usePageBlocks(pageStructure: PageStructure, source: ReadSource =
   );
 
   const results = useQueries({
-    queries: allIds.map((id) => blockQueries.get(id, source)),
+    queries: allIds.map((id) => viewBlockQueries.get(id, source)),
   });
 
   const bundleMap = React.useMemo(() => {

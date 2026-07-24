@@ -3,15 +3,13 @@ import { hydrateRoot } from "react-dom/client";
 
 import type { CamoxApp } from "../../core/createApp";
 import { readHydrationData } from "./hydrationData";
-import { PageApp } from "./pageApp";
-import type { PageRenderInput } from "./runtime";
+import { StudioApp, type StudioRenderInput } from "./studioApp";
 
-export function hydratePageWithApp(camoxApp: CamoxApp) {
+export function hydrateStudioWithApp(camoxApp: CamoxApp) {
   const root = document.getElementById("root");
   if (!root) throw new Error("Camox runtime root element was not found.");
 
   const queryClient = new QueryClient();
-  const input = readHydrationData<PageRenderInput>();
-
-  hydrateRoot(root, <PageApp camoxApp={camoxApp} input={input} queryClient={queryClient} />);
+  const input = readHydrationData<StudioRenderInput>();
+  hydrateRoot(root, <StudioApp camoxApp={camoxApp} input={input} queryClient={queryClient} />);
 }

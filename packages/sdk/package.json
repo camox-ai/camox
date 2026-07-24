@@ -77,6 +77,11 @@
       "types": "./dist/features/runtime/pageClient.d.ts",
       "import": "./dist/features/runtime/pageClient.js"
     },
+    "./_internal/studioClient": {
+      "source": "./src/features/runtime/studioClient.tsx",
+      "types": "./dist/features/runtime/studioClient.d.ts",
+      "import": "./dist/features/runtime/studioClient.js"
+    },
     "./_internal/studioServer": {
       "source": "./src/features/runtime/studioServer.tsx",
       "types": "./dist/features/runtime/studioServer.d.ts",

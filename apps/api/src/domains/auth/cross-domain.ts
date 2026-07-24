@@ -5,6 +5,19 @@ import { generateRandomString } from "better-auth/crypto";
 import { oneTimeToken as oneTimeTokenPlugin } from "better-auth/plugins";
 import { z } from "zod";
 
+export function resolveCallbackURL(
+  callbackURL: string | undefined,
+  siteUrl: string,
+  requestOrigin?: string,
+) {
+  if (!callbackURL?.startsWith("/")) return callbackURL;
+
+  const baseURL = requestOrigin || siteUrl;
+  if (!baseURL) return callbackURL;
+
+  return new URL(callbackURL, baseURL).toString();
+}
+
 /**
  * Cross-domain authentication plugin for better-auth.
  *
@@ -27,11 +40,15 @@ import { z } from "zod";
 export function crossDomain({ siteUrl }: { siteUrl: string }) {
   const oneTimeToken = oneTimeTokenPlugin();
 
-  const rewriteCallbackURL = (callbackURL?: string) => {
-    if (!callbackURL) return callbackURL;
-    if (!callbackURL.startsWith("/")) return callbackURL;
-    if (!siteUrl) return callbackURL;
-    return new URL(callbackURL, siteUrl).toString();
+  const getRequestOrigin = (ctx: { headers?: Headers; request?: Request }) => {
+    return ctx.request?.headers.get("origin") ?? ctx.headers?.get("origin") ?? undefined;
+  };
+
+  const rewriteCallbackURL = (
+    callbackURL: string | undefined,
+    ctx: { headers?: Headers; request?: Request },
+  ) => {
+    return resolveCallbackURL(callbackURL, siteUrl, getRequestOrigin(ctx));
   };
 
   const isExpoNative = (ctx: { headers?: Headers }) => {
@@ -93,7 +110,7 @@ export function crossDomain({ siteUrl }: { siteUrl: string }) {
             ),
           handler: createAuthMiddleware(async (ctx) => {
             if (ctx.query?.callbackURL) {
-              ctx.query.callbackURL = rewriteCallbackURL(ctx.query.callbackURL);
+              ctx.query.callbackURL = rewriteCallbackURL(ctx.query.callbackURL, ctx);
             }
             return { context: ctx };
           }),
@@ -103,13 +120,13 @@ export function crossDomain({ siteUrl }: { siteUrl: string }) {
           matcher: (ctx) => Boolean(ctx.method === "POST" && !isExpoNative(ctx)),
           handler: createAuthMiddleware(async (ctx) => {
             if (ctx.body?.callbackURL) {
-              ctx.body.callbackURL = rewriteCallbackURL(ctx.body.callbackURL);
+              ctx.body.callbackURL = rewriteCallbackURL(ctx.body.callbackURL, ctx);
             }
             if (ctx.body?.newUserCallbackURL) {
-              ctx.body.newUserCallbackURL = rewriteCallbackURL(ctx.body.newUserCallbackURL);
+              ctx.body.newUserCallbackURL = rewriteCallbackURL(ctx.body.newUserCallbackURL, ctx);
             }
             if (ctx.body?.errorCallbackURL) {
-              ctx.body.errorCallbackURL = rewriteCallbackURL(ctx.body.errorCallbackURL);
+              ctx.body.errorCallbackURL = rewriteCallbackURL(ctx.body.errorCallbackURL, ctx);
             }
             return { context: ctx };
           }),

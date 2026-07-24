@@ -17,6 +17,7 @@ export default defineConfig({
       "features/metadata/sitemap": "src/features/metadata/sitemap.ts",
       "features/runtime/pageServer": "src/features/runtime/pageServer.tsx",
       "features/runtime/pageClient": "src/features/runtime/pageClient.tsx",
+      "features/runtime/studioClient": "src/features/runtime/studioClient.tsx",
       "features/runtime/studioServer": "src/features/runtime/studioServer.tsx",
       // Runtime-conditional OG `ImageResponse` wrappers — package.json dispatches
       // between these via the `workerd` / `worker` / `deno` exports conditions.

@@ -20,6 +20,11 @@ declare module "virtual:camox/page-client-url" {
   export default url;
 }
 
+declare module "virtual:camox/studio-client-url" {
+  const url: string;
+  export default url;
+}
+
 declare const __CAMOX_AUTHENTICATION_URL__: string;
 
 // Temporal API types (Stage 3, available in modern browsers)

@@ -13,6 +13,8 @@ const VIRTUAL_OVERLAY_CSS = "virtual:camox-overlay-css";
 const RESOLVED_VIRTUAL_OVERLAY_CSS = "\0" + VIRTUAL_OVERLAY_CSS;
 const VIRTUAL_PAGE_CLIENT = "virtual:camox/page-client";
 const RESOLVED_VIRTUAL_PAGE_CLIENT_URL = "\0virtual:camox/page-client-url";
+const VIRTUAL_STUDIO_CLIENT = "virtual:camox/studio-client";
+const RESOLVED_VIRTUAL_STUDIO_CLIENT_URL = "\0virtual:camox/studio-client-url";
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
 
@@ -170,6 +172,9 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
       if (id === RESOLVED_VIRTUAL_PAGE_CLIENT_URL && isBuild) {
         return 'export default "/_chunks/camox-page-client.mjs";';
       }
+      if (id === RESOLVED_VIRTUAL_STUDIO_CLIENT_URL && isBuild) {
+        return 'export default "/_chunks/camox-studio-client.mjs";';
+      }
       return loadRuntimeDevModule(id, { runtimeBasePath });
     },
     nitro: {
@@ -203,6 +208,7 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
               rollupOptions: {
                 input: {
                   "camox-page-client": VIRTUAL_PAGE_CLIENT,
+                  "camox-studio-client": VIRTUAL_STUDIO_CLIENT,
                 },
                 output: {
                   assetFileNames: "assets/[name]-[hash][extname]",
