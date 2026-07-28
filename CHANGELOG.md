@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.35.0](https://github.com/camox-ai/camox/compare/camox-v0.34.0...camox-v0.35.0) (2026-07-28)
+
+
+### Features
+
+* display page meta ([a6bdac8](https://github.com/camox-ai/camox/commit/a6bdac833cf3d3bf0b5853d884ed3c2e442a109f))
+
+
+### Bug Fixes
+
+* split website and studio bundles ([c93f110](https://github.com/camox-ai/camox/commit/c93f110e6d3abe7c668c450f171877e62103307d))
+
 ## [0.34.0](https://github.com/camox-ai/camox/compare/camox-v0.33.1...camox-v0.34.0) (2026-07-23)
 
 
