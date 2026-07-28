@@ -1,6 +1,6 @@
 import { queryKeys } from "@camox/api-contract/query-keys";
 import { ORPCError } from "@orpc/server";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { assertPageAccess, getAuthorizedProject } from "../../authorization";
@@ -15,6 +15,7 @@ import {
   pages,
   projects,
   repeatableItems,
+  user,
 } from "../../schema";
 import { pageSourceSchema, type PageSource } from "../_shared/page-source";
 import type { ServiceContext } from "../_shared/service-context";
@@ -762,6 +763,36 @@ export async function listPagesBySlug(
   }));
 }
 
+async function getPageAttribution(ctx: ServiceContext, page: PageRow, includeAuthors: boolean) {
+  const checkpoint = await ctx.db
+    .select({
+      createdAt: pageCheckpoints.createdAt,
+      createdBy: pageCheckpoints.createdBy,
+    })
+    .from(pageCheckpoints)
+    .where(and(eq(pageCheckpoints.pageId, page.id), eq(pageCheckpoints.kind, "auto-publish")))
+    .orderBy(desc(pageCheckpoints.createdAt))
+    .get();
+
+  const userIds = includeAuthors
+    ? [page.createdById, checkpoint?.createdBy].filter((id): id is string => id != null)
+    : [];
+  const users =
+    userIds.length > 0
+      ? await ctx.db
+          .select({ id: user.id, name: user.name })
+          .from(user)
+          .where(inArray(user.id, userIds))
+      : [];
+  const userNames = new Map(users.map((item) => [item.id, item.name]));
+
+  return {
+    createdBy: page.createdById ? (userNames.get(page.createdById) ?? null) : null,
+    publishedAt: checkpoint?.createdAt ?? null,
+    publishedBy: checkpoint?.createdBy ? (userNames.get(checkpoint.createdBy) ?? null) : null,
+  };
+}
+
 export async function getPage(ctx: ServiceContext, rawInput: z.input<typeof getPageInput>) {
   const parsed = getPageInput.parse(rawInput);
   if (parsed.source === "draft") assertUser(ctx);
@@ -783,7 +814,8 @@ export async function getPage(ctx: ServiceContext, rawInput: z.input<typeof getP
       .get();
   }
   if (!row) throw new ORPCError("NOT_FOUND");
-  if (parsed.source === "draft") return row;
+  const attribution = await getPageAttribution(ctx, row, parsed.source === "draft");
+  if (parsed.source === "draft") return { ...row, ...attribution };
 
   // Non-draft read: serve the snapshotted page fields (pathSegment, metaTitle,
   // etc. as they were at publish time) layered over the live row's identity
@@ -795,7 +827,7 @@ export async function getPage(ctx: ServiceContext, rawInput: z.input<typeof getP
         "Page has not been published. Run `camox pages publish` first, or omit --live to read the draft.",
     });
   }
-  return { ...row, ...snapshot.page };
+  return { ...row, ...snapshot.page, ...attribution };
 }
 
 // --- Writes ---
@@ -828,6 +860,7 @@ export async function createPage(ctx: ServiceContext, rawInput: z.input<typeof c
       layoutId,
       nickname: nickname ?? deriveDefaultPageNickname(pathSegment),
       contentUpdatedAt: now,
+      createdById: user.id,
       createdAt: now,
       updatedAt: now,
     })

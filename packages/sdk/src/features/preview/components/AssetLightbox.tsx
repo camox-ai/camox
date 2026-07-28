@@ -17,16 +17,7 @@ import { fileMutations, fileQueries } from "@/lib/queries";
 import { trackClientEvent } from "@/lib/telemetry-client";
 
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
-
-function MetadataRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline gap-2">
-      <span className="shrink-0">{label}</span>
-      <span className="border-border min-w-0 flex-1 border-b" />
-      <span className="text-foreground shrink-0">{children}</span>
-    </div>
-  );
-}
+import { formatRelativeTime, Metadata, MetadataRow } from "./Metadata";
 
 function DeliveredSize({ bytes, raw }: { bytes: number | null; raw: number | null }) {
   if (bytes == null) return <>…</>;
@@ -63,26 +54,6 @@ function DeliveredLabel({ children }: { children: React.ReactNode }) {
       </Tooltip>
     </span>
   );
-}
-
-function formatRelativeTime(epochMs: number): string {
-  const now = Temporal.Now.instant();
-  const then = Temporal.Instant.fromEpochMilliseconds(epochMs);
-  const duration = now.since(then);
-  const totalSeconds = duration.total("seconds");
-
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-
-  if (totalSeconds < 60) return rtf.format(-Math.floor(totalSeconds), "second");
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  if (totalMinutes < 60) return rtf.format(-totalMinutes, "minute");
-  const totalHours = Math.floor(totalMinutes / 60);
-  if (totalHours < 24) return rtf.format(-totalHours, "hour");
-  const totalDays = Math.floor(totalHours / 24);
-  if (totalDays < 30) return rtf.format(-totalDays, "day");
-  const totalMonths = Math.floor(totalDays / 30);
-  if (totalMonths < 12) return rtf.format(-totalMonths, "month");
-  return rtf.format(-Math.floor(totalDays / 365), "year");
 }
 
 function formatFileSize(bytes: number): string {
@@ -476,7 +447,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                 rows={2}
                 onSave={(value) => setAlt.mutate({ id: fileId, alt: value })}
               />
-              <div className="text-muted-foreground space-y-1 text-sm">
+              <Metadata>
                 <MetadataRow label="Format">
                   {file.mimeType.split("/").pop()?.toUpperCase() ?? "Unknown"}
                 </MetadataRow>
@@ -502,7 +473,7 @@ const AssetLightbox = ({ open, onOpenChange, fileId }: AssetLightboxProps) => {
                     usageCount > 0 &&
                     `${usageCount} ${usageCount === 1 ? "block" : "blocks"}`}
                 </MetadataRow>
-              </div>
+              </Metadata>
               <input
                 ref={replaceInputRef}
                 type="file"

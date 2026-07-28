@@ -45,6 +45,7 @@ import { trackClientEvent } from "@/lib/telemetry-client";
 import { UploadDropZone } from "../../content/components/UploadDropZone";
 import { useCamoxApp } from "../../provider/components/CamoxAppContext";
 import { DebouncedFieldEditor } from "./DebouncedFieldEditor";
+import { formatRelativeTime, Metadata, MetadataRow } from "./Metadata";
 import { PageLocationFieldset } from "./PageLocationFieldset";
 import { PAGE_NICKNAME_MAX_LENGTH, PageNicknameField } from "./PageNicknameField";
 import { ShikiMarkdown } from "./ShikiMarkdown";
@@ -145,6 +146,17 @@ const PageInfoSidebar = ({ pageId }: { pageId: number }) => {
             View page markdown
           </Button>
         </div>
+        <Metadata>
+          <MetadataRow label="Created">{formatRelativeTime(page.createdAt)}</MetadataRow>
+          <MetadataRow label="Created by">{page.createdBy ?? "Unknown"}</MetadataRow>
+          <MetadataRow label="Updated">{formatRelativeTime(page.updatedAt)}</MetadataRow>
+          <MetadataRow label="Published">
+            {page.publishedAt == null ? "Never" : formatRelativeTime(page.publishedAt)}
+          </MetadataRow>
+          {page.publishedAt != null && (
+            <MetadataRow label="Published by">{page.publishedBy ?? "Unknown"}</MetadataRow>
+          )}
+        </Metadata>
       </div>
       <PageStructureModal
         open={isStructureModalOpen}

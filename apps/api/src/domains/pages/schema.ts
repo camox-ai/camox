@@ -1,5 +1,6 @@
 import { index, int, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+import { user } from "../auth/schema";
 import { layouts } from "../layouts/schema";
 import { environments, projects } from "../projects/schema";
 
@@ -29,6 +30,7 @@ export const pages = sqliteTable(
     // the circular import between pages and page_checkpoints.
     livePublishedCheckpointId: int("live_published_checkpoint_id"),
     contentUpdatedAt: int("content_updated_at").notNull(),
+    createdById: text("created_by_id").references(() => user.id),
     createdAt: int("created_at").notNull(),
     updatedAt: int("updated_at").notNull(),
   },
