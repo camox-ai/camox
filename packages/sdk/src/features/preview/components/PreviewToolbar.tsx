@@ -2,6 +2,7 @@ import { Button } from "@camox/ui/button";
 import { ButtonGroup } from "@camox/ui/button-group";
 import { FloatingToolbar } from "@camox/ui/floating-toolbar";
 import { Label } from "@camox/ui/label";
+import { Separator } from "@camox/ui/separator";
 import { Switch } from "@camox/ui/switch";
 import { Toggle } from "@camox/ui/toggle";
 import * as Tooltip from "@camox/ui/tooltip";
@@ -15,9 +16,15 @@ import { previewStore } from "../previewStore";
 
 interface PreviewToolbarProps {
   onEditModeChange?: (checked: boolean) => void;
+  pageStatus?: "draft" | "published" | "modified";
+  hasLiveVersion?: boolean;
 }
 
-export const PreviewToolbar = ({ onEditModeChange }: PreviewToolbarProps) => {
+export const PreviewToolbar = ({
+  onEditModeChange,
+  pageStatus,
+  hasLiveVersion,
+}: PreviewToolbarProps) => {
   const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
   const isToolbarHidden = useSelector(previewStore, (state) => state.context.isToolbarHidden);
   const actions = useSelector(actionsStore, (state) => state.context.actions);
@@ -27,8 +34,8 @@ export const PreviewToolbar = ({ onEditModeChange }: PreviewToolbarProps) => {
   if (isToolbarHidden) return null;
 
   return (
-    <FloatingToolbar className="bottom-2 justify-between gap-8 transition-none">
-      <div className="flex items-center gap-2 px-2">
+    <FloatingToolbar className="bottom-2 w-max justify-between gap-8 transition-none">
+      <div className="flex shrink-0 items-center gap-2 px-2">
         <Switch
           id="edit-mode"
           checked={isEditMode}
@@ -47,7 +54,7 @@ export const PreviewToolbar = ({ onEditModeChange }: PreviewToolbarProps) => {
           Edit mode {getActionShortcut(actions, editModeActionId)}
         </Label>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2 self-stretch">
         <ButtonGroup>
           <Tooltip.Tooltip>
             <Tooltip.TooltipTrigger
@@ -122,6 +129,19 @@ export const PreviewToolbar = ({ onEditModeChange }: PreviewToolbarProps) => {
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent>Hide toolbar</Tooltip.TooltipContent>
         </Tooltip.Tooltip>
+        {pageStatus && (
+          <>
+            <Separator orientation="vertical" className="dark:bg-input -my-2" />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pageStatus === "published" || !hasLiveVersion}
+              onClick={() => previewStore.send({ type: "viewLivePage" })}
+            >
+              View live page
+            </Button>
+          </>
+        )}
       </div>
     </FloatingToolbar>
   );

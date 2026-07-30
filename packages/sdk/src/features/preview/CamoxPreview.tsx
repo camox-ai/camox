@@ -406,7 +406,12 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
       {!isToolbarHidden && <Navbar />}
       <div className="flex h-full flex-row items-stretch">
         {isEditMode && <LeftSidebar page={pageData.page} />}
-        <PreviewPanel>
+        <PreviewPanel
+          toolbarProps={{
+            pageStatus: pageData.page.status,
+            hasLiveVersion: hasLiveCheckpoint,
+          }}
+        >
           {children}
           {isEditMode && <div style={{ height: "80px", background: "transparent" }} />}
         </PreviewPanel>

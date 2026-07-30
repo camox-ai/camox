@@ -125,6 +125,20 @@ export const previewStore = createStore({
       };
     },
     hideToolbar: (context) => ({ ...context, isToolbarHidden: true }),
+    viewLivePage: (context, _, enqueue) => {
+      enqueue.effect(() => {
+        if (context.isEditMode) {
+          trackClientEvent("edit_mode_toggled", { enabled: false });
+        }
+        toast("Viewing live version of the page");
+      });
+      return {
+        ...context,
+        isEditMode: false,
+        isToolbarHidden: true,
+        previewSource: "live" as const,
+      };
+    },
     setViewportMode: (context, event: { mode: ViewportMode }) => {
       if (context.viewportMode === event.mode) return context;
       return { ...context, viewportMode: event.mode };

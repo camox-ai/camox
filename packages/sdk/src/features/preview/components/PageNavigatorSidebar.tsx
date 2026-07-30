@@ -1,4 +1,4 @@
-import { queryKeys, type ReadSource } from "@camox/api-contract/query-keys";
+import { queryKeys } from "@camox/api-contract/query-keys";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,9 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@camox/ui/dropdown-menu";
-import { Label } from "@camox/ui/label";
 import { PanelContent, PanelHeader } from "@camox/ui/panel";
-import { Switch } from "@camox/ui/switch";
 import { toast } from "@camox/ui/toaster";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "@xstate/store-react";
@@ -27,13 +25,11 @@ import { MoreHorizontal } from "lucide-react";
 import * as React from "react";
 
 import { useLocation } from "@/features/navigation/navigation";
-import { useProjectSlug } from "@/lib/auth";
 import { type Page, pageMutations, type PageStructure } from "@/lib/queries";
 import { trackClientEvent } from "@/lib/telemetry-client";
 import { cn } from "@/lib/utils";
 
 import { type Action, actionsStore } from "../../provider/actionsStore";
-import { pageFullQueryFn } from "../previewQueryFns";
 import { previewStore } from "../previewStore";
 import { PagePicker } from "./PagePicker";
 import { PageTree } from "./PageTree";
@@ -56,7 +52,6 @@ export type PreviewedPage = {
 const PageNavigatorPublishRow = ({ page }: { page: PreviewedPage }) => {
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
   const queryClient = useQueryClient();
-  const projectSlug = useProjectSlug();
   const { pathname } = useLocation();
   const [isPublishDialogOpen, setIsPublishDialogOpen] = React.useState(false);
   const [isUnpublishDialogOpen, setIsUnpublishDialogOpen] = React.useState(false);
@@ -66,16 +61,6 @@ const PageNavigatorPublishRow = ({ page }: { page: PreviewedPage }) => {
 
   const hasLiveCheckpoint = page.livePublishedCheckpointId != null;
   const isHomePage = page.fullPath === "/";
-  const otherSource: ReadSource = previewSource === "draft" ? "live" : "draft";
-  const canPrefetchOther = otherSource === "draft" || hasLiveCheckpoint;
-  const prefetchOtherSource = React.useCallback(() => {
-    if (!canPrefetchOther) return;
-    void queryClient.prefetchQuery({
-      queryKey: queryKeys.pages.getByPath(pathname, otherSource),
-      queryFn: pageFullQueryFn(queryClient, pathname, projectSlug, otherSource),
-      staleTime: Infinity,
-    });
-  }, [canPrefetchOther, otherSource, pathname, projectSlug, queryClient]);
 
   const hasChangesToPublish = page.status === "draft" || page.status === "modified";
   const canPublish = hasChangesToPublish && previewSource === "draft";
@@ -222,21 +207,6 @@ const PageNavigatorPublishRow = ({ page }: { page: PreviewedPage }) => {
             </DropdownMenuContent>
           </DropdownMenu>
         </ButtonGroup>
-        <div
-          className="mt-1 flex items-center gap-2"
-          onMouseEnter={prefetchOtherSource}
-          onFocus={prefetchOtherSource}
-        >
-          <Switch
-            id="draft-content"
-            disabled={!hasLiveCheckpoint}
-            checked={previewSource === "draft"}
-            onCheckedChange={(checked) =>
-              previewStore.send({ type: "setPreviewSource", source: checked ? "draft" : "live" })
-            }
-          />
-          <Label htmlFor="draft-content">Draft content</Label>
-        </div>
       </div>
       <PublishDialog
         page={isPublishDialogOpen ? page : null}
