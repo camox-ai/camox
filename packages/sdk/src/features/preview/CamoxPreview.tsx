@@ -318,6 +318,7 @@ function useHydrateDraftCache() {
 export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useIsAuthenticated();
   const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
+  const isToolbarHidden = useSelector(previewStore, (state) => state.context.isToolbarHidden);
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
   const pageData = usePreviewedPage();
   useHydrateDraftCache();
@@ -395,8 +396,6 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
     return <>{children}</>;
   }
 
-  const shouldShowStudioChrome = isEditMode;
-
   return (
     <div
       className={cn(
@@ -404,16 +403,16 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         !isEditMode && "bg-black",
       )}
     >
-      {shouldShowStudioChrome && <Navbar />}
+      {!isToolbarHidden && <Navbar />}
       <div className="flex h-full flex-row items-stretch">
-        {shouldShowStudioChrome && <LeftSidebar page={pageData.page} />}
+        {isEditMode && <LeftSidebar page={pageData.page} />}
         <PreviewPanel>
           {children}
-          {shouldShowStudioChrome && <div style={{ height: "80px", background: "transparent" }} />}
+          {isEditMode && <div style={{ height: "80px", background: "transparent" }} />}
         </PreviewPanel>
-        {shouldShowStudioChrome && <RightSidebar pageId={pageData.page.id} />}
+        {isEditMode && <RightSidebar pageId={pageData.page.id} />}
       </div>
-      {shouldShowStudioChrome && (
+      {isEditMode && (
         <>
           <CreatePageModal />
           <DraftSwitchDialog />

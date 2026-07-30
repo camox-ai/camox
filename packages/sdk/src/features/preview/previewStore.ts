@@ -58,7 +58,6 @@ export type ViewportMode = "full" | "tablet" | "mobile";
 interface PreviewContext {
   isEditMode: boolean;
   isToolbarHidden: boolean;
-  isSidebarOpen: boolean;
   isPageEditorSidebarOpen: boolean;
   isAddBlockSidebarOpen: boolean;
   /** Source label for the in-progress add-block flow (popover, shortcut, page-tree, overlay). */
@@ -88,7 +87,6 @@ export const previewStore = createStore({
   context: {
     isEditMode: false,
     isToolbarHidden: false,
-    isSidebarOpen: true,
     isPageEditorSidebarOpen: false,
     isAddBlockSidebarOpen: false,
     addBlockSource: null,
@@ -120,10 +118,13 @@ export const previewStore = createStore({
       enqueue.effect(() => {
         trackClientEvent("edit_mode_toggled", { enabled: true });
       });
-      return { ...context, isEditMode: true, isSidebarOpen: true };
+      return {
+        ...context,
+        isEditMode: true,
+        isToolbarHidden: false,
+      };
     },
     hideToolbar: (context) => ({ ...context, isToolbarHidden: true }),
-    toggleSidebar: (context) => ({ ...context, isSidebarOpen: true }),
     setViewportMode: (context, event: { mode: ViewportMode }) => {
       if (context.viewportMode === event.mode) return context;
       return { ...context, viewportMode: event.mode };
