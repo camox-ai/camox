@@ -399,46 +399,47 @@ const PageEditorSidebar = () => {
         ]
       : []),
   ];
-  const [pageNavigationItem, ...contentNavigationItems] = navigationItems;
-
   return (
     <>
       <div className="border-border flex flex-col gap-1.5 border-b px-2 py-4">
         <nav aria-label="Selection path" className="text-muted-foreground text-sm">
-          {pageNavigationItem?.onClick ? (
-            <button
-              type="button"
-              className="hover:text-foreground block min-w-0 cursor-pointer truncate py-0.5 text-left transition-colors"
-              onClick={pageNavigationItem.onClick}
-            >
-              {pageNavigationItem.label}
-            </button>
-          ) : (
-            <span className="text-foreground block min-w-0 truncate py-0.5 font-medium">
-              {pageNavigationItem?.label}
-            </span>
-          )}
           <ol className="flex flex-col">
-            {contentNavigationItems.map((item, index) => {
-              const hasNextItem = index < contentNavigationItems.length - 1;
-              const connectorPath = hasNextItem
-                ? "M1 0 V24 M1 5 Q1 12 8 12 H16"
-                : "M1 0 V5 Q1 12 8 12 H16";
+            {navigationItems.map((item, index) => {
+              const isFirstItem = index === 0;
+              const isLastItem = index === navigationItems.length - 1;
 
               return (
                 <li key={item.key} className="relative min-w-0 pl-6">
                   <svg
                     aria-hidden="true"
-                    className="text-muted-foreground pointer-events-none absolute top-0 left-0 h-full w-4"
+                    className="text-muted-foreground pointer-events-none absolute top-0 left-0 h-7 w-4"
                     fill="none"
                     preserveAspectRatio="none"
-                    viewBox="0 0 16 24"
+                    viewBox="0 0 16 28"
                   >
-                    <path
-                      d={connectorPath}
+                    {!isFirstItem && (
+                      <path
+                        d="M8 0 V10"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    )}
+                    {!isLastItem && (
+                      <path
+                        d="M8 18 V28"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    )}
+                    <circle
+                      className="fill-background"
+                      cx="8"
+                      cy="14"
+                      r="4"
                       stroke="currentColor"
-                      strokeLinecap="square"
-                      strokeWidth="1.25"
+                      strokeWidth="1.5"
                       vectorEffect="non-scaling-stroke"
                     />
                   </svg>
@@ -446,7 +447,7 @@ const PageEditorSidebar = () => {
                     <button
                       type="button"
                       className={cn(
-                        "hover:text-foreground relative -top-px block min-w-0 cursor-pointer truncate py-0.5 text-left transition-colors",
+                        "hover:text-foreground flex h-7 min-w-0 cursor-pointer items-center truncate text-left transition-colors",
                         item.isCurrent && "text-foreground font-medium",
                       )}
                       onClick={item.onClick}
@@ -454,7 +455,7 @@ const PageEditorSidebar = () => {
                       {item.label}
                     </button>
                   ) : (
-                    <span className="text-foreground relative -top-px block min-w-0 truncate py-0.5 font-medium">
+                    <span className="text-foreground block h-7 min-w-0 truncate leading-7 font-medium">
                       {item.label}
                     </span>
                   )}
