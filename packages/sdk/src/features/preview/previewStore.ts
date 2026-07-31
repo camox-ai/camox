@@ -130,7 +130,7 @@ export const previewStore = createStore({
         if (context.isEditMode) {
           trackClientEvent("edit_mode_toggled", { enabled: false });
         }
-        toast("Viewing live version of the page");
+        toast("Viewing live version of the site");
       });
       return {
         ...context,

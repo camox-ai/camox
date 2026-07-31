@@ -2,7 +2,6 @@ import { Button } from "@camox/ui/button";
 import { ButtonGroup } from "@camox/ui/button-group";
 import { FloatingToolbar } from "@camox/ui/floating-toolbar";
 import { Label } from "@camox/ui/label";
-import { Separator } from "@camox/ui/separator";
 import { Switch } from "@camox/ui/switch";
 import { Toggle } from "@camox/ui/toggle";
 import * as Tooltip from "@camox/ui/tooltip";
@@ -54,7 +53,7 @@ export const PreviewToolbar = ({
           Edit mode {getActionShortcut(actions, editModeActionId)}
         </Label>
       </div>
-      <div className="flex shrink-0 items-center gap-2 self-stretch">
+      <div className="flex shrink-0 items-center gap-8 self-stretch">
         <ButtonGroup>
           <Tooltip.Tooltip>
             <Tooltip.TooltipTrigger
@@ -111,37 +110,36 @@ export const PreviewToolbar = ({
             <Tooltip.TooltipContent>Mobile view</Tooltip.TooltipContent>
           </Tooltip.Tooltip>
         </ButtonGroup>
-        <Tooltip.Tooltip>
-          <Tooltip.TooltipTrigger
-            render={
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={isEditMode}
-                onClick={() => previewStore.send({ type: "hideToolbar" })}
-                aria-label="Hide toolbar"
-                className="text-muted-foreground"
-              />
-            }
-          >
-            <X />
-          </Tooltip.TooltipTrigger>
-          <Tooltip.TooltipContent>Hide toolbar</Tooltip.TooltipContent>
-        </Tooltip.Tooltip>
-        {pageStatus && (
-          <>
-            <Separator orientation="vertical" className="dark:bg-input -my-2" />
+        <div className="flex items-center gap-2">
+          {pageStatus && (
             <Button
               type="button"
               variant="outline"
               disabled={pageStatus === "published" || !hasLiveVersion}
               onClick={() => previewStore.send({ type: "viewLivePage" })}
             >
-              View live page
+              View live site
             </Button>
-          </>
-        )}
+          )}
+          <Tooltip.Tooltip>
+            <Tooltip.TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={isEditMode}
+                  onClick={() => previewStore.send({ type: "hideToolbar" })}
+                  aria-label="Hide toolbar"
+                  className="text-muted-foreground"
+                />
+              }
+            >
+              <X />
+            </Tooltip.TooltipTrigger>
+            <Tooltip.TooltipContent>Hide toolbar</Tooltip.TooltipContent>
+          </Tooltip.Tooltip>
+        </div>
       </div>
     </FloatingToolbar>
   );
