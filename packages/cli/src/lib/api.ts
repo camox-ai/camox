@@ -3,7 +3,7 @@ import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { RouterClient } from "@orpc/server";
 
-const CAMOX_API_URL = process.env.CAMOX_API_URL || "https://api.camox.ai";
+const CAMOX_API_URL = process.env.CAMOX_API_URL || "https://api.camox.dev";
 
 function authHeaders(token: string) {
   return {

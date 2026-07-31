@@ -18,14 +18,14 @@ const RESOLVED_VIRTUAL_STUDIO_CLIENT_URL = "\0virtual:camox/studio-client-url";
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
 
-const PRODUCTION_API_URL = "https://api.camox.ai";
+const PRODUCTION_API_URL = "https://api.camox.dev";
 import { syncDefinitions, syncDefinitionsToApi } from "./definitionsSync";
 import { cleanupGeneratedRouteFiles } from "./routeGeneration";
 import { installRuntimeNitroRoutes, loadRuntimeDevModule, resolveRuntimeDevId } from "./runtimeDev";
 import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
 /** Authentication URL to use for Camox authentication (production Camox Dashboard) */
-const DEFAULT_AUTHENTICATION_URL = "https://app.camox.ai";
+const DEFAULT_AUTHENTICATION_URL = "https://app.camox.dev";
 
 const authTokenSchema = z.object({
   token: z.string(),
@@ -122,7 +122,7 @@ export interface CamoxPluginOptions {
   _internal?: {
     /** URL of the Camox API backend, used for data fetching */
     apiUrl?: string;
-    /** URL of the Camox authentication backend (default: https://app.camox.ai) */
+    /** URL of the Camox authentication backend (default: https://app.camox.dev) */
     authenticationUrl?: string;
     /** Show Tanstack query devtools (default: false) */
     enableTanstackDevtools?: boolean;

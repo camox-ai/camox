@@ -147,7 +147,7 @@ export const ProjectMenu = () => {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link to="https://camox.ai" target="_blank" />}>
+        <DropdownMenuItem render={<Link to="https://camox.dev" target="_blank" />}>
           <Info className="h-4 w-4" />
           Powered by Camox
         </DropdownMenuItem>

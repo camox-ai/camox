@@ -17,7 +17,7 @@ Instead of letting you create routes, you define blocks, which are reusable sect
 
 Your app comes with skills that teach coding agents how to write blocks and use the CLI. All APIs are (very) type safe, and built around standard schema for validation. So your coding agent knows exactly how to manage your Camox site, out of the box, and will solve its own mistakes.
 
-- [Website](https://camox.ai)
+- [Website](https://camox.dev)
 - [Video product overview](https://youtu.be/sftAaNrrfR8)
 - [GitHub](https://github.com/remidej/camox)
 

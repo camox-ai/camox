@@ -1,6 +1,6 @@
 # create-camox
 
-Scaffolds a new [Camox](https://camox.ai) project.
+Scaffolds a new [Camox](https://camox.dev) project.
 
 ```bash
 npm create camox

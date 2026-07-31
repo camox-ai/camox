@@ -39,7 +39,7 @@ export function getCookieDomain(siteUrl: string): string | undefined {
   try {
     const siteHost = new URL(siteUrl).hostname;
     if (siteHost === "localhost") return undefined;
-    if (siteHost === "camox.ai" || siteHost.endsWith(".camox.ai")) return ".camox.ai";
+    if (siteHost === "camox.dev" || siteHost.endsWith(".camox.dev")) return ".camox.dev";
     return `.${siteHost}`;
   } catch {
     return undefined;
@@ -47,8 +47,8 @@ export function getCookieDomain(siteUrl: string): string | undefined {
 }
 
 export function createAuth(db: Database, env: Bindings, baseURL: string) {
-  // The Dashboard and API use sibling camox.ai hosts in production. Localhost
-  // works without an explicit domain.
+  // Camox services may use sibling hosts in production. Localhost works
+  // without an explicit domain.
   const cookieDomain = getCookieDomain(baseURL);
 
   const auth = betterAuth({
