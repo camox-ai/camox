@@ -6,16 +6,20 @@
   </picture>
 </p>
 
-## The open-source CMS for coding agents
+## The CMS framework for the AI era
 
-Camox is an open-source page builder framework. It lets developers build quality websites fast by using tools like Claude Code while getting the best parts of a CMS (visual editing, drafts...)
+Camox is a web framework built on Vite, with a CMS at its heart.
+
+Instead of letting you create routes, you define blocks, which are reusable sections of pages. Camox then uses this catalog of blocks, letting them compose them together to build your pages. This can be done:
+
+- via visual editing: open your site, authenticate, and manage everything directly in the UI.
+- via CLI: all content management actions can be taken via the command line.
+
+Your app comes with skills that teach coding agents how to write blocks and use the CLI. All APIs are (very) type safe, and built around standard schema for validation. So your coding agent knows exactly how to manage your Camox site, out of the box, and will solve its own mistakes.
 
 - [Website](https://camox.ai)
 - [Video product overview](https://youtu.be/sftAaNrrfR8)
-- [GitHub](https://github.com/camox-ai/camox)
-
-The repository includes the public Camox site in `apps/landing` and the account
-and Project Dashboard in `apps/dashboard`.
+- [GitHub](https://github.com/remidej/camox)
 
 ## Quick start
 
