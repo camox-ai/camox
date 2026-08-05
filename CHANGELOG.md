@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.1](https://github.com/remidej/camox/compare/camox-v0.36.0...camox-v0.36.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **sdk:** missing runtime module in exports ([68cc40e](https://github.com/remidej/camox/commit/68cc40e85de3d0096ae898969681d8992c3b3c6e))
+
 ## [0.36.0](https://github.com/remidej/camox/compare/camox-v0.35.0...camox-v0.36.0) (2026-08-05)
 
 
