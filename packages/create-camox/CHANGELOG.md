@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.36.0](https://github.com/remidej/camox/compare/camox-v0.35.0...create-camox-v0.36.0) (2026-08-05)
+
+
+### Documentation
+
+* rewrite readme presentation ([60b32d9](https://github.com/remidej/camox/commit/60b32d991e87695e5b4ae2d203dd8dc962d95d1d))
+
+
+### Miscellaneous
+
+* change domain from ai to dev tld ([a008d92](https://github.com/remidej/camox/commit/a008d9205087de7fc450743eb56e37ec9ed827b8))
+
 ## [0.35.0](https://github.com/remidej/camox/compare/camox-v0.34.0...create-camox-v0.35.0) (2026-07-28)
 
 
