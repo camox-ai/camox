@@ -63,6 +63,13 @@ export function StudioNavigationProvider({
         return;
       }
 
+      const currentPathname = normalizeRuntimePathname(window.location.pathname, runtimeBasePath);
+      const targetPathname = normalizeRuntimePathname(target.pathname, runtimeBasePath);
+      if (targetPathname !== currentPathname) {
+        window.location.assign(target.href);
+        return;
+      }
+
       if (replace) {
         window.history.replaceState(null, "", target.href);
       } else {
