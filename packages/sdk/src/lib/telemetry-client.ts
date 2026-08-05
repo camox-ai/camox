@@ -10,7 +10,7 @@ function ensureInitialized() {
   if (typeof window === "undefined") return false;
   if (initialized) return true;
   posthog.init(POSTHOG_PUBLIC_KEY, {
-    api_host: "https://t.camox.ai",
+    api_host: "https://t.camox.dev",
     ui_host: "https://us.posthog.com",
     defaults: "2026-01-30",
     autocapture: false,
@@ -79,7 +79,7 @@ export function identifyProject(options: IdentifyProjectOptions) {
   });
 }
 
-/** Client-side tracking for CMS actions. Events route through t.camox.ai reverse proxy. */
+/** Client-side tracking for CMS actions. Events route through t.camox.dev reverse proxy. */
 export function trackClientEvent(event: string, properties?: Record<string, unknown>) {
   if (!ensureInitialized()) return;
   posthog.capture(event, properties);

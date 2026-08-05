@@ -63,7 +63,7 @@ const Navbar = () => {
 
   const { pathname } = useLocation();
   return (
-    <nav className="relative flex items-center justify-between gap-4 border-b-2 bg-transparent px-2 py-2">
+    <nav className="bg-background relative flex items-center justify-between gap-4 border-b-2 px-2 py-2">
       <div className="flex flex-row gap-2">
         <div className="flew-row flex gap-1">
           <ProjectMenu />
