@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.0](https://github.com/remidej/camox/compare/camox-v0.35.0...@camox/api-contract-v0.36.0) (2026-08-05)
+
+
+### Documentation
+
+* rewrite readme presentation ([60b32d9](https://github.com/remidej/camox/commit/60b32d991e87695e5b4ae2d203dd8dc962d95d1d))
+
 ## [0.35.0](https://github.com/remidej/camox/compare/camox-v0.34.0...@camox/api-contract-v0.35.0) (2026-07-28)
 
 

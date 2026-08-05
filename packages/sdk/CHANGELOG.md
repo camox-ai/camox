@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.36.0](https://github.com/remidej/camox/compare/camox-v0.35.0...camox-sdk-v0.36.0) (2026-08-05)
+
+
+### Features
+
+* add view live page button ([45576d8](https://github.com/remidej/camox/commit/45576d8426db8a1411a6aca4df1a9a0fc56b3bdc))
+* display navbar by default ([6a42b90](https://github.com/remidej/camox/commit/6a42b90de343397f5501443a9c67c8d539dd8611))
+
+
+### Bug Fixes
+
+* navbar displaying wrong theme ([7bb23f7](https://github.com/remidej/camox/commit/7bb23f71cb56e163ccb4a63f56da37d280d27883))
+* preview toolbar navigation ([bc49edf](https://github.com/remidej/camox/commit/bc49edfad9cc3e0de893880facab765de87d645d))
+* selection breadcrumbs design (metro map style) ([80d68ea](https://github.com/remidej/camox/commit/80d68ea0f487a65f5bb53ced58cb87acb8023ac4))
+* toolbar view live site design ([bb5989a](https://github.com/remidej/camox/commit/bb5989abf9c8dfc4bf367829701ed0cea0623dc8))
+
+
+### Documentation
+
+* rewrite readme presentation ([60b32d9](https://github.com/remidej/camox/commit/60b32d991e87695e5b4ae2d203dd8dc962d95d1d))
+
+
+### Miscellaneous
+
+* change domain from ai to dev tld ([a008d92](https://github.com/remidej/camox/commit/a008d9205087de7fc450743eb56e37ec9ed827b8))
+
 ## [0.35.0](https://github.com/remidej/camox/compare/camox-v0.34.0...camox-sdk-v0.35.0) (2026-07-28)
 
 
