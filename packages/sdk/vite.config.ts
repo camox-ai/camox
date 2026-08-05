@@ -15,6 +15,7 @@ export default defineConfig({
       "features/navigation/navigation": "src/features/navigation/navigation.tsx",
       "features/vite/vite": "src/features/vite/vite.ts",
       "features/metadata/sitemap": "src/features/metadata/sitemap.ts",
+      "features/runtime/runtime": "src/features/runtime/runtime.ts",
       "features/runtime/pageServer": "src/features/runtime/pageServer.tsx",
       "features/runtime/pageClient": "src/features/runtime/pageClient.tsx",
       "features/runtime/studioClient": "src/features/runtime/studioClient.tsx",

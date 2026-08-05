@@ -26,11 +26,12 @@ export const PreviewToolbar = ({
 }: PreviewToolbarProps) => {
   const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
   const isToolbarHidden = useSelector(previewStore, (state) => state.context.isToolbarHidden);
+  const peekedBlock = useSelector(previewStore, (state) => state.context.peekedBlock);
   const actions = useSelector(actionsStore, (state) => state.context.actions);
   const viewportMode = useSelector(previewStore, (state) => state.context.viewportMode);
   const editModeActionId = isEditMode ? "exit-edit-mode" : "enter-edit-mode";
 
-  if (isToolbarHidden) return null;
+  if (isToolbarHidden || peekedBlock) return null;
 
   return (
     <FloatingToolbar className="bottom-2 w-max justify-between gap-8 transition-none">

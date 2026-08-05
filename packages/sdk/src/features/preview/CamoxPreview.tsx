@@ -319,6 +319,10 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useIsAuthenticated();
   const isEditMode = useSelector(previewStore, (state) => state.context.isEditMode);
   const isToolbarHidden = useSelector(previewStore, (state) => state.context.isToolbarHidden);
+  const isAddBlockSidebarOpen = useSelector(
+    previewStore,
+    (state) => state.context.isAddBlockSidebarOpen,
+  );
   const previewSource = useSelector(previewStore, (state) => state.context.previewSource);
   const pageData = usePreviewedPage();
   useHydrateDraftCache();
@@ -403,7 +407,18 @@ export const CamoxPreview = ({ children }: { children: React.ReactNode }) => {
         !isEditMode && "bg-black",
       )}
     >
-      {!isToolbarHidden && <Navbar />}
+      {!isToolbarHidden && (
+        <div className="relative">
+          <Navbar />
+          {isAddBlockSidebarOpen && (
+            <div
+              className="absolute inset-0 z-20"
+              style={{ background: "rgba(0, 0, 0, 0.66)" }}
+              onClick={() => previewStore.send({ type: "closeAddBlockSidebar" })}
+            />
+          )}
+        </div>
+      )}
       <div className="flex h-full flex-row items-stretch">
         {isEditMode && <LeftSidebar page={pageData.page} />}
         <PreviewPanel
