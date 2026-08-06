@@ -3,7 +3,7 @@
   "version": "0.36.1",
   "license": "MIT",
   "files": [
-    "src"
+    "dist"
   ],
   "type": "module",
   "exports": {
@@ -119,6 +119,125 @@
       "types": "./src/components/tooltip.tsx",
       "default": "./src/components/tooltip.tsx"
     }
+  },
+  "publishConfig": {
+    "exports": {
+      "./utils": {
+        "types": "./dist/lib/utils.d.ts",
+        "default": "./dist/lib/utils.js"
+      },
+      "./alert-dialog": {
+        "types": "./dist/components/alert-dialog.d.ts",
+        "default": "./dist/components/alert-dialog.js"
+      },
+      "./alert": {
+        "types": "./dist/components/alert.d.ts",
+        "default": "./dist/components/alert.js"
+      },
+      "./avatar": {
+        "types": "./dist/components/avatar.d.ts",
+        "default": "./dist/components/avatar.js"
+      },
+      "./badge": {
+        "types": "./dist/components/badge.d.ts",
+        "default": "./dist/components/badge.js"
+      },
+      "./button-group": {
+        "types": "./dist/components/button-group.d.ts",
+        "default": "./dist/components/button-group.js"
+      },
+      "./button": {
+        "types": "./dist/components/button.d.ts",
+        "default": "./dist/components/button.js"
+      },
+      "./command": {
+        "types": "./dist/components/command.d.ts",
+        "default": "./dist/components/command.js"
+      },
+      "./dialog": {
+        "types": "./dist/components/dialog.d.ts",
+        "default": "./dist/components/dialog.js"
+      },
+      "./dropdown-menu": {
+        "types": "./dist/components/dropdown-menu.d.ts",
+        "default": "./dist/components/dropdown-menu.js"
+      },
+      "./floating-toolbar": {
+        "types": "./dist/components/floating-toolbar.d.ts",
+        "default": "./dist/components/floating-toolbar.js"
+      },
+      "./input-group": {
+        "types": "./dist/components/input-group.d.ts",
+        "default": "./dist/components/input-group.js"
+      },
+      "./input": {
+        "types": "./dist/components/input.d.ts",
+        "default": "./dist/components/input.js"
+      },
+      "./kbd": {
+        "types": "./dist/components/kbd.d.ts",
+        "default": "./dist/components/kbd.js"
+      },
+      "./label": {
+        "types": "./dist/components/label.d.ts",
+        "default": "./dist/components/label.js"
+      },
+      "./panel": {
+        "types": "./dist/components/panel.d.ts",
+        "default": "./dist/components/panel.js"
+      },
+      "./popover": {
+        "types": "./dist/components/popover.d.ts",
+        "default": "./dist/components/popover.js"
+      },
+      "./select": {
+        "types": "./dist/components/select.d.ts",
+        "default": "./dist/components/select.js"
+      },
+      "./separator": {
+        "types": "./dist/components/separator.d.ts",
+        "default": "./dist/components/separator.js"
+      },
+      "./sheet": {
+        "types": "./dist/components/sheet.d.ts",
+        "default": "./dist/components/sheet.js"
+      },
+      "./skeleton": {
+        "types": "./dist/components/skeleton.d.ts",
+        "default": "./dist/components/skeleton.js"
+      },
+      "./spinner": {
+        "types": "./dist/components/spinner.d.ts",
+        "default": "./dist/components/spinner.js"
+      },
+      "./switch": {
+        "types": "./dist/components/switch.d.ts",
+        "default": "./dist/components/switch.js"
+      },
+      "./tabs": {
+        "types": "./dist/components/tabs.d.ts",
+        "default": "./dist/components/tabs.js"
+      },
+      "./textarea": {
+        "types": "./dist/components/textarea.d.ts",
+        "default": "./dist/components/textarea.js"
+      },
+      "./toaster": {
+        "types": "./dist/components/toaster.d.ts",
+        "default": "./dist/components/toaster.js"
+      },
+      "./toggle": {
+        "types": "./dist/components/toggle.d.ts",
+        "default": "./dist/components/toggle.js"
+      },
+      "./tooltip": {
+        "types": "./dist/components/tooltip.d.ts",
+        "default": "./dist/components/tooltip.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "vp pack"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
