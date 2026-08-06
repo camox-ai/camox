@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.2](https://github.com/remidej/camox/compare/camox-v0.36.1...@camox/ui-v0.36.2) (2026-08-06)
+
+
+### Bug Fixes
+
+* publish built version of camox ui ([543efff](https://github.com/remidej/camox/commit/543efff2b2b0651773759fed4c1a90a8315e9ef8))
+
 ## [0.36.1](https://github.com/remidej/camox/compare/camox-v0.36.0...@camox/ui-v0.36.1) (2026-08-05)
 
 
