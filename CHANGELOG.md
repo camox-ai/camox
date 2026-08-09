@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.3](https://github.com/remidej/camox/compare/camox-v0.36.2...camox-v0.36.3) (2026-08-09)
+
+
+### Bug Fixes
+
+* virtual modules breaking generated apps ([dd116eb](https://github.com/remidej/camox/commit/dd116eb5e70fd936c7ae205f39d974296dedc6c0))
+
 ## [0.36.2](https://github.com/remidej/camox/compare/camox-v0.36.1...camox-v0.36.2) (2026-08-06)
 
 
