@@ -67,7 +67,9 @@ function resolveCamoxSourceImport(id: string): string | undefined {
     "camox/_internal/studioServer": resolve(sdkRoot, "src/features/runtime/studioServer.tsx"),
     "camox/_internal/runtime": resolve(sdkRoot, "src/features/runtime/runtime.ts"),
   };
-  return sourceImports[id];
+  const sourceImport = sourceImports[id];
+  if (!sourceImport || !existsSync(sourceImport)) return;
+  return sourceImport;
 }
 
 function generateVirtualCamoxApp(): string {

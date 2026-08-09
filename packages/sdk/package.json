@@ -116,6 +116,93 @@
     },
     "./studio.css": "./dist/studio.css"
   },
+  "publishConfig": {
+    "exports": {
+      "./createApp": {
+        "types": "./dist/core/createApp.d.ts",
+        "import": "./dist/core/createApp.js"
+      },
+      "./createBlock": {
+        "types": "./dist/core/createBlock.d.ts",
+        "import": "./dist/core/createBlock.js"
+      },
+      "./createLayout": {
+        "types": "./dist/core/createLayout.d.ts",
+        "import": "./dist/core/createLayout.js"
+      },
+      "./document": {
+        "types": "./dist/core/defineDocument.d.ts",
+        "import": "./dist/core/defineDocument.js"
+      },
+      "./CamoxPreview": {
+        "types": "./dist/features/preview/CamoxPreview.d.ts",
+        "import": "./dist/features/preview/CamoxPreview.js"
+      },
+      "./CamoxContent": {
+        "types": "./dist/features/content/CamoxContent.d.ts",
+        "import": "./dist/features/content/CamoxContent.js"
+      },
+      "./CamoxProvider": {
+        "types": "./dist/features/provider/CamoxProvider.d.ts",
+        "import": "./dist/features/provider/CamoxProvider.js"
+      },
+      "./CamoxStudio": {
+        "types": "./dist/features/studio/CamoxStudio.d.ts",
+        "import": "./dist/features/studio/CamoxStudio.js"
+      },
+      "./navigation": {
+        "types": "./dist/features/navigation/navigation.d.ts",
+        "import": "./dist/features/navigation/navigation.js"
+      },
+      "./vite": {
+        "types": "./dist/features/vite/vite.d.ts",
+        "import": "./dist/features/vite/vite.js"
+      },
+      "./metadata": {
+        "types": "./dist/features/metadata/sitemap.d.ts",
+        "import": "./dist/features/metadata/sitemap.js"
+      },
+      "./_internal/pageServer": {
+        "types": "./dist/features/runtime/pageServer.d.ts",
+        "import": "./dist/features/runtime/pageServer.js"
+      },
+      "./_internal/pageClient": {
+        "types": "./dist/features/runtime/pageClient.d.ts",
+        "import": "./dist/features/runtime/pageClient.js"
+      },
+      "./_internal/studioClient": {
+        "types": "./dist/features/runtime/studioClient.d.ts",
+        "import": "./dist/features/runtime/studioClient.js"
+      },
+      "./_internal/studioServer": {
+        "types": "./dist/features/runtime/studioServer.d.ts",
+        "import": "./dist/features/runtime/studioServer.js"
+      },
+      "./_internal/runtime": {
+        "types": "./dist/features/runtime/runtime.d.ts",
+        "import": "./dist/features/runtime/runtime.js"
+      },
+      "./_internal/imageResponse": {
+        "workerd": {
+          "types": "./dist/features/og/imageResponse.workerd.d.ts",
+          "import": "./dist/features/og/imageResponse.workerd.js"
+        },
+        "worker": {
+          "types": "./dist/features/og/imageResponse.workerd.d.ts",
+          "import": "./dist/features/og/imageResponse.workerd.js"
+        },
+        "deno": {
+          "types": "./dist/features/og/imageResponse.workerd.d.ts",
+          "import": "./dist/features/og/imageResponse.workerd.js"
+        },
+        "default": {
+          "types": "./dist/features/og/imageResponse.node.d.ts",
+          "import": "./dist/features/og/imageResponse.node.js"
+        }
+      },
+      "./studio.css": "./dist/studio.css"
+    }
+  },
   "scripts": {
     "dev": "cp ./src/features/preview/studio-overlays.css ./dist/studio-overlays.css && tailwindcss -i ./src/studio.css -o ./dist/studio.css --watch",
     "build": "vp pack && tailwindcss -i ./src/studio.css -o ./dist/studio.css --minify && cp ./src/features/preview/studio-overlays.css ./dist/studio-overlays.css",

@@ -39,6 +39,7 @@ interface CamoxNitro {
     hook: (name: "compiled", callback: (nitro: CamoxNitro) => void) => void;
   };
   options: {
+    noExternals?: boolean | (string | RegExp)[];
     output: {
       publicDir: string;
       serverDir: string;
@@ -179,6 +180,13 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
     },
     nitro: {
       setup(nitro) {
+        // The runtime imports virtual modules that must pass through the Camox plugin.
+        if (nitro.options.noExternals !== true) {
+          const noExternals = Array.isArray(nitro.options.noExternals)
+            ? nitro.options.noExternals
+            : [];
+          nitro.options.noExternals = [...noExternals, "camox"];
+        }
         installRuntimeNitroRoutes(nitro, { runtimeBasePath });
         nitro.hooks.hook("compiled", ({ options }) => {
           const serverAssets = join(options.output.serverDir, "assets");
