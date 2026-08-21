@@ -4,7 +4,7 @@ import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { z } from "zod";
 
-import { assertLayoutAccess, assertSyncSecret } from "../../authorization";
+import { assertLayoutAccess, assertSyncAccess } from "../../authorization";
 import { broadcastInvalidation } from "../../lib/broadcast-invalidation";
 import { resolveEnvironment } from "../../lib/resolve-environment";
 import {
@@ -45,7 +45,7 @@ const repeatableItemSeedSchema = z.object({
 
 export const syncLayoutsInput = z.object({
   projectSlug: z.string(),
-  syncSecret: z.string(),
+  deployToken: z.string().optional(),
   autoCreate: z.boolean(),
   layouts: z.array(
     z.object({
@@ -269,7 +269,11 @@ export async function listLayouts(ctx: ServiceContext, rawInput: z.input<typeof 
 export async function syncLayouts(ctx: ServiceContext, rawInput: z.input<typeof syncLayoutsInput>) {
   const input = syncLayoutsInput.parse(rawInput);
   const { projectSlug, layouts: layoutDefs, autoCreate } = input;
-  const project = await assertSyncSecret(ctx.db, projectSlug, input.syncSecret);
+  const project = await assertSyncAccess(ctx.db, projectSlug, {
+    user: ctx.user,
+    environmentName: ctx.environmentName,
+    deployToken: input.deployToken,
+  });
   const projectId = project.id;
   const environment = await resolveEnvironment(ctx.db, projectId, ctx.environmentName, {
     autoCreate,
@@ -550,8 +554,8 @@ export async function publishLayout(
 // a partial failure between the two steps leaves a checkpoint nothing points
 // at, which is harmless history that no UI surfaces. Same trade-off as page.
 //
-// `userId` is null for the project-init auto-publish (no authenticated user in
-// the sync-secret flow); matches the migration backfill which also stored NULL.
+// `userId` is null for production releases, which authenticate with a deploy
+// token rather than a user session; this also matches the migration backfill.
 export async function writeLayoutCheckpointAndPoint(
   ctx: ServiceContext,
   args: { layout: typeof layouts.$inferSelect; userId: string | null },

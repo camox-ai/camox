@@ -3,9 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { camox } from "camox/vite";
 import { nitro } from "nitro/vite";
-import { defineConfig, loadEnv } from "vite-plus";
-
-const env = loadEnv(process.env.NODE_ENV!, process.cwd(), "CAMOX_");
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   resolve: { tsconfigPaths: true },
@@ -14,7 +12,6 @@ export default defineConfig({
     nitro(),
     camox({
       projectSlug: "camox-template-default-01", // camox-cli:replace-slug
-      syncSecret: env.CAMOX_SYNC_SECRET,
       // camox-cli:dev-only-start
       _internal: {
         authenticationUrl: "http://localhost:3274",

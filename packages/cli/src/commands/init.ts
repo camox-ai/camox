@@ -252,7 +252,7 @@ export async function init() {
   // Create project on API
   const s0 = p.spinner();
   s0.start("Creating project...");
-  let project: { slug: string; syncSecret: string };
+  let project: { slug: string };
   try {
     project = await createProject(auth.token, name, projectSlug, orgId);
     s0.stop(`Project created with slug: ${project.slug}`);
@@ -312,10 +312,7 @@ export async function init() {
     fs.writeFileSync(path.join(targetDir, "pnpm-workspace.yaml"), PNPM_WORKSPACE);
   }
 
-  // .env and .gitignore can't live in the template dir:
-  // - .gitignore is stripped by npm when publishing
-  // - .env is ignored by the .gitignore
-  fs.writeFileSync(path.join(targetDir, ".env"), `CAMOX_SYNC_SECRET=${project.syncSecret}\n`);
+  // .gitignore can't live in the template dir because npm strips it when publishing.
   fs.writeFileSync(
     path.join(targetDir, ".gitignore"),
     `node_modules

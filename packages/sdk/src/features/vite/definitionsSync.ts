@@ -11,10 +11,11 @@ const SYNC_DEBOUNCE_DELAY_MS = 100;
 
 interface SyncDefinitionsOptions {
   projectSlug: string;
-  syncSecret: string;
   apiUrl: string;
   environmentName: string;
   autoCreate: boolean;
+  authToken?: string;
+  deployToken?: string;
 }
 
 /**
@@ -27,7 +28,7 @@ function throwIfSyncAuthError(error: unknown): void {
     error.name === "ORPCError" &&
     error.message.toLowerCase().includes("unauthorized")
   ) {
-    throw new Error("[camox] Definition sync failed: invalid syncSecret.");
+    throw new Error("[camox] Definition sync failed: invalid or missing credentials.");
   }
 }
 
@@ -42,8 +43,7 @@ function isNotFoundError(error: unknown): boolean {
 function throwUnknownEnvironmentError(environmentName: string): never {
   throw new Error(
     `[camox] Environment "${environmentName}" does not exist. ` +
-      `CAMOX_ENV must be "production" or a dev environment previously created by ` +
-      `running the dev server while authenticated. Run \`npx camox login\` if needed.`,
+      `Run the dev server while authenticated to create your personal environment first.`,
   );
 }
 
@@ -51,14 +51,23 @@ export async function syncDefinitionsToApi(options: {
   camoxApp: CamoxApp;
   projectSlug: string;
   apiUrl: string;
-  syncSecret: string;
   environmentName: string;
   autoCreate: boolean;
+  authToken?: string;
+  deployToken?: string;
   logger: Logger;
 }): Promise<void> {
-  const { camoxApp, projectSlug, apiUrl, syncSecret, environmentName, autoCreate, logger } =
-    options;
-  const client = createServerApiClient(apiUrl, environmentName);
+  const {
+    camoxApp,
+    projectSlug,
+    apiUrl,
+    environmentName,
+    autoCreate,
+    authToken,
+    deployToken,
+    logger,
+  } = options;
+  const client = createServerApiClient(apiUrl, environmentName, authToken);
 
   const blocks = camoxApp.getBlocks();
   const layoutDefinitions = camoxApp.getSerializableLayoutDefinitions();
@@ -94,7 +103,7 @@ export async function syncDefinitionsToApi(options: {
   try {
     const result = await client.blockDefinitions.sync({
       projectSlug,
-      syncSecret,
+      deployToken,
       autoCreate,
       definitions,
     });
@@ -136,7 +145,7 @@ export async function syncDefinitionsToApi(options: {
     try {
       layoutSyncResults = await client.layouts.sync({
         projectSlug,
-        syncSecret,
+        deployToken,
         autoCreate,
         layouts: layoutDefinitions,
       });
@@ -196,7 +205,7 @@ export async function syncDefinitionsToApi(options: {
     try {
       const result = await client.projects.initializeContent({
         projectSlug,
-        syncSecret,
+        deployToken,
         layoutId: initialPage.layoutId,
         blocks: initialPage.blocks,
       });
@@ -265,7 +274,7 @@ export async function syncDefinitions(
   server: ViteDevServer,
   options: SyncDefinitionsOptions,
 ): Promise<void> {
-  const { projectSlug, syncSecret, apiUrl, environmentName, autoCreate } = options;
+  const { projectSlug, apiUrl, environmentName, autoCreate, authToken, deployToken } = options;
   const blocksDirs = [
     path.resolve(server.config.root, "src/blocks"),
     path.resolve(server.config.root, "src/camox/blocks"),
@@ -274,7 +283,7 @@ export async function syncDefinitions(
     path.resolve(server.config.root, "src/layouts"),
     path.resolve(server.config.root, "src/camox/layouts"),
   ];
-  const client = createServerApiClient(apiUrl, environmentName);
+  const client = createServerApiClient(apiUrl, environmentName, authToken);
 
   async function performInitialSync(): Promise<void> {
     // The SSR runner caches the resolved `camoxApp`. Without invalidation,
@@ -302,9 +311,10 @@ export async function syncDefinitions(
       camoxApp: camoxModule.camoxApp,
       projectSlug,
       apiUrl,
-      syncSecret,
       environmentName,
       autoCreate,
+      authToken,
+      deployToken,
       logger: server.config.logger,
     });
   }
@@ -340,7 +350,7 @@ export async function syncDefinitions(
     try {
       result = await client.blockDefinitions.upsert({
         projectSlug,
-        syncSecret,
+        deployToken,
         blockId: block._internal.id,
         title: block._internal.title,
         description: block._internal.description,
@@ -368,7 +378,7 @@ export async function syncDefinitions(
     try {
       result = await client.blockDefinitions.delete({
         projectSlug,
-        syncSecret,
+        deployToken,
         blockId,
       });
     } catch (error) {

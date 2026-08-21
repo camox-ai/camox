@@ -3,7 +3,7 @@ import { and, eq, inArray, or } from "drizzle-orm";
 import { generateKeyBetween } from "fractional-indexing";
 import { z } from "zod";
 
-import { assertOrgMembership, assertSyncSecret, getAuthorizedProject } from "../../authorization";
+import { assertOrgMembership, assertSyncAccess, getAuthorizedProject } from "../../authorization";
 import { resolveEnvironment } from "../../lib/resolve-environment";
 import { scheduleAiJob } from "../../lib/schedule-ai-job";
 import {
@@ -49,7 +49,7 @@ const repeatableItemSeedSchema = z.object({
 
 export const initializeProjectContentInput = z.object({
   projectSlug: z.string(),
-  syncSecret: z.string(),
+  deployToken: z.string().optional(),
   layoutId: z.string(),
   blocks: z.array(
     z.object({
@@ -166,7 +166,7 @@ export async function createProject(
     throw new ORPCError("CONFLICT", { message: "Slug is already taken" });
   }
 
-  const syncSecret = crypto.randomUUID();
+  const deployToken = crypto.randomUUID();
   const now = Date.now();
 
   const result = await ctx.db
@@ -174,7 +174,7 @@ export async function createProject(
     .values({
       name: input.name,
       slug: input.slug,
-      syncSecret,
+      deployToken,
       organizationId: input.organizationId,
       createdAt: now,
       updatedAt: now,
@@ -344,7 +344,11 @@ export async function initializeProjectContent(
   rawInput: z.input<typeof initializeProjectContentInput>,
 ) {
   const input = initializeProjectContentInput.parse(rawInput);
-  const project = await assertSyncSecret(ctx.db, input.projectSlug, input.syncSecret);
+  const project = await assertSyncAccess(ctx.db, input.projectSlug, {
+    user: ctx.user,
+    environmentName: ctx.environmentName,
+    deployToken: input.deployToken,
+  });
 
   const environment = await resolveEnvironment(ctx.db, project.id, ctx.environmentName);
 
@@ -471,12 +475,11 @@ export async function initializeProjectContent(
   // publish in the studio. We only do it here — once the project exists, the
   // regular draft → publish UX takes over for new pages.
   //
-  // `userId: null` mirrors the migration 0016 backfill: the sync-secret flow
-  // has no authenticated user to attribute the checkpoint to.
+  const syncUserId = ctx.user?.id ?? null;
   if (layout.livePublishedCheckpointId == null) {
-    await writeLayoutCheckpointAndPoint(ctx, { layout, userId: null });
+    await writeLayoutCheckpointAndPoint(ctx, { layout, userId: syncUserId });
   }
-  await writePageCheckpointAndPoint(ctx, { page: homepage, userId: null });
+  await writePageCheckpointAndPoint(ctx, { page: homepage, userId: syncUserId });
 
   return { created: true, pageId: homepage.id, blockCount };
 }

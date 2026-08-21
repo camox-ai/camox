@@ -74,7 +74,6 @@ const config = defineConfig({
     nitro(),
     camox({
       projectSlug: "camox-playground-01",
-      syncSecret: "camox-dev-sync-secret",
       _internal: {
         authenticationUrl: "http://localhost:3274",
         apiUrl: "http://localhost:8787",

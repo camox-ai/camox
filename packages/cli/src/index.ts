@@ -10,6 +10,7 @@ import * as layouts from "./commands/layouts";
 import * as login from "./commands/login";
 import * as logout from "./commands/logout";
 import * as pages from "./commands/pages";
+import * as release from "./commands/release";
 import * as status from "./commands/status";
 
 // With many top-level parsers and subcommands, optique's variadic `or`
@@ -21,6 +22,7 @@ type Result =
   | { command: "init" }
   | { command: "login" }
   | { command: "logout" }
+  | { command: "release" }
   | Parameters<typeof status.handler>[0]
   | Parameters<typeof pages.handler>[0]
   | Parameters<typeof blocks.handler>[0]
@@ -32,6 +34,7 @@ const program = defineProgram({
     init.parser,
     login.parser,
     logout.parser,
+    release.parser,
     status.parser,
     pages.parser,
     blocks.parser,
@@ -55,6 +58,9 @@ switch (result.command) {
     break;
   case "logout":
     logout.handler();
+    break;
+  case "release":
+    release.handler();
     break;
   case "status":
     await status.handler(result);

@@ -8,7 +8,9 @@ export const projects = sqliteTable(
     id: int().primaryKey({ autoIncrement: true }),
     slug: text().notNull(),
     name: text().notNull(),
-    syncSecret: text("sync_secret").notNull().default(""),
+    // Keep the existing column name so this credential rename does not require
+    // rewriting deployed databases.
+    deployToken: text("sync_secret").notNull().default(""),
     organizationId: text("organization_id")
       .notNull()
       .references(() => organizationTable.id),

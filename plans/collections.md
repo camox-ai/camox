@@ -154,7 +154,7 @@ No changes to existing constraints. `blocks.pageId XOR layoutId` stays as-is.
 ```
 collections.list(projectId)
 collections.get(id)
-collections.sync(projectSlug, syncSecret, definitions[], autoCreate?)
+collections.sync(projectSlug, deployToken?, definitions[], autoCreate?)
 
 collectionEntries.list(collectionId, { limit?, offset? })
 collectionEntries.get(id)

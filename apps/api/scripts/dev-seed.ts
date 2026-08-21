@@ -154,7 +154,7 @@ async function seed(db: ReturnType<typeof createDrizzle>) {
         name,
         slug,
         organizationId: orgId,
-        syncSecret: "camox-dev-sync-secret",
+        deployToken: "camox-dev-deploy-token",
         createdAt: now,
         updatedAt: now,
       })

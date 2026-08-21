@@ -250,7 +250,7 @@ function ProjectFaviconProbe({
   );
 }
 
-function ProjectCredentialsSection({ slug, secret }: { slug: string; secret: string }) {
+function ProjectCredentialsSection({ slug, deployToken }: { slug: string; deployToken: string }) {
   const [revealed, setRevealed] = useState(false);
 
   return (
@@ -280,12 +280,15 @@ function ProjectCredentialsSection({ slug, secret }: { slug: string; secret: str
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="sync-secret">Sync secret</Label>
+        <Label htmlFor="deploy-token">Deploy token</Label>
+        <p className="text-muted-foreground text-sm">
+          Store this as <code>CAMOX_DEPLOY_TOKEN</code> in your CI environment.
+        </p>
         <div className="flex items-center gap-2">
           <Input
-            id="sync-secret"
+            id="deploy-token"
             readOnly
-            value={revealed ? secret : "*".repeat(secret.length)}
+            value={revealed ? deployToken : "*".repeat(deployToken.length)}
             className="font-mono"
           />
           <Tooltip>
@@ -310,12 +313,12 @@ function ProjectCredentialsSection({ slug, secret }: { slug: string; secret: str
         variant="secondary"
         className="-mt-2"
         onClick={async () => {
-          await navigator.clipboard.writeText(secret);
-          toast.success("Secret copied to clipboard");
+          await navigator.clipboard.writeText(deployToken);
+          toast.success("Deploy token copied to clipboard");
         }}
       >
         <CopyIcon className="size-4" />
-        Copy secret
+        Copy deploy token
       </Button>
     </div>
   );
@@ -409,9 +412,9 @@ function ProjectSettingsPage() {
       </Section>
       <Section
         title="Project credentials"
-        description="Keys and secrets used to connect external services to this project."
+        description="The token used by CI to prepare production releases."
       >
-        <ProjectCredentialsSection slug={project.slug} secret={project.syncSecret} />
+        <ProjectCredentialsSection slug={project.slug} deployToken={project.deployToken} />
       </Section>
       <Section title="Danger zone" description="Irreversible and destructive actions.">
         <DeleteProjectSection project={project} />

@@ -3,9 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { camox } from "camox/vite";
 import { nitro } from "nitro/vite";
-import { defineConfig, loadEnv } from "vite-plus";
-
-const env = loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), "CAMOX_");
+import { defineConfig } from "vite-plus";
 
 const config = defineConfig({
   lint: {
@@ -26,7 +24,6 @@ const config = defineConfig({
     nitro(),
     camox({
       projectSlug: "camox-landing",
-      syncSecret: env.CAMOX_SYNC_SECRET,
     }),
     react(),
     babelPlugin({ presets: [reactCompilerPreset()] }),

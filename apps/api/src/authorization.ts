@@ -4,15 +4,54 @@ import { and, eq, or } from "drizzle-orm";
 import type { Database } from "./db";
 import { member, blocks, files, layouts, pages, projects, repeatableItems } from "./schema";
 
-// --- Sync Secret ---
+// --- Definition Sync ---
 
-export async function assertSyncSecret(db: Database, projectSlug: string, syncSecret: string) {
+type SyncPrincipal = {
+  user: { id: string; email: string } | null;
+  environmentName: string;
+  deployToken?: string;
+};
+
+/**
+ * Authorize code-definition writes.
+ *
+ * Humans may only sync their own email-based development environment. The
+ * project deploy token is deliberately restricted to production releases.
+ */
+export async function assertSyncAccess(
+  db: Database,
+  projectSlug: string,
+  principal: SyncPrincipal,
+) {
   const project = await db.select().from(projects).where(eq(projects.slug, projectSlug)).get();
   if (!project) throw new ORPCError("NOT_FOUND");
 
-  if (syncSecret !== project.syncSecret) {
+  if (principal.deployToken) {
+    if (principal.environmentName !== "production") {
+      throw new ORPCError("FORBIDDEN", {
+        message: "Deploy tokens may only sync the production environment",
+      });
+    }
+
+    if (principal.deployToken !== project.deployToken) {
+      throw new ORPCError("UNAUTHORIZED");
+    }
+
+    return project;
+  }
+
+  if (!principal.user) {
     throw new ORPCError("UNAUTHORIZED");
   }
+
+  const expectedEnvironment = `dev:${principal.user.email}`;
+  if (principal.environmentName !== expectedEnvironment) {
+    throw new ORPCError("FORBIDDEN", {
+      message: `Authenticated sync is restricted to ${expectedEnvironment}`,
+    });
+  }
+
+  await assertProjectMembership(db, project.id, principal.user.id);
 
   return project;
 }

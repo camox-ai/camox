@@ -1079,8 +1079,8 @@ export async function publishPage(ctx: ServiceContext, rawInput: z.input<typeof 
 // transaction primitive; a partial failure between insert and update leaves a
 // checkpoint nothing points at, which is harmless history that no UI surfaces.
 //
-// `userId` is null for the project-init auto-publish (no authenticated user in
-// the sync-secret flow); matches the migration backfill which also stored NULL.
+// `userId` is null for production releases, which authenticate with a deploy
+// token rather than a user session; this also matches the migration backfill.
 export async function writePageCheckpointAndPoint(
   ctx: ServiceContext,
   args: { page: typeof pages.$inferSelect; userId: string | null },

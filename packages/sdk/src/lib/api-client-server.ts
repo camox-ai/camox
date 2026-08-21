@@ -5,9 +5,14 @@ import type { RouterClient } from "@orpc/server";
 
 export type ServerApiClient = RouterClient<Router>;
 
-export function createServerApiClient(apiUrl: string, environmentName?: string): ServerApiClient {
+export function createServerApiClient(
+  apiUrl: string,
+  environmentName?: string,
+  authToken?: string,
+): ServerApiClient {
   const headers: Record<string, string> = {};
   if (environmentName) headers["x-environment-name"] = environmentName;
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
   const link = new RPCLink({ url: `${apiUrl}/rpc`, headers });
   return createORPCClient<ServerApiClient>(link);
 }

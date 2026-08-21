@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vp dev --port 3001",
     "build": "vp build",
+    "release": "camox release",
     "preview": "wrangler dev --config .output/server/wrangler.json",
-    "deploy": "CAMOX_ENV=production pnpm build && wrangler deploy --config .output/server/wrangler.json",
+    "deploy": "pnpm release && wrangler deploy --config .output/server/wrangler.json",
     "lint": "vp lint",
     "check": "vp check"
   },

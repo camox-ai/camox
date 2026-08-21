@@ -55,13 +55,15 @@ type CamoxVitePlugin = Plugin & {
   };
 };
 
-function readAuthEmail(authenticationUrl: string): string | null {
+type StoredAuth = z.infer<typeof authTokenSchema>;
+
+function readAuth(authenticationUrl: string): StoredAuth | null {
   const authFile = join(homedir(), ".camox", "auth.json");
   const key = authenticationUrl.replace(/\/+$/, "");
   try {
     const raw = JSON.parse(readFileSync(authFile, "utf-8"));
     const tokens = authFileSchema.parse(raw);
-    return tokens[key]?.email ?? null;
+    return tokens[key] ?? null;
   } catch {
     return null;
   }
@@ -90,33 +92,18 @@ function writeRuntimeSidecar(
   writeFileSync(join(dir, "runtime.json"), `${JSON.stringify(data, null, 2)}\n`);
 }
 
-function resolveEnvironmentName(command: "serve" | "build", authenticationUrl: string): string {
-  if (command === "serve") {
-    const email = readAuthEmail(authenticationUrl);
-    if (!email) {
-      throw new Error(
-        "Camox: not authenticated. Run `npx camox login` to create your personal dev environment.",
-      );
-    }
-    return `dev:${email}`;
-  }
+function requireLocalAuth(authenticationUrl: string): StoredAuth {
+  const auth = readAuth(authenticationUrl);
+  if (auth) return auth;
 
-  const envFromProcess = process.env.CAMOX_ENV;
-  if (envFromProcess) return envFromProcess;
-
-  const email = readAuthEmail(authenticationUrl);
-  const suggestion = email
-    ? `  CAMOX_ENV=dev:${email}    (your personal dev environment)\n  CAMOX_ENV=production     (release build)`
-    : `  CAMOX_ENV=production     (release build)\n\nIf you want to build against a dev environment, run \`npx camox login\` first.`;
-
-  throw new Error(`Camox: CAMOX_ENV is required on build. Set it to one of:\n${suggestion}`);
+  throw new Error(
+    "Camox: not authenticated. Run `npx camox login` to use your personal dev environment.",
+  );
 }
 
 export interface CamoxPluginOptions {
   /** Stable, human-readable slug identifying this project (e.g. "prestigious-impala-84") */
   projectSlug: string;
-  /** Secret used to authenticate definition sync requests with the API */
-  syncSecret: string;
   /** Disable PostHog telemetry collection (default: false) */
   disableTelemetry?: boolean;
   /** Internal options (intended for Camox contributors in development, not for public use) */
@@ -142,8 +129,10 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
   const runtimeBasePath = options._internal?.runtimeBasePath;
 
   let isBuild = false;
+  let isRelease = false;
   let resolvedConfig: ResolvedConfig;
   let environmentName: string;
+  let localAuth: StoredAuth | null = null;
 
   return {
     name: "camox",
@@ -197,7 +186,13 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
     },
     config(_config, env) {
       isBuild = env.command === "build";
-      environmentName = resolveEnvironmentName(env.command, authenticationUrl);
+      isRelease = isBuild && process.env.CAMOX_INTERNAL_RELEASE === "1";
+      if (isRelease) {
+        environmentName = "production";
+      } else {
+        localAuth = requireLocalAuth(authenticationUrl);
+        environmentName = `dev:${localAuth.email}`;
+      }
       return {
         build: {
           emitAssets: true,
@@ -363,16 +358,21 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
       server.httpServer?.once("listening", () => {
         void syncDefinitions(server, {
           projectSlug: options.projectSlug,
-          syncSecret: options.syncSecret,
           apiUrl,
           environmentName,
           autoCreate: true,
+          authToken: localAuth?.token,
         });
       });
     },
 
     async closeBundle() {
-      if (!isBuild) return;
+      if (!isRelease) return;
+
+      const deployToken = process.env.CAMOX_DEPLOY_TOKEN;
+      if (!deployToken) {
+        throw new Error("Camox: CAMOX_DEPLOY_TOKEN is required to release to production.");
+      }
 
       const camoxAppPath = "./src/camox/app.ts";
 
@@ -400,9 +400,9 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
           camoxApp: camoxModule.camoxApp,
           projectSlug: options.projectSlug,
           apiUrl,
-          syncSecret: options.syncSecret,
           environmentName,
           autoCreate: false,
+          deployToken,
           logger: resolvedConfig.logger,
         });
       } finally {

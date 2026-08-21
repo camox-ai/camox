@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { assertSyncSecret } from "../../authorization";
+import { assertSyncAccess } from "../../authorization";
 import { resolveEnvironment } from "../../lib/resolve-environment";
 import { blockDefinitions, blocks, layouts, pages } from "../../schema";
 import type { ServiceContext } from "../_shared/service-context";
@@ -25,20 +25,20 @@ export const listBlockDefinitionsInput = z.object({ projectId: z.number() });
 
 export const syncBlockDefinitionsInput = z.object({
   projectSlug: z.string(),
-  syncSecret: z.string(),
+  deployToken: z.string().optional(),
   autoCreate: z.boolean(),
   definitions: z.array(z.object(definitionFields)),
 });
 
 export const upsertBlockDefinitionInput = z.object({
   projectSlug: z.string(),
-  syncSecret: z.string(),
+  deployToken: z.string().optional(),
   ...definitionFields,
 });
 
 export const deleteBlockDefinitionInput = z.object({
   projectSlug: z.string(),
-  syncSecret: z.string(),
+  deployToken: z.string().optional(),
   blockId: z.string(),
 });
 
@@ -69,7 +69,11 @@ export async function syncBlockDefinitions(
 ) {
   const input = syncBlockDefinitionsInput.parse(rawInput);
   const { projectSlug, definitions, autoCreate } = input;
-  const project = await assertSyncSecret(ctx.db, projectSlug, input.syncSecret);
+  const project = await assertSyncAccess(ctx.db, projectSlug, {
+    user: ctx.user,
+    environmentName: ctx.environmentName,
+    deployToken: input.deployToken,
+  });
   const projectId = project.id;
   const environment = await resolveEnvironment(ctx.db, projectId, ctx.environmentName, {
     autoCreate,
@@ -190,8 +194,12 @@ export async function upsertBlockDefinition(
   ctx: ServiceContext,
   rawInput: z.input<typeof upsertBlockDefinitionInput>,
 ) {
-  const { projectSlug, syncSecret, ...body } = upsertBlockDefinitionInput.parse(rawInput);
-  const project = await assertSyncSecret(ctx.db, projectSlug, syncSecret);
+  const { projectSlug, deployToken, ...body } = upsertBlockDefinitionInput.parse(rawInput);
+  const project = await assertSyncAccess(ctx.db, projectSlug, {
+    user: ctx.user,
+    environmentName: ctx.environmentName,
+    deployToken,
+  });
   const projectId = project.id;
   const environment = await resolveEnvironment(ctx.db, projectId, ctx.environmentName, {
     autoCreate: true,
@@ -251,8 +259,12 @@ export async function deleteBlockDefinition(
   ctx: ServiceContext,
   rawInput: z.input<typeof deleteBlockDefinitionInput>,
 ) {
-  const { projectSlug, syncSecret, blockId } = deleteBlockDefinitionInput.parse(rawInput);
-  const project = await assertSyncSecret(ctx.db, projectSlug, syncSecret);
+  const { projectSlug, deployToken, blockId } = deleteBlockDefinitionInput.parse(rawInput);
+  const project = await assertSyncAccess(ctx.db, projectSlug, {
+    user: ctx.user,
+    environmentName: ctx.environmentName,
+    deployToken,
+  });
   const environment = await resolveEnvironment(ctx.db, project.id, ctx.environmentName);
   const result = await ctx.db
     .delete(blockDefinitions)
