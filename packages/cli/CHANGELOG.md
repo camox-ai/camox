@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.37.0](https://github.com/remidej/camox/compare/camox-v0.36.3...@camox/cli-v0.37.0) (2026-08-21)
+
+
+### Features
+
+* logged out flow instead of crashing dev server ([b3f6efe](https://github.com/remidej/camox/commit/b3f6efe22b7d97db723982d07fd8262a5a4caad2))
+* new camox release command instead of sync secret ([b9776c1](https://github.com/remidej/camox/commit/b9776c1ab8b1acd1f5986d43b34efcc7e00c181c))
+
 ## [0.36.3](https://github.com/remidej/camox/compare/camox-v0.36.2...@camox/cli-v0.36.3) (2026-08-09)
 
 
