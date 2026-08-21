@@ -1,81 +1,40 @@
 import { execSync } from "node:child_process";
-import fs from "node:fs";
 import http from "node:http";
-import os from "node:os";
-import path from "node:path";
 
 import * as p from "@clack/prompts";
+
+import {
+  type AuthToken,
+  readAuthTokenForUrl,
+  removeAuthTokenForUrl,
+  verifyOneTimeToken,
+  writeAuthTokenForUrl,
+} from "./auth-core";
+
+export type { AuthToken } from "./auth-core";
+export {
+  readAuthTokenForUrl,
+  removeAuthTokenForUrl,
+  verifyOneTimeToken,
+  writeAuthTokenForUrl,
+} from "./auth-core";
 
 const CAMOX_URL = process.env.CAMOX_URL || "https://app.camox.dev";
 const CAMOX_API_URL = process.env.CAMOX_API_URL || "https://api.camox.dev";
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-const AUTH_DIR = path.join(os.homedir(), ".camox");
-const AUTH_FILE = path.join(AUTH_DIR, "auth.json");
-
-interface AuthToken {
-  token: string;
-  name: string;
-  email: string;
-}
-
-interface AuthResult {
-  name: string;
-  email: string;
-}
 
 // --- Token persistence (keyed by CAMOX_URL) ---
-
-function normalizeUrl(url: string): string {
-  return url.replace(/\/+$/, "");
-}
-
-function readAllTokens(): Record<string, AuthToken> {
-  try {
-    return JSON.parse(fs.readFileSync(AUTH_FILE, "utf-8"));
-  } catch {
-    return {};
-  }
-}
-
-function writeAllTokens(tokens: Record<string, AuthToken>): void {
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
-  fs.writeFileSync(AUTH_FILE, JSON.stringify(tokens, null, 2), { mode: 0o600 });
-}
 
 export function readAuthToken(): AuthToken | null {
   return readAuthTokenForUrl(CAMOX_URL);
 }
 
-/**
- * Look up a stored token by an explicit auth URL. Used by the tool dispatch
- * path, which sources the URL from the vite plugin sidecar rather than env
- * vars so the right credential is selected per project.
- */
-export function readAuthTokenForUrl(authenticationUrl: string): AuthToken | null {
-  const tokens = readAllTokens();
-  const entry = tokens[normalizeUrl(authenticationUrl)];
-  if (entry?.token && entry?.name) return entry;
-  return null;
-}
-
 export function writeAuthToken(token: AuthToken): void {
-  const tokens = readAllTokens();
-  tokens[normalizeUrl(CAMOX_URL)] = token;
-  writeAllTokens(tokens);
+  writeAuthTokenForUrl(CAMOX_URL, token);
 }
 
 export function removeAuthToken(): void {
-  const tokens = readAllTokens();
-  delete tokens[normalizeUrl(CAMOX_URL)];
-  if (Object.keys(tokens).length === 0) {
-    try {
-      fs.unlinkSync(AUTH_FILE);
-    } catch {
-      // Ignore if file doesn't exist
-    }
-  } else {
-    writeAllTokens(tokens);
-  }
+  removeAuthTokenForUrl(CAMOX_URL);
 }
 
 // --- Browser auth flow ---
@@ -138,37 +97,6 @@ function startCallbackServer(): Promise<{
   });
 }
 
-interface VerifyResult extends AuthResult {
-  sessionToken: string;
-}
-
-async function verifyOtt(token: string): Promise<VerifyResult> {
-  const res = await fetch(`${CAMOX_API_URL}/api/auth/one-time-token/verify`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`OTT verification failed: ${res.status}`);
-  }
-
-  const data: { user?: { name?: string; email?: string }; session?: { token?: string } } =
-    await res.json();
-
-  const user = data.user;
-  if (!user?.name) {
-    throw new Error("No user info in verification response");
-  }
-
-  const sessionToken = data.session?.token;
-  if (!sessionToken) {
-    throw new Error("No session token in verification response");
-  }
-
-  return { name: user.name, email: user.email ?? "", sessionToken };
-}
-
 async function authenticateUser(): Promise<AuthToken> {
   const { port, ottPromise, close } = await startCallbackServer();
 
@@ -205,16 +133,10 @@ async function authenticateUser(): Promise<AuthToken> {
     ]);
 
     s.message("Verifying...");
-    const result = await verifyOtt(ott);
-
-    const authToken: AuthToken = {
-      token: result.sessionToken,
-      name: result.name,
-      email: result.email,
-    };
+    const authToken = await verifyOneTimeToken(CAMOX_API_URL, ott);
     writeAuthToken(authToken);
 
-    s.stop(`Authenticated as ${result.name}`);
+    s.stop(`Authenticated as ${authToken.name}`);
     return authToken;
   } catch (err) {
     s.stop("Authentication failed.");

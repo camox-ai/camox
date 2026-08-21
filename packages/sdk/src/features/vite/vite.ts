@@ -1,10 +1,9 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { readAuthTokenForUrl } from "@camox/cli/auth";
 import { type Plugin, type ResolvedConfig, type ViteDevServer, createServer } from "vite-plus";
-import { z } from "zod";
 
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const VIRTUAL_STUDIO_CSS = "virtual:camox-studio-css";
@@ -17,6 +16,7 @@ const VIRTUAL_STUDIO_CLIENT = "virtual:camox/studio-client";
 const RESOLVED_VIRTUAL_STUDIO_CLIENT_URL = "\0virtual:camox/studio-client-url";
 import { generateAppFile, watchAppFile } from "./appGeneration";
 import { watchNewBlockFiles } from "./blockBoilerplate";
+import { installDevAuthenticationMiddleware } from "./devAuthentication";
 
 const PRODUCTION_API_URL = "https://api.camox.dev";
 import { syncDefinitions, syncDefinitionsToApi } from "./definitionsSync";
@@ -26,13 +26,6 @@ import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
 /** Authentication URL to use for Camox authentication (production Camox Dashboard) */
 const DEFAULT_AUTHENTICATION_URL = "https://app.camox.dev";
-
-const authTokenSchema = z.object({
-  token: z.string(),
-  name: z.string(),
-  email: z.string(),
-});
-const authFileSchema = z.record(z.string(), authTokenSchema);
 
 interface CamoxNitro {
   hooks: {
@@ -55,19 +48,7 @@ type CamoxVitePlugin = Plugin & {
   };
 };
 
-type StoredAuth = z.infer<typeof authTokenSchema>;
-
-function readAuth(authenticationUrl: string): StoredAuth | null {
-  const authFile = join(homedir(), ".camox", "auth.json");
-  const key = authenticationUrl.replace(/\/+$/, "");
-  try {
-    const raw = JSON.parse(readFileSync(authFile, "utf-8"));
-    const tokens = authFileSchema.parse(raw);
-    return tokens[key] ?? null;
-  } catch {
-    return null;
-  }
-}
+type StoredAuth = NonNullable<ReturnType<typeof readAuthTokenForUrl>>;
 
 /**
  * Drop a sidecar at `<root>/node_modules/.camox/runtime.json` so the `camox`
@@ -90,15 +71,6 @@ function writeRuntimeSidecar(
   const dir = join(root, "node_modules", ".camox");
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "runtime.json"), `${JSON.stringify(data, null, 2)}\n`);
-}
-
-function requireLocalAuth(authenticationUrl: string): StoredAuth {
-  const auth = readAuth(authenticationUrl);
-  if (auth) return auth;
-
-  throw new Error(
-    "Camox: not authenticated. Run `npx camox login` to use your personal dev environment.",
-  );
 }
 
 export interface CamoxPluginOptions {
@@ -190,8 +162,13 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
       if (isRelease) {
         environmentName = "production";
       } else {
-        localAuth = requireLocalAuth(authenticationUrl);
-        environmentName = `dev:${localAuth.email}`;
+        localAuth = readAuthTokenForUrl(authenticationUrl);
+        if (isBuild && !localAuth) {
+          throw new Error(
+            "Camox: not authenticated. Run `npx camox login` before building the site.",
+          );
+        }
+        environmentName = localAuth ? `dev:${localAuth.email}` : "dev:unauthenticated";
       }
       return {
         build: {
@@ -339,13 +316,18 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
       }
 
       const mode = config.command === "serve" ? "Running" : "Building";
-      config.logger.info(`${mode} Camox app (environment: ${environmentName})`, {
-        timestamp: true,
-      });
+      const environmentLabel = localAuth || isRelease ? environmentName : "authentication required";
+      config.logger.info(`${mode} Camox app (${environmentLabel})`, { timestamp: true });
     },
 
     configureServer(server: ViteDevServer) {
       const routesDir = resolve(server.config.root, "src/routes");
+
+      installDevAuthenticationMiddleware(server, {
+        apiUrl,
+        authenticationUrl,
+        isAuthenticated: localAuth !== null,
+      });
 
       if (!disableCodeGen) {
         watchAppFile(server, server.config.root);
@@ -356,6 +338,7 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
       }
 
       server.httpServer?.once("listening", () => {
+        if (!localAuth) return;
         void syncDefinitions(server, {
           projectSlug: options.projectSlug,
           apiUrl,

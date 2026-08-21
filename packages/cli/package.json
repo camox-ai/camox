@@ -12,7 +12,21 @@
   "type": "module",
   "main": "./dist/index.mjs",
   "exports": {
-    ".": "./dist/index.mjs"
+    ".": "./dist/index.mjs",
+    "./auth": {
+      "source": "./src/lib/auth-core.ts",
+      "types": "./dist/lib/auth-core.d.mts",
+      "import": "./dist/lib/auth-core.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./auth": {
+        "types": "./dist/lib/auth-core.d.mts",
+        "import": "./dist/lib/auth-core.mjs"
+      }
+    }
   },
   "scripts": {
     "build": "node scripts/sync-templates.mjs && vp pack",
