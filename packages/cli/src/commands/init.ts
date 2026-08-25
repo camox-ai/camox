@@ -8,6 +8,7 @@ import { object } from "@optique/core/constructs";
 import { command, constant } from "@optique/core/primitives";
 import slugify from "slugify";
 
+import { createAgentSkillLinks } from "../lib/agent-skills";
 import {
   type Organization,
   checkSlugAvailability,
@@ -282,6 +283,7 @@ export async function init() {
   copyDir(templateDir, targetDir, {
     "{{projectName}}": name,
   });
+  createAgentSkillLinks(targetDir);
 
   // Rewrite vite.config.ts: the template uses literal values (so it can run as
   // a real app in the monorepo) marked with comments that the CLI processes.

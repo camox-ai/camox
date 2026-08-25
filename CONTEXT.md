@@ -16,6 +16,10 @@ _Avoid_: Stage, branch
 The developer-facing Camox package published to npm as `camox`. It provides the APIs and runtime used to define blocks, layouts, and Camox-powered sites in code.
 _Avoid_: Library, framework package
 
+**Agent Skill**:
+Versioned guidance shipped with the **SDK** that teaches coding agents how to work with Camox code and content.
+_Avoid_: Generated docs, agent rules
+
 **Camox Studio**:
 The Camox editing UI for visually managing pages, blocks, content, metadata, assets, and publishing workflows.
 _Avoid_: Admin, dashboard, editor

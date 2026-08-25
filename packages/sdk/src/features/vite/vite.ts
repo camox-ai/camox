@@ -22,7 +22,6 @@ const PRODUCTION_API_URL = "https://api.camox.dev";
 import { syncDefinitions, syncDefinitionsToApi } from "./definitionsSync";
 import { cleanupGeneratedRouteFiles } from "./routeGeneration";
 import { installRuntimeNitroRoutes, loadRuntimeDevModule, resolveRuntimeDevId } from "./runtimeDev";
-import { generateSkillFiles, watchSkillFiles } from "./skillGeneration";
 
 /** Authentication URL to use for Camox authentication (production Camox Dashboard) */
 const DEFAULT_AUTHENTICATION_URL = "https://app.camox.dev";
@@ -86,7 +85,7 @@ export interface CamoxPluginOptions {
     authenticationUrl?: string;
     /** Show Tanstack query devtools (default: false) */
     enableTanstackDevtools?: boolean;
-    /** Disable automatic code generation (route files, app file, skill files) (default: false) */
+    /** Disable automatic code generation (route files and app file) (default: false) */
     disableCodeGen?: boolean;
     /** Mount the Camox-owned dev runtime at this base path. Use "/" for root mode. */
     runtimeBasePath?: string;
@@ -303,7 +302,6 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
       if (!disableCodeGen) {
         generateAppFile(config.root);
         cleanupGeneratedRouteFiles(routesDir);
-        generateSkillFiles(config.root);
       }
 
       if (disableCodeGen) {
@@ -332,7 +330,6 @@ export function camox(options: CamoxPluginOptions): CamoxVitePlugin {
       if (!disableCodeGen) {
         watchAppFile(server, server.config.root);
         cleanupGeneratedRouteFiles(routesDir);
-        watchSkillFiles(server, server.config.root);
 
         watchNewBlockFiles(server);
       }

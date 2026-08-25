@@ -1,15 +1,10 @@
----
-name: camox-layout
-description: "How to create and edit Camox layout definition files. Use this skill whenever the user wants to create a new layout for their Camox website, modify an existing layout, wrap pages in shared structure (navbar + footer), customize meta titles or OG images, or asks about the layout definition API. Trigger on mentions of layouts, page wrappers, page templates, shared page structure, navbar/footer placement, or any request to define how pages are structured — even if they don't say 'layout' explicitly."
----
-
 # Creating Camox Layout Definitions
 
 A layout wraps pages in shared structure — a navbar at the top, a footer at the bottom, consistent styling. Each page in the CMS is assigned a layout. This skill covers creating layout **definitions** — the template that describes which blocks surround page content and how to render them.
 
-## After defining the layout: load `camox-cli`
+## After defining the layout: assign it when requested
 
-A definition only adds a new layout to the catalog — it doesn't apply it to any page, and existing pages keep whatever layout they were already assigned. If the user wanted "the about page to use the new marketing layout" or "all docs pages to use this layout", the second half of that work is reassigning pages, which happens through the CLI. Once the layout is defined and the dev server has picked it up, **load the `camox-cli` skill** to update the relevant pages' layout assignments. Don't stop after the definition unless the user explicitly only wanted to set up the layout for future pages.
+A definition only adds a new Layout to the catalog — it doesn't apply it to any Page, and existing Pages keep their current Layout. If the user wanted "the about Page to use the new marketing Layout" or "all docs Pages to use this Layout", follow the umbrella skill's CLI routing to update the relevant Pages after the dev server has picked up the definition. Don't stop after the definition unless the user explicitly requested only a reusable Layout Definition.
 
 ## Quick Start
 
