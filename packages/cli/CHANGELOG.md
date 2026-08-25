@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.0](https://github.com/remidej/camox/compare/camox-v0.37.0...@camox/cli-v0.38.0) (2026-08-25)
+
+
+### Features
+
+* refactor skills into umbrella symlinked skill ([733acea](https://github.com/remidej/camox/commit/733acea2326ba1ef6525c12bf46a86610a7cfda5))
+
 ## [0.37.0](https://github.com/remidej/camox/compare/camox-v0.36.3...@camox/cli-v0.37.0) (2026-08-21)
 
 
