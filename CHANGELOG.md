@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.38.0](https://github.com/remidej/camox/compare/camox-v0.37.0...camox-v0.38.0) (2026-08-25)
+
+
+### Features
+
+* refactor skills into umbrella symlinked skill ([733acea](https://github.com/remidej/camox/commit/733acea2326ba1ef6525c12bf46a86610a7cfda5))
+
+
+### Miscellaneous
+
+* remove convex generated from ignore patterns ([f8482d3](https://github.com/remidej/camox/commit/f8482d320a653a454584eb586149c446ccdf036e))
+
 ## [0.37.0](https://github.com/remidej/camox/compare/camox-v0.36.3...camox-v0.37.0) (2026-08-21)
 
 
