@@ -103,10 +103,6 @@ const CreatePageModal = () => {
         // Small delay to allow database to sync before navigation
         await new Promise((resolve) => setTimeout(resolve, 50));
         await navigate({ to: fullPath });
-        previewStore.send({
-          type: "openAgentChatSidebar",
-          pageScaffoldContext: { nickname, fullPath },
-        });
       } catch (error) {
         console.error("Failed to create page:", error);
         toast.error("Could not create page");

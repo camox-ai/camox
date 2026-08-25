@@ -9,7 +9,7 @@ export type ToolContext = ServiceContext & {
   projectId: number;
 };
 
-export type ToolSurface = "cli" | "agentChat";
+export type ToolSurface = "cli";
 
 export type ToolRisk = "safe" | "requiresApproval";
 

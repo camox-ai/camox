@@ -1,20 +1,4 @@
-import type { ModelMessage, UIMessage } from "@tanstack/ai";
-
 export type { Router } from "../../../apps/api/src/router";
-
-export type AgentChatSource = "draft" | "live";
-
-export type AgentChatRequestContext = {
-  projectId: number;
-  currentPath: string;
-  source: AgentChatSource;
-};
-
-export type AgentChatMessage = ModelMessage | UIMessage;
-
-export type AgentChatRequest = AgentChatRequestContext & {
-  messages: AgentChatMessage[];
-};
 
 /**
  * Public PostHog project key. Safe to ship in client bundles — write-only and

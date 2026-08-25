@@ -69,7 +69,7 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
     name: "listPages",
     description: "List all pages in the current project.",
     inputSchema: listPagesToolInput,
-    meta: { kind: "read", risk: "safe", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "read", risk: "safe", surfaces: ["cli"] },
     handler: () => listPages(ctx, { projectId: ctx.projectId }),
   },
   {
@@ -78,7 +78,7 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
       "Fetch a single page by id or by full path (e.g. `/about`). Returns the page row and an ordered array of its blocks, each with `id`, `position`, and rendered `markdown`. Layout-scoped blocks are not included — use the layouts tools to inspect those. " +
       "Defaults to reading the draft; pass `source: 'live'` to read the published snapshot (errors if the page has never been published).",
     inputSchema: getPageToolInput,
-    meta: { kind: "read", risk: "safe", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "read", risk: "safe", surfaces: ["cli"] },
     handler: async (input) => {
       const parsed = getPageToolInput.parse(input);
       const source = parsed.source ?? "draft";
@@ -96,7 +96,7 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
       "Create a new page. `layoutId` is required — call listLayouts to discover available layouts. " +
       "`nickname` is the short internal Studio name for the page. The page starts empty; create blocks explicitly after creating it.",
     inputSchema: createPageToolInput,
-    meta: { kind: "write", risk: "safe", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "write", risk: "safe", surfaces: ["cli"] },
     handler: (input) => {
       const data = createPageToolInput.parse(input);
       return createPage(ctx, { ...data, projectId: ctx.projectId });
@@ -107,35 +107,35 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
     description:
       "Update a page's internal `nickname`, `pathSegment`, and/or `parentPageId`. The nickname is only used inside Camox Studio and does not affect visible content or SEO.",
     inputSchema: updatePageInput,
-    meta: { kind: "write", risk: "safe", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "write", risk: "safe", surfaces: ["cli"] },
     handler: (input) => updatePage(ctx, updatePageInput.parse(input)),
   },
   {
     name: "setPageLayout",
     description: "Change a page's layout. Use listLayouts to discover layout ids.",
     inputSchema: setPageLayoutInput,
-    meta: { kind: "write", risk: "safe", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "write", risk: "safe", surfaces: ["cli"] },
     handler: (input) => setPageLayout(ctx, setPageLayoutInput.parse(input)),
   },
   {
     name: "setPageMetaTitle",
     description: "Set a page's SEO meta title.",
     inputSchema: setPageMetaTitleInput,
-    meta: { kind: "write", risk: "safe", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "write", risk: "safe", surfaces: ["cli"] },
     handler: (input) => setPageMetaTitle(ctx, setPageMetaTitleInput.parse(input)),
   },
   {
     name: "setPageMetaDescription",
     description: "Set a page's SEO meta description.",
     inputSchema: setPageMetaDescriptionInput,
-    meta: { kind: "write", risk: "safe", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "write", risk: "safe", surfaces: ["cli"] },
     handler: (input) => setPageMetaDescription(ctx, setPageMetaDescriptionInput.parse(input)),
   },
   {
     name: "deletePage",
     description: "Delete a page by id. The blocks on the page are deleted as well.",
     inputSchema: deletePageInput,
-    meta: { kind: "write", risk: "requiresApproval", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "write", risk: "requiresApproval", surfaces: ["cli"] },
     handler: (input) => deletePage(ctx, deletePageInput.parse(input)),
   },
   {
@@ -144,7 +144,7 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
       "Promote the page's current draft to live. Accepts either `id` or `path` (e.g. `/about`). " +
       "Pass `alsoPublishLayout: true` (default behavior in the CLI's `pages publish`) to bundle the page's layout into the same publish — a no-op when the layout has no pending changes.",
     inputSchema: publishPageToolInput,
-    meta: { kind: "write", risk: "requiresApproval", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "write", risk: "requiresApproval", surfaces: ["cli"] },
     handler: async (input) => {
       const parsed = publishPageToolInput.parse(input);
       const id = await resolvePageTargetId(ctx, parsed);
@@ -157,7 +157,7 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
       "Remove the page's live published snapshot pointer so public/live reads stop serving it. " +
       "The draft is left untouched. Accepts either `id` or `path` (e.g. `/about`).",
     inputSchema: pageMutationTargetInput,
-    meta: { kind: "write", risk: "requiresApproval", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "write", risk: "requiresApproval", surfaces: ["cli"] },
     handler: async (input) => {
       const parsed = pageMutationTargetInput.parse(input);
       const id = await resolvePageTargetId(ctx, parsed);
@@ -170,7 +170,7 @@ export const pagesProvider: ToolProvider = (ctx): ToolDefinition[] => [
       "Reset the page draft to the currently published live snapshot. This does not change live content and fails if the page has never been published. " +
       "Accepts either `id` or `path` (e.g. `/about`).",
     inputSchema: pageMutationTargetInput,
-    meta: { kind: "write", risk: "requiresApproval", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "write", risk: "requiresApproval", surfaces: ["cli"] },
     handler: async (input) => {
       const parsed = pageMutationTargetInput.parse(input);
       const id = await resolvePageTargetId(ctx, parsed);

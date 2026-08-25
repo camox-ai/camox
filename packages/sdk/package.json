@@ -232,7 +232,6 @@
     "@sinclair/typebox": "^0.34.49",
     "@takumi-rs/image-response": "^0.70.4",
     "@takumi-rs/wasm": "^0.70.4",
-    "@tanstack/ai-react": "^0.11.7",
     "@tanstack/react-form": "^1.32.0",
     "@tanstack/react-query-devtools": "^5.100.11",
     "@unhead/react": "^3.1.7",
@@ -251,7 +250,6 @@
     "react-dom": "^19.2.6",
     "react-og-preview": "^0.2.0",
     "shiki": "^4.1.0",
-    "streamdown": "^2.5.0",
     "unhead": "^3.1.7",
     "zod": "^4.4.3"
   },

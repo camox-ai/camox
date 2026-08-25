@@ -162,20 +162,6 @@ const PreviewPanel = ({ children, toolbarProps }: PreviewPanelProps) => {
         execute: () => previewStore.send({ type: "setViewportMode", mode: "mobile" }),
       },
       {
-        id: "toggle-agent-chat",
-        label: "Toggle agent chat",
-        aliases: ["AI chat", "Assistant", "Ask AI", "Open chat"],
-        groupLabel: "Preview",
-        checkIfAvailable: () => true,
-        execute: () => {
-          const { isAgentChatSidebarOpen } = previewStore.getSnapshot().context;
-          previewStore.send({
-            type: isAgentChatSidebarOpen ? "closeAgentChatSidebar" : "openAgentChatSidebar",
-          });
-        },
-        shortcut: { key: "i", withAlt: true },
-      },
-      {
         id: "clear-selection",
         label: "Clear selection",
         aliases: ["Deselect", "Unselect"],

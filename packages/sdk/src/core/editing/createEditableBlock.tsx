@@ -1793,10 +1793,6 @@ export function createEditableBlock<
       previewStore,
       (state) => state.context.isAddBlockSidebarOpen,
     );
-    const pendingAgentBlockFocus = useSelector(
-      previewStore,
-      (state) => state.context.pendingAgentBlockFocus,
-    );
     const isBlockSelected = selection?.blockId === blockData._id;
     const ref = React.useRef<HTMLDivElement>(null);
 
@@ -1811,33 +1807,12 @@ export function createEditableBlock<
     // Scroll block into view when selected or when content sheet opens
     React.useEffect(() => {
       if (!isBlockSelected || !ref.current) return;
-      if (pendingAgentBlockFocus?.blockId === blockData._id) return;
 
       ref.current.scrollIntoView({
         behavior: isFirstRender ? "instant" : "smooth",
         block: isFirstRender ? "start" : "nearest",
       });
-    }, [
-      blockData._id,
-      isBlockSelected,
-      isFirstRender,
-      isPageEditorSidebarOpen,
-      pendingAgentBlockFocus,
-    ]);
-
-    React.useEffect(() => {
-      if (!pendingAgentBlockFocus || pendingAgentBlockFocus.blockId !== blockData._id) return;
-      if (!ref.current) return;
-
-      ref.current.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-      previewStore.send({
-        type: "clearPendingAgentBlockFocus",
-        requestId: pendingAgentBlockFocus.requestId,
-      });
-    }, [blockData._id, pendingAgentBlockFocus]);
+    }, [blockData._id, isBlockSelected, isFirstRender, isPageEditorSidebarOpen]);
 
     // Listen for sidebar-triggered hover messages
     const isHoveredFromSidebar = useOverlayMessage(

@@ -11,7 +11,7 @@ export const layoutsProvider: ToolProvider = (ctx): ToolDefinition[] => [
     description:
       "List the layouts available in the current project. Layout ids are required when creating pages.",
     inputSchema: listLayoutsToolInput,
-    meta: { kind: "read", risk: "safe", surfaces: ["cli", "agentChat"] },
+    meta: { kind: "read", risk: "safe", surfaces: ["cli"] },
     handler: () => listLayouts(ctx, { projectId: ctx.projectId }),
   },
 ];
