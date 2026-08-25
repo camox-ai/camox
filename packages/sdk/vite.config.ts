@@ -63,7 +63,6 @@ export default defineConfig({
     rules: {
       "no-nested-ternary": "error",
     },
-    ignorePatterns: ["**/convex/_generated/**"],
     options: {
       typeAware: true,
       typeCheck: true,
