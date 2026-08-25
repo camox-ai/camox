@@ -19,12 +19,6 @@ Replace the placeholder Agent Chat sheet with a first-class Camox Studio chat su
 - The agent creates Pages and Blocks itself. Page creation creates an empty Page shell; Blocks are added explicitly afterward.
 - No client-side tools, file tools, environment tools, or navigation tools in v1.
 
-See also: `docs/adr/0001-tanstack-ai-agent-chat.md`.
-
-## Domain Language
-
-`CONTEXT.md` defines **Agent Chat** as a Camox Studio surface where a user describes desired page, layout, or content changes and an agent uses Camox tools to inspect and modify the current Project Environment.
-
 ## API Design
 
 ### Route
