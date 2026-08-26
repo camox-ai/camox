@@ -16,6 +16,7 @@ import {
 } from "../../schema";
 import type { AppEnv, Bindings } from "../../types";
 import { crossDomain } from "./cross-domain";
+import { sendPasswordResetEmail, sendVerificationEmail } from "./email";
 
 // --- Auth Factory ---
 
@@ -46,7 +47,12 @@ export function getCookieDomain(siteUrl: string): string | undefined {
   }
 }
 
-export function createAuth(db: Database, env: Bindings, baseURL: string) {
+export function createAuth(
+  db: Database,
+  env: Bindings,
+  baseURL: string,
+  waitUntil?: (promise: Promise<unknown>) => void,
+) {
   // Camox services may use sibling hosts in production. Localhost works
   // without an explicit domain.
   const cookieDomain = getCookieDomain(baseURL);
@@ -58,9 +64,21 @@ export function createAuth(db: Database, env: Bindings, baseURL: string) {
     }),
     baseURL,
     secret: env.BETTER_AUTH_SECRET,
+    emailVerification: {
+      sendOnSignUp: true,
+      sendOnSignIn: true,
+      autoSignInAfterVerification: true,
+      sendVerificationEmail: async ({ user, url }) => {
+        await sendVerificationEmail(env, user.email, url);
+      },
+    },
     emailAndPassword: {
       enabled: true,
-      requireEmailVerification: false,
+      requireEmailVerification: true,
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword: async ({ user, url }) => {
+        await sendPasswordResetEmail(env, user.email, url);
+      },
     },
     socialProviders: {
       github: {
@@ -79,6 +97,13 @@ export function createAuth(db: Database, env: Bindings, baseURL: string) {
     // Accept requests from any origin — Camox sites run on arbitrary customer domains
     trustedOrigins: ["*"],
     advanced: {
+      ...(waitUntil
+        ? {
+            backgroundTasks: {
+              handler: waitUntil,
+            },
+          }
+        : {}),
       crossSubDomainCookies: cookieDomain
         ? {
             enabled: true,
@@ -121,6 +146,8 @@ export type Auth = ReturnType<typeof createAuth>;
 
 export const authRoutes = new Hono<AppEnv>().on(["POST", "GET"], "/*", async (c) => {
   const url = new URL(c.req.url);
-  const auth = createAuth(c.var.db, c.env, url.origin);
+  const auth = createAuth(c.var.db, c.env, url.origin, (promise) =>
+    c.executionCtx.waitUntil(promise),
+  );
   return auth.handler(c.req.raw);
 });

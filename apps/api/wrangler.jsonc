@@ -8,6 +8,13 @@
   "vars": {
     "DASHBOARD_URL": "https://app.camox.dev",
   },
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "remote": true,
+      "allowed_sender_addresses": ["auth@camox.dev"],
+    },
+  ],
   "d1_databases": [
     {
       "binding": "DB",

@@ -10,6 +10,7 @@ export type Bindings = {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   DASHBOARD_URL: string;
+  EMAIL: SendEmail;
   OPEN_ROUTER_API_KEY: string;
   AI_JOB_SCHEDULER: DurableObjectNamespace;
   ProjectRoom: DurableObjectNamespace;
