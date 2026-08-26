@@ -7,8 +7,8 @@ catalog:
   vite-plus: ^0.1.21
   vitest: npm:@voidzero-dev/vite-plus-test@latest
 overrides:
-  vite: "catalog:"
-  vitest: "catalog:"
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.7
+  vitest: npm:@voidzero-dev/vite-plus-test@0.1.21
 peerDependencyRules:
   allowAny:
     - vite
