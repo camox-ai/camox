@@ -56,7 +56,7 @@ const featureVideoGrid = createBlock({
         }),
       },
       minItems: 1,
-      maxItems: 2,
+      maxItems: Infinity,
       title: "Feature videos",
       toMarkdown: (c) => [`### ${c.title}`, c.label, c.description, c.video, c.points],
     }),

@@ -141,6 +141,13 @@
       "when": 1785932757000,
       "tag": "0019_migrate_camox_dev_urls",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1787822517201,
+      "tag": "0020_dizzy_spiral",
+      "breakpoints": true
     }
   ]
 }

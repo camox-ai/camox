@@ -16,7 +16,11 @@ import {
 } from "../../schema";
 import type { AppEnv, Bindings } from "../../types";
 import { crossDomain } from "./cross-domain";
-import { sendPasswordResetEmail, sendVerificationEmail } from "./email";
+import {
+  sendOrganizationInvitationEmail,
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from "./email";
 
 // --- Auth Factory ---
 
@@ -114,7 +118,19 @@ export function createAuth(
           },
     },
     plugins: [
-      organization(),
+      organization({
+        sendInvitationEmail: async ({ email, id, inviter, organization }) => {
+          const url = new URL("/accept-invitation", env.DASHBOARD_URL);
+          url.searchParams.set("invitationId", id);
+
+          await sendOrganizationInvitationEmail(env, {
+            to: email,
+            organizationName: organization.name,
+            inviterName: inviter.user.name,
+            url: url.toString(),
+          });
+        },
+      }),
       crossDomain({ siteUrl: env.DASHBOARD_URL }),
       oneTimeToken(),
       bearer(),

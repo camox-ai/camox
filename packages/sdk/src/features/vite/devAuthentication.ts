@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import { verifyOneTimeToken, writeAuthTokenForUrl } from "@camox/cli/auth";
 import type { ViteDevServer } from "vite-plus";
+
+import { verifyOneTimeToken, writeAuthTokenForUrl } from "./auth";
 
 const CALLBACK_PATH = "/__camox/auth/callback";
 const READY_PATH = "/__camox/auth/ready";

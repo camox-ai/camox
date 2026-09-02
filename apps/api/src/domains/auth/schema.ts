@@ -82,7 +82,9 @@ export const invitation = sqliteTable("invitation", {
   email: text().notNull(),
   role: text(),
   status: text().notNull().default("pending"),
+  teamId: text(),
   expiresAt: int("expiresAt", { mode: "timestamp_ms" }).notNull(),
+  createdAt: int("createdAt", { mode: "timestamp_ms" }).notNull(),
   inviterId: text("inviterId")
     .notNull()
     .references(() => user.id),

@@ -1,54 +1,45 @@
 import { Type, createBlock } from "camox/createBlock";
 
 import { BlockContainer } from "@/components/BlockContainer";
-import { InlineHeading } from "@/components/InlineHeading";
 import { Pill } from "@/components/Pill";
 
 const paragraphGrid = createBlock({
   id: "paragraph-grid",
   title: "Paragraph Grid",
   description:
-    "Use this block to present a large section heading, a grid of statement paragraphs (each pairing a bold lead with a muted continuation, similar to Large Paragraphs Group but with smaller text and arranged 2-up), and a primary-colored synthesis banner that closes the section. Good fit for 'why us' or 'pain points → resolution' sections where four short statements set up a problem and a final banner lands the takeaway. Works best with exactly 4 paragraphs so the grid is balanced.",
+    "Use this block for a 'why us' section about avoiding the operational pitfalls of agent-built websites. Open with a concise promise, follow with four problem-led benefits, and close with a synthesis banner. Each item should name a concrete failure the product prevents, then explain how it prevents it. Emphasize the key failure term with inline italics. Keep claims grounded in product behavior and do not criticize named competitors.",
   content: {
     pill: Type.String({
       default: "Why us",
       title: "Pill label",
     }),
     title: Type.String({
-      default: "Don't let your website hold you back.",
+      default: "Agent-built websites, without the usual pitfalls.",
       title: "Section heading",
-    }),
-    description: Type.String({
-      default: "A muted continuation that frames the section in one or two sentences.",
-      title: "Description",
     }),
     paragraphs: Type.Repeater({
       content: {
-        logos: Type.ImageList({
-          defaultItems: 2,
-          title: "Logos",
-        }),
         title: Type.String({
-          default: "A short, bold lead sentence.",
-          title: "Lead",
+          default: "Pages don't *drift*.",
+          title: "Problem prevented",
         }),
         description: Type.String({
-          default: "A muted continuation that explains the lead in one or two sentences.",
-          title: "Continuation",
+          default: "Shared blocks keep your site consistent as it grows.",
+          title: "How it works",
         }),
       },
-      minItems: 2,
-      maxItems: 8,
-      title: "Paragraphs",
-      toMarkdown: (c) => [`**${c.title}** ${c.description}`, c.logos],
+      minItems: 4,
+      maxItems: 4,
+      title: "Problem-led benefits",
+      toMarkdown: (c) => [`**${c.title}** ${c.description}`],
     }),
     bannerText: Type.String({
-      default: "Camox sites don't hold you back. Agent productivity, CMS maintainability. No slop.",
+      default: "Camox combines the *speed* of agents with the *structure* of a CMS.",
       title: "Banner text",
     }),
   },
   component: ParagraphGridComponent,
-  toMarkdown: (c) => [c.pill, `# ${c.title}`, c.description, c.paragraphs, `**${c.bannerText}**`],
+  toMarkdown: (c) => [c.pill, `# ${c.title}`, c.paragraphs, `**${c.bannerText}**`],
 });
 
 function ParagraphGridComponent() {
@@ -58,36 +49,45 @@ function ParagraphGridComponent() {
         <paragraphGrid.Field name="pill">
           {(props) => <Pill {...props} className="mb-6" />}
         </paragraphGrid.Field>
-        <InlineHeading
-          lead={
-            <paragraphGrid.Field name="title">{(props) => <span {...props} />}</paragraphGrid.Field>
-          }
-          continuation={
-            <paragraphGrid.Field name="description">
-              {(props) => <span {...props} />}
-            </paragraphGrid.Field>
-          }
-        />
+        <paragraphGrid.Field name="title">
+          {(props) => (
+            <h2
+              {...props}
+              className="text-foreground text-3xl leading-tight font-semibold tracking-tight sm:text-4xl"
+            />
+          )}
+        </paragraphGrid.Field>
       </div>
 
-      <div className="mb-12 grid grid-cols-1 gap-x-16 gap-y-16 md:grid-cols-2">
+      <div className="bg-popover mb-12 rounded-2xl px-5 py-2 sm:px-8 sm:py-3">
         <paragraphGrid.Repeater name="paragraphs">
           {(item) => (
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-row flex-wrap items-center gap-3">
-                <item.ImageList name="logos">
-                  {(props) => <img {...props} className="size-8 object-contain" />}
-                </item.ImageList>
-              </div>
-              <p className="text-foreground text-lg leading-snug font-semibold tracking-tight sm:text-xl">
-                <item.Field name="title">{(props) => <span {...props} />}</item.Field>
+            <article className="grid grid-cols-[1.25rem_minmax(0,1fr)] items-baseline gap-x-2 gap-y-3 py-5 sm:grid-cols-[1.5rem_minmax(0,0.8fr)_minmax(0,1.2fr)] sm:gap-x-4 sm:py-7">
+              <span
+                aria-hidden="true"
+                className="text-primary font-mono text-2xl leading-6 font-semibold"
+              >
+                &gt;
+              </span>
+              <p className="text-foreground text-xl leading-tight font-semibold tracking-tight sm:text-2xl">
+                <item.Field
+                  name="title"
+                  components={{
+                    emphasis: (props) => <em {...props} className="text-primary not-italic" />,
+                  }}
+                >
+                  {(props) => <span {...props} />}
+                </item.Field>
               </p>
               <item.Field name="description">
                 {(props) => (
-                  <p {...props} className="text-muted-foreground text-base leading-snug" />
+                  <p
+                    {...props}
+                    className="text-muted-foreground col-start-2 text-base leading-relaxed sm:col-start-auto sm:text-lg"
+                  />
                 )}
               </item.Field>
-            </div>
+            </article>
           )}
         </paragraphGrid.Repeater>
       </div>

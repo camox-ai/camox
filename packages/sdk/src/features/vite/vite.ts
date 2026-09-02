@@ -2,7 +2,6 @@ import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { readAuthTokenForUrl } from "@camox/cli/auth";
 import { type Plugin, type ResolvedConfig, type ViteDevServer, createServer } from "vite-plus";
 
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -15,6 +14,7 @@ const RESOLVED_VIRTUAL_PAGE_CLIENT_URL = "\0virtual:camox/page-client-url";
 const VIRTUAL_STUDIO_CLIENT = "virtual:camox/studio-client";
 const RESOLVED_VIRTUAL_STUDIO_CLIENT_URL = "\0virtual:camox/studio-client-url";
 import { generateAppFile, watchAppFile } from "./appGeneration";
+import { readAuthTokenForUrl } from "./auth";
 import { watchNewBlockFiles } from "./blockBoilerplate";
 import { installDevAuthenticationMiddleware } from "./devAuthentication";
 

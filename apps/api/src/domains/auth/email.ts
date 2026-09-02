@@ -92,3 +92,23 @@ export function sendPasswordResetEmail(env: Bindings, to: string, url: string): 
     actionUrl: url,
   });
 }
+
+export function sendOrganizationInvitationEmail(
+  env: Bindings,
+  invitation: {
+    to: string;
+    organizationName: string;
+    inviterName: string;
+    url: string;
+  },
+): Promise<void> {
+  return sendAuthEmail(env, {
+    to: invitation.to,
+    subject: `You're invited to join ${invitation.organizationName} on Camox`,
+    preheader: `${invitation.inviterName} invited you to join ${invitation.organizationName} on Camox.`,
+    heading: `Join ${invitation.organizationName}`,
+    body: `${invitation.inviterName} invited you to collaborate in ${invitation.organizationName} on Camox.`,
+    actionLabel: "View invitation",
+    actionUrl: invitation.url,
+  });
+}
