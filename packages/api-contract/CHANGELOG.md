@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.39.0](https://github.com/remidej/camox/compare/camox-v0.38.0...@camox/api-contract-v0.39.0) (2026-09-02)
+
+
+### Features
+
+* remove in-app agent chat ([f5a8ed1](https://github.com/remidej/camox/commit/f5a8ed1e331e45344b8170e2358d0763475819f9))
+
 ## [0.38.0](https://github.com/remidej/camox/compare/camox-v0.37.0...@camox/api-contract-v0.38.0) (2026-08-25)
 
 

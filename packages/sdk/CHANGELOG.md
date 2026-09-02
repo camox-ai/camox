@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.39.0](https://github.com/remidej/camox/compare/camox-v0.38.0...camox-sdk-v0.39.0) (2026-09-02)
+
+
+### Features
+
+* remove in-app agent chat ([f5a8ed1](https://github.com/remidej/camox/commit/f5a8ed1e331e45344b8170e2358d0763475819f9))
+
+
+### Bug Fixes
+
+* use title instead of summary in breadcrumbs ([844f51d](https://github.com/remidej/camox/commit/844f51dce5fe0f29654293021e61790dfebe45aa))
+
+
+### Miscellaneous
+
+* add with without block ([9a74a24](https://github.com/remidej/camox/commit/9a74a24c0fcc4150659ea80d11cb7e737e5d1408))
+
 ## [0.38.0](https://github.com/remidej/camox/compare/camox-v0.37.0...camox-sdk-v0.38.0) (2026-08-25)
 
 
