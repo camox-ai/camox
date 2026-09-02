@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.39.0](https://github.com/remidej/camox/compare/camox-v0.38.0...camox-v0.39.0) (2026-09-02)
+
+
+### Features
+
+* remove in-app agent chat ([f5a8ed1](https://github.com/remidej/camox/commit/f5a8ed1e331e45344b8170e2358d0763475819f9))
+
+
+### Bug Fixes
+
+* better auth cloudflare emails config ([95bbe07](https://github.com/remidej/camox/commit/95bbe07690b2d493bed1364112b55fba9b6fefaa))
+* use title instead of summary in breadcrumbs ([844f51d](https://github.com/remidej/camox/commit/844f51dce5fe0f29654293021e61790dfebe45aa))
+
+
+### Miscellaneous
+
+* add with without block ([9a74a24](https://github.com/remidej/camox/commit/9a74a24c0fcc4150659ea80d11cb7e737e5d1408))
+* delete extreneous camox skill from repo root ([4351ad2](https://github.com/remidej/camox/commit/4351ad282c2ebb33cd02462c927d7345217060e9))
+* replace grill-with-docs by grill-me skill ([d5a8e0a](https://github.com/remidej/camox/commit/d5a8e0a295edd5fba9b1e8676ba5295b3f8aa919))
+* set initial test suite ([03bad77](https://github.com/remidej/camox/commit/03bad7762d42d483387b04d31a83e0fc5edc4663))
+
 ## [0.38.0](https://github.com/remidej/camox/compare/camox-v0.37.0...camox-v0.38.0) (2026-08-25)
 
 
