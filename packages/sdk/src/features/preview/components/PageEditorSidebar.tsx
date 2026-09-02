@@ -368,13 +368,15 @@ const PageEditorSidebar = () => {
     },
     {
       key: "block",
-      label: block.summary || blockDef._internal.title,
+      label: blockDef._internal.title,
       isCurrent: ancestorChain.length === 0 && !fieldHasOwnView,
       onClick: () => previewStore.send({ type: "setFocusedBlock", blockId: block.id }),
     },
     ...ancestorChain.map((ancestor) => ({
       key: `item-${ancestor.id}`,
-      label: ancestor.summary || formatFieldName(ancestor.fieldName),
+      label:
+        (getArraySchemaForItem(blockDef._internal.contentSchema, ancestor.id, itemsMap) as any)
+          ?.title ?? formatFieldName(ancestor.fieldName),
       isCurrent:
         ancestor.id === currentItemId &&
         !fieldHasOwnView &&
