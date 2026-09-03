@@ -80,7 +80,7 @@ function HeroComponent() {
               {(props) => (
                 <h1
                   {...props}
-                  className="text-foreground mb-6 text-4xl leading-tight font-medium tracking-tight sm:text-5xl md:text-6xl"
+                  className="text-foreground mb-6 text-4xl leading-tight font-medium tracking-tight text-balance sm:text-5xl md:text-6xl"
                 />
               )}
             </hero.Field>

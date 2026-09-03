@@ -91,7 +91,7 @@ function FeatureVideoGridComponent() {
           {(item) => (
             <article className="border-border bg-background overflow-hidden rounded-2xl border">
               <div className="border-border bg-muted border-b">
-                <div className="aspect-[4/3] overflow-hidden sm:aspect-[16/10]">
+                <div className="aspect-video overflow-hidden">
                   <item.File name="video">
                     {(_props, { url }) => (
                       <video
@@ -101,7 +101,7 @@ function FeatureVideoGridComponent() {
                         loop
                         playsInline
                         controls={false}
-                        className="h-full w-full scale-125 object-cover"
+                        className="h-full w-full object-cover"
                       />
                     )}
                   </item.File>
